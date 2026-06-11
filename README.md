@@ -1,6 +1,6 @@
-# open-torii
+# ⛩️ open-torii
 
-Torii is an MCP gateway — one endpoint for agents, fan-out to many backends. v0 is a long-lived proxy process + a config file, with structured traces to stdout/OTel.
+open-torii is an MCP gateway — one endpoint for agents, fan-out to many backends. v0 is a long-lived proxy process + a config file, with structured traces to stdout/OTel.
 
 ## Stack
 
