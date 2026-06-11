@@ -1,0 +1,31 @@
+# Torii gateway configuration — loaded at boot, no database required.
+#
+# Each server entry defines an MCP backend. Tools discovered at boot are
+# namespaced as `<server>.<tool>` in the aggregated catalog.
+
+servers:
+  - name: github
+    transport: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-github"]
+    env:
+      GITHUB_PERSONAL_ACCESS_TOKEN: "${GITHUB_TOKEN}"
+
+  - name: linear
+    transport: http
+    url: https://mcp.linear.app/sse
+    credentials:
+      strategy: service_key
+      header: Authorization
+      value: "${LINEAR_API_KEY}"
+
+policy:
+  default: allow
+  rules:
+    - server: github
+      tools: ["create_issue", "create_pull_request"]
+      action: deny
+
+tracing:
+  sink: stdout
+  format: otel
