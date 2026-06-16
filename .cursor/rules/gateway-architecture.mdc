@@ -1,0 +1,72 @@
+---
+description: Gateway app layout — domain folders, service boundaries, and where new stories belong
+globs: apps/gateway/**
+alwaysApply: false
+---
+
+# Gateway architecture (`apps/gateway`)
+
+Organize by **domain capability**, not horizontal layers (`plumbing/`, `core/`, `features/`). Each folder owns one concern: one or two `@injectable()` services, helpers, and a colocated `tests/` directory.
+
+Do **not** create empty domain folders ahead of need. Add a folder when a story implements that capability.
+
+## Domain map (Linear stories → folders)
+
+| Story | Folder | Owns |
+|-------|--------|------|
+| 1 — Config | `config/` | Boot-time load, env resolution, zod validation, `ToriiConfigService` |
+| 2 — Connections | `backends/` | Backend registry, connection state, MCP client connector |
+| 3 — Tool catalog | `catalog/` | Fan-out `tools/list`, namespacing (`server.tool`) |
+| 4a–c — Auth | `credentials/` | OBO / `service_key` / `none` credential resolvers |
+| 5 — Dispatch | `dispatch/` | Route `tools/call` to the correct backend |
+| 6 — Policy | `policy/` | List-level and call-level policy enforcement |
+| 7 — Tracing | `trace/` | Structured `CallTrace` emission |
+| — MCP surface | `mcp/` | Inbound gateway MCP server (Fastify + SDK); delegates to domain services |
+
+`config/` is the exception: it mixes boot infrastructure (`loader.ts`, `schema.ts`, `env-resolver.ts`) with the runtime read-only service (`torii-config.service.ts`). Keep parsing/validation out of services.
+
+## Folder conventions
+
+```
+src/
+  config/           # exists — boot + ToriiConfigService
+  backends/         # Story 2
+  catalog/          # Story 3
+  credentials/      # Story 4
+  dispatch/         # Story 5
+  policy/           # Story 6
+  trace/            # Story 7
+  mcp/              # inbound protocol handlers
+  container.ts      # tsyringe registrations
+  index.ts          # process entry / boot sequence
+```
+
+Within each domain folder:
+
+- **Service** — orchestration and domain state (e.g. `ConnectionManager`)
+- **Types** — colocated (e.g. `backend-connection.ts`)
+- **Infra detail** — thin SDK/HTTP wrappers stay in the same folder until large enough to split (e.g. `mcp-client-connector.ts` in `backends/`)
+- **Tests** — `tests/*.test.ts` beside the code they cover
+
+## `mcp/` vs domain services
+
+`mcp/` is the **front door** only: wire Fastify routes and MCP SDK handlers. It must **delegate** to domain services — no fan-out, policy, or credential logic here.
+
+```text
+Agent → mcp/ (tools/list, tools/call)
+          → catalog/ | dispatch/
+               → credentials/ | policy/ | backends/
+```
+
+## DI (tsyringe, not Nest)
+
+- Register services in `container.ts`
+- Use `@injectable()` on services; constructor injection for dependencies
+- No `@Module()` decorators — folder boundaries replace Nest modules
+
+## Avoid
+
+- Horizontal layer dirs: `plumbing/`, `core/`, `features/`, `infra/`, `domain/`
+- Folders named by story number (`story-3/`)
+- Empty placeholder directories for future stories
+- Business logic in `index.ts` or `mcp/` handlers
