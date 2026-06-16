@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ToriiConfig } from "@torii/shared";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
-import { ConnectionManager } from "../connection-manager.js";
-import type { McpClientConnector } from "../mcp-client-connector.js";
-import { DefaultMcpClientConnector } from "../mcp-client-connector.js";
+import { ConnectionManager } from "../connection-manager.service.js";
+import type { McpClientConnector } from "../types/mcp-client-connector.js";
+import { DefaultMcpClientConnector } from "../mcp-client-connector.service.js";
 import { startMockMcpServer } from "./mock-mcp-server.js";
 
 function serverConfig(
