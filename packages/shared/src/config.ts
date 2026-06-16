@@ -1,59 +1,31 @@
-/** Credential strategy for a backend or tool call. */
-export type CredentialStrategy = "obo" | "service_key" | "gateway";
-
-/** Transport type for an MCP backend connection. */
-export type TransportType = "stdio" | "http";
-
-/** Static credential binding declared in config. */
-export interface CredentialBinding {
-  strategy: CredentialStrategy;
-  header?: string;
-  value?: string;
+/** OAuth provider registered at the gateway level. */
+export interface OAuthProviderConfig {
+  token_url: string;
+  client_id: string;
+  client_secret: string;
+  scopes: string[];
 }
 
-/** Stdio-launched MCP server. */
-export interface StdioServerConfig {
-  name: string;
-  transport: "stdio";
-  command: string;
-  args?: string[];
-  env?: Record<string, string>;
-  credentials?: CredentialBinding;
-}
-
-/** Remote MCP server over HTTP/SSE. */
-export interface HttpServerConfig {
-  name: string;
-  transport: "http";
-  url: string;
-  credentials?: CredentialBinding;
-}
-
-export type ServerConfig = StdioServerConfig | HttpServerConfig;
-
-export type PolicyAction = "allow" | "deny";
-
-export interface PolicyRule {
-  server?: string;
-  tools?: string[];
-  action: PolicyAction;
-}
+export type CredentialConfig =
+  | { strategy: "oauth_obo"; provider: string; subject: string }
+  | { strategy: "service_key"; key: string }
+  | { strategy: "none" };
 
 export interface PolicyConfig {
-  default: PolicyAction;
-  rules?: PolicyRule[];
+  default: "allow" | "deny";
+  allow?: string[];
+  deny?: string[];
 }
 
-export type TraceSink = "stdout" | "otel";
-
-export interface TracingConfig {
-  sink: TraceSink;
-  format?: "json" | "otel";
+export interface ServerConfig {
+  name: string;
+  transport: { type: "http"; url: string };
+  credential: CredentialConfig;
+  policy: PolicyConfig;
 }
 
-/** Root torii.yaml shape — loaded at boot, no database. */
+/** Root torii.yaml shape — env refs are resolved before this type is populated. */
 export interface ToriiConfig {
+  oauth_providers: Record<string, OAuthProviderConfig>;
   servers: ServerConfig[];
-  policy?: PolicyConfig;
-  tracing?: TracingConfig;
 }

@@ -1,31 +1,50 @@
 # Torii gateway configuration — loaded at boot, no database required.
 #
-# Each server entry defines an MCP backend. Tools discovered at boot are
-# namespaced as `<server>.<tool>` in the aggregated catalog.
+# Shapes match @torii/shared (ToriiConfig, ServerConfig, CredentialConfig,
+# PolicyConfig, OAuthProviderConfig). Env refs use ${env:VAR} and are resolved
+# before validation; non-env placeholders such as ${request.user} are left as-is.
+
+oauth_providers:
+  github:
+    token_url: https://github.com/login/oauth/access_token
+    client_id: ${env:GITHUB_CLIENT_ID}
+    client_secret: ${env:GITHUB_CLIENT_SECRET}
+    scopes: [repo]
 
 servers:
   - name: github
-    transport: stdio
-    command: npx
-    args: ["-y", "@modelcontextprotocol/server-github"]
-    env:
-      GITHUB_PERSONAL_ACCESS_TOKEN: "${GITHUB_TOKEN}"
+    transport:
+      type: http
+      url: https://api.githubcopilot.com/mcp/
+    credential:
+      strategy: oauth_obo
+      provider: github
+      subject: ${request.user}
+    policy:
+      default: deny
+      allow:
+        - search_issues
+        - get_file_contents
 
-  - name: linear
-    transport: http
-    url: https://mcp.linear.app/sse
-    credentials:
+  - name: stripe
+    transport:
+      type: http
+      url: https://mcp.stripe.com
+    credential:
       strategy: service_key
-      header: Authorization
-      value: "${LINEAR_API_KEY}"
+      key: ${env:STRIPE_RESTRICTED_KEY}
+    policy:
+      default: deny
+      allow:
+        - list_customers
 
-policy:
-  default: allow
-  rules:
-    - server: github
-      tools: ["create_issue", "create_pull_request"]
-      action: deny
-
-tracing:
-  sink: stdout
-  format: otel
+  - name: deepwiki
+    transport:
+      type: http
+      url: https://mcp.deepwiki.com/mcp
+    credential:
+      strategy: none
+    policy:
+      default: deny
+      allow:
+        - read_wiki_structure
