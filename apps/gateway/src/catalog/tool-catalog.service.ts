@@ -1,5 +1,7 @@
 import { inject, injectable } from "tsyringe";
 import { ConnectionManager } from "../backends/connection-manager.service.js";
+import { CredentialResolverService } from "../credentials/credential-resolver.service.js";
+import { CredentialResolutionError } from "../credentials/types/credential-resolution.js";
 import type { AgentTool, CatalogTool } from "./types/catalog-tool.js";
 import { namespaceTool } from "./utils/namespacing.js";
 
@@ -10,6 +12,8 @@ export class ToolCatalogService {
   constructor(
     @inject(ConnectionManager)
     private readonly connectionManager: ConnectionManager,
+    @inject(CredentialResolverService)
+    private readonly credentialResolver: CredentialResolverService,
   ) {}
 
   /** Read-only view of the last refreshed catalog (used by policy post-boot). */
@@ -34,6 +38,7 @@ export class ToolCatalogService {
         }
 
         try {
+          await this.credentialResolver.resolve(connection.config);
           const result = await connection.client.listTools();
           for (const tool of result.tools) {
             const namespacedName = namespaceTool(
@@ -49,9 +54,11 @@ export class ToolCatalogService {
           }
         } catch (error) {
           const err = error instanceof Error ? error : new Error(String(error));
-          console.error(
-            `Failed to list tools from backend "${connection.config.name}": ${err.message}`,
-          );
+          const message =
+            error instanceof CredentialResolutionError
+              ? err.message
+              : `Failed to list tools from backend "${connection.config.name}": ${err.message}`;
+          console.error(message);
         }
       }),
     );

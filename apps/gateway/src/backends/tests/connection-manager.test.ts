@@ -7,6 +7,7 @@ import { ConnectionManager } from "../connection-manager.service.js";
 import type { McpClientConnector } from "../types/mcp-client-connector.js";
 import { DefaultMcpClientConnector } from "../mcp-client-connector.service.js";
 import { startMockMcpServer } from "./mock-mcp-server.js";
+import { createCredentialServices } from "../../credentials/tests/test-helpers.js";
 
 function serverConfig(
   name: string,
@@ -41,9 +42,10 @@ describe("ConnectionManager", () => {
       oauth_providers: {},
       servers: [serverConfig("alpha", mockServer.url)],
     });
+    const { credentialResolver } = createCredentialServices();
     const manager = new ConnectionManager(
       configService,
-      new DefaultMcpClientConnector(),
+      new DefaultMcpClientConnector(credentialResolver),
     );
 
     try {
@@ -70,9 +72,10 @@ describe("ConnectionManager", () => {
         serverConfig("bad", badServer.url, { strategy: "oauth_obo", provider: "github", subject: "user-1" }),
       ],
     });
+    const { credentialResolver } = createCredentialServices();
     const manager = new ConnectionManager(
       configService,
-      new DefaultMcpClientConnector(),
+      new DefaultMcpClientConnector(credentialResolver),
     );
 
     try {
@@ -107,9 +110,10 @@ describe("ConnectionManager", () => {
         serverConfig("unreachable", unreachableUrl),
       ],
     });
+    const { credentialResolver } = createCredentialServices();
     const manager = new ConnectionManager(
       configService,
-      new DefaultMcpClientConnector(),
+      new DefaultMcpClientConnector(credentialResolver),
     );
 
     try {
