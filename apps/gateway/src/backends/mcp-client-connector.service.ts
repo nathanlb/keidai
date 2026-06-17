@@ -2,12 +2,10 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { ServerConfig } from "@torii/shared";
 import { injectable } from "tsyringe";
-
-export type McpClient = Client;
-
-export interface McpClientConnector {
-  connect(server: ServerConfig): Promise<McpClient>;
-}
+import type {
+  McpClient,
+  McpClientConnector,
+} from "./types/mcp-client-connector.js";
 
 @injectable()
 export class DefaultMcpClientConnector implements McpClientConnector {

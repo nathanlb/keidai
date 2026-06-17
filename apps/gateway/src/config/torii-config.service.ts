@@ -3,7 +3,7 @@ import type { ServerConfig, ToriiConfig } from "@torii/shared";
 
 /**
  * Read-only view of the validated boot config, injectable across gateway services.
- * Loading and validation stay in loader.ts; this class only holds the result.
+ * Loading and validation stay in utils/loader.ts; this class only holds the result.
  */
 @injectable()
 export class ToriiConfigService {

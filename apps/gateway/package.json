@@ -17,6 +17,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
     "@torii/shared": "workspace:*",
+    "dotenv": "^16.5.0",
     "fastify": "^5.3.3",
     "reflect-metadata": "^0.2.2",
     "tsyringe": "^4.10.0",

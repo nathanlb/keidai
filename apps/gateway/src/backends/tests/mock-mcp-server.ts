@@ -1,10 +1,21 @@
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import * as z from "zod";
+
+export interface MockToolDefinition {
+  name: string;
+  description?: string;
+}
 
 export interface MockMcpServer {
   url: string;
   close(): Promise<void>;
+}
+
+export interface MockMcpServerOptions {
+  rejectConnections?: boolean;
+  tools?: MockToolDefinition[];
 }
 
 async function readJsonBody(req: IncomingMessage): Promise<unknown> {
@@ -31,9 +42,9 @@ function listen(server: Server): Promise<number> {
   });
 }
 
-export async function startMockMcpServer(options?: {
-  rejectConnections?: boolean;
-}): Promise<MockMcpServer> {
+export async function startMockMcpServer(
+  options?: MockMcpServerOptions,
+): Promise<MockMcpServer> {
   const httpServer = createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "127.0.0.1"}`);
 
@@ -53,6 +64,22 @@ export async function startMockMcpServer(options?: {
         name: "mock-mcp-server",
         version: "1.0.0",
       });
+
+      for (const tool of options?.tools ?? []) {
+        mcpServer.registerTool(
+          tool.name,
+          {
+            description: tool.description,
+            inputSchema: {
+              query: z.string().optional().describe("Example query"),
+            },
+          },
+          async () => ({
+            content: [{ type: "text" as const, text: "ok" }],
+          }),
+        );
+      }
+
       const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: undefined,
       });

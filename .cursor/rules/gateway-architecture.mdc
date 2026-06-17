@@ -23,7 +23,7 @@ Do **not** create empty domain folders ahead of need. Add a folder when a story 
 | 7 — Tracing | `trace/` | Structured `CallTrace` emission |
 | — MCP surface | `mcp/` | Inbound gateway MCP server (Fastify + SDK); delegates to domain services |
 
-`config/` is the exception: it mixes boot infrastructure (`loader.ts`, `schema.ts`, `env-resolver.ts`) with the runtime read-only service (`torii-config.service.ts`). Keep parsing/validation out of services.
+`config/` mixes boot infrastructure (`utils/loader.ts`, `utils/schema.ts`, `utils/env-resolver.ts`) with the runtime read-only service (`torii-config.service.ts`). Keep parsing/validation out of services.
 
 ## Folder conventions
 
@@ -43,10 +43,21 @@ src/
 
 Within each domain folder:
 
-- **Service** — orchestration and domain state (e.g. `ConnectionManager`)
-- **Types** — colocated (e.g. `backend-connection.ts`)
-- **Infra detail** — thin SDK/HTTP wrappers stay in the same folder until large enough to split (e.g. `mcp-client-connector.ts` in `backends/`)
+```
+module/
+  *.service.ts       # @injectable() orchestration (one or two per module)
+  types/             # interfaces and type aliases
+  utils/             # pure helpers, parsers, validators
+  tests/             # colocated tests
+```
+
+- **Service** — `*.service.ts` at the module root (e.g. `connection-manager.service.ts`, `tool-catalog.service.ts`)
+- **Types** — `types/` (e.g. `types/backend-connection.ts`, `types/catalog-tool.ts`)
+- **Utils** — `utils/` for stateless helpers (e.g. `utils/namespacing.ts`, `utils/loader.ts`)
+- **Infra adapters** — thin SDK/HTTP wrappers as `*.service.ts` at module root when injectable (e.g. `mcp-client-connector.service.ts`)
 - **Tests** — `tests/*.test.ts` beside the code they cover
+
+`config/` keeps boot infrastructure in `utils/` (`loader.ts`, `schema.ts`, `env-resolver.ts`) alongside `torii-config.service.ts`.
 
 ## `mcp/` vs domain services
 

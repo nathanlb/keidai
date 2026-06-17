@@ -1,19 +1,19 @@
 import type { ServerConfig } from "@torii/shared";
-import { injectable } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 import { ToriiConfigService } from "../config/torii-config.service.js";
-import type { BackendConnection } from "./backend-connection.js";
-import {
-  DefaultMcpClientConnector,
-  type McpClientConnector,
-} from "./mcp-client-connector.js";
+import { DefaultMcpClientConnector } from "./mcp-client-connector.service.js";
+import type { BackendConnection } from "./types/backend-connection.js";
+import type { McpClientConnector } from "./types/mcp-client-connector.js";
 
 @injectable()
 export class ConnectionManager {
   private readonly connections = new Map<string, BackendConnection>();
 
   constructor(
+    @inject(ToriiConfigService)
     private readonly configService: ToriiConfigService,
-    private readonly connector: McpClientConnector = new DefaultMcpClientConnector(),
+    @inject(DefaultMcpClientConnector)
+    private readonly connector: McpClientConnector,
   ) {}
 
   async connectAll(): Promise<void> {
