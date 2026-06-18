@@ -1,9 +1,20 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import {
+  CallToolRequestSchema,
+  ErrorCode,
+  ListToolsRequestSchema,
+  McpError,
+} from "@modelcontextprotocol/sdk/types.js";
 import Fastify, { type FastifyInstance } from "fastify";
 import { inject, injectable } from "tsyringe";
 import { ToolCatalogService } from "../catalog/tool-catalog.service.js";
+import { CredentialResolutionError } from "../credentials/types/credential-resolution.js";
+import { ToolDispatchService } from "../dispatch/tool-dispatch.service.js";
+import {
+  BackendUnavailableError,
+  ToolNotFoundError,
+} from "../dispatch/types/tool-dispatch.js";
 import type {
   GatewayMcpServerHandle,
   GatewayMcpServerOptions,
@@ -16,6 +27,8 @@ export class GatewayMcpServer {
   constructor(
     @inject(ToolCatalogService)
     private readonly toolCatalog: ToolCatalogService,
+    @inject(ToolDispatchService)
+    private readonly toolDispatch: ToolDispatchService,
   ) {}
 
   createApp(): FastifyInstance {
@@ -103,6 +116,39 @@ export class GatewayMcpServer {
       tools: await this.toolCatalog.listToolsForAgent(),
     }));
 
+    mcpServer.server.setRequestHandler(
+      CallToolRequestSchema,
+      async (request) => {
+        try {
+          return await this.toolDispatch.callTool(
+            request.params.name,
+            request.params.arguments,
+          );
+        } catch (error) {
+          throw this.toMcpError(error);
+        }
+      },
+    );
+
     return mcpServer;
+  }
+
+  private toMcpError(error: unknown): McpError {
+    if (error instanceof McpError) {
+      return error;
+    }
+    if (error instanceof ToolNotFoundError) {
+      return McpError.fromError(ErrorCode.InvalidParams, error.message);
+    }
+    if (error instanceof BackendUnavailableError) {
+      return McpError.fromError(ErrorCode.InvalidRequest, error.message);
+    }
+    if (error instanceof CredentialResolutionError) {
+      return McpError.fromError(ErrorCode.InvalidRequest, error.message);
+    }
+    if (error instanceof Error) {
+      return McpError.fromError(ErrorCode.InternalError, error.message);
+    }
+    return McpError.fromError(ErrorCode.InternalError, String(error));
   }
 }

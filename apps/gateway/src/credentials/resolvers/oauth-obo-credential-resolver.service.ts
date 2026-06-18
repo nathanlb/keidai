@@ -6,6 +6,7 @@ import {
   type ResolvedCredentials,
 } from "../types/credential-resolution.js";
 import type { OAuthToken } from "../types/token-repository.js";
+import type { CredentialStrategyResolver } from "../types/credential-strategy-resolver.js";
 import { STUB_OBO_SUBJECT } from "../utils/obo-subject.js";
 
 function isExpired(token: OAuthToken): boolean {
@@ -13,7 +14,7 @@ function isExpired(token: OAuthToken): boolean {
 }
 
 @injectable()
-export class OAuthOboCredentialResolver {
+export class OAuthOboCredentialResolver implements CredentialStrategyResolver {
   constructor(
     @inject(InMemoryTokenRepository)
     private readonly tokenRepository: InMemoryTokenRepository,

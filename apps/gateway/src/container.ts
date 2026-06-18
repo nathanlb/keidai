@@ -10,6 +10,7 @@ import { NoneCredentialResolver } from "./credentials/resolvers/none-credential-
 import { OAuthOboCredentialResolver } from "./credentials/resolvers/oauth-obo-credential-resolver.service.js";
 import { ServiceKeyCredentialResolver } from "./credentials/resolvers/service-key-credential-resolver.service.js";
 import { ToriiConfigService } from "./config/torii-config.service.js";
+import { ToolDispatchService } from "./dispatch/tool-dispatch.service.js";
 import { GatewayMcpServer } from "./mcp/gateway-mcp-server.service.js";
 
 export function createContainer(config: ToriiConfig): DependencyContainer {
@@ -37,6 +38,7 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
   });
   appContainer.register(ConnectionManager, { useClass: ConnectionManager });
   appContainer.register(ToolCatalogService, { useClass: ToolCatalogService });
+  appContainer.register(ToolDispatchService, { useClass: ToolDispatchService });
   appContainer.register(GatewayMcpServer, { useClass: GatewayMcpServer });
   return appContainer;
 }
