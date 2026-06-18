@@ -1,6 +1,6 @@
 import type { ServerConfig } from "@torii/shared";
 import { injectable } from "tsyringe";
-import type { ResolvedCredentials } from "./types/credential-resolution.js";
+import type { ResolvedCredentials } from "../types/credential-resolution.js";
 
 @injectable()
 export class ServiceKeyCredentialResolver {

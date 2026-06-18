@@ -2,10 +2,10 @@ import "reflect-metadata";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ToriiConfig } from "@torii/shared";
-import { InMemoryTokenRepository } from "../in-memory-token-repository.service.js";
+import { InMemoryTokenRepository } from "../../in-memory-token-repository.service.js";
 import { OAuthOboCredentialResolver } from "../oauth-obo-credential-resolver.service.js";
-import { CredentialResolutionError } from "../types/credential-resolution.js";
-import { STUB_OBO_SUBJECT } from "../utils/obo-subject.js";
+import { CredentialResolutionError } from "../../types/credential-resolution.js";
+import { STUB_OBO_SUBJECT } from "../../utils/obo-subject.js";
 
 function oauthOboServer(
   name = "github",

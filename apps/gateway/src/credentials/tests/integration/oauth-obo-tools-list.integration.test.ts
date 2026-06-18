@@ -2,13 +2,13 @@ import "reflect-metadata";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ToriiConfig } from "@torii/shared";
-import { ConnectionManager } from "../../backends/connection-manager.service.js";
-import { DefaultMcpClientConnector } from "../../backends/mcp-client-connector.service.js";
-import { startMockMcpServer } from "../../backends/tests/mock-mcp-server.js";
-import { ToriiConfigService } from "../../config/torii-config.service.js";
-import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
-import { STUB_OBO_SUBJECT } from "../utils/obo-subject.js";
-import { createCredentialServices } from "./test-helpers.js";
+import { ConnectionManager } from "../../../backends/connection-manager.service.js";
+import { DefaultMcpClientConnector } from "../../../backends/mcp-client-connector.service.js";
+import { startMockMcpServer } from "../../../backends/tests/mock-mcp-server.js";
+import { ToriiConfigService } from "../../../config/torii-config.service.js";
+import { ToolCatalogService } from "../../../catalog/tool-catalog.service.js";
+import { STUB_OBO_SUBJECT } from "../../utils/obo-subject.js";
+import { createCredentialServices } from "../test-helpers.js";
 
 function oauthOboServer(
   name: string,

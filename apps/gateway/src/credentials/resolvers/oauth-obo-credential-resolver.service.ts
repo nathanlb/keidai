@@ -1,12 +1,12 @@
 import type { ServerConfig } from "@torii/shared";
 import { inject, injectable } from "tsyringe";
-import { InMemoryTokenRepository } from "./in-memory-token-repository.service.js";
+import { InMemoryTokenRepository } from "../in-memory-token-repository.service.js";
 import {
   CredentialResolutionError,
   type ResolvedCredentials,
-} from "./types/credential-resolution.js";
-import type { OAuthToken } from "./types/token-repository.js";
-import { STUB_OBO_SUBJECT } from "./utils/obo-subject.js";
+} from "../types/credential-resolution.js";
+import type { OAuthToken } from "../types/token-repository.js";
+import { STUB_OBO_SUBJECT } from "../utils/obo-subject.js";
 
 function isExpired(token: OAuthToken): boolean {
   return token.expiresAt !== undefined && token.expiresAt.getTime() <= Date.now();
