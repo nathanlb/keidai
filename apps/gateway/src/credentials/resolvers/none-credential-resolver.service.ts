@@ -1,9 +1,10 @@
 import type { ServerConfig } from "@torii/shared";
 import { injectable } from "tsyringe";
 import type { ResolvedCredentials } from "../types/credential-resolution.js";
+import type { CredentialStrategyResolver } from "../types/credential-strategy-resolver.js";
 
 @injectable()
-export class NoneCredentialResolver {
+export class NoneCredentialResolver implements CredentialStrategyResolver {
   resolve(server: ServerConfig): ResolvedCredentials {
     if (server.credential.strategy !== "none") {
       throw new Error(

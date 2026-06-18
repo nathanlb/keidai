@@ -9,6 +9,7 @@ import { ConnectionManager } from "../../backends/connection-manager.service.js"
 import { DefaultMcpClientConnector } from "../../backends/mcp-client-connector.service.js";
 import { startMockMcpServer } from "../../backends/tests/mock-mcp-server.js";
 import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
+import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { GatewayMcpServer } from "../gateway-mcp-server.service.js";
 import { createCredentialServices } from "../../credentials/tests/test-helpers.js";
 
@@ -57,7 +58,12 @@ describe("Gateway MCP tools/list", () => {
       connectionManager,
       credentialResolver,
     );
-    const gatewayMcpServer = new GatewayMcpServer(toolCatalog);
+    const toolDispatch = new ToolDispatchService(
+      toolCatalog,
+      connectionManager,
+      credentialResolver,
+    );
+    const gatewayMcpServer = new GatewayMcpServer(toolCatalog, toolDispatch);
 
     const client = new Client({
       name: "integration-test-agent",

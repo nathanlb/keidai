@@ -21,6 +21,10 @@ export class ToolCatalogService {
     return this.catalog;
   }
 
+  findTool(namespacedName: string): CatalogTool | undefined {
+    return this.catalog.find((entry) => entry.namespacedName === namespacedName);
+  }
+
   /**
    * Fan out `tools/list` to all connected backends, namespace results, and
    * refresh the in-memory catalog.

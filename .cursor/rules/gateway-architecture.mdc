@@ -59,6 +59,22 @@ module/
 
 `config/` keeps boot infrastructure in `utils/` (`loader.ts`, `schema.ts`, `env-resolver.ts`) alongside `torii-config.service.ts`.
 
+### `credentials/` layout
+
+Strategy implementations live under `resolvers/`; the domain facade (`credential-resolver.service.ts`) and shared contracts (`types/`, `utils/`, oauth token repo) stay at the domain root.
+
+```
+credentials/
+  credential-resolver.service.ts   # strategy dispatch facade
+  resolvers/                       # none | service_key | oauth_obo
+    tests/                         # unit tests for resolver behavior
+  tests/
+    test-helpers.ts
+    integration/                   # wiring tests (backends, catalog, live MCP)
+```
+
+Unit tests belong under `resolvers/tests/`; cross-domain integration tests belong under `tests/integration/`. Do not nest full per-strategy modules unless a strategy grows its own adapters, types, and helpers.
+
 ## `mcp/` vs domain services
 
 `mcp/` is the **front door** only: wire Fastify routes and MCP SDK handlers. It must **delegate** to domain services — no fan-out, policy, or credential logic here.
