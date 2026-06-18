@@ -10,7 +10,7 @@ const oauthProviderSchema = z.object({
 
 const credentialSchema = z.discriminatedUnion("strategy", [
   z.object({
-    strategy: z.literal("oauth_obo"),
+    strategy: z.literal("user_oauth"),
     provider: z.string().min(1, "provider is required"),
     subject: z.string().min(1, "subject is required"),
   }),
@@ -66,11 +66,11 @@ export const toriiConfigSchema = z
         seenNames.set(server.name, index);
       }
 
-      if (server.credential.strategy === "oauth_obo") {
+      if (server.credential.strategy === "user_oauth") {
         if (!(server.credential.provider in config.oauth_providers)) {
           ctx.addIssue({
             code: "custom",
-            message: `server "${server.name}": oauth_obo provider "${server.credential.provider}" is not defined in oauth_providers`,
+            message: `server "${server.name}": user_oauth provider "${server.credential.provider}" is not defined in oauth_providers`,
             path: ["servers", index, "credential", "provider"],
           });
         }

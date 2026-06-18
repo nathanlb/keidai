@@ -14,16 +14,16 @@ function isExpired(token: OAuthToken): boolean {
 }
 
 @injectable()
-export class OAuthOboCredentialResolver implements CredentialStrategyResolver {
+export class DelegatedConnectionCredentialResolver implements CredentialStrategyResolver {
   constructor(
     @inject(InMemoryTokenRepository)
     private readonly tokenRepository: InMemoryTokenRepository,
   ) {}
 
   async resolve(server: ServerConfig): Promise<ResolvedCredentials> {
-    if (server.credential.strategy !== "oauth_obo") {
+    if (server.credential.strategy !== "user_oauth") {
       throw new Error(
-        `OAuthOboCredentialResolver cannot handle strategy "${server.credential.strategy}"`,
+        `DelegatedConnectionCredentialResolver cannot handle strategy "${server.credential.strategy}"`,
       );
     }
 

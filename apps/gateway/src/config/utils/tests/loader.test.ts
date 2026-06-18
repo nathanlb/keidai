@@ -25,7 +25,7 @@ const validDocument = {
         url: "https://api.githubcopilot.com/mcp/",
       },
       credential: {
-        strategy: "oauth_obo",
+        strategy: "user_oauth",
         provider: "github",
         subject: "${request.user}",
       },
@@ -95,7 +95,7 @@ describe("loadConfigFromDocument", () => {
       "gh-client-secret",
     );
     assert.equal(
-      config.servers[0]?.credential.strategy === "oauth_obo"
+      config.servers[0]?.credential.strategy === "user_oauth"
         ? config.servers[0].credential.subject
         : undefined,
       "${request.user}",
@@ -121,7 +121,7 @@ describe("loadConfigFromDocument", () => {
     );
   });
 
-  it("fails when oauth_obo references an unknown provider", () => {
+  it("fails when user_oauth references an unknown provider", () => {
     expectValidationError(
       () =>
         loadConfigFromDocument(
@@ -131,7 +131,7 @@ describe("loadConfigFromDocument", () => {
           },
           validEnv,
         ),
-      ['oauth_obo provider "github" is not defined in oauth_providers'],
+      ['user_oauth provider "github" is not defined in oauth_providers'],
     );
   });
 

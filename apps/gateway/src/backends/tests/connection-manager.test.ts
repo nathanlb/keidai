@@ -69,7 +69,7 @@ describe("ConnectionManager", () => {
       oauth_providers: {},
       servers: [
         serverConfig("good", goodServer.url, { strategy: "service_key", key: "sk_test" }),
-        serverConfig("bad", badServer.url, { strategy: "oauth_obo", provider: "github", subject: "user-1" }),
+        serverConfig("bad", badServer.url, { strategy: "user_oauth", provider: "github", subject: "user-1" }),
       ],
     });
     const { credentialResolver } = createCredentialServices();
@@ -91,7 +91,7 @@ describe("ConnectionManager", () => {
       assert.equal(bad?.state, "failed");
       assert.equal(bad?.client, null);
       assert.ok(bad?.error);
-      assert.equal(bad?.config.credential.strategy, "oauth_obo");
+      assert.equal(bad?.config.credential.strategy, "user_oauth");
     } finally {
       await closeManagerConnections(manager);
       await Promise.all([goodServer.close(), badServer.close()]);

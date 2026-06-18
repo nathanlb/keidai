@@ -13,6 +13,18 @@ https://linear.app/nathanlb/project/open-torii-c257f2b8953d/overview
 
 Issue IDs use team prefix **`NAT-`** (e.g. `NAT-11` = Story 4b, `NAT-12` = Story 4c). Cross-reference the domain map in `gateway-architecture.mdc` for story → folder mapping.
 
+### Implementing a Linear issue
+
+When asked to implement, build, or work on a specific Linear issue by ID:
+
+1. **Fetch the issue** via Linear MCP `get_issue` (e.g. `NAT-12`).
+2. **Check out the branch** — use `gitBranchName` from the response (same name Linear’s “copy branch name” provides). If the current branch is not `gitBranchName`:
+   - Check out the branch if it already exists locally or on `origin`.
+   - Otherwise create it from `main` (or the base branch the user specified).
+3. **Implement** per the issue description and acceptance criteria.
+
+Do not skip the branch step or invent a branch name.
+
 ## Product & design docs (Notion)
 
 Architecture, credential resolution, policy, and other design notes:

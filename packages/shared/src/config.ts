@@ -7,7 +7,7 @@ export interface OAuthProviderConfig {
 }
 
 export type CredentialConfig =
-  | { strategy: "oauth_obo"; provider: string; subject: string }
+  | { strategy: "user_oauth"; provider: string; subject: string }
   | {
       strategy: "service_key";
       key: string;

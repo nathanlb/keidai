@@ -17,7 +17,7 @@ Do **not** create empty domain folders ahead of need. Add a folder when a story 
 | 1 — Config | `config/` | Boot-time load, env resolution, zod validation, `ToriiConfigService` |
 | 2 — Connections | `backends/` | Backend registry, connection state, MCP client connector |
 | 3 — Tool catalog | `catalog/` | Fan-out `tools/list`, namespacing (`server.tool`) |
-| 4a–c — Auth | `credentials/` | OBO / `service_key` / `none` credential resolvers |
+| 4a–c — Auth | `credentials/` | user_oauth / `service_key` / `none` credential resolvers |
 | 5 — Dispatch | `dispatch/` | Route `tools/call` to the correct backend |
 | 6 — Policy | `policy/` | List-level and call-level policy enforcement |
 | 7 — Tracing | `trace/` | Structured `CallTrace` emission |
@@ -66,7 +66,7 @@ Strategy implementations live under `resolvers/`; the domain facade (`credential
 ```
 credentials/
   credential-resolver.service.ts   # strategy dispatch facade
-  resolvers/                       # none | service_key | oauth_obo
+  resolvers/                       # none | service_key | user_oauth
     tests/                         # unit tests for resolver behavior
   tests/
     test-helpers.ts

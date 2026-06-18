@@ -10,7 +10,7 @@ import { ToolCatalogService } from "../../../catalog/tool-catalog.service.js";
 import { STUB_OBO_SUBJECT } from "../../utils/obo-subject.js";
 import { createCredentialServices } from "../test-helpers.js";
 
-function oauthOboServer(
+function userOAuthServer(
   name: string,
   url: string,
 ): ToriiConfig["servers"][number] {
@@ -18,7 +18,7 @@ function oauthOboServer(
     name,
     transport: { type: "http", url },
     credential: {
-      strategy: "oauth_obo",
+      strategy: "user_oauth",
       provider: "github",
       subject: "${request.user}",
     },
@@ -37,7 +37,7 @@ async function closeManagerConnections(
   );
 }
 
-describe("oauth_obo credentials with tools/list", () => {
+describe("user_oauth credentials with tools/list", () => {
   it("lists tools when a valid token is stored", async () => {
     const { tokenRepository, credentialResolver } = createCredentialServices();
     await tokenRepository.set(STUB_OBO_SUBJECT, "github", {
@@ -58,7 +58,7 @@ describe("oauth_obo credentials with tools/list", () => {
           scopes: ["repo"],
         },
       },
-      servers: [oauthOboServer("github", mockServer.url)],
+      servers: [userOAuthServer("github", mockServer.url)],
     });
     const connectionManager = new ConnectionManager(
       configService,
@@ -95,7 +95,7 @@ describe("oauth_obo credentials with tools/list", () => {
           scopes: ["repo"],
         },
       },
-      servers: [oauthOboServer("github", mockServer.url)],
+      servers: [userOAuthServer("github", mockServer.url)],
     });
     const connectionManager = new ConnectionManager(
       configService,

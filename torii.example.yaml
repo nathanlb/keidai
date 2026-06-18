@@ -17,7 +17,7 @@ servers:
       type: http
       url: https://api.githubcopilot.com/mcp/
     credential:
-      strategy: oauth_obo
+      strategy: user_oauth
       provider: github
       subject: ${request.user}
     policy:

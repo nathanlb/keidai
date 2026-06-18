@@ -3,18 +3,18 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ToriiConfig } from "@torii/shared";
 import { InMemoryTokenRepository } from "../../in-memory-token-repository.service.js";
-import { OAuthOboCredentialResolver } from "../oauth-obo-credential-resolver.service.js";
+import { DelegatedConnectionCredentialResolver } from "../delegated-connection-credential-resolver.service.js";
 import { CredentialResolutionError } from "../../types/credential-resolution.js";
 import { STUB_OBO_SUBJECT } from "../../utils/obo-subject.js";
 
-function oauthOboServer(
+function userOAuthServer(
   name = "github",
 ): ToriiConfig["servers"][number] {
   return {
     name,
     transport: { type: "http", url: "https://example.com/mcp" },
     credential: {
-      strategy: "oauth_obo",
+      strategy: "user_oauth",
       provider: "github",
       subject: "${request.user}",
     },
@@ -38,15 +38,15 @@ describe("InMemoryTokenRepository", () => {
   });
 });
 
-describe("OAuthOboCredentialResolver", () => {
+describe("DelegatedConnectionCredentialResolver", () => {
   it("injects a bearer token when one is stored", async () => {
     const repository = new InMemoryTokenRepository();
     await repository.set(STUB_OBO_SUBJECT, "github", {
       accessToken: "gho_secret_token",
     });
-    const resolver = new OAuthOboCredentialResolver(repository);
+    const resolver = new DelegatedConnectionCredentialResolver(repository);
 
-    const resolved = await resolver.resolve(oauthOboServer());
+    const resolved = await resolver.resolve(userOAuthServer());
 
     assert.equal(
       resolved.headers.Authorization,
@@ -56,12 +56,12 @@ describe("OAuthOboCredentialResolver", () => {
   });
 
   it("returns a clear error when no token is stored", async () => {
-    const resolver = new OAuthOboCredentialResolver(
+    const resolver = new DelegatedConnectionCredentialResolver(
       new InMemoryTokenRepository(),
     );
 
     await assert.rejects(
-      () => resolver.resolve(oauthOboServer()),
+      () => resolver.resolve(userOAuthServer()),
       (error: unknown) => {
         assert.ok(error instanceof CredentialResolutionError);
         assert.match(
@@ -80,10 +80,10 @@ describe("OAuthOboCredentialResolver", () => {
       accessToken: "gho_expired",
       expiresAt: new Date(Date.now() - 60_000),
     });
-    const resolver = new OAuthOboCredentialResolver(repository);
+    const resolver = new DelegatedConnectionCredentialResolver(repository);
 
     await assert.rejects(
-      () => resolver.resolve(oauthOboServer()),
+      () => resolver.resolve(userOAuthServer()),
       (error: unknown) => error instanceof CredentialResolutionError,
     );
   });

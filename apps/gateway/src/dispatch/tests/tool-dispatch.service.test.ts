@@ -27,7 +27,7 @@ function noneServer(
   };
 }
 
-function oauthOboServer(
+function userOAuthServer(
   name: string,
   url: string,
 ): ToriiConfig["servers"][number] {
@@ -35,7 +35,7 @@ function oauthOboServer(
     name,
     transport: { type: "http", url },
     credential: {
-      strategy: "oauth_obo",
+      strategy: "user_oauth",
       provider: "github",
       subject: "${request.user}",
     },
@@ -188,7 +188,7 @@ describe("ToolDispatchService", () => {
     }
   });
 
-  it("rejects calls when oauth_obo credentials are missing", async () => {
+  it("rejects calls when user_oauth credentials are missing", async () => {
     const mockServer = await startMockMcpServer({
       requireAuth: true,
       tools: [{ name: "search_issues", description: "Search issues" }],
@@ -203,7 +203,7 @@ describe("ToolDispatchService", () => {
           scopes: ["repo"],
         },
       },
-      servers: [oauthOboServer("github", mockServer.url)],
+      servers: [userOAuthServer("github", mockServer.url)],
     });
     const connectionManager = new ConnectionManager(
       configService,

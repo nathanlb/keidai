@@ -7,7 +7,7 @@ import { ToolCatalogService } from "./catalog/tool-catalog.service.js";
 import { CredentialResolverService } from "./credentials/credential-resolver.service.js";
 import { InMemoryTokenRepository } from "./credentials/in-memory-token-repository.service.js";
 import { NoneCredentialResolver } from "./credentials/resolvers/none-credential-resolver.service.js";
-import { OAuthOboCredentialResolver } from "./credentials/resolvers/oauth-obo-credential-resolver.service.js";
+import { DelegatedConnectionCredentialResolver } from "./credentials/resolvers/delegated-connection-credential-resolver.service.js";
 import { ServiceKeyCredentialResolver } from "./credentials/resolvers/service-key-credential-resolver.service.js";
 import { ToriiConfigService } from "./config/torii-config.service.js";
 import { ToolDispatchService } from "./dispatch/tool-dispatch.service.js";
@@ -24,8 +24,8 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
   appContainer.register(NoneCredentialResolver, {
     useClass: NoneCredentialResolver,
   });
-  appContainer.register(OAuthOboCredentialResolver, {
-    useClass: OAuthOboCredentialResolver,
+  appContainer.register(DelegatedConnectionCredentialResolver, {
+    useClass: DelegatedConnectionCredentialResolver,
   });
   appContainer.register(ServiceKeyCredentialResolver, {
     useClass: ServiceKeyCredentialResolver,

@@ -14,7 +14,7 @@ import { createCredentialServices } from "../../credentials/tests/test-helpers.j
 import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { GatewayMcpServer } from "../gateway-mcp-server.service.js";
 
-function oauthOboServer(
+function userOAuthServer(
   name: string,
   url: string,
 ): ToriiConfig["servers"][number] {
@@ -22,7 +22,7 @@ function oauthOboServer(
     name,
     transport: { type: "http", url },
     credential: {
-      strategy: "oauth_obo",
+      strategy: "user_oauth",
       provider: "github",
       subject: "${request.user}",
     },
@@ -95,7 +95,7 @@ async function connectAgentToGateway(
 }
 
 describe("Gateway MCP tools/call", () => {
-  it("routes oauth_obo, service_key, and none backends end-to-end", async () => {
+  it("routes user_oauth, service_key, and none backends end-to-end", async () => {
     const githubToken = "gho_valid";
     const stripeKey = "sk_test_secret_key";
     const githubBackend = await startMockMcpServer({
@@ -127,7 +127,7 @@ describe("Gateway MCP tools/call", () => {
         },
       },
       servers: [
-        oauthOboServer("github", githubBackend.url),
+        userOAuthServer("github", githubBackend.url),
         serviceKeyServer("stripe", stripeBackend.url, stripeKey),
         noneServer("deepwiki", deepwikiBackend.url),
       ],

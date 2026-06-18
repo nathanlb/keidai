@@ -5,7 +5,7 @@ import type { ToriiConfig } from "@torii/shared";
 import { CredentialResolverService } from "../../credential-resolver.service.js";
 import { InMemoryTokenRepository } from "../../in-memory-token-repository.service.js";
 import { NoneCredentialResolver } from "../none-credential-resolver.service.js";
-import { OAuthOboCredentialResolver } from "../oauth-obo-credential-resolver.service.js";
+import { DelegatedConnectionCredentialResolver } from "../delegated-connection-credential-resolver.service.js";
 import { ServiceKeyCredentialResolver } from "../service-key-credential-resolver.service.js";
 
 function noneServer(
@@ -49,7 +49,7 @@ describe("NoneCredentialResolver", () => {
 describe("CredentialResolverService none dispatch", () => {
   const credentialResolver = new CredentialResolverService(
     new NoneCredentialResolver(),
-    new OAuthOboCredentialResolver(new InMemoryTokenRepository()),
+    new DelegatedConnectionCredentialResolver(new InMemoryTokenRepository()),
     new ServiceKeyCredentialResolver(),
   );
 
