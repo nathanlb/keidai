@@ -16,6 +16,8 @@ export interface MockMcpServer {
 export interface MockMcpServerOptions {
   rejectConnections?: boolean;
   requireAuth?: boolean;
+  /** When set with requireAuth, the bearer token must match exactly. */
+  expectedBearer?: string;
   tools?: MockToolDefinition[];
 }
 
@@ -62,6 +64,13 @@ export async function startMockMcpServer(
     if (options?.requireAuth) {
       const authHeader = req.headers.authorization;
       if (!authHeader?.startsWith("Bearer ")) {
+        res.writeHead(401).end("Unauthorized");
+        return;
+      }
+      if (
+        options.expectedBearer !== undefined &&
+        authHeader !== `Bearer ${options.expectedBearer}`
+      ) {
         res.writeHead(401).end("Unauthorized");
         return;
       }

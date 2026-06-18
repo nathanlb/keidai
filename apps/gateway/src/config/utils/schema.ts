@@ -17,6 +17,11 @@ const credentialSchema = z.discriminatedUnion("strategy", [
   z.object({
     strategy: z.literal("service_key"),
     key: z.string().min(1, "key is required for service_key credential strategy"),
+    inject: z
+      .object({
+        header: z.string().min(1, "inject.header is required when inject is set"),
+      })
+      .optional(),
   }),
   z
     .object({

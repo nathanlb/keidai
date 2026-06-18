@@ -214,4 +214,35 @@ describe("loadConfigFromDocument", () => {
       ["servers.0.credential.key: Required"],
     );
   });
+
+  it("loads service_key with an optional inject.header override", () => {
+    const config = loadConfigFromDocument(
+      {
+        ...validDocument,
+        servers: [
+          {
+            name: "stripe",
+            transport: {
+              type: "http",
+              url: "https://mcp.stripe.com",
+            },
+            credential: {
+              strategy: "service_key",
+              key: "${env:STRIPE_RESTRICTED_KEY}",
+              inject: { header: "X-Api-Key" },
+            },
+            policy: { default: "deny" },
+          },
+        ],
+      },
+      validEnv,
+    );
+
+    const credential = config.servers[0]?.credential;
+    assert.equal(credential?.strategy, "service_key");
+    if (credential?.strategy === "service_key") {
+      assert.equal(credential.key, "sk_test_123");
+      assert.equal(credential.inject?.header, "X-Api-Key");
+    }
+  });
 });

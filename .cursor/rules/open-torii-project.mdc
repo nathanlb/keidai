@@ -1,0 +1,20 @@
+---
+description: open-torii project sources — Linear tasks and Notion docs
+alwaysApply: true
+---
+
+# open-torii project context
+
+## Implementation tasks (Linear)
+
+Stories and acceptance criteria live in the **open-torii** Linear project:
+
+https://linear.app/nathanlb/project/open-torii-c257f2b8953d/overview
+
+Issue IDs use team prefix **`NAT-`** (e.g. `NAT-11` = Story 4b, `NAT-12` = Story 4c). Cross-reference the domain map in `gateway-architecture.mdc` for story → folder mapping.
+
+## Product & design docs (Notion)
+
+Architecture, credential resolution, policy, and other design notes:
+
+https://app.notion.com/p/Torii-MCP-Gateway-36c07ec181ff813d8f34f9b0e617de34
