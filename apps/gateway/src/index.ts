@@ -6,6 +6,8 @@ import { ToolCatalogService } from "./catalog/tool-catalog.service.js";
 import { ToriiConfigService } from "./config/torii-config.service.js";
 import { loadConfig, reportConfigError } from "./config/utils/loader.js";
 import { createContainer } from "./container.js";
+import { runWithAgentPrincipal } from "./identity/agent-principal-context.js";
+import { STUB_AGENT_PRINCIPAL } from "./identity/stub-agent-principal.js";
 import { GatewayMcpServer } from "./mcp/gateway-mcp-server.service.js";
 
 function resolvePort(): number {
@@ -29,20 +31,22 @@ async function main(): Promise<void> {
     `Loaded Torii config with ${configService.get().servers.length} server(s)`,
   );
 
-  await connectionManager.connectAll();
+  await runWithAgentPrincipal(STUB_AGENT_PRINCIPAL, async () => {
+    await connectionManager.connectAll();
 
-  const connections = connectionManager.list();
-  const connected = connections.filter(
-    (connection) => connection.state === "connected",
-  ).length;
-  const failed = connections.filter(
-    (connection) => connection.state === "failed",
-  ).length;
+    const connections = connectionManager.list();
+    const connected = connections.filter(
+      (connection) => connection.state === "connected",
+    ).length;
+    const failed = connections.filter(
+      (connection) => connection.state === "failed",
+    ).length;
 
-  console.log(`Backend connections: ${connected} connected, ${failed} failed`);
+    console.log(`Backend connections: ${connected} connected, ${failed} failed`);
 
-  const catalog = await toolCatalog.refresh();
-  console.log(`Tool catalog: ${catalog.length} tool(s) from connected backends`);
+    const catalog = await toolCatalog.refresh();
+    console.log(`Tool catalog: ${catalog.length} tool(s) from connected backends`);
+  });
 
   const gateway = await gatewayMcpServer.start({
     host: process.env.TORII_HOST ?? "127.0.0.1",

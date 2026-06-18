@@ -11,6 +11,8 @@ import { inject, injectable } from "tsyringe";
 import { ToolCatalogService } from "../catalog/tool-catalog.service.js";
 import { CredentialResolutionError } from "../credentials/types/credential-resolution.js";
 import { ToolDispatchService } from "../dispatch/tool-dispatch.service.js";
+import { runWithAgentPrincipal } from "../identity/agent-principal-context.js";
+import { STUB_AGENT_PRINCIPAL } from "../identity/stub-agent-principal.js";
 import {
   BackendUnavailableError,
   ToolNotFoundError,
@@ -63,35 +65,37 @@ export class GatewayMcpServer {
 
   private registerRoutes(app: FastifyInstance): void {
     app.post("/mcp", async (request, reply) => {
-      const mcpServer = this.createMcpServer();
+      return runWithAgentPrincipal(STUB_AGENT_PRINCIPAL, async () => {
+        const mcpServer = this.createMcpServer();
 
-      try {
-        const transport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: undefined,
-        });
-        await mcpServer.connect(transport);
-        await transport.handleRequest(request.raw, reply.raw, request.body);
-        reply.hijack();
+        try {
+          const transport = new StreamableHTTPServerTransport({
+            sessionIdGenerator: undefined,
+          });
+          await mcpServer.connect(transport);
+          await transport.handleRequest(request.raw, reply.raw, request.body);
+          reply.hijack();
 
-        request.raw.on("close", () => {
-          void transport.close();
-          void mcpServer.close();
-        });
-      } catch (error) {
-        console.error("Error handling gateway MCP request:", error);
-        if (!reply.raw.headersSent) {
-          reply
-            .code(500)
-            .send({
-              jsonrpc: "2.0",
-              error: {
-                code: -32603,
-                message: "Internal server error",
-              },
-              id: null,
-            });
+          request.raw.on("close", () => {
+            void transport.close();
+            void mcpServer.close();
+          });
+        } catch (error) {
+          console.error("Error handling gateway MCP request:", error);
+          if (!reply.raw.headersSent) {
+            reply
+              .code(500)
+              .send({
+                jsonrpc: "2.0",
+                error: {
+                  code: -32603,
+                  message: "Internal server error",
+                },
+                id: null,
+              });
+          }
         }
-      }
+      });
     });
 
     app.get("/mcp", async (_request, reply) => {

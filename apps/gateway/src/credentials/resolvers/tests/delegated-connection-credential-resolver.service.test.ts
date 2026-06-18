@@ -5,7 +5,9 @@ import type { ToriiConfig } from "@torii/shared";
 import { InMemoryTokenRepository } from "../../in-memory-token-repository.service.js";
 import { DelegatedConnectionCredentialResolver } from "../delegated-connection-credential-resolver.service.js";
 import { CredentialResolutionError } from "../../types/credential-resolution.js";
-import { STUB_OBO_SUBJECT } from "../../utils/obo-subject.js";
+import { runWithAgentPrincipal } from "../../../identity/agent-principal-context.js";
+import { STUB_AGENT_PRINCIPAL } from "../../../identity/stub-agent-principal.js";
+import { withStubAgentPrincipal } from "../../tests/test-helpers.js";
 
 function userOAuthServer(
   name = "github",
@@ -16,14 +18,13 @@ function userOAuthServer(
     credential: {
       strategy: "user_oauth",
       provider: "github",
-      subject: "${request.user}",
     },
     policy: { default: "deny" },
   };
 }
 
 describe("InMemoryTokenRepository", () => {
-  it("stores and retrieves tokens by subject and provider", async () => {
+  it("stores and retrieves tokens by owner and provider", async () => {
     const repository = new InMemoryTokenRepository();
 
     await repository.set("user-1", "github", {
@@ -39,14 +40,16 @@ describe("InMemoryTokenRepository", () => {
 });
 
 describe("DelegatedConnectionCredentialResolver", () => {
-  it("injects a bearer token when one is stored", async () => {
+  it("injects a bearer token when one is stored for the principal owner", async () => {
     const repository = new InMemoryTokenRepository();
-    await repository.set(STUB_OBO_SUBJECT, "github", {
+    await repository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
       accessToken: "gho_secret_token",
     });
     const resolver = new DelegatedConnectionCredentialResolver(repository);
 
-    const resolved = await resolver.resolve(userOAuthServer());
+    const resolved = await withStubAgentPrincipal(() =>
+      resolver.resolve(userOAuthServer()),
+    );
 
     assert.equal(
       resolved.headers.Authorization,
@@ -61,7 +64,8 @@ describe("DelegatedConnectionCredentialResolver", () => {
     );
 
     await assert.rejects(
-      () => resolver.resolve(userOAuthServer()),
+      () =>
+        withStubAgentPrincipal(() => resolver.resolve(userOAuthServer())),
       (error: unknown) => {
         assert.ok(error instanceof CredentialResolutionError);
         assert.match(
@@ -76,15 +80,49 @@ describe("DelegatedConnectionCredentialResolver", () => {
 
   it("treats an expired token as missing", async () => {
     const repository = new InMemoryTokenRepository();
-    await repository.set(STUB_OBO_SUBJECT, "github", {
+    await repository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
       accessToken: "gho_expired",
       expiresAt: new Date(Date.now() - 60_000),
     });
     const resolver = new DelegatedConnectionCredentialResolver(repository);
 
     await assert.rejects(
-      () => resolver.resolve(userOAuthServer()),
+      () =>
+        withStubAgentPrincipal(() => resolver.resolve(userOAuthServer())),
       (error: unknown) => error instanceof CredentialResolutionError,
     );
+  });
+
+  it("does not use another owner's stored token", async () => {
+    const repository = new InMemoryTokenRepository();
+    await repository.set("other-owner", "github", {
+      accessToken: "gho_other_owner",
+    });
+    const resolver = new DelegatedConnectionCredentialResolver(repository);
+
+    await assert.rejects(
+      () =>
+        withStubAgentPrincipal(() => resolver.resolve(userOAuthServer())),
+      (error: unknown) => error instanceof CredentialResolutionError,
+    );
+  });
+
+  it("uses the token for the principal on the request context", async () => {
+    const repository = new InMemoryTokenRepository();
+    await repository.set("context-owner", "github", {
+      accessToken: "gho_context_owner",
+    });
+    const resolver = new DelegatedConnectionCredentialResolver(repository);
+
+    const resolved = await runWithAgentPrincipal(
+      { agentId: "agent-1", ownerId: "context-owner", groups: [] },
+      () => resolver.resolve(userOAuthServer()),
+    );
+
+    assert.equal(
+      resolved.headers.Authorization,
+      "Bearer gho_context_owner",
+    );
+    assert.equal(resolved.credentialRef, "github:context-owner");
   });
 });

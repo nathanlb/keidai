@@ -9,8 +9,8 @@ import { ConnectionManager } from "../../backends/connection-manager.service.js"
 import { DefaultMcpClientConnector } from "../../backends/mcp-client-connector.service.js";
 import { startMockMcpServer } from "../../backends/tests/mock-mcp-server.js";
 import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
-import { STUB_OBO_SUBJECT } from "../../credentials/utils/obo-subject.js";
-import { createCredentialServices } from "../../credentials/tests/test-helpers.js";
+import { createCredentialServices, withStubAgentPrincipal } from "../../credentials/tests/test-helpers.js";
+import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
 import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { GatewayMcpServer } from "../gateway-mcp-server.service.js";
 
@@ -24,7 +24,6 @@ function userOAuthServer(
     credential: {
       strategy: "user_oauth",
       provider: "github",
-      subject: "${request.user}",
     },
     policy: { default: "deny", allow: ["search_issues"] },
   };
@@ -113,7 +112,7 @@ describe("Gateway MCP tools/call", () => {
     });
 
     const { tokenRepository, credentialResolver } = createCredentialServices();
-    await tokenRepository.set(STUB_OBO_SUBJECT, "github", {
+    await tokenRepository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
       accessToken: githubToken,
     });
 
@@ -148,7 +147,9 @@ describe("Gateway MCP tools/call", () => {
     const gatewayMcpServer = new GatewayMcpServer(toolCatalog, toolDispatch);
 
     try {
-      await connectionManager.connectAll();
+      await withStubAgentPrincipal(async () => {
+        await connectionManager.connectAll();
+      });
       const gateway = await gatewayMcpServer.start();
       const agent = await connectAgentToGateway(gateway.url);
 

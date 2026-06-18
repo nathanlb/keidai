@@ -2,7 +2,7 @@
 #
 # Shapes match @torii/shared (ToriiConfig, ServerConfig, CredentialConfig,
 # PolicyConfig, OAuthProviderConfig). Env refs use ${env:VAR} and are resolved
-# before validation; non-env placeholders such as ${request.user} are left as-is.
+# before validation.
 
 oauth_providers:
   github:
@@ -19,7 +19,6 @@ servers:
     credential:
       strategy: user_oauth
       provider: github
-      subject: ${request.user}
     policy:
       default: deny
       allow:

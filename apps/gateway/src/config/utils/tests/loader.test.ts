@@ -27,7 +27,6 @@ const validDocument = {
       credential: {
         strategy: "user_oauth",
         provider: "github",
-        subject: "${request.user}",
       },
       policy: {
         default: "deny",
@@ -96,9 +95,9 @@ describe("loadConfigFromDocument", () => {
     );
     assert.equal(
       config.servers[0]?.credential.strategy === "user_oauth"
-        ? config.servers[0].credential.subject
+        ? config.servers[0].credential.provider
         : undefined,
-      "${request.user}",
+      "github",
     );
     assert.equal(
       config.servers[1]?.credential.strategy === "service_key"
@@ -184,6 +183,29 @@ describe("loadConfigFromDocument", () => {
           validEnv,
         ),
       ["Unrecognized key(s) in object: 'key'"],
+    );
+  });
+
+  it("fails when user_oauth declares a subject field", () => {
+    expectValidationError(
+      () =>
+        loadConfigFromDocument(
+          {
+            ...validDocument,
+            servers: [
+              {
+                ...validDocument.servers[0],
+                credential: {
+                  strategy: "user_oauth",
+                  provider: "github",
+                  subject: "${request.user}",
+                },
+              },
+            ],
+          },
+          validEnv,
+        ),
+      ["Unrecognized key(s) in object: 'subject'"],
     );
   });
 
