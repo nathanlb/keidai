@@ -7,8 +7,8 @@ import { DefaultMcpClientConnector } from "../../backends/mcp-client-connector.s
 import { startMockMcpServer } from "../../backends/tests/mock-mcp-server.js";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
 import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
-import { STUB_OBO_SUBJECT } from "../../credentials/utils/obo-subject.js";
-import { createCredentialServices } from "../../credentials/tests/test-helpers.js";
+import { createCredentialServices, withStubAgentPrincipal } from "../../credentials/tests/test-helpers.js";
+import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
 import { ToolDispatchService } from "../tool-dispatch.service.js";
 import {
   BackendUnavailableError,
@@ -37,7 +37,6 @@ function userOAuthServer(
     credential: {
       strategy: "user_oauth",
       provider: "github",
-      subject: "${request.user}",
     },
     policy: { default: "deny", allow: ["search_issues"] },
   };
@@ -226,20 +225,22 @@ describe("ToolDispatchService", () => {
     };
 
     try {
-      await tokenRepository.set(STUB_OBO_SUBJECT, "github", {
-        accessToken: "gho_valid",
-      });
-      await connectionManager.connectAll();
-      await toolCatalog.refresh();
-      await tokenRepository.set(STUB_OBO_SUBJECT, "github", {
-        accessToken: "gho_valid",
-        expiresAt: new Date(0),
-      });
+      await withStubAgentPrincipal(async () => {
+        await tokenRepository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
+          accessToken: "gho_valid",
+        });
+        await connectionManager.connectAll();
+        await toolCatalog.refresh();
+        await tokenRepository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
+          accessToken: "gho_valid",
+          expiresAt: new Date(0),
+        });
 
-      await assert.rejects(
-        () => toolDispatch.callTool("github.search_issues", {}),
-        /No valid OAuth token/,
-      );
+        await assert.rejects(
+          () => toolDispatch.callTool("github.search_issues", {}),
+          /No valid OAuth token/,
+        );
+      });
       assert.equal(errors.length, 1);
       assert.match(errors[0] ?? "", /No valid OAuth token/);
     } finally {

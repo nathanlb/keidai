@@ -69,7 +69,7 @@ describe("ConnectionManager", () => {
       oauth_providers: {},
       servers: [
         serverConfig("good", goodServer.url, { strategy: "service_key", key: "sk_test" }),
-        serverConfig("bad", badServer.url, { strategy: "user_oauth", provider: "github", subject: "user-1" }),
+        serverConfig("bad", badServer.url, { strategy: "user_oauth", provider: "github" }),
       ],
     });
     const { credentialResolver } = createCredentialServices();

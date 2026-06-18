@@ -5,6 +5,6 @@ export interface OAuthToken {
 }
 
 export interface TokenRepository {
-  get(subject: string, provider: string): Promise<OAuthToken | null>;
-  set(subject: string, provider: string, token: OAuthToken): Promise<void>;
+  get(ownerId: string, provider: string): Promise<OAuthToken | null>;
+  set(ownerId: string, provider: string, token: OAuthToken): Promise<void>;
 }

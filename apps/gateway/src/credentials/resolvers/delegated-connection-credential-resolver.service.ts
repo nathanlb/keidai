@@ -1,5 +1,6 @@
 import type { ServerConfig } from "@torii/shared";
 import { inject, injectable } from "tsyringe";
+import { getAgentPrincipal } from "../../identity/agent-principal-context.js";
 import { InMemoryTokenRepository } from "../in-memory-token-repository.service.js";
 import {
   CredentialResolutionError,
@@ -7,7 +8,6 @@ import {
 } from "../types/credential-resolution.js";
 import type { OAuthToken } from "../types/token-repository.js";
 import type { CredentialStrategyResolver } from "../types/credential-strategy-resolver.js";
-import { STUB_OBO_SUBJECT } from "../utils/obo-subject.js";
 
 function isExpired(token: OAuthToken): boolean {
   return token.expiresAt !== undefined && token.expiresAt.getTime() <= Date.now();
@@ -28,12 +28,12 @@ export class DelegatedConnectionCredentialResolver implements CredentialStrategy
     }
 
     const { provider } = server.credential;
-    const subject = STUB_OBO_SUBJECT;
-    const token = await this.tokenRepository.get(subject, provider);
+    const { ownerId } = getAgentPrincipal();
+    const token = await this.tokenRepository.get(ownerId, provider);
 
     if (!token || isExpired(token)) {
       throw new CredentialResolutionError(
-        `No valid OAuth token for provider "${provider}" and subject "${subject}" (backend "${server.name}")`,
+        `No valid OAuth token for provider "${provider}" and owner "${ownerId}" (backend "${server.name}")`,
       );
     }
 
@@ -41,7 +41,7 @@ export class DelegatedConnectionCredentialResolver implements CredentialStrategy
       headers: {
         Authorization: `Bearer ${token.accessToken}`,
       },
-      credentialRef: `${provider}:${subject}`,
+      credentialRef: `${provider}:${ownerId}`,
     };
   }
 }

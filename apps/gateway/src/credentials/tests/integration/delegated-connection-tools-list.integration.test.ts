@@ -7,8 +7,8 @@ import { DefaultMcpClientConnector } from "../../../backends/mcp-client-connecto
 import { startMockMcpServer } from "../../../backends/tests/mock-mcp-server.js";
 import { ToriiConfigService } from "../../../config/torii-config.service.js";
 import { ToolCatalogService } from "../../../catalog/tool-catalog.service.js";
-import { STUB_OBO_SUBJECT } from "../../utils/obo-subject.js";
-import { createCredentialServices } from "../test-helpers.js";
+import { createCredentialServices, withStubAgentPrincipal } from "../test-helpers.js";
+import { STUB_AGENT_PRINCIPAL } from "../../../identity/stub-agent-principal.js";
 
 function userOAuthServer(
   name: string,
@@ -20,7 +20,6 @@ function userOAuthServer(
     credential: {
       strategy: "user_oauth",
       provider: "github",
-      subject: "${request.user}",
     },
     policy: { default: "deny", allow: ["search_issues"] },
   };
@@ -40,7 +39,7 @@ async function closeManagerConnections(
 describe("user_oauth credentials with tools/list", () => {
   it("lists tools when a valid token is stored", async () => {
     const { tokenRepository, credentialResolver } = createCredentialServices();
-    await tokenRepository.set(STUB_OBO_SUBJECT, "github", {
+    await tokenRepository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
       accessToken: "gho_valid",
     });
 
@@ -70,10 +69,12 @@ describe("user_oauth credentials with tools/list", () => {
     );
 
     try {
-      await connectionManager.connectAll();
-      const tools = await catalogService.listToolsForAgent();
+      await withStubAgentPrincipal(async () => {
+        await connectionManager.connectAll();
+        const tools = await catalogService.listToolsForAgent();
 
-      assert.deepEqual(tools.map((tool) => tool.name), ["github.search_issues"]);
+        assert.deepEqual(tools.map((tool) => tool.name), ["github.search_issues"]);
+      });
     } finally {
       await closeManagerConnections(connectionManager);
       await mockServer.close();
@@ -113,13 +114,15 @@ describe("user_oauth credentials with tools/list", () => {
     };
 
     try {
-      await connectionManager.connectAll();
-      const tools = await catalogService.listToolsForAgent();
+      await withStubAgentPrincipal(async () => {
+        await connectionManager.connectAll();
+        const tools = await catalogService.listToolsForAgent();
 
-      assert.deepEqual(tools, []);
-      assert.equal(errors.length, 1);
-      assert.match(errors[0] ?? "", /No valid OAuth token/);
-      assert.doesNotMatch(errors[0] ?? "", /Bearer/);
+        assert.deepEqual(tools, []);
+        assert.equal(errors.length, 1);
+        assert.match(errors[0] ?? "", /No valid OAuth token/);
+        assert.doesNotMatch(errors[0] ?? "", /Bearer/);
+      });
     } finally {
       console.error = originalError;
       await closeManagerConnections(connectionManager);

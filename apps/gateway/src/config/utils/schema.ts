@@ -9,11 +9,12 @@ const oauthProviderSchema = z.object({
 });
 
 const credentialSchema = z.discriminatedUnion("strategy", [
-  z.object({
-    strategy: z.literal("user_oauth"),
-    provider: z.string().min(1, "provider is required"),
-    subject: z.string().min(1, "subject is required"),
-  }),
+  z
+    .object({
+      strategy: z.literal("user_oauth"),
+      provider: z.string().min(1, "provider is required"),
+    })
+    .strict(),
   z.object({
     strategy: z.literal("service_key"),
     key: z.string().min(1, "key is required for service_key credential strategy"),
