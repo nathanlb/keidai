@@ -10,6 +10,7 @@ import { DefaultMcpClientConnector } from "../../backends/mcp-client-connector.s
 import { startMockMcpServer } from "../../backends/tests/mock-mcp-server.js";
 import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
 import { GatewayMcpServer } from "../gateway-mcp-server.service.js";
+import { createCredentialServices } from "../../credentials/tests/test-helpers.js";
 
 function serverConfig(
   name: string,
@@ -47,11 +48,15 @@ describe("Gateway MCP tools/list", () => {
       oauth_providers: {},
       servers: [serverConfig("github", backend.url)],
     });
+    const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(
       configService,
-      new DefaultMcpClientConnector(),
+      new DefaultMcpClientConnector(credentialResolver),
     );
-    const toolCatalog = new ToolCatalogService(connectionManager);
+    const toolCatalog = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+    );
     const gatewayMcpServer = new GatewayMcpServer(toolCatalog);
 
     const client = new Client({

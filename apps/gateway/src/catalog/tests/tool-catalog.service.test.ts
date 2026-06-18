@@ -7,6 +7,7 @@ import { ConnectionManager } from "../../backends/connection-manager.service.js"
 import { DefaultMcpClientConnector } from "../../backends/mcp-client-connector.service.js";
 import { startMockMcpServer } from "../../backends/tests/mock-mcp-server.js";
 import { ToolCatalogService } from "../tool-catalog.service.js";
+import { createCredentialServices } from "../../credentials/tests/test-helpers.js";
 
 function serverConfig(
   name: string,
@@ -43,11 +44,15 @@ describe("ToolCatalogService", () => {
       oauth_providers: {},
       servers: [serverConfig("github", mockServer.url)],
     });
+    const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(
       configService,
-      new DefaultMcpClientConnector(),
+      new DefaultMcpClientConnector(credentialResolver),
     );
-    const catalogService = new ToolCatalogService(connectionManager);
+    const catalogService = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+    );
 
     try {
       await connectionManager.connectAll();
@@ -88,9 +93,12 @@ describe("ToolCatalogService", () => {
         serverConfig("deepwiki", badServer.url),
       ],
     });
+    const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(configService, {
       connect: async (server) => {
-        const client = await new DefaultMcpClientConnector().connect(server);
+        const client = await new DefaultMcpClientConnector(
+          credentialResolver,
+        ).connect(server);
         if (server.name === "deepwiki") {
           client.listTools = async () => {
             throw new Error("auth required");
@@ -99,7 +107,10 @@ describe("ToolCatalogService", () => {
         return client;
       },
     });
-    const catalogService = new ToolCatalogService(connectionManager);
+    const catalogService = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+    );
 
     try {
       await connectionManager.connectAll();
@@ -124,11 +135,15 @@ describe("ToolCatalogService", () => {
       oauth_providers: {},
       servers: [serverConfig("offline", closedUrl)],
     });
+    const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(
       configService,
-      new DefaultMcpClientConnector(),
+      new DefaultMcpClientConnector(credentialResolver),
     );
-    const catalogService = new ToolCatalogService(connectionManager);
+    const catalogService = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+    );
 
     await connectionManager.connectAll();
     const tools = await catalogService.listToolsForAgent();

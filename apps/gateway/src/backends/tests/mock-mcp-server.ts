@@ -15,6 +15,7 @@ export interface MockMcpServer {
 
 export interface MockMcpServerOptions {
   rejectConnections?: boolean;
+  requireAuth?: boolean;
   tools?: MockToolDefinition[];
 }
 
@@ -56,6 +57,14 @@ export async function startMockMcpServer(
     if (options?.rejectConnections) {
       res.writeHead(500).end("Internal Server Error");
       return;
+    }
+
+    if (options?.requireAuth) {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith("Bearer ")) {
+        res.writeHead(401).end("Unauthorized");
+        return;
+      }
     }
 
     if (req.method === "POST") {
