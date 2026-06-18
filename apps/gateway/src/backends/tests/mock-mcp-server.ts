@@ -19,6 +19,7 @@ export interface MockMcpServerOptions {
   /** When set with requireAuth, the bearer token must match exactly. */
   expectedBearer?: string;
   tools?: MockToolDefinition[];
+  onRequest?: (req: IncomingMessage) => void;
 }
 
 async function readJsonBody(req: IncomingMessage): Promise<unknown> {
@@ -60,6 +61,8 @@ export async function startMockMcpServer(
       res.writeHead(500).end("Internal Server Error");
       return;
     }
+
+    options?.onRequest?.(req);
 
     if (options?.requireAuth) {
       const authHeader = req.headers.authorization;
