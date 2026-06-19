@@ -9,7 +9,7 @@ import {
 import Fastify, { type FastifyInstance } from "fastify";
 import { inject, injectable } from "tsyringe";
 import { ToolCatalogService } from "../catalog/tool-catalog.service.js";
-import { CredentialResolutionError } from "../credentials/types/credential-resolution.js";
+import { CredentialResolutionError, LinkingRequiredError } from "../credentials/types/credential-resolution.js";
 import { ToolDispatchService } from "../dispatch/tool-dispatch.service.js";
 import { runWithAgentPrincipal } from "../identity/agent-principal-context.js";
 import { STUB_AGENT_PRINCIPAL } from "../identity/stub-agent-principal.js";
@@ -145,6 +145,9 @@ export class GatewayMcpServer {
       return McpError.fromError(ErrorCode.InvalidParams, error.message);
     }
     if (error instanceof BackendUnavailableError) {
+      return McpError.fromError(ErrorCode.InvalidRequest, error.message);
+    }
+    if (error instanceof LinkingRequiredError) {
       return McpError.fromError(ErrorCode.InvalidRequest, error.message);
     }
     if (error instanceof CredentialResolutionError) {

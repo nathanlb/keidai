@@ -8,6 +8,7 @@ import { startMockMcpServer } from "../../backends/tests/mock-mcp-server.js";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
 import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
 import { createCredentialServices, withStubAgentPrincipal } from "../../credentials/tests/test-helpers.js";
+import { LINKING_REQUIRED_CODE } from "../../credentials/types/credential-resolution.js";
 import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
 import { ToolDispatchService } from "../tool-dispatch.service.js";
 import {
@@ -86,6 +87,7 @@ async function createDispatchStack(
         client_id: "client",
         client_secret: "secret",
         scopes: ["repo"],
+        redirect_uri: "http://localhost:3100/oauth/callback",
       },
     },
     servers,
@@ -187,21 +189,25 @@ describe("ToolDispatchService", () => {
     }
   });
 
-  it("rejects calls when user_oauth credentials are missing", async () => {
+  it("returns linking_required when user_oauth credentials are missing", async () => {
     const mockServer = await startMockMcpServer({
       requireAuth: true,
       tools: [{ name: "search_issues", description: "Search issues" }],
     });
-    const { tokenRepository, credentialResolver } = createCredentialServices();
-    const configService = new ToriiConfigService({
-      oauth_providers: {
-        github: {
-          token_url: "https://github.com/login/oauth/access_token",
-          client_id: "client",
-          client_secret: "secret",
-          scopes: ["repo"],
-        },
+    const oauthProviders = {
+      github: {
+        token_url: "https://github.com/login/oauth/access_token",
+        client_id: "client",
+        client_secret: "secret",
+        scopes: ["repo"],
+        redirect_uri: "http://localhost:3100/oauth/callback",
       },
+    };
+    const { tokenRepository, credentialResolver } = createCredentialServices({
+      oauth_providers: oauthProviders,
+    });
+    const configService = new ToriiConfigService({
+      oauth_providers: oauthProviders,
       servers: [userOAuthServer("github", mockServer.url)],
     });
     const connectionManager = new ConnectionManager(
@@ -218,12 +224,6 @@ describe("ToolDispatchService", () => {
       credentialResolver,
     );
 
-    const errors: string[] = [];
-    const originalError = console.error;
-    console.error = (message?: unknown) => {
-      errors.push(String(message));
-    };
-
     try {
       await withStubAgentPrincipal(async () => {
         await tokenRepository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
@@ -236,15 +236,20 @@ describe("ToolDispatchService", () => {
           expiresAt: new Date(0),
         });
 
-        await assert.rejects(
-          () => toolDispatch.callTool("github.search_issues", {}),
-          /No valid OAuth token/,
-        );
+        const result = await toolDispatch.callTool("github.search_issues", {});
+
+        assert.equal(result.isError, true);
+        assert.deepEqual(result.structuredContent, {
+          code: LINKING_REQUIRED_CODE,
+          provider: "github",
+          ownerId: STUB_AGENT_PRINCIPAL.ownerId,
+          backend: "github",
+          linkUrl: result.structuredContent?.linkUrl,
+        });
+        assert.match(String(result.structuredContent?.linkUrl), /client_id=client/);
+        assert.doesNotMatch(JSON.stringify(result), /gho_valid/);
       });
-      assert.equal(errors.length, 1);
-      assert.match(errors[0] ?? "", /No valid OAuth token/);
     } finally {
-      console.error = originalError;
       await closeManagerConnections(connectionManager);
       await mockServer.close();
     }

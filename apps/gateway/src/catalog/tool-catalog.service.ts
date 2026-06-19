@@ -1,7 +1,7 @@
 import { inject, injectable } from "tsyringe";
 import { ConnectionManager } from "../backends/connection-manager.service.js";
 import { CredentialResolverService } from "../credentials/credential-resolver.service.js";
-import { CredentialResolutionError } from "../credentials/types/credential-resolution.js";
+import { CredentialResolutionError, LinkingRequiredError } from "../credentials/types/credential-resolution.js";
 import type { AgentTool, CatalogTool } from "./types/catalog-tool.js";
 import { namespaceTool } from "./utils/namespacing.js";
 
@@ -57,6 +57,13 @@ export class ToolCatalogService {
             });
           }
         } catch (error) {
+          if (error instanceof LinkingRequiredError) {
+            console.error(
+              `Backend "${connection.config.name}" requires OAuth linking for provider "${error.payload.provider}"`,
+            );
+            return;
+          }
+
           const err = error instanceof Error ? error : new Error(String(error));
           const message =
             error instanceof CredentialResolutionError
