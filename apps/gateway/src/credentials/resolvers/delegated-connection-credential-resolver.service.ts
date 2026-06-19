@@ -1,13 +1,16 @@
 import type { ServerConfig } from "@torii/shared";
 import { inject, injectable } from "tsyringe";
 import { getAgentPrincipal } from "../../identity/agent-principal-context.js";
-import { InMemoryTokenRepository } from "../in-memory-token-repository.service.js";
+import {
+  TOKEN_REPOSITORY,
+  type OAuthToken,
+  type TokenRepository,
+} from "../types/token-repository.js";
+import type { CredentialStrategyResolver } from "../types/credential-strategy-resolver.js";
 import {
   CredentialResolutionError,
   type ResolvedCredentials,
 } from "../types/credential-resolution.js";
-import type { OAuthToken } from "../types/token-repository.js";
-import type { CredentialStrategyResolver } from "../types/credential-strategy-resolver.js";
 
 function isExpired(token: OAuthToken): boolean {
   return token.expiresAt !== undefined && token.expiresAt.getTime() <= Date.now();
@@ -16,8 +19,8 @@ function isExpired(token: OAuthToken): boolean {
 @injectable()
 export class DelegatedConnectionCredentialResolver implements CredentialStrategyResolver {
   constructor(
-    @inject(InMemoryTokenRepository)
-    private readonly tokenRepository: InMemoryTokenRepository,
+    @inject(TOKEN_REPOSITORY)
+    private readonly tokenRepository: TokenRepository,
   ) {}
 
   async resolve(server: ServerConfig): Promise<ResolvedCredentials> {

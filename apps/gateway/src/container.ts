@@ -5,7 +5,10 @@ import { ConnectionManager } from "./backends/connection-manager.service.js";
 import { DefaultMcpClientConnector } from "./backends/mcp-client-connector.service.js";
 import { ToolCatalogService } from "./catalog/tool-catalog.service.js";
 import { CredentialResolverService } from "./credentials/credential-resolver.service.js";
-import { InMemoryTokenRepository } from "./credentials/in-memory-token-repository.service.js";
+import { SqliteTokenRepository } from "./credentials/sqlite-token-repository.service.js";
+import { TOKEN_REPOSITORY } from "./credentials/types/token-repository.js";
+import { openTokenDatabase } from "./credentials/utils/sqlite-token-store.js";
+import { resolveTokenStorePath } from "./credentials/utils/token-store-path.js";
 import { NoneCredentialResolver } from "./credentials/resolvers/none-credential-resolver.service.js";
 import { DelegatedConnectionCredentialResolver } from "./credentials/resolvers/delegated-connection-credential-resolver.service.js";
 import { ServiceKeyCredentialResolver } from "./credentials/resolvers/service-key-credential-resolver.service.js";
@@ -18,8 +21,11 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
   appContainer.register(ToriiConfigService, {
     useValue: new ToriiConfigService(config),
   });
-  appContainer.register(InMemoryTokenRepository, {
-    useClass: InMemoryTokenRepository,
+  appContainer.register(TOKEN_REPOSITORY, {
+    useFactory: () => {
+      const db = openTokenDatabase(resolveTokenStorePath());
+      return new SqliteTokenRepository(db);
+    },
   });
   appContainer.register(NoneCredentialResolver, {
     useClass: NoneCredentialResolver,

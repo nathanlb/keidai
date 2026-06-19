@@ -1,5 +1,6 @@
 import { CredentialResolverService } from "../credential-resolver.service.js";
 import { InMemoryTokenRepository } from "../in-memory-token-repository.service.js";
+import type { TokenRepository } from "../types/token-repository.js";
 import { NoneCredentialResolver } from "../resolvers/none-credential-resolver.service.js";
 import { DelegatedConnectionCredentialResolver } from "../resolvers/delegated-connection-credential-resolver.service.js";
 import { ServiceKeyCredentialResolver } from "../resolvers/service-key-credential-resolver.service.js";
@@ -13,7 +14,7 @@ export function withStubAgentPrincipal<T>(fn: () => T | Promise<T>): T | Promise
 }
 
 export function createCredentialServices(): {
-  tokenRepository: InMemoryTokenRepository;
+  tokenRepository: TokenRepository;
   credentialResolver: CredentialResolverService;
 } {
   const tokenRepository = new InMemoryTokenRepository();
