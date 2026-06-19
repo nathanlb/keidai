@@ -20,7 +20,7 @@ function isExpired(token: OAuthToken): boolean {
 }
 
 @injectable()
-export class DelegatedConnectionCredentialResolver implements CredentialStrategyResolver {
+export class UserOAuthCredentialResolver implements CredentialStrategyResolver {
   constructor(
     @inject(TOKEN_REPOSITORY)
     private readonly tokenRepository: TokenRepository,

@@ -1,7 +1,7 @@
 import type { ServerConfig } from "@torii/shared";
 import { inject, injectable } from "tsyringe";
 import { NoneCredentialResolver } from "./resolvers/none-credential-resolver.service.js";
-import { DelegatedConnectionCredentialResolver } from "./resolvers/delegated-connection-credential-resolver.service.js";
+import { UserOAuthCredentialResolver } from "./resolvers/user_oauth_credential-resolver.service.js";
 import { ServiceKeyCredentialResolver } from "./resolvers/service-key-credential-resolver.service.js";
 import type { ResolvedCredentials } from "./types/credential-resolution.js";
 
@@ -10,8 +10,8 @@ export class CredentialResolverService {
   constructor(
     @inject(NoneCredentialResolver)
     private readonly noneResolver: NoneCredentialResolver,
-    @inject(DelegatedConnectionCredentialResolver)
-    private readonly userOAuthResolver: DelegatedConnectionCredentialResolver,
+    @inject(UserOAuthCredentialResolver)
+    private readonly userOAuthResolver: UserOAuthCredentialResolver,
     @inject(ServiceKeyCredentialResolver)
     private readonly serviceKeyResolver: ServiceKeyCredentialResolver,
   ) {}

@@ -10,7 +10,7 @@ import { TOKEN_REPOSITORY } from "./credentials/types/token-repository.js";
 import { openTokenDatabase } from "./credentials/utils/sqlite-token-store.js";
 import { resolveTokenStorePath } from "./credentials/utils/token-store-path.js";
 import { NoneCredentialResolver } from "./credentials/resolvers/none-credential-resolver.service.js";
-import { DelegatedConnectionCredentialResolver } from "./credentials/resolvers/delegated-connection-credential-resolver.service.js";
+import { UserOAuthCredentialResolver } from "./credentials/resolvers/user_oauth_credential-resolver.service.js";
 import { ServiceKeyCredentialResolver } from "./credentials/resolvers/service-key-credential-resolver.service.js";
 import { ToriiConfigService } from "./config/torii-config.service.js";
 import { ToolDispatchService } from "./dispatch/tool-dispatch.service.js";
@@ -30,8 +30,8 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
   appContainer.register(NoneCredentialResolver, {
     useClass: NoneCredentialResolver,
   });
-  appContainer.register(DelegatedConnectionCredentialResolver, {
-    useClass: DelegatedConnectionCredentialResolver,
+  appContainer.register(UserOAuthCredentialResolver, {
+    useClass: UserOAuthCredentialResolver,
   });
   appContainer.register(ServiceKeyCredentialResolver, {
     useClass: ServiceKeyCredentialResolver,

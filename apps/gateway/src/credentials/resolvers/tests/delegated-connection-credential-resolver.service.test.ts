@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import type { ToriiConfig } from "@torii/shared";
 import { ToriiConfigService } from "../../../config/torii-config.service.js";
 import { InMemoryTokenRepository } from "../../in-memory-token-repository.service.js";
-import { DelegatedConnectionCredentialResolver } from "../delegated-connection-credential-resolver.service.js";
+import { UserOAuthCredentialResolver } from "../user_oauth_credential-resolver.service.js";
 import {
   LINKING_REQUIRED_CODE,
   LinkingRequiredError,
@@ -39,12 +39,12 @@ function userOAuthServer(
 
 function createResolver(
   repository = new InMemoryTokenRepository(),
-): DelegatedConnectionCredentialResolver {
+): UserOAuthCredentialResolver {
   const configService = new ToriiConfigService({
     oauth_providers: oauthProviders,
     servers: [],
   });
-  return new DelegatedConnectionCredentialResolver(repository, configService);
+  return new UserOAuthCredentialResolver(repository, configService);
 }
 
 describe("InMemoryTokenRepository", () => {

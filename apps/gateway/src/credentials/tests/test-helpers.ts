@@ -4,7 +4,7 @@ import { CredentialResolverService } from "../credential-resolver.service.js";
 import { InMemoryTokenRepository } from "../in-memory-token-repository.service.js";
 import type { TokenRepository } from "../types/token-repository.js";
 import { NoneCredentialResolver } from "../resolvers/none-credential-resolver.service.js";
-import { DelegatedConnectionCredentialResolver } from "../resolvers/delegated-connection-credential-resolver.service.js";
+import { UserOAuthCredentialResolver } from "../resolvers/user_oauth_credential-resolver.service.js";
 import { ServiceKeyCredentialResolver } from "../resolvers/service-key-credential-resolver.service.js";
 import { runWithAgentPrincipal } from "../../identity/agent-principal-context.js";
 import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
@@ -40,7 +40,7 @@ export function createCredentialServices(
     servers: [],
   });
   const noneResolver = new NoneCredentialResolver();
-  const userOAuthResolver = new DelegatedConnectionCredentialResolver(
+  const userOAuthResolver = new UserOAuthCredentialResolver(
     tokenRepository,
     configService,
   );
