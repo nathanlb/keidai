@@ -6,7 +6,11 @@ import { inject, injectable } from "tsyringe";
 import { ConnectionManager } from "../backends/connection-manager.service.js";
 import { ToolCatalogService } from "../catalog/tool-catalog.service.js";
 import { CredentialResolverService } from "../credentials/credential-resolver.service.js";
-import { CredentialResolutionError } from "../credentials/types/credential-resolution.js";
+import {
+  CredentialResolutionError,
+  LinkingRequiredError,
+  toLinkingRequiredToolResult,
+} from "../credentials/types/credential-resolution.js";
 import {
   BackendUnavailableError,
   ToolNotFoundError,
@@ -48,6 +52,9 @@ export class ToolDispatchService {
     try {
       await this.credentialResolver.resolve(connection.config);
     } catch (error) {
+      if (error instanceof LinkingRequiredError) {
+        return toLinkingRequiredToolResult(error);
+      }
       if (error instanceof CredentialResolutionError) {
         console.error(error.message);
         throw error;

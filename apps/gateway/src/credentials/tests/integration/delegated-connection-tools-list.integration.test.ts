@@ -55,6 +55,7 @@ describe("user_oauth credentials with tools/list", () => {
           client_id: "client",
           client_secret: "secret",
           scopes: ["repo"],
+          redirect_uri: "http://localhost:3100/oauth/callback",
         },
       },
       servers: [userOAuthServer("github", mockServer.url)],
@@ -94,6 +95,7 @@ describe("user_oauth credentials with tools/list", () => {
           client_id: "client",
           client_secret: "secret",
           scopes: ["repo"],
+          redirect_uri: "http://localhost:3100/oauth/callback",
         },
       },
       servers: [userOAuthServer("github", mockServer.url)],
@@ -120,7 +122,10 @@ describe("user_oauth credentials with tools/list", () => {
 
         assert.deepEqual(tools, []);
         assert.equal(errors.length, 1);
-        assert.match(errors[0] ?? "", /No valid OAuth token/);
+        assert.match(
+          errors[0] ?? "",
+          /requires OAuth linking for provider "github"/,
+        );
         assert.doesNotMatch(errors[0] ?? "", /Bearer/);
       });
     } finally {

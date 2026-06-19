@@ -4,7 +4,7 @@ import type { FetchLike } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type { ServerConfig } from "@torii/shared";
 import { inject, injectable } from "tsyringe";
 import { CredentialResolverService } from "../credentials/credential-resolver.service.js";
-import { CredentialResolutionError } from "../credentials/types/credential-resolution.js";
+import { CredentialResolutionError, LinkingRequiredError } from "../credentials/types/credential-resolution.js";
 import type {
   McpClient,
   McpClientConnector,
@@ -21,7 +21,10 @@ function createCredentialFetch(
       const resolved = await credentialResolver.resolve(server);
       credentialHeaders = resolved.headers;
     } catch (error) {
-      if (!(error instanceof CredentialResolutionError)) {
+      if (
+        !(error instanceof CredentialResolutionError) &&
+        !(error instanceof LinkingRequiredError)
+      ) {
         throw error;
       }
     }

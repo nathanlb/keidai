@@ -6,6 +6,7 @@ const oauthProviderSchema = z.object({
   client_id: z.string().min(1, "client_id is required"),
   client_secret: z.string().min(1, "client_secret is required"),
   scopes: z.array(z.string()),
+  redirect_uri: z.string().min(1).optional(),
 });
 
 const credentialSchema = z.discriminatedUnion("strategy", [

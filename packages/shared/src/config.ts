@@ -4,6 +4,8 @@ export interface OAuthProviderConfig {
   client_id: string;
   client_secret: string;
   scopes: string[];
+  /** OAuth redirect URI for the authorization-code link flow. */
+  redirect_uri?: string;
 }
 
 export type CredentialConfig =

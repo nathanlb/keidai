@@ -2,12 +2,26 @@ import "reflect-metadata";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ToriiConfig } from "@torii/shared";
+import { ToriiConfigService } from "../../../config/torii-config.service.js";
 import { InMemoryTokenRepository } from "../../in-memory-token-repository.service.js";
-import { DelegatedConnectionCredentialResolver } from "../delegated-connection-credential-resolver.service.js";
-import { CredentialResolutionError } from "../../types/credential-resolution.js";
+import { UserOAuthCredentialResolver } from "../user_oauth_credential-resolver.service.js";
+import {
+  LINKING_REQUIRED_CODE,
+  LinkingRequiredError,
+} from "../../types/credential-resolution.js";
 import { runWithAgentPrincipal } from "../../../identity/agent-principal-context.js";
 import { STUB_AGENT_PRINCIPAL } from "../../../identity/stub-agent-principal.js";
 import { withStubAgentPrincipal } from "../../tests/test-helpers.js";
+
+const oauthProviders: ToriiConfig["oauth_providers"] = {
+  github: {
+    token_url: "https://github.com/login/oauth/access_token",
+    client_id: "test-client-id",
+    client_secret: "secret",
+    scopes: ["repo"],
+    redirect_uri: "http://localhost:3100/oauth/callback",
+  },
+};
 
 function userOAuthServer(
   name = "github",
@@ -21,6 +35,16 @@ function userOAuthServer(
     },
     policy: { default: "deny" },
   };
+}
+
+function createResolver(
+  repository = new InMemoryTokenRepository(),
+): UserOAuthCredentialResolver {
+  const configService = new ToriiConfigService({
+    oauth_providers: oauthProviders,
+    servers: [],
+  });
+  return new UserOAuthCredentialResolver(repository, configService);
 }
 
 describe("InMemoryTokenRepository", () => {
@@ -45,7 +69,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
     await repository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
       accessToken: "gho_secret_token",
     });
-    const resolver = new DelegatedConnectionCredentialResolver(repository);
+    const resolver = createResolver(repository);
 
     const resolved = await withStubAgentPrincipal(() =>
       resolver.resolve(userOAuthServer()),
@@ -58,38 +82,45 @@ describe("DelegatedConnectionCredentialResolver", () => {
     assert.equal(resolved.credentialRef, "github:stub-user");
   });
 
-  it("returns a clear error when no token is stored", async () => {
-    const resolver = new DelegatedConnectionCredentialResolver(
-      new InMemoryTokenRepository(),
-    );
+  it("returns linking_required when no token is stored", async () => {
+    const resolver = createResolver();
 
     await assert.rejects(
       () =>
         withStubAgentPrincipal(() => resolver.resolve(userOAuthServer())),
       (error: unknown) => {
-        assert.ok(error instanceof CredentialResolutionError);
-        assert.match(
-          error.message,
-          /No valid OAuth token for provider "github"/,
-        );
+        assert.ok(error instanceof LinkingRequiredError);
+        assert.equal(error.code, LINKING_REQUIRED_CODE);
+        assert.equal(error.payload.code, LINKING_REQUIRED_CODE);
+        assert.equal(error.payload.provider, "github");
+        assert.equal(error.payload.ownerId, STUB_AGENT_PRINCIPAL.ownerId);
+        assert.equal(error.payload.backend, "github");
+        assert.match(error.payload.linkUrl, /client_id=test-client-id/);
+        assert.match(error.payload.linkUrl, /scope=repo/);
         assert.doesNotMatch(error.message, /gho_/);
+        assert.doesNotMatch(error.payload.linkUrl, /secret/);
         return true;
       },
     );
   });
 
-  it("treats an expired token as missing", async () => {
+  it("returns linking_required when the stored token is expired", async () => {
     const repository = new InMemoryTokenRepository();
     await repository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
       accessToken: "gho_expired",
       expiresAt: new Date(Date.now() - 60_000),
     });
-    const resolver = new DelegatedConnectionCredentialResolver(repository);
+    const resolver = createResolver(repository);
 
     await assert.rejects(
       () =>
         withStubAgentPrincipal(() => resolver.resolve(userOAuthServer())),
-      (error: unknown) => error instanceof CredentialResolutionError,
+      (error: unknown) => {
+        assert.ok(error instanceof LinkingRequiredError);
+        assert.equal(error.payload.code, LINKING_REQUIRED_CODE);
+        assert.doesNotMatch(error.payload.linkUrl, /gho_expired/);
+        return true;
+      },
     );
   });
 
@@ -98,12 +129,12 @@ describe("DelegatedConnectionCredentialResolver", () => {
     await repository.set("other-owner", "github", {
       accessToken: "gho_other_owner",
     });
-    const resolver = new DelegatedConnectionCredentialResolver(repository);
+    const resolver = createResolver(repository);
 
     await assert.rejects(
       () =>
         withStubAgentPrincipal(() => resolver.resolve(userOAuthServer())),
-      (error: unknown) => error instanceof CredentialResolutionError,
+      LinkingRequiredError,
     );
   });
 
@@ -112,7 +143,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
     await repository.set("context-owner", "github", {
       accessToken: "gho_context_owner",
     });
-    const resolver = new DelegatedConnectionCredentialResolver(repository);
+    const resolver = createResolver(repository);
 
     const resolved = await runWithAgentPrincipal(
       { agentId: "agent-1", ownerId: "context-owner", groups: [] },
