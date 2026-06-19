@@ -1,0 +1,19 @@
+import { DatabaseSync } from "node:sqlite";
+
+const SCHEMA_SQL = `
+CREATE TABLE IF NOT EXISTS oauth_tokens (
+  owner_id TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  access_token TEXT NOT NULL,
+  refresh_token TEXT,
+  expires_at TEXT,
+  PRIMARY KEY (owner_id, provider)
+);
+`;
+
+export function openTokenDatabase(databasePath: string): DatabaseSync {
+  const db = new DatabaseSync(databasePath);
+  db.exec("PRAGMA journal_mode = WAL");
+  db.exec(SCHEMA_SQL);
+  return db;
+}
