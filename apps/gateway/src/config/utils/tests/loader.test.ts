@@ -105,6 +105,82 @@ describe("loadConfigFromDocument", () => {
         : undefined,
       "sk_test_123",
     );
+    assert.deepEqual(config.agents, []);
+  });
+
+  it("loads agent registrations from config", () => {
+    const config = loadConfigFromDocument(
+      {
+        ...validDocument,
+        agents: [
+          {
+            subject: {
+              kind: "k8s_service_account",
+              namespace: "torii-agents",
+              service_account: "catalog-agent",
+            },
+            agent_id: "agent-catalog-01",
+            owner_id: "user-alice",
+            groups: ["agents"],
+          },
+        ],
+      },
+      validEnv,
+    );
+
+    assert.equal(config.agents?.length, 1);
+    assert.equal(config.agents?.[0]?.owner_id, "user-alice");
+  });
+
+  it("fails on duplicate agent subjects", () => {
+    const duplicateAgent = {
+      subject: {
+        kind: "k8s_service_account",
+        namespace: "torii-agents",
+        service_account: "catalog-agent",
+      },
+      agent_id: "agent-2",
+      owner_id: "user-bob",
+      groups: [],
+    };
+
+    expectValidationError(
+      () =>
+        loadConfigFromDocument(
+          {
+            ...validDocument,
+            agents: [duplicateAgent, duplicateAgent],
+          },
+          validEnv,
+        ),
+      ['duplicate agent subject "torii-agents/catalog-agent"'],
+    );
+  });
+
+  it("rejects agent registrations that declare request-derived owner_id fields", () => {
+    expectValidationError(
+      () =>
+        loadConfigFromDocument(
+          {
+            ...validDocument,
+            agents: [
+              {
+                subject: {
+                  kind: "k8s_service_account",
+                  namespace: "torii-agents",
+                  service_account: "catalog-agent",
+                },
+                agent_id: "agent-catalog-01",
+                owner_id: "user-alice",
+                groups: [],
+                request_owner: "${request.user}",
+              },
+            ],
+          },
+          validEnv,
+        ),
+      ["Unrecognized key(s) in object: 'request_owner'"],
+    );
   });
 
   it("lists all missing env vars at once", () => {

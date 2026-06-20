@@ -15,6 +15,8 @@ import { UserOAuthCredentialResolver } from "./credentials/resolvers/user_oauth_
 import { ServiceKeyCredentialResolver } from "./credentials/resolvers/service-key-credential-resolver.service.js";
 import { ToriiConfigService } from "./config/torii-config.service.js";
 import { ToolDispatchService } from "./dispatch/tool-dispatch.service.js";
+import { buildAgentRegistry } from "./identity/utils/build-agent-registry.js";
+import { AGENT_REGISTRY } from "./identity/types/tokens.js";
 import { GatewayMcpServer } from "./mcp/gateway-mcp-server.service.js";
 import { PolicyEnforcementService } from "./policy/policy-enforcement.service.js";
 import { TraceEmitterService } from "./trace/trace-emitter.service.js";
@@ -23,6 +25,10 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
   const appContainer = container.createChildContainer();
   appContainer.register(ToriiConfigService, {
     useValue: new ToriiConfigService(config),
+  });
+  appContainer.register(AGENT_REGISTRY, {
+    useFactory: (c) =>
+      buildAgentRegistry(c.resolve(ToriiConfigService).get().agents ?? []),
   });
   appContainer.register(TOKEN_REPOSITORY, {
     useFactory: () => {

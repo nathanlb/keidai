@@ -9,6 +9,7 @@ describe("PolicyEnforcementService", () => {
   it("warns when policy references tools absent from the backend catalog", () => {
     const config: ToriiConfig = {
       oauth_providers: {},
+      agents: [],
       servers: [
         {
           name: "github",

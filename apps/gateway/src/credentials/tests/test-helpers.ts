@@ -38,6 +38,7 @@ export function createCredentialServices(
   const tokenRepository = new InMemoryTokenRepository();
   const configService = new ToriiConfigService({
     oauth_providers: config.oauth_providers,
+    agents: [],
     servers: [],
   });
   const noneResolver = new NoneCredentialResolver();

@@ -158,6 +158,22 @@ describe("K8sSaOidcIdentityResolver", () => {
     );
   });
 
+  it("rejects a token for an unregistered service account", async () => {
+    const resolver = createResolver();
+    const token = await signToken(keys.privateKey, {
+      sub: "system:serviceaccount:torii-agents:unknown-agent",
+    });
+
+    await assert.rejects(
+      () => resolver.resolve(token),
+      (error: unknown) => {
+        assert.ok(error instanceof IdentityResolutionError);
+        assert.equal(error.message, "Agent is not registered");
+        return true;
+      },
+    );
+  });
+
   it("rejects a token whose subject is not a Kubernetes service account", async () => {
     const resolver = createResolver();
     const token = await signToken(keys.privateKey, {
