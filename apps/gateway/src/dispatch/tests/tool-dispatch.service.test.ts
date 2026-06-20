@@ -10,6 +10,8 @@ import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
 import { createCredentialServices, withStubAgentPrincipal } from "../../credentials/tests/test-helpers.js";
 import { LINKING_REQUIRED_CODE } from "../../credentials/types/credential-resolution.js";
 import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
+import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
+import type { CapturingTraceEmitter as CapturingTraceEmitterType } from "../../trace/tests/capturing-trace-emitter.js";
 import { ToolDispatchService } from "../tool-dispatch.service.js";
 import {
   BackendUnavailableError,
@@ -76,6 +78,7 @@ async function createDispatchStack(
   connectionManager: ConnectionManager;
   toolCatalog: ToolCatalogService;
   toolDispatch: ToolDispatchService;
+  traceEmitter: CapturingTraceEmitterType;
   close: () => Promise<void>;
 }> {
   const { credentialResolver } = createCredentialServices();
@@ -100,16 +103,19 @@ async function createDispatchStack(
     connectionManager,
     credentialResolver,
   );
+  const traceEmitter = new CapturingTraceEmitter();
   const toolDispatch = new ToolDispatchService(
     toolCatalog,
     connectionManager,
     credentialResolver,
+    traceEmitter,
   );
 
   return {
     connectionManager,
     toolCatalog,
     toolDispatch,
+    traceEmitter,
     close: () => closeManagerConnections(connectionManager),
   };
 }
@@ -161,7 +167,41 @@ describe("ToolDispatchService", () => {
     }
   });
 
-  it("rejects calls when the backend is failed", async () => {
+  it("emits a structured trace for allowed calls", async () => {
+    const mockServer = await startMockMcpServer({
+      tools: [{ name: "read_wiki_structure", description: "Read wiki" }],
+    });
+    const stack = await createDispatchStack([
+      noneServer("deepwiki", mockServer.url),
+    ]);
+
+    try {
+      await withStubAgentPrincipal(async () => {
+        await stack.connectionManager.connectAll();
+        await stack.toolCatalog.refresh();
+
+        await stack.toolDispatch.callTool("deepwiki.read_wiki_structure", {});
+
+        assert.equal(stack.traceEmitter.traces.length, 1);
+        const trace = stack.traceEmitter.traces[0]!;
+        assert.equal(trace.server, "deepwiki");
+        assert.equal(trace.tool, "read_wiki_structure");
+        assert.equal(trace.policyDecision, "allowed");
+        assert.equal(typeof trace.durationMs, "number");
+        assert.deepEqual(trace.principal, {
+          agentId: STUB_AGENT_PRINCIPAL.agentId,
+          ownerId: STUB_AGENT_PRINCIPAL.ownerId,
+        });
+        assert.equal(trace.credentialRef, "none");
+        assert.doesNotMatch(JSON.stringify(trace), /Bearer/);
+      });
+    } finally {
+      await stack.close();
+      await mockServer.close();
+    }
+  });
+
+  it("emits an errored trace when the backend is unavailable", async () => {
     const mockServer = await startMockMcpServer({
       tools: [{ name: "search_issues", description: "Search issues" }],
     });
@@ -183,6 +223,12 @@ describe("ToolDispatchService", () => {
         () => stack.toolDispatch.callTool("github.search_issues", {}),
         BackendUnavailableError,
       );
+
+      assert.equal(stack.traceEmitter.traces.length, 1);
+      const trace = stack.traceEmitter.traces[0]!;
+      assert.equal(trace.policyDecision, "allowed");
+      assert.equal(trace.durationMs, undefined);
+      assert.match(trace.error ?? "", /unavailable/);
     } finally {
       await stack.close();
       await mockServer.close();
@@ -218,10 +264,12 @@ describe("ToolDispatchService", () => {
       connectionManager,
       credentialResolver,
     );
+    const traceEmitter = new CapturingTraceEmitter();
     const toolDispatch = new ToolDispatchService(
       toolCatalog,
       connectionManager,
       credentialResolver,
+      traceEmitter,
     );
 
     try {

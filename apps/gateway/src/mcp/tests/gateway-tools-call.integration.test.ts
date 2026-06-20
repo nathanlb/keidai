@@ -12,6 +12,7 @@ import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
 import { createCredentialServices, withStubAgentPrincipal } from "../../credentials/tests/test-helpers.js";
 import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
 import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
+import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import { GatewayMcpServer } from "../gateway-mcp-server.service.js";
 
 function userOAuthServer(
@@ -144,6 +145,7 @@ describe("Gateway MCP tools/call", () => {
       toolCatalog,
       connectionManager,
       credentialResolver,
+      new CapturingTraceEmitter(),
     );
     const gatewayMcpServer = new GatewayMcpServer(toolCatalog, toolDispatch);
 
@@ -210,6 +212,7 @@ describe("Gateway MCP tools/call", () => {
       toolCatalog,
       connectionManager,
       credentialResolver,
+      new CapturingTraceEmitter(),
     );
     const gatewayMcpServer = new GatewayMcpServer(toolCatalog, toolDispatch);
 
