@@ -47,6 +47,9 @@ importers:
       fastify:
         specifier: ^5.8.5
         version: 5.8.5
+      jose:
+        specifier: ^6.2.3
+        version: 6.2.3
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
