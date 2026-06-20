@@ -38,6 +38,23 @@ const policySchema = z.object({
   deny: z.array(z.string()).optional(),
 });
 
+const k8sServiceAccountSubjectSchema = z
+  .object({
+    kind: z.literal("k8s_service_account"),
+    namespace: z.string().min(1, "namespace is required"),
+    service_account: z.string().min(1, "service_account is required"),
+  })
+  .strict();
+
+const agentRegistrationSchema = z
+  .object({
+    subject: k8sServiceAccountSubjectSchema,
+    agent_id: z.string().min(1, "agent_id is required"),
+    owner_id: z.string().min(1, "owner_id is required"),
+    groups: z.array(z.string()),
+  })
+  .strict();
+
 const serverSchema = z.object({
   name: z.string().min(1, "name is required"),
   transport: z.object({
@@ -52,9 +69,25 @@ export const toriiConfigSchema = z
   .object({
     oauth_providers: z.record(z.string(), oauthProviderSchema),
     servers: z.array(serverSchema).min(1, "at least one server is required"),
+    agents: z.array(agentRegistrationSchema).default([]),
   })
   .superRefine((config, ctx) => {
     const seenNames = new Map<string, number>();
+    const seenAgentSubjects = new Map<string, number>();
+
+    config.agents.forEach((agent, index) => {
+      const subjectKey = `${agent.subject.namespace}/${agent.subject.service_account}`;
+      const firstSubjectIndex = seenAgentSubjects.get(subjectKey);
+      if (firstSubjectIndex !== undefined) {
+        ctx.addIssue({
+          code: "custom",
+          message: `duplicate agent subject "${subjectKey}" (also defined at agents[${firstSubjectIndex}])`,
+          path: ["agents", index, "subject"],
+        });
+      } else {
+        seenAgentSubjects.set(subjectKey, index);
+      }
+    });
 
     config.servers.forEach((server, index) => {
       const firstIndex = seenNames.get(server.name);

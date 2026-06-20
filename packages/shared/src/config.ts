@@ -30,8 +30,28 @@ export interface ServerConfig {
   policy: PolicyConfig;
 }
 
+/** Workload identity a registered agent is bound to — not read from inbound requests. */
+export type AgentSubjectConfig = {
+  kind: "k8s_service_account";
+  namespace: string;
+  service_account: string;
+};
+
+/**
+ * Boot-time agent registration. Binds a validated credential subject to an
+ * internal principal; `owner_id` is fixed here and never taken from requests.
+ */
+export interface AgentRegistrationConfig {
+  subject: AgentSubjectConfig;
+  agent_id: string;
+  owner_id: string;
+  groups: string[];
+}
+
 /** Root torii.yaml shape — env refs are resolved before this type is populated. */
 export interface ToriiConfig {
   oauth_providers: Record<string, OAuthProviderConfig>;
   servers: ServerConfig[];
+  /** Boot-time agent registrations; omitted or empty when none are configured. */
+  agents?: AgentRegistrationConfig[];
 }

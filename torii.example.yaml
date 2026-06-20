@@ -1,7 +1,7 @@
 # Torii gateway configuration — loaded at boot, no database required.
 #
 # Shapes match @torii/shared (ToriiConfig, ServerConfig, CredentialConfig,
-# PolicyConfig, OAuthProviderConfig). Env refs use ${env:VAR} and are resolved
+# PolicyConfig, OAuthProviderConfig, AgentRegistrationConfig). Env refs use ${env:VAR} and are resolved
 # before validation.
 
 oauth_providers:
@@ -47,3 +47,15 @@ servers:
       default: deny
       allow:
         - read_wiki_structure
+
+# Agent registrations bind validated credential subjects to internal principals.
+# owner_id is fixed at registration — never taken from inbound requests.
+agents:
+  - subject:
+      kind: k8s_service_account
+      namespace: torii-agents
+      service_account: catalog-agent
+    agent_id: agent-catalog-01
+    owner_id: user-alice
+    groups:
+      - agents

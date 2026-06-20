@@ -6,6 +6,7 @@ import { ToriiConfigService } from "../torii-config.service.js";
 
 const sampleConfig: ToriiConfig = {
   oauth_providers: {},
+  agents: [],
   servers: [
     {
       name: "github",

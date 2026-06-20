@@ -2,10 +2,7 @@ import type { AgentPrincipal } from "@torii/shared";
 import type { AgentRegistry } from "../types/agent-registry.js";
 import { IdentityResolutionError } from "../types/identity-resolution-error.js";
 import type { ValidatedAgentSubject } from "../types/validated-agent-subject.js";
-
-function registryKey(subject: ValidatedAgentSubject): string {
-  return `${subject.namespace}/${subject.serviceAccountName}`;
-}
+import { registryKey } from "../utils/registry-key.js";
 
 export class InMemoryAgentRegistry implements AgentRegistry {
   constructor(
@@ -17,6 +14,10 @@ export class InMemoryAgentRegistry implements AgentRegistry {
     if (!principal) {
       throw new IdentityResolutionError("Agent is not registered");
     }
-    return principal;
+    return Object.freeze({
+      agentId: principal.agentId,
+      ownerId: principal.ownerId,
+      groups: [...principal.groups],
+    });
   }
 }
