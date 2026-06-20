@@ -1,8 +1,6 @@
 import "reflect-metadata";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { ToriiConfig } from "@torii/shared";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
 import { ConnectionManager } from "../../backends/connection-manager.service.js";
@@ -11,8 +9,11 @@ import { startMockMcpServer } from "../../backends/tests/mock-mcp-server.js";
 import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
 import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
-import { GatewayMcpServer } from "../gateway-mcp-server.service.js";
 import { createCredentialServices } from "../../credentials/tests/test-helpers.js";
+import {
+  connectAgentToGateway,
+  createTestGatewayMcpServer,
+} from "../../identity/tests/test-helpers.js";
 import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
 
 function serverConfig(
@@ -68,35 +69,24 @@ describe("Gateway MCP tools/list", () => {
       new CapturingTraceEmitter(),
       createPolicyEnforcement(configService),
     );
-    const gatewayMcpServer = new GatewayMcpServer(toolCatalog, toolDispatch);
-
-    const client = new Client({
-      name: "integration-test-agent",
-      version: "1.0.0",
-    });
+    const gatewayMcpServer = createTestGatewayMcpServer(toolCatalog, toolDispatch);
 
     try {
       await connectionManager.connectAll();
       const gateway = await gatewayMcpServer.start();
-      const transport = new StreamableHTTPClientTransport(new URL(gateway.url), {
-        reconnectionOptions: {
-          maxReconnectionDelay: 1000,
-          initialReconnectionDelay: 100,
-          reconnectionDelayGrowFactor: 1.5,
-          maxRetries: 0,
-        },
-      });
+      const agent = await connectAgentToGateway(gateway.url);
 
-      await client.connect(transport);
-      const result = await client.listTools();
+      try {
+        const result = await agent.client.listTools();
 
-      assert.deepEqual(
-        result.tools.map((tool) => tool.name).sort(),
-        ["github.get_file_contents", "github.search_issues"],
-      );
-
-      await client.close();
-      await gateway.close();
+        assert.deepEqual(
+          result.tools.map((tool) => tool.name).sort(),
+          ["github.get_file_contents", "github.search_issues"],
+        );
+      } finally {
+        await agent.close();
+        await gateway.close();
+      }
     } finally {
       await closeManagerConnections(connectionManager);
       await backend.close();

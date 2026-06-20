@@ -7,7 +7,7 @@ import { ConnectionManager } from "../../backends/connection-manager.service.js"
 import { DefaultMcpClientConnector } from "../../backends/mcp-client-connector.service.js";
 import { startMockMcpServer } from "../../backends/tests/mock-mcp-server.js";
 import { ToolCatalogService } from "../tool-catalog.service.js";
-import { createCredentialServices } from "../../credentials/tests/test-helpers.js";
+import { createCredentialServices, bootBackends, withStubAgentPrincipal } from "../../credentials/tests/test-helpers.js";
 import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
 
 function serverConfig(
@@ -57,8 +57,10 @@ describe("ToolCatalogService", () => {
     );
 
     try {
-      await connectionManager.connectAll();
-      const tools = await catalogService.listToolsForAgent();
+      await bootBackends(connectionManager, catalogService);
+      const tools = await withStubAgentPrincipal(() =>
+        catalogService.listToolsForAgent(),
+      );
 
       assert.deepEqual(
         tools.map((tool) => tool.name).sort(),
@@ -110,8 +112,10 @@ describe("ToolCatalogService", () => {
     );
 
     try {
-      await connectionManager.connectAll();
-      const tools = await catalogService.listToolsForAgent();
+      await bootBackends(connectionManager, catalogService);
+      const tools = await withStubAgentPrincipal(() =>
+        catalogService.listToolsForAgent(),
+      );
 
       assert.deepEqual(tools.map((tool) => tool.name), ["github.search_issues"]);
     } finally {
@@ -162,8 +166,10 @@ describe("ToolCatalogService", () => {
     );
 
     try {
-      await connectionManager.connectAll();
-      const tools = await catalogService.listToolsForAgent();
+      await bootBackends(connectionManager, catalogService);
+      const tools = await withStubAgentPrincipal(() =>
+        catalogService.listToolsForAgent(),
+      );
 
       assert.deepEqual(tools.map((tool) => tool.name), ["stripe.list_customers"]);
       assert.equal(catalogService.getCatalog().length, 1);
@@ -200,8 +206,10 @@ describe("ToolCatalogService", () => {
       createPolicyEnforcement(configService),
     );
 
-    await connectionManager.connectAll();
-    const tools = await catalogService.listToolsForAgent();
+    await bootBackends(connectionManager, catalogService);
+    const tools = await withStubAgentPrincipal(() =>
+      catalogService.listToolsForAgent(),
+    );
 
     assert.deepEqual(tools, []);
     assert.deepEqual(catalogService.getCatalog(), []);

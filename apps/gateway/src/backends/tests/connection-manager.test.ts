@@ -7,7 +7,7 @@ import { ConnectionManager } from "../connection-manager.service.js";
 import type { McpClientConnector } from "../types/mcp-client-connector.js";
 import { DefaultMcpClientConnector } from "../mcp-client-connector.service.js";
 import { startMockMcpServer } from "./mock-mcp-server.js";
-import { createCredentialServices } from "../../credentials/tests/test-helpers.js";
+import { createCredentialServices, withStubAgentPrincipal } from "../../credentials/tests/test-helpers.js";
 
 function serverConfig(
   name: string,
@@ -49,7 +49,7 @@ describe("ConnectionManager", () => {
     );
 
     try {
-      await manager.connectAll();
+      await withStubAgentPrincipal(() => manager.connectAll());
 
       const connection = manager.get("alpha");
       assert.equal(connection?.state, "connected");
@@ -79,7 +79,7 @@ describe("ConnectionManager", () => {
     );
 
     try {
-      await manager.connectAll();
+      await withStubAgentPrincipal(() => manager.connectAll());
 
       const good = manager.get("good");
       const bad = manager.get("bad");
@@ -117,7 +117,7 @@ describe("ConnectionManager", () => {
     );
 
     try {
-      await manager.connectAll();
+      await withStubAgentPrincipal(() => manager.connectAll());
 
       const states = new Map(
         manager.list().map((connection) => [connection.config.name, connection.state]),
