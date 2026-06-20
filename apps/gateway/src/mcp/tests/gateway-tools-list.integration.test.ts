@@ -10,6 +10,7 @@ import { DefaultMcpClientConnector } from "../../backends/mcp-client-connector.s
 import { startMockMcpServer } from "../../backends/tests/mock-mcp-server.js";
 import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
 import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
+import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import { GatewayMcpServer } from "../gateway-mcp-server.service.js";
 import { createCredentialServices } from "../../credentials/tests/test-helpers.js";
 
@@ -62,6 +63,7 @@ describe("Gateway MCP tools/list", () => {
       toolCatalog,
       connectionManager,
       credentialResolver,
+      new CapturingTraceEmitter(),
     );
     const gatewayMcpServer = new GatewayMcpServer(toolCatalog, toolDispatch);
 

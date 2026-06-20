@@ -11,6 +11,10 @@ export function getAgentPrincipal(): AgentPrincipal {
   return principal;
 }
 
+export function tryGetAgentPrincipal(): AgentPrincipal | undefined {
+  return storage.getStore();
+}
+
 export function runWithAgentPrincipal<T>(
   principal: AgentPrincipal,
   fn: () => T,

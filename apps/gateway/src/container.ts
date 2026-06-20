@@ -16,6 +16,7 @@ import { ServiceKeyCredentialResolver } from "./credentials/resolvers/service-ke
 import { ToriiConfigService } from "./config/torii-config.service.js";
 import { ToolDispatchService } from "./dispatch/tool-dispatch.service.js";
 import { GatewayMcpServer } from "./mcp/gateway-mcp-server.service.js";
+import { TraceEmitterService } from "./trace/trace-emitter.service.js";
 
 export function createContainer(config: ToriiConfig): DependencyContainer {
   const appContainer = container.createChildContainer();
@@ -48,6 +49,7 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
   });
   appContainer.register(ConnectionManager, { useClass: ConnectionManager });
   appContainer.register(ToolCatalogService, { useClass: ToolCatalogService });
+  appContainer.register(TraceEmitterService, { useClass: TraceEmitterService });
   appContainer.register(ToolDispatchService, { useClass: ToolDispatchService });
   appContainer.register(GatewayMcpServer, { useClass: GatewayMcpServer });
   return appContainer;
