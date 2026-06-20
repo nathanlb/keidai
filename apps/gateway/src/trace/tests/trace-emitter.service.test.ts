@@ -2,6 +2,7 @@ import "reflect-metadata";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { CallTrace } from "@torii/shared";
+import { PolicyDecision } from "@torii/shared";
 import { TraceEmitterService } from "../trace-emitter.service.js";
 import {
   finalizeCallTrace,
@@ -17,14 +18,14 @@ describe("finalizeCallTrace", () => {
         tool: "search_issues",
         principal: toTracePrincipal(STUB_AGENT_PRINCIPAL),
         credentialRef: "github:stub-user",
-        policyDecision: "denied",
+        policyDecision: PolicyDecision.Denied,
         durationMs: 42,
         error: "policy denied",
       },
       { traceId: "trace-1", timestamp: "2026-06-20T12:00:00.000Z" },
     );
 
-    assert.equal(trace.policyDecision, "denied");
+    assert.equal(trace.policyDecision, PolicyDecision.Denied);
     assert.equal(trace.durationMs, undefined);
   });
 
@@ -35,7 +36,7 @@ describe("finalizeCallTrace", () => {
         tool: "read_wiki_structure",
         principal: toTracePrincipal(STUB_AGENT_PRINCIPAL),
         credentialRef: "none",
-        policyDecision: "allowed",
+        policyDecision: PolicyDecision.Allowed,
         durationMs: 12,
       },
       { traceId: "trace-2", timestamp: "2026-06-20T12:00:00.000Z" },
@@ -63,7 +64,7 @@ describe("TraceEmitterService", () => {
             tool: "read_wiki_structure",
             principal: toTracePrincipal(STUB_AGENT_PRINCIPAL),
             credentialRef: "none",
-            policyDecision: "allowed",
+            policyDecision: PolicyDecision.Allowed,
             durationMs: 15,
           },
           { traceId: "allowed-trace", timestamp: "2026-06-20T12:00:00.000Z" },
@@ -74,7 +75,7 @@ describe("TraceEmitterService", () => {
             tool: "delete_repo",
             principal: toTracePrincipal(STUB_AGENT_PRINCIPAL),
             credentialRef: "github:stub-user",
-            policyDecision: "denied",
+            policyDecision: PolicyDecision.Denied,
             error: "policy denied",
           },
           { traceId: "denied-trace", timestamp: "2026-06-20T12:00:01.000Z" },
@@ -85,7 +86,7 @@ describe("TraceEmitterService", () => {
             tool: "list_customers",
             principal: toTracePrincipal(STUB_AGENT_PRINCIPAL),
             credentialRef: "service_key:stripe",
-            policyDecision: "allowed",
+            policyDecision: PolicyDecision.Allowed,
             durationMs: 40,
             error: "backend unavailable",
           },
@@ -105,17 +106,17 @@ describe("TraceEmitterService", () => {
         agentId: "stub-agent",
         ownerId: "stub-user",
       });
-      assert.equal(allowed.policyDecision, "allowed");
+      assert.equal(allowed.policyDecision, PolicyDecision.Allowed);
       assert.equal(allowed.durationMs, 15);
       assert.equal(allowed.error, undefined);
 
       const denied = JSON.parse(lines[1]!) as CallTrace;
-      assert.equal(denied.policyDecision, "denied");
+      assert.equal(denied.policyDecision, PolicyDecision.Denied);
       assert.equal(denied.durationMs, undefined);
       assert.equal(denied.error, "policy denied");
 
       const errored = JSON.parse(lines[2]!) as CallTrace;
-      assert.equal(errored.policyDecision, "allowed");
+      assert.equal(errored.policyDecision, PolicyDecision.Allowed);
       assert.equal(errored.durationMs, 40);
       assert.equal(errored.error, "backend unavailable");
 

@@ -17,6 +17,7 @@ import {
   BackendUnavailableError,
   ToolNotFoundError,
 } from "../dispatch/types/tool-dispatch.js";
+import { PolicyDeniedError } from "../policy/types/policy-denied.js";
 import type {
   GatewayMcpServerHandle,
   GatewayMcpServerOptions,
@@ -140,6 +141,9 @@ export class GatewayMcpServer {
   private toMcpError(error: unknown): McpError {
     if (error instanceof McpError) {
       return error;
+    }
+    if (error instanceof PolicyDeniedError) {
+      return McpError.fromError(ErrorCode.InvalidRequest, error.message);
     }
     if (error instanceof ToolNotFoundError) {
       return McpError.fromError(ErrorCode.InvalidParams, error.message);

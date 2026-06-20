@@ -8,6 +8,7 @@ import { DefaultMcpClientConnector } from "../../backends/mcp-client-connector.s
 import { startMockMcpServer } from "../../backends/tests/mock-mcp-server.js";
 import { ToolCatalogService } from "../tool-catalog.service.js";
 import { createCredentialServices } from "../../credentials/tests/test-helpers.js";
+import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
 
 function serverConfig(
   name: string,
@@ -17,7 +18,7 @@ function serverConfig(
     name,
     transport: { type: "http", url },
     credential: { strategy: "none" },
-    policy: { default: "deny" },
+    policy: { default: "deny", allow: ["search_issues", "get_file_contents"] },
   };
 }
 
@@ -52,6 +53,7 @@ describe("ToolCatalogService", () => {
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
+      createPolicyEnforcement(configService),
     );
 
     try {
@@ -78,6 +80,46 @@ describe("ToolCatalogService", () => {
     }
   });
 
+  it("filters tools denied by backend policy from tools/list", async () => {
+    const mockServer = await startMockMcpServer({
+      tools: [
+        { name: "search_issues", description: "Search GitHub issues" },
+        { name: "merge_pull_request", description: "Merge a pull request" },
+      ],
+    });
+    const configService = new ToriiConfigService({
+      oauth_providers: {},
+      servers: [
+        {
+          name: "github",
+          transport: { type: "http", url: mockServer.url },
+          credential: { strategy: "none" },
+          policy: { default: "deny", allow: ["search_issues"] },
+        },
+      ],
+    });
+    const { credentialResolver } = createCredentialServices();
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+    );
+    const catalogService = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+      createPolicyEnforcement(configService),
+    );
+
+    try {
+      await connectionManager.connectAll();
+      const tools = await catalogService.listToolsForAgent();
+
+      assert.deepEqual(tools.map((tool) => tool.name), ["github.search_issues"]);
+    } finally {
+      await closeManagerConnections(connectionManager);
+      await mockServer.close();
+    }
+  });
+
   it("skips failed backends and continues fan-out", async () => {
     const goodServer = await startMockMcpServer({
       tools: [{ name: "list_customers", description: "List Stripe customers" }],
@@ -89,8 +131,14 @@ describe("ToolCatalogService", () => {
     const configService = new ToriiConfigService({
       oauth_providers: {},
       servers: [
-        serverConfig("stripe", goodServer.url),
-        serverConfig("deepwiki", badServer.url),
+        {
+          ...serverConfig("stripe", goodServer.url),
+          policy: { default: "deny", allow: ["list_customers"] },
+        },
+        {
+          ...serverConfig("deepwiki", badServer.url),
+          policy: { default: "deny", allow: ["read_wiki_structure"] },
+        },
       ],
     });
     const { credentialResolver } = createCredentialServices();
@@ -110,6 +158,7 @@ describe("ToolCatalogService", () => {
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
+      createPolicyEnforcement(configService),
     );
 
     try {
@@ -133,7 +182,12 @@ describe("ToolCatalogService", () => {
 
     const configService = new ToriiConfigService({
       oauth_providers: {},
-      servers: [serverConfig("offline", closedUrl)],
+      servers: [
+        {
+          ...serverConfig("offline", closedUrl),
+          policy: { default: "deny", allow: ["ping"] },
+        },
+      ],
     });
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(
@@ -143,6 +197,7 @@ describe("ToolCatalogService", () => {
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
+      createPolicyEnforcement(configService),
     );
 
     await connectionManager.connectAll();

@@ -2,6 +2,7 @@ import "reflect-metadata";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ToriiConfig } from "@torii/shared";
+import { PolicyDecision } from "@torii/shared";
 import { ConnectionManager } from "../../backends/connection-manager.service.js";
 import { DefaultMcpClientConnector } from "../../backends/mcp-client-connector.service.js";
 import { startMockMcpServer } from "../../backends/tests/mock-mcp-server.js";
@@ -12,6 +13,8 @@ import { LINKING_REQUIRED_CODE } from "../../credentials/types/credential-resolu
 import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import type { CapturingTraceEmitter as CapturingTraceEmitterType } from "../../trace/tests/capturing-trace-emitter.js";
+import { PolicyDeniedError } from "../../policy/types/policy-denied.js";
+import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
 import { ToolDispatchService } from "../tool-dispatch.service.js";
 import {
   BackendUnavailableError,
@@ -102,6 +105,7 @@ async function createDispatchStack(
   const toolCatalog = new ToolCatalogService(
     connectionManager,
     credentialResolver,
+    createPolicyEnforcement(configService),
   );
   const traceEmitter = new CapturingTraceEmitter();
   const toolDispatch = new ToolDispatchService(
@@ -109,6 +113,7 @@ async function createDispatchStack(
     connectionManager,
     credentialResolver,
     traceEmitter,
+    createPolicyEnforcement(configService),
   );
 
   return {
@@ -145,12 +150,15 @@ describe("ToolDispatchService", () => {
     }
   });
 
-  it("rejects unknown tools", async () => {
+  it("rejects unknown tools that are allowed by policy but absent from the catalog", async () => {
     const mockServer = await startMockMcpServer({
       tools: [{ name: "search_issues", description: "Search issues" }],
     });
     const stack = await createDispatchStack([
-      noneServer("github", mockServer.url),
+      {
+        ...noneServer("github", mockServer.url),
+        policy: { default: "deny", allow: ["search_issues", "missing_tool"] },
+      },
     ]);
 
     try {
@@ -161,6 +169,39 @@ describe("ToolDispatchService", () => {
         () => stack.toolDispatch.callTool("github.missing_tool", {}),
         ToolNotFoundError,
       );
+    } finally {
+      await stack.close();
+      await mockServer.close();
+    }
+  });
+
+  it("denies policy-blocked tools without forwarding to the backend", async () => {
+    const mockServer = await startMockMcpServer({
+      tools: [
+        { name: "search_issues", description: "Search issues" },
+        { name: "merge_pull_request", description: "Merge a pull request" },
+      ],
+    });
+    const stack = await createDispatchStack([
+      userOAuthServer("github", mockServer.url),
+    ]);
+
+    try {
+      await withStubAgentPrincipal(async () => {
+        await stack.connectionManager.connectAll();
+        await stack.toolCatalog.refresh();
+
+        await assert.rejects(
+          () => stack.toolDispatch.callTool("github.merge_pull_request", {}),
+          PolicyDeniedError,
+        );
+
+        assert.equal(stack.traceEmitter.traces.length, 1);
+        const trace = stack.traceEmitter.traces[0]!;
+        assert.equal(trace.policyDecision, PolicyDecision.Denied);
+        assert.equal(trace.error, "policy denied");
+        assert.equal(trace.durationMs, undefined);
+      });
     } finally {
       await stack.close();
       await mockServer.close();
@@ -186,7 +227,7 @@ describe("ToolDispatchService", () => {
         const trace = stack.traceEmitter.traces[0]!;
         assert.equal(trace.server, "deepwiki");
         assert.equal(trace.tool, "read_wiki_structure");
-        assert.equal(trace.policyDecision, "allowed");
+        assert.equal(trace.policyDecision, PolicyDecision.Allowed);
         assert.equal(typeof trace.durationMs, "number");
         assert.deepEqual(trace.principal, {
           agentId: STUB_AGENT_PRINCIPAL.agentId,
@@ -206,7 +247,12 @@ describe("ToolDispatchService", () => {
       tools: [{ name: "search_issues", description: "Search issues" }],
     });
     const stack = await createDispatchStack([
-      noneServer("github", mockServer.url),
+      {
+        name: "github",
+        transport: { type: "http", url: mockServer.url },
+        credential: { strategy: "none" },
+        policy: { default: "deny", allow: ["search_issues"] },
+      },
     ]);
 
     try {
@@ -226,7 +272,7 @@ describe("ToolDispatchService", () => {
 
       assert.equal(stack.traceEmitter.traces.length, 1);
       const trace = stack.traceEmitter.traces[0]!;
-      assert.equal(trace.policyDecision, "allowed");
+      assert.equal(trace.policyDecision, PolicyDecision.Allowed);
       assert.equal(trace.durationMs, undefined);
       assert.match(trace.error ?? "", /unavailable/);
     } finally {
@@ -263,6 +309,7 @@ describe("ToolDispatchService", () => {
     const toolCatalog = new ToolCatalogService(
       connectionManager,
       credentialResolver,
+      createPolicyEnforcement(configService),
     );
     const traceEmitter = new CapturingTraceEmitter();
     const toolDispatch = new ToolDispatchService(
@@ -270,6 +317,7 @@ describe("ToolDispatchService", () => {
       connectionManager,
       credentialResolver,
       traceEmitter,
+      createPolicyEnforcement(configService),
     );
 
     try {

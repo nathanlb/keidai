@@ -1,7 +1,10 @@
+import { PolicyDecision } from "@torii/shared";
 import { inject, injectable } from "tsyringe";
 import { ConnectionManager } from "../backends/connection-manager.service.js";
 import { CredentialResolverService } from "../credentials/credential-resolver.service.js";
 import { CredentialResolutionError, LinkingRequiredError } from "../credentials/types/credential-resolution.js";
+import { tryGetAgentPrincipal } from "../identity/agent-principal-context.js";
+import { PolicyEnforcementService } from "../policy/policy-enforcement.service.js";
 import type { AgentTool, CatalogTool } from "./types/catalog-tool.js";
 import { namespaceTool } from "./utils/namespacing.js";
 
@@ -14,6 +17,8 @@ export class ToolCatalogService {
     private readonly connectionManager: ConnectionManager,
     @inject(CredentialResolverService)
     private readonly credentialResolver: CredentialResolverService,
+    @inject(PolicyEnforcementService)
+    private readonly policyEnforcement: PolicyEnforcementService,
   ) {}
 
   /** Read-only view of the last refreshed catalog (used by policy post-boot). */
@@ -44,7 +49,25 @@ export class ToolCatalogService {
         try {
           await this.credentialResolver.resolve(connection.config);
           const result = await connection.client.listTools();
+          const principal = tryGetAgentPrincipal();
+          const backendToolNames = result.tools.map((tool) => tool.name);
+
+          this.policyEnforcement.warnUnknownPolicyTools(
+            connection.config,
+            backendToolNames,
+          );
+
           for (const tool of result.tools) {
+            if (
+              this.policyEnforcement.evaluate(
+                principal,
+                connection.config.name,
+                tool.name,
+              ) === PolicyDecision.Denied
+            ) {
+              continue;
+            }
+
             const namespacedName = namespaceTool(
               connection.config.name,
               tool.name,

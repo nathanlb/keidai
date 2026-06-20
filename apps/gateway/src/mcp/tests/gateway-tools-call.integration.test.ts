@@ -13,6 +13,7 @@ import { createCredentialServices, withStubAgentPrincipal } from "../../credenti
 import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
 import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
+import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
 import { GatewayMcpServer } from "../gateway-mcp-server.service.js";
 
 function userOAuthServer(
@@ -140,12 +141,14 @@ describe("Gateway MCP tools/call", () => {
     const toolCatalog = new ToolCatalogService(
       connectionManager,
       credentialResolver,
+      createPolicyEnforcement(configService),
     );
     const toolDispatch = new ToolDispatchService(
       toolCatalog,
       connectionManager,
       credentialResolver,
       new CapturingTraceEmitter(),
+      createPolicyEnforcement(configService),
     );
     const gatewayMcpServer = new GatewayMcpServer(toolCatalog, toolDispatch);
 
@@ -190,14 +193,24 @@ describe("Gateway MCP tools/call", () => {
     }
   });
 
-  it("returns a clean MCP error for unknown tools", async () => {
+  it("returns policy_denied for tools blocked by backend policy", async () => {
     const backend = await startMockMcpServer({
-      tools: [{ name: "search_issues", description: "Search GitHub issues" }],
+      tools: [
+        { name: "search_issues", description: "Search GitHub issues" },
+        { name: "merge_pull_request", description: "Merge a pull request" },
+      ],
     });
 
     const configService = new ToriiConfigService({
       oauth_providers: {},
-      servers: [noneServer("github", backend.url)],
+      servers: [
+        {
+          name: "github",
+          transport: { type: "http", url: backend.url },
+          credential: { strategy: "none" },
+          policy: { default: "deny", allow: ["search_issues"] },
+        },
+      ],
     });
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(
@@ -207,12 +220,82 @@ describe("Gateway MCP tools/call", () => {
     const toolCatalog = new ToolCatalogService(
       connectionManager,
       credentialResolver,
+      createPolicyEnforcement(configService),
     );
     const toolDispatch = new ToolDispatchService(
       toolCatalog,
       connectionManager,
       credentialResolver,
       new CapturingTraceEmitter(),
+      createPolicyEnforcement(configService),
+    );
+    const gatewayMcpServer = new GatewayMcpServer(toolCatalog, toolDispatch);
+
+    try {
+      await connectionManager.connectAll();
+      const gateway = await gatewayMcpServer.start();
+      const agent = await connectAgentToGateway(gateway.url);
+
+      try {
+        const tools = await agent.client.listTools();
+        assert.deepEqual(tools.tools.map((tool) => tool.name), [
+          "github.search_issues",
+        ]);
+
+        const allowed = await agent.client.callTool({
+          name: "github.search_issues",
+          arguments: {},
+        });
+        assert.notEqual(allowed.isError, true);
+
+        await assert.rejects(
+          () =>
+            agent.client.callTool({
+              name: "github.merge_pull_request",
+              arguments: {},
+            }),
+          /policy_denied: github.merge_pull_request/,
+        );
+      } finally {
+        await agent.close();
+        await gateway.close();
+      }
+    } finally {
+      await closeManagerConnections(connectionManager);
+      await backend.close();
+    }
+  });
+
+  it("returns a clean MCP error for unknown tools allowed by policy", async () => {
+    const backend = await startMockMcpServer({
+      tools: [{ name: "search_issues", description: "Search GitHub issues" }],
+    });
+
+    const configService = new ToriiConfigService({
+      oauth_providers: {},
+      servers: [
+        {
+          ...noneServer("github", backend.url),
+          policy: { default: "deny", allow: ["search_issues", "missing_tool"] },
+        },
+      ],
+    });
+    const { credentialResolver } = createCredentialServices();
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+    );
+    const toolCatalog = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+      createPolicyEnforcement(configService),
+    );
+    const toolDispatch = new ToolDispatchService(
+      toolCatalog,
+      connectionManager,
+      credentialResolver,
+      new CapturingTraceEmitter(),
+      createPolicyEnforcement(configService),
     );
     const gatewayMcpServer = new GatewayMcpServer(toolCatalog, toolDispatch);
 

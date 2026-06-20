@@ -13,6 +13,7 @@ import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import { GatewayMcpServer } from "../gateway-mcp-server.service.js";
 import { createCredentialServices } from "../../credentials/tests/test-helpers.js";
+import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
 
 function serverConfig(
   name: string,
@@ -58,12 +59,14 @@ describe("Gateway MCP tools/list", () => {
     const toolCatalog = new ToolCatalogService(
       connectionManager,
       credentialResolver,
+      createPolicyEnforcement(configService),
     );
     const toolDispatch = new ToolDispatchService(
       toolCatalog,
       connectionManager,
       credentialResolver,
       new CapturingTraceEmitter(),
+      createPolicyEnforcement(configService),
     );
     const gatewayMcpServer = new GatewayMcpServer(toolCatalog, toolDispatch);
 

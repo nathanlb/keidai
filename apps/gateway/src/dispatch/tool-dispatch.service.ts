@@ -2,6 +2,7 @@ import {
   CallToolResultSchema,
   type CallToolResult,
 } from "@modelcontextprotocol/sdk/types.js";
+import { PolicyDecision } from "@torii/shared";
 import { inject, injectable } from "tsyringe";
 import { ConnectionManager } from "../backends/connection-manager.service.js";
 import { ToolCatalogService } from "../catalog/tool-catalog.service.js";
@@ -12,6 +13,8 @@ import {
   toLinkingRequiredToolResult,
 } from "../credentials/types/credential-resolution.js";
 import { tryGetAgentPrincipal } from "../identity/agent-principal-context.js";
+import { PolicyDeniedError } from "../policy/types/policy-denied.js";
+import { PolicyEnforcementService } from "../policy/policy-enforcement.service.js";
 import type { TraceEmitter } from "../trace/types/trace-emitter.js";
 import { TraceEmitterService } from "../trace/trace-emitter.service.js";
 import {
@@ -38,6 +41,8 @@ export class ToolDispatchService {
     private readonly credentialResolver: CredentialResolverService,
     @inject(TraceEmitterService)
     private readonly traceEmitter: TraceEmitter,
+    @inject(PolicyEnforcementService)
+    private readonly policyEnforcement: PolicyEnforcementService,
   ) {}
 
   async callTool(
@@ -47,7 +52,9 @@ export class ToolDispatchService {
     const traceId = createTraceId();
     const timestamp = createTraceTimestamp();
     const startedAt = Date.now();
-    const principal = toTracePrincipal(tryGetAgentPrincipal());
+    const agentPrincipal = tryGetAgentPrincipal();
+    const principal = toTracePrincipal(agentPrincipal);
+    const parsed = parseNamespacedToolName(namespacedName);
 
     const emit = (
       fields: Omit<
@@ -60,14 +67,30 @@ export class ToolDispatchService {
       );
     };
 
-    const entry = this.toolCatalog.findTool(namespacedName);
-    if (!entry) {
-      const parsed = parseNamespacedToolName(namespacedName);
+    if (
+      this.policyEnforcement.evaluate(
+        agentPrincipal,
+        parsed.server,
+        parsed.tool,
+      ) === PolicyDecision.Denied
+    ) {
       emit({
         server: parsed.server,
         tool: parsed.tool,
         principal,
-        policyDecision: "allowed",
+        policyDecision: PolicyDecision.Denied,
+        error: "policy denied",
+      });
+      throw new PolicyDeniedError(namespacedName);
+    }
+
+    const entry = this.toolCatalog.findTool(namespacedName);
+    if (!entry) {
+      emit({
+        server: parsed.server,
+        tool: parsed.tool,
+        principal,
+        policyDecision: PolicyDecision.Allowed,
         error: `Unknown tool: ${namespacedName}`,
       });
       throw new ToolNotFoundError(namespacedName);
@@ -86,7 +109,7 @@ export class ToolDispatchService {
         credentialRef: connection
           ? deriveCredentialRef(connection.config, principal?.ownerId)
           : undefined,
-        policyDecision: "allowed",
+        policyDecision: PolicyDecision.Allowed,
         error: `Backend "${entry.server}" is unavailable: ${reason}`,
       });
       throw new BackendUnavailableError(entry.server, reason);
@@ -101,7 +124,7 @@ export class ToolDispatchService {
           connection.config,
           principal?.ownerId,
         ),
-        policyDecision: "allowed",
+        policyDecision: PolicyDecision.Allowed,
         error: `Backend "${entry.server}" is unavailable: not connected`,
       });
       throw new BackendUnavailableError(entry.server, "not connected");
@@ -127,7 +150,7 @@ export class ToolDispatchService {
         tool: entry.bareName,
         principal,
         credentialRef: resolved.credentialRef ?? credentialRef,
-        policyDecision: "allowed",
+        policyDecision: PolicyDecision.Allowed,
         durationMs: Date.now() - startedAt,
         ...(result.isError ? { error: "backend returned error result" } : {}),
       });
@@ -140,7 +163,7 @@ export class ToolDispatchService {
           tool: entry.bareName,
           principal,
           credentialRef,
-          policyDecision: "allowed",
+          policyDecision: PolicyDecision.Allowed,
           error: error.message,
         });
         return toLinkingRequiredToolResult(error);
@@ -155,7 +178,7 @@ export class ToolDispatchService {
         tool: entry.bareName,
         principal,
         credentialRef,
-        policyDecision: "allowed",
+        policyDecision: PolicyDecision.Allowed,
         durationMs: Date.now() - startedAt,
         error: error instanceof Error ? error.message : String(error),
       });
