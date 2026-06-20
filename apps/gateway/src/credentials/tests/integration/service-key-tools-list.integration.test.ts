@@ -7,7 +7,7 @@ import { DefaultMcpClientConnector } from "../../../backends/mcp-client-connecto
 import { startMockMcpServer } from "../../../backends/tests/mock-mcp-server.js";
 import { ToriiConfigService } from "../../../config/torii-config.service.js";
 import { ToolCatalogService } from "../../../catalog/tool-catalog.service.js";
-import { createCredentialServices } from "../test-helpers.js";
+import { bootBackends, createCredentialServices, withStubAgentPrincipal } from "../test-helpers.js";
 import { createPolicyEnforcement } from "../../../policy/tests/test-helpers.js";
 
 function serviceKeyServer(
@@ -68,8 +68,10 @@ describe("service_key credentials with tools/list", () => {
     };
 
     try {
-      await connectionManager.connectAll();
-      const tools = await catalogService.listToolsForAgent();
+      await bootBackends(connectionManager, catalogService);
+      const tools = await withStubAgentPrincipal(() =>
+        catalogService.listToolsForAgent(),
+      );
 
       assert.deepEqual(tools.map((tool) => tool.name), ["stripe.list_customers"]);
       for (const log of logs) {
@@ -114,8 +116,10 @@ describe("service_key credentials with tools/list", () => {
     };
 
     try {
-      await connectionManager.connectAll();
-      const tools = await catalogService.listToolsForAgent();
+      await bootBackends(connectionManager, catalogService);
+      const tools = await withStubAgentPrincipal(() =>
+        catalogService.listToolsForAgent(),
+      );
 
       assert.equal(connectionManager.get("stripe")?.state, "failed");
       assert.deepEqual(tools, []);
@@ -172,8 +176,10 @@ describe("service_key credentials with Stripe MCP", () => {
     };
 
     try {
-      await connectionManager.connectAll();
-      const tools = await catalogService.listToolsForAgent();
+      await bootBackends(connectionManager, catalogService);
+      const tools = await withStubAgentPrincipal(() =>
+        catalogService.listToolsForAgent(),
+      );
 
       assert.ok(tools.length > 0);
       assert.ok(tools.some((tool) => tool.name.startsWith("stripe.")));

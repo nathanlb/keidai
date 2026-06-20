@@ -8,7 +8,7 @@ import { DefaultMcpClientConnector } from "../../backends/mcp-client-connector.s
 import { startMockMcpServer } from "../../backends/tests/mock-mcp-server.js";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
 import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
-import { createCredentialServices, withStubAgentPrincipal } from "../../credentials/tests/test-helpers.js";
+import { createCredentialServices, bootBackends, withStubAgentPrincipal } from "../../credentials/tests/test-helpers.js";
 import { LINKING_REQUIRED_CODE } from "../../credentials/types/credential-resolution.js";
 import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
@@ -135,12 +135,10 @@ describe("ToolDispatchService", () => {
     ]);
 
     try {
-      await stack.connectionManager.connectAll();
-      await stack.toolCatalog.refresh();
+      await bootBackends(stack.connectionManager, stack.toolCatalog);
 
-      const result = await stack.toolDispatch.callTool(
-        "deepwiki.read_wiki_structure",
-        {},
+      const result = await withStubAgentPrincipal(() =>
+        stack.toolDispatch.callTool("deepwiki.read_wiki_structure", {}),
       );
 
       assert.notEqual(result.isError, true);
@@ -162,12 +160,13 @@ describe("ToolDispatchService", () => {
     ]);
 
     try {
-      await stack.connectionManager.connectAll();
-      await stack.toolCatalog.refresh();
+      await bootBackends(stack.connectionManager, stack.toolCatalog);
 
-      await assert.rejects(
-        () => stack.toolDispatch.callTool("github.missing_tool", {}),
-        ToolNotFoundError,
+      await withStubAgentPrincipal(() =>
+        assert.rejects(
+          () => stack.toolDispatch.callTool("github.missing_tool", {}),
+          ToolNotFoundError,
+        ),
       );
     } finally {
       await stack.close();
@@ -256,8 +255,7 @@ describe("ToolDispatchService", () => {
     ]);
 
     try {
-      await stack.connectionManager.connectAll();
-      await stack.toolCatalog.refresh();
+      await bootBackends(stack.connectionManager, stack.toolCatalog);
 
       const connection = stack.connectionManager.get("github");
       assert.ok(connection);
@@ -265,9 +263,11 @@ describe("ToolDispatchService", () => {
       connection.client = null;
       connection.error = new Error("connection lost");
 
-      await assert.rejects(
-        () => stack.toolDispatch.callTool("github.search_issues", {}),
-        BackendUnavailableError,
+      await withStubAgentPrincipal(() =>
+        assert.rejects(
+          () => stack.toolDispatch.callTool("github.search_issues", {}),
+          BackendUnavailableError,
+        ),
       );
 
       assert.equal(stack.traceEmitter.traces.length, 1);
@@ -363,10 +363,11 @@ describe("ToolDispatchService", () => {
     ]);
 
     try {
-      await stack.connectionManager.connectAll();
-      await stack.toolCatalog.refresh();
+      await bootBackends(stack.connectionManager, stack.toolCatalog);
 
-      const result = await stack.toolDispatch.callTool("stripe.list_customers", {});
+      const result = await withStubAgentPrincipal(() =>
+        stack.toolDispatch.callTool("stripe.list_customers", {}),
+      );
 
       assert.notEqual(result.isError, true);
     } finally {

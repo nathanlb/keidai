@@ -16,7 +16,14 @@ import { ServiceKeyCredentialResolver } from "./credentials/resolvers/service-ke
 import { ToriiConfigService } from "./config/torii-config.service.js";
 import { ToolDispatchService } from "./dispatch/tool-dispatch.service.js";
 import { buildAgentRegistry } from "./identity/utils/build-agent-registry.js";
-import { AGENT_REGISTRY } from "./identity/types/tokens.js";
+import { InboundIdentityService } from "./identity/inbound-identity.service.js";
+import { K8sSaOidcIdentityResolver } from "./identity/resolvers/k8s-sa-oidc-identity-resolver.service.js";
+import {
+  AGENT_IDENTITY_RESOLVER,
+  AGENT_REGISTRY,
+  K8S_SA_OIDC_CONFIG,
+} from "./identity/types/tokens.js";
+import { resolveK8sSaOidcConfig } from "./identity/utils/resolve-k8s-sa-oidc-config.js";
 import { GatewayMcpServer } from "./mcp/gateway-mcp-server.service.js";
 import { PolicyEnforcementService } from "./policy/policy-enforcement.service.js";
 import { TraceEmitterService } from "./trace/trace-emitter.service.js";
@@ -29,6 +36,15 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
   appContainer.register(AGENT_REGISTRY, {
     useFactory: (c) =>
       buildAgentRegistry(c.resolve(ToriiConfigService).get().agents ?? []),
+  });
+  appContainer.register(K8S_SA_OIDC_CONFIG, {
+    useValue: resolveK8sSaOidcConfig(),
+  });
+  appContainer.register(AGENT_IDENTITY_RESOLVER, {
+    useClass: K8sSaOidcIdentityResolver,
+  });
+  appContainer.register(InboundIdentityService, {
+    useClass: InboundIdentityService,
   });
   appContainer.register(TOKEN_REPOSITORY, {
     useFactory: () => {

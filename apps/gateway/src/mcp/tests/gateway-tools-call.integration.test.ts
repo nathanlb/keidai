@@ -1,8 +1,6 @@
 import "reflect-metadata";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { ToriiConfig } from "@torii/shared";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
 import { ConnectionManager } from "../../backends/connection-manager.service.js";
@@ -10,11 +8,14 @@ import { DefaultMcpClientConnector } from "../../backends/mcp-client-connector.s
 import { startMockMcpServer } from "../../backends/tests/mock-mcp-server.js";
 import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
 import { createCredentialServices, withStubAgentPrincipal } from "../../credentials/tests/test-helpers.js";
+import {
+  connectAgentToGateway,
+  createTestGatewayMcpServer,
+} from "../../identity/tests/test-helpers.js";
 import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
 import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
-import { GatewayMcpServer } from "../gateway-mcp-server.service.js";
 
 function userOAuthServer(
   name: string,
@@ -68,31 +69,6 @@ async function closeManagerConnections(
       .map((connection) => connection.client?.close())
       .filter((close): close is Promise<void> => close !== undefined),
   );
-}
-
-async function connectAgentToGateway(
-  gatewayUrl: string,
-): Promise<{ client: Client; close: () => Promise<void> }> {
-  const client = new Client({
-    name: "integration-test-agent",
-    version: "1.0.0",
-  });
-  const transport = new StreamableHTTPClientTransport(new URL(gatewayUrl), {
-    reconnectionOptions: {
-      maxReconnectionDelay: 1000,
-      initialReconnectionDelay: 100,
-      reconnectionDelayGrowFactor: 1.5,
-      maxRetries: 0,
-    },
-  });
-  await client.connect(transport);
-
-  return {
-    client,
-    close: async () => {
-      await client.close();
-    },
-  };
 }
 
 describe("Gateway MCP tools/call", () => {
@@ -150,7 +126,7 @@ describe("Gateway MCP tools/call", () => {
       new CapturingTraceEmitter(),
       createPolicyEnforcement(configService),
     );
-    const gatewayMcpServer = new GatewayMcpServer(toolCatalog, toolDispatch);
+    const gatewayMcpServer = createTestGatewayMcpServer(toolCatalog, toolDispatch);
 
     try {
       await withStubAgentPrincipal(async () => {
@@ -229,7 +205,7 @@ describe("Gateway MCP tools/call", () => {
       new CapturingTraceEmitter(),
       createPolicyEnforcement(configService),
     );
-    const gatewayMcpServer = new GatewayMcpServer(toolCatalog, toolDispatch);
+    const gatewayMcpServer = createTestGatewayMcpServer(toolCatalog, toolDispatch);
 
     try {
       await connectionManager.connectAll();
@@ -297,7 +273,7 @@ describe("Gateway MCP tools/call", () => {
       new CapturingTraceEmitter(),
       createPolicyEnforcement(configService),
     );
-    const gatewayMcpServer = new GatewayMcpServer(toolCatalog, toolDispatch);
+    const gatewayMcpServer = createTestGatewayMcpServer(toolCatalog, toolDispatch);
 
     try {
       await connectionManager.connectAll();

@@ -12,7 +12,7 @@ import {
   LinkingRequiredError,
   toLinkingRequiredToolResult,
 } from "../credentials/types/credential-resolution.js";
-import { tryGetAgentPrincipal } from "../identity/agent-principal-context.js";
+import { getAgentPrincipal } from "../identity/agent-principal-context.js";
 import { PolicyDeniedError } from "../policy/types/policy-denied.js";
 import { PolicyEnforcementService } from "../policy/policy-enforcement.service.js";
 import type { TraceEmitter } from "../trace/types/trace-emitter.js";
@@ -52,7 +52,7 @@ export class ToolDispatchService {
     const traceId = createTraceId();
     const timestamp = createTraceTimestamp();
     const startedAt = Date.now();
-    const agentPrincipal = tryGetAgentPrincipal();
+    const agentPrincipal = getAgentPrincipal();
     const principal = toTracePrincipal(agentPrincipal);
     const parsed = parseNamespacedToolName(namespacedName);
 

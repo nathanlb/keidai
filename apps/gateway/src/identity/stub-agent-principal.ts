@@ -1,6 +1,6 @@
 import type { AgentPrincipal } from "@torii/shared";
 
-/** Fake principal until inbound identity middleware (NAT-20) lands. */
+/** Fake principal for boot-time catalog refresh before inbound requests arrive. */
 export const STUB_AGENT_PRINCIPAL: AgentPrincipal = {
   agentId: "stub-agent",
   ownerId: "stub-user",

@@ -16,6 +16,18 @@ export function withStubAgentPrincipal<T>(fn: () => T | Promise<T>): T | Promise
   return runWithAgentPrincipal(STUB_AGENT_PRINCIPAL, fn);
 }
 
+export async function bootBackends(
+  connectionManager: { connectAll(): Promise<void> },
+  toolCatalog?: { refresh(): Promise<unknown> },
+): Promise<void> {
+  await withStubAgentPrincipal(async () => {
+    await connectionManager.connectAll();
+    if (toolCatalog) {
+      await toolCatalog.refresh();
+    }
+  });
+}
+
 const defaultOAuthProviders: ToriiConfig["oauth_providers"] = {
   github: {
     token_url: "https://github.com/login/oauth/access_token",
