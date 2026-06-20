@@ -3,12 +3,14 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ToriiConfig } from "@torii/shared";
 import { ToriiConfigService } from "../../../config/torii-config.service.js";
+import { OAuthTokenLifecycleService } from "../../oauth-token-lifecycle.service.js";
 import { InMemoryTokenRepository } from "../../in-memory-token-repository.service.js";
 import { UserOAuthCredentialResolver } from "../user_oauth_credential-resolver.service.js";
 import {
   LINKING_REQUIRED_CODE,
   LinkingRequiredError,
 } from "../../types/credential-resolution.js";
+import type { OAuthFetch } from "../../utils/oauth-token-refresh.js";
 import { runWithAgentPrincipal } from "../../../identity/agent-principal-context.js";
 import { STUB_AGENT_PRINCIPAL } from "../../../identity/stub-agent-principal.js";
 import { withStubAgentPrincipal } from "../../tests/test-helpers.js";
@@ -39,12 +41,37 @@ function userOAuthServer(
 
 function createResolver(
   repository = new InMemoryTokenRepository(),
+  fetchFn?: OAuthFetch,
 ): UserOAuthCredentialResolver {
   const configService = new ToriiConfigService({
     oauth_providers: oauthProviders,
     servers: [],
   });
-  return new UserOAuthCredentialResolver(repository, configService);
+  const tokenLifecycle = new OAuthTokenLifecycleService(
+    repository,
+    configService,
+    fetchFn,
+  );
+  return new UserOAuthCredentialResolver(tokenLifecycle, configService);
+}
+
+function mockRefreshFetch(options: {
+  response?: Record<string, unknown>;
+  status?: number;
+  delayMs?: number;
+  onCall?: () => void;
+}): OAuthFetch {
+  return async () => {
+    options.onCall?.();
+    if (options.delayMs !== undefined) {
+      await new Promise((resolve) => setTimeout(resolve, options.delayMs));
+    }
+
+    return new Response(JSON.stringify(options.response ?? {}), {
+      status: options.status ?? 200,
+      headers: { "content-type": "application/json" },
+    });
+  };
 }
 
 describe("InMemoryTokenRepository", () => {
@@ -104,7 +131,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
     );
   });
 
-  it("returns linking_required when the stored token is expired", async () => {
+  it("returns linking_required when the stored access token is expired and cannot be refreshed", async () => {
     const repository = new InMemoryTokenRepository();
     await repository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
       accessToken: "gho_expired",
@@ -119,6 +146,133 @@ describe("DelegatedConnectionCredentialResolver", () => {
         assert.ok(error instanceof LinkingRequiredError);
         assert.equal(error.payload.code, LINKING_REQUIRED_CODE);
         assert.doesNotMatch(error.payload.linkUrl, /gho_expired/);
+        return true;
+      },
+    );
+  });
+
+  it("refreshes a stale access token using the stored refresh token", async () => {
+    const repository = new InMemoryTokenRepository();
+    await repository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
+      accessToken: "gho_stale",
+      refreshToken: "ghr_stale",
+      expiresAt: new Date(Date.now() - 60_000),
+    });
+    const resolver = createResolver(
+      repository,
+      mockRefreshFetch({
+        response: {
+          access_token: "gho_refreshed",
+          expires_in: 3600,
+        },
+      }),
+    );
+
+    const resolved = await withStubAgentPrincipal(() =>
+      resolver.resolve(userOAuthServer()),
+    );
+
+    assert.equal(
+      resolved.headers.Authorization,
+      "Bearer gho_refreshed",
+    );
+    const stored = await repository.get(STUB_AGENT_PRINCIPAL.ownerId, "github");
+    assert.equal(stored?.accessToken, "gho_refreshed");
+    assert.equal(stored?.refreshToken, "ghr_stale");
+    assert.ok(stored?.expiresAt && stored.expiresAt.getTime() > Date.now());
+  });
+
+  it("persists a rotated refresh token before returning credentials", async () => {
+    const repository = new InMemoryTokenRepository();
+    await repository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
+      accessToken: "gho_stale",
+      refreshToken: "ghr_old",
+      expiresAt: new Date(Date.now() - 60_000),
+    });
+    const resolver = createResolver(
+      repository,
+      mockRefreshFetch({
+        response: {
+          access_token: "gho_refreshed",
+          refresh_token: "ghr_rotated",
+          expires_in: 3600,
+        },
+      }),
+    );
+
+    await withStubAgentPrincipal(() => resolver.resolve(userOAuthServer()));
+
+    const stored = await repository.get(STUB_AGENT_PRINCIPAL.ownerId, "github");
+    assert.equal(stored?.refreshToken, "ghr_rotated");
+  });
+
+  it("single-flights concurrent refresh for the same owner and backend", async () => {
+    const repository = new InMemoryTokenRepository();
+    await repository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
+      accessToken: "gho_stale",
+      refreshToken: "ghr_stale",
+      expiresAt: new Date(Date.now() - 60_000),
+    });
+
+    let refreshCalls = 0;
+    const resolver = createResolver(
+      repository,
+      mockRefreshFetch({
+        delayMs: 50,
+        onCall: () => {
+          refreshCalls += 1;
+        },
+        response: {
+          access_token: "gho_refreshed",
+          refresh_token: "ghr_rotated",
+          expires_in: 3600,
+        },
+      }),
+    );
+
+    const [first, second] = await withStubAgentPrincipal(() =>
+      Promise.all([
+        resolver.resolve(userOAuthServer()),
+        resolver.resolve(userOAuthServer()),
+      ]),
+    );
+
+    assert.equal(refreshCalls, 1);
+    assert.equal(
+      first.headers.Authorization,
+      "Bearer gho_refreshed",
+    );
+    assert.equal(
+      second.headers.Authorization,
+      "Bearer gho_refreshed",
+    );
+  });
+
+  it("returns linking_required when refresh fails with a terminal provider error", async () => {
+    const repository = new InMemoryTokenRepository();
+    await repository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
+      accessToken: "gho_stale",
+      refreshToken: "ghr_revoked",
+      expiresAt: new Date(Date.now() - 60_000),
+    });
+    const resolver = createResolver(
+      repository,
+      mockRefreshFetch({
+        status: 400,
+        response: {
+          error: "invalid_grant",
+          error_description: "The refresh token is invalid or expired",
+        },
+      }),
+    );
+
+    await assert.rejects(
+      () =>
+        withStubAgentPrincipal(() => resolver.resolve(userOAuthServer())),
+      (error: unknown) => {
+        assert.ok(error instanceof LinkingRequiredError);
+        assert.equal(error.payload.code, LINKING_REQUIRED_CODE);
+        assert.doesNotMatch(error.message, /ghr_revoked/);
         return true;
       },
     );

@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import type { ToriiConfig } from "@torii/shared";
 import { ToriiConfigService } from "../../../config/torii-config.service.js";
 import { CredentialResolverService } from "../../credential-resolver.service.js";
+import { OAuthTokenLifecycleService } from "../../oauth-token-lifecycle.service.js";
 import { InMemoryTokenRepository } from "../../in-memory-token-repository.service.js";
 import { NoneCredentialResolver } from "../none-credential-resolver.service.js";
 import { UserOAuthCredentialResolver } from "../user_oauth_credential-resolver.service.js";
@@ -52,10 +53,11 @@ describe("CredentialResolverService none dispatch", () => {
     oauth_providers: {},
     servers: [],
   });
+  const tokenRepository = new InMemoryTokenRepository();
   const credentialResolver = new CredentialResolverService(
     new NoneCredentialResolver(),
     new UserOAuthCredentialResolver(
-      new InMemoryTokenRepository(),
+      new OAuthTokenLifecycleService(tokenRepository, configService),
       configService,
     ),
     new ServiceKeyCredentialResolver(),

@@ -5,6 +5,7 @@ import { ConnectionManager } from "./backends/connection-manager.service.js";
 import { DefaultMcpClientConnector } from "./backends/mcp-client-connector.service.js";
 import { ToolCatalogService } from "./catalog/tool-catalog.service.js";
 import { CredentialResolverService } from "./credentials/credential-resolver.service.js";
+import { OAuthTokenLifecycleService } from "./credentials/oauth-token-lifecycle.service.js";
 import { SqliteTokenRepository } from "./credentials/sqlite-token-repository.service.js";
 import { TOKEN_REPOSITORY } from "./credentials/types/token-repository.js";
 import { openTokenDatabase } from "./credentials/utils/sqlite-token-store.js";
@@ -29,6 +30,9 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
   });
   appContainer.register(NoneCredentialResolver, {
     useClass: NoneCredentialResolver,
+  });
+  appContainer.register(OAuthTokenLifecycleService, {
+    useClass: OAuthTokenLifecycleService,
   });
   appContainer.register(UserOAuthCredentialResolver, {
     useClass: UserOAuthCredentialResolver,
