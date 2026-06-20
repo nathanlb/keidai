@@ -9,6 +9,7 @@ import { startMockMcpServer } from "../../../backends/tests/mock-mcp-server.js";
 import { ToriiConfigService } from "../../../config/torii-config.service.js";
 import { ToolCatalogService } from "../../../catalog/tool-catalog.service.js";
 import { createCredentialServices } from "../test-helpers.js";
+import { createPolicyEnforcement } from "../../../policy/tests/test-helpers.js";
 
 function noneServer(
   name: string,
@@ -67,6 +68,7 @@ describe("none credentials with tools/list", () => {
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
+      createPolicyEnforcement(configService),
     );
 
     try {
@@ -152,6 +154,7 @@ describe("none credentials with DeepWiki MCP", () => {
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
+      createPolicyEnforcement(configService),
     );
 
     try {

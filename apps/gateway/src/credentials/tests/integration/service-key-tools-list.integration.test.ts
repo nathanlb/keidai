@@ -8,6 +8,7 @@ import { startMockMcpServer } from "../../../backends/tests/mock-mcp-server.js";
 import { ToriiConfigService } from "../../../config/torii-config.service.js";
 import { ToolCatalogService } from "../../../catalog/tool-catalog.service.js";
 import { createCredentialServices } from "../test-helpers.js";
+import { createPolicyEnforcement } from "../../../policy/tests/test-helpers.js";
 
 function serviceKeyServer(
   name: string,
@@ -57,6 +58,7 @@ describe("service_key credentials with tools/list", () => {
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
+      createPolicyEnforcement(configService),
     );
 
     const logs: string[] = [];
@@ -102,6 +104,7 @@ describe("service_key credentials with tools/list", () => {
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
+      createPolicyEnforcement(configService),
     );
 
     const errors: string[] = [];
@@ -159,6 +162,7 @@ describe("service_key credentials with Stripe MCP", () => {
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
+      createPolicyEnforcement(configService),
     );
 
     const logs: string[] = [];

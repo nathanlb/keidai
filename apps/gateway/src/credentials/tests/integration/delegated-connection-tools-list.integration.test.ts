@@ -8,6 +8,7 @@ import { startMockMcpServer } from "../../../backends/tests/mock-mcp-server.js";
 import { ToriiConfigService } from "../../../config/torii-config.service.js";
 import { ToolCatalogService } from "../../../catalog/tool-catalog.service.js";
 import { createCredentialServices, withStubAgentPrincipal } from "../test-helpers.js";
+import { createPolicyEnforcement } from "../../../policy/tests/test-helpers.js";
 import { STUB_AGENT_PRINCIPAL } from "../../../identity/stub-agent-principal.js";
 
 function userOAuthServer(
@@ -67,6 +68,7 @@ describe("user_oauth credentials with tools/list", () => {
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
+      createPolicyEnforcement(configService),
     );
 
     try {
@@ -107,6 +109,7 @@ describe("user_oauth credentials with tools/list", () => {
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
+      createPolicyEnforcement(configService),
     );
 
     const errors: string[] = [];

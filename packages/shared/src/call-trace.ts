@@ -1,3 +1,5 @@
+import type { PolicyDecision } from "./policy-decision.js";
+
 /** Internal agent identity on a call trace — never the credential's native subject. */
 export interface CallTracePrincipal {
   agentId: string;
@@ -15,7 +17,7 @@ export interface CallTrace {
   principal?: CallTracePrincipal;
   /** Trace-safe credential reference — never secret material. */
   credentialRef?: string;
-  policyDecision: "allowed" | "denied";
+  policyDecision: PolicyDecision;
   /** Omitted when the backend was never reached (e.g. policy denied). */
   durationMs?: number;
   error?: string;
