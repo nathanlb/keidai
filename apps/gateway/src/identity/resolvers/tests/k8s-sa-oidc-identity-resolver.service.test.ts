@@ -2,7 +2,7 @@ import "reflect-metadata";
 import assert from "node:assert/strict";
 import { generateKeyPair, exportJWK, SignJWT, type JWK } from "jose";
 import { describe, it, before } from "node:test";
-import type { AgentPrincipal } from "@torii/shared";
+import type { AgentPrincipal } from "@keidai/shared";
 import { InMemoryAgentRegistry } from "../../registry/in-memory-agent-registry.service.js";
 import { K8sSaOidcIdentityResolver } from "../k8s-sa-oidc-identity-resolver.service.js";
 import { IdentityResolutionError } from "../../types/identity-resolution-error.js";

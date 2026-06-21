@@ -1,4 +1,4 @@
-import type { OAuthProviderConfig } from "@torii/shared";
+import type { OAuthProviderConfig } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
 import { ToriiConfigService } from "../config/torii-config.service.js";
 import {

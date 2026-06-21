@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { AgentPrincipal } from "@torii/shared";
+import type { AgentPrincipal } from "@keidai/shared";
 import { InMemoryAgentRegistry } from "../in-memory-agent-registry.service.js";
 import { IdentityResolutionError } from "../../types/identity-resolution-error.js";
 import type { ValidatedAgentSubject } from "../../types/validated-agent-subject.js";

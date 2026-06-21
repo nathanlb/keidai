@@ -1,5 +1,5 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import type { ServerConfig } from "@torii/shared";
+import type { ServerConfig } from "@keidai/shared";
 
 export type ConnectionState = "connecting" | "connected" | "failed";
 

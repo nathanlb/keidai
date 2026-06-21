@@ -1,4 +1,4 @@
-import type { AgentPrincipal, AgentRegistrationConfig } from "@torii/shared";
+import type { AgentPrincipal, AgentRegistrationConfig } from "@keidai/shared";
 import { InMemoryAgentRegistry } from "../registry/in-memory-agent-registry.service.js";
 import { registryKey } from "./registry-key.js";
 import { toValidatedAgentSubject } from "./to-validated-agent-subject.js";

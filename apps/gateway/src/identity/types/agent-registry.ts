@@ -1,4 +1,4 @@
-import type { AgentPrincipal } from "@torii/shared";
+import type { AgentPrincipal } from "@keidai/shared";
 import type { ValidatedAgentSubject } from "./validated-agent-subject.js";
 
 /** Maps a validated workload identity to an internal {@link AgentPrincipal}. */

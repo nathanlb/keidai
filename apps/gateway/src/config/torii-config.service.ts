@@ -1,5 +1,5 @@
 import { injectable } from "tsyringe";
-import type { ServerConfig, ToriiConfig } from "@torii/shared";
+import type { ServerConfig, ToriiConfig } from "@keidai/shared";
 
 /**
  * Read-only view of the validated boot config, injectable across gateway services.

@@ -1,7 +1,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { FetchLike } from "@modelcontextprotocol/sdk/shared/transport.js";
-import type { ServerConfig } from "@torii/shared";
+import type { ServerConfig } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
 import { CredentialResolverService } from "../credentials/credential-resolver.service.js";
 import { CredentialResolutionError, LinkingRequiredError } from "../credentials/types/credential-resolution.js";
@@ -54,7 +54,7 @@ export class DefaultMcpClientConnector implements McpClientConnector {
     }
 
     const client = new Client({
-      name: "open-torii-gateway",
+      name: "torii-gateway",
       version: "0.0.0",
     });
     const transport = new StreamableHTTPClientTransport(

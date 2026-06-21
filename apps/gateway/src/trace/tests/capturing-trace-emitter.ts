@@ -1,4 +1,4 @@
-import type { CallTrace } from "@torii/shared";
+import type { CallTrace } from "@keidai/shared";
 import type { TraceEmitter } from "../types/trace-emitter.js";
 
 export class CapturingTraceEmitter implements TraceEmitter {

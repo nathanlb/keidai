@@ -1,7 +1,7 @@
 import type {
   AgentIdentityResolver,
   AgentPrincipal,
-} from "@torii/shared";
+} from "@keidai/shared";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { ToolCatalogService } from "../../catalog/tool-catalog.service.js";

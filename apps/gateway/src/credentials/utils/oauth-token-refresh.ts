@@ -1,4 +1,4 @@
-import type { OAuthProviderConfig } from "@torii/shared";
+import type { OAuthProviderConfig } from "@keidai/shared";
 import type { OAuthToken } from "../types/token-repository.js";
 
 export interface OAuthTokenRefreshResponse {

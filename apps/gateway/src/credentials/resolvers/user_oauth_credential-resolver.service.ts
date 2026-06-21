@@ -1,4 +1,4 @@
-import type { ServerConfig } from "@torii/shared";
+import type { ServerConfig } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
 import { getAgentPrincipal } from "../../identity/agent-principal-context.js";

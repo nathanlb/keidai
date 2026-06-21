@@ -38,7 +38,7 @@ importers:
       '@opentelemetry/semantic-conventions':
         specifier: ^1.34.0
         version: 1.41.1
-      '@torii/shared':
+      '@keidai/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       dotenv:

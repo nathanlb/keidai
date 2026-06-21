@@ -2,7 +2,7 @@ import "reflect-metadata";
 import assert from "node:assert/strict";
 import type { IncomingHttpHeaders } from "node:http";
 import { describe, it } from "node:test";
-import type { ToriiConfig } from "@torii/shared";
+import type { ToriiConfig } from "@keidai/shared";
 import { ConnectionManager } from "../../../backends/connection-manager.service.js";
 import { DefaultMcpClientConnector } from "../../../backends/mcp-client-connector.service.js";
 import { startMockMcpServer } from "../../../backends/tests/mock-mcp-server.js";

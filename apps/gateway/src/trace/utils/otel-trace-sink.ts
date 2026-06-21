@@ -1,4 +1,4 @@
-import type { CallTrace } from "@torii/shared";
+import type { CallTrace } from "@keidai/shared";
 import {
   trace,
   type Span,
@@ -30,12 +30,12 @@ function getOtelTracer(): Tracer | null {
     const processor: SpanProcessor = new BatchSpanProcessor(exporter);
     const provider = new NodeTracerProvider({
       resource: resourceFromAttributes({
-        [ATTR_SERVICE_NAME]: "open-torii-gateway",
+        [ATTR_SERVICE_NAME]: "torii-gateway",
       }),
       spanProcessors: [processor],
     });
     provider.register();
-    otelTracer = trace.getTracer("open-torii-gateway");
+    otelTracer = trace.getTracer("torii-gateway");
   } catch {
     otelTracer = null;
   }

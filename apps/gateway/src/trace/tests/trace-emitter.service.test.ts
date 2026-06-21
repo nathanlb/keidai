@@ -1,8 +1,8 @@
 import "reflect-metadata";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { CallTrace } from "@torii/shared";
-import { PolicyDecision } from "@torii/shared";
+import type { CallTrace } from "@keidai/shared";
+import { PolicyDecision } from "@keidai/shared";
 import { TraceEmitterService } from "../trace-emitter.service.js";
 import {
   finalizeCallTrace,

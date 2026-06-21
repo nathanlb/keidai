@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { AgentRegistrationConfig } from "@torii/shared";
+import type { AgentRegistrationConfig } from "@keidai/shared";
 import { buildAgentRegistry } from "../build-agent-registry.js";
 
 const registrations: AgentRegistrationConfig[] = [

@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { ToriiConfig } from "@torii/shared";
+import type { ToriiConfig } from "@keidai/shared";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
 import { PolicyEnforcementService } from "../policy-enforcement.service.js";
 

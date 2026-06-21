@@ -6,7 +6,7 @@ import {
   ListToolsRequestSchema,
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
-import { PolicyDecision } from "@torii/shared";
+import { PolicyDecision } from "@keidai/shared";
 import Fastify, { type FastifyInstance } from "fastify";
 import { inject, injectable } from "tsyringe";
 import { ToolCatalogService } from "../catalog/tool-catalog.service.js";
@@ -177,7 +177,7 @@ export class GatewayMcpServer {
 
   private createMcpServer(): McpServer {
     const mcpServer = new McpServer(
-      { name: "open-torii-gateway", version: "0.0.0" },
+      { name: "torii-gateway", version: "0.0.0" },
       { capabilities: { tools: {} } },
     );
 

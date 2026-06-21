@@ -1,4 +1,4 @@
-import type { CallTrace } from "@torii/shared";
+import type { CallTrace } from "@keidai/shared";
 
 export interface TraceEmitter {
   emit(trace: CallTrace): void;

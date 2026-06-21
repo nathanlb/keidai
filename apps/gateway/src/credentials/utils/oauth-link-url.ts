@@ -1,4 +1,4 @@
-import type { OAuthProviderConfig } from "@torii/shared";
+import type { OAuthProviderConfig } from "@keidai/shared";
 
 export function deriveAuthorizeUrl(tokenUrl: string): string {
   const url = new URL(tokenUrl);

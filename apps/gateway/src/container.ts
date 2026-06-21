@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { container, type DependencyContainer } from "tsyringe";
-import type { ToriiConfig } from "@torii/shared";
+import type { ToriiConfig } from "@keidai/shared";
 import { ConnectionManager } from "./backends/connection-manager.service.js";
 import { DefaultMcpClientConnector } from "./backends/mcp-client-connector.service.js";
 import { ToolCatalogService } from "./catalog/tool-catalog.service.js";
