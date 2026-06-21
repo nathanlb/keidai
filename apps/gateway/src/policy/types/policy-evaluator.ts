@@ -1,4 +1,4 @@
-import type { AgentPrincipal, PolicyDecision, ServerConfig } from "@torii/shared";
+import type { AgentPrincipal, PolicyDecision, ServerConfig } from "@keidai/shared";
 
 export interface PolicyEvaluator {
   evaluate(

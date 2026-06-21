@@ -1,6 +1,6 @@
 # Torii gateway configuration — loaded at boot, no database required.
 #
-# Shapes match @torii/shared (ToriiConfig, ServerConfig, CredentialConfig,
+# Shapes match @keidai/shared (ToriiConfig, ServerConfig, CredentialConfig,
 # PolicyConfig, OAuthProviderConfig, AgentRegistrationConfig). Env refs use ${env:VAR} and are resolved
 # before validation.
 

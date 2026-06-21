@@ -1,4 +1,4 @@
-import type { ServerConfig } from "@torii/shared";
+import type { ServerConfig } from "@keidai/shared";
 import { injectable } from "tsyringe";
 import type { ResolvedCredentials } from "../types/credential-resolution.js";
 import type { CredentialStrategyResolver } from "../types/credential-strategy-resolver.js";

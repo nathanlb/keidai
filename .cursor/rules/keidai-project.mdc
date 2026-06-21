@@ -1,13 +1,15 @@
 ---
-description: open-torii project sources — Linear tasks and Notion docs
+description: Keidai monorepo sources — Linear tasks and Notion docs
 alwaysApply: true
 ---
 
-# open-torii project context
+# Keidai project context
+
+Keidai is the agent platform monorepo. **Torii** (`apps/gateway`) is the MCP gateway — the only component actively built in v0.
 
 ## Implementation tasks (Linear)
 
-Stories and acceptance criteria live in the **open-torii** Linear project:
+Stories and acceptance criteria live in the **open-torii** Linear project (gateway work; rename pending):
 
 https://linear.app/nathanlb/project/open-torii-c257f2b8953d/overview
 
@@ -18,7 +20,7 @@ Issue IDs use team prefix **`NAT-`** (e.g. `NAT-11` = Story 4b, `NAT-12` = Story
 When asked to implement, build, or work on a specific Linear issue by ID:
 
 1. **Fetch the issue** via Linear MCP `get_issue` (e.g. `NAT-12`).
-2. **Check out the branch** — use `gitBranchName` from the response (same name Linear’s “copy branch name” provides). If the current branch is not `gitBranchName`:
+2. **Check out the branch** — use `gitBranchName` from the response (same name Linear's "copy branch name" provides). If the current branch is not `gitBranchName`:
    - Check out the branch if it already exists locally or on `origin`.
    - Otherwise create it from `main` (or the base branch the user specified).
 3. **Implement** per the issue description and acceptance criteria.
@@ -27,6 +29,10 @@ Do not skip the branch step or invent a branch name.
 
 ## Product & design docs (Notion)
 
-Architecture, credential resolution, policy, and other design notes:
+Platform vision and component boundaries:
+
+https://app.notion.com/p/Keidai-Agent-Platform-38307ec181ff815b8276d59d005fd612
+
+Torii gateway architecture, credential resolution, policy, and other design notes:
 
 https://app.notion.com/p/Torii-MCP-Gateway-36c07ec181ff813d8f34f9b0e617de34

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { AgentPrincipal, PolicyConfig } from "@torii/shared";
-import { PolicyDecision } from "@torii/shared";
+import type { AgentPrincipal, PolicyConfig } from "@keidai/shared";
+import { PolicyDecision } from "@keidai/shared";
 import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
 import { evaluatePolicy } from "../utils/evaluate-policy.js";
 

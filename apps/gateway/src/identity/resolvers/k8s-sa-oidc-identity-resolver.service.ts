@@ -1,4 +1,4 @@
-import type { AgentIdentityResolver, AgentPrincipal } from "@torii/shared";
+import type { AgentIdentityResolver, AgentPrincipal } from "@keidai/shared";
 import * as jose from "jose";
 import { inject, injectable } from "tsyringe";
 import type { AgentRegistry } from "../types/agent-registry.js";

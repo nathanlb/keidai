@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ToriiConfig } from "@torii/shared";
+import type { ToriiConfig } from "@keidai/shared";
 
 const oauthProviderSchema = z.object({
   token_url: z.string().min(1, "token_url is required"),

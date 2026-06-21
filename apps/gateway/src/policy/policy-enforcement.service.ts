@@ -1,4 +1,4 @@
-import { PolicyDecision, type AgentPrincipal, type ServerConfig } from "@torii/shared";
+import { PolicyDecision, type AgentPrincipal, type ServerConfig } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
 import { ToriiConfigService } from "../config/torii-config.service.js";
 import type { PolicyEvaluator } from "./types/policy-evaluator.js";

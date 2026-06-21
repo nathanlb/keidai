@@ -1,4 +1,4 @@
-import type { ServerConfig } from "@torii/shared";
+import type { ServerConfig } from "@keidai/shared";
 
 /** Trace-safe credential reference derived from config — no secret material. */
 export function deriveCredentialRef(

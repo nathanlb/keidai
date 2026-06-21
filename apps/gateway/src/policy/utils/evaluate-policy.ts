@@ -2,7 +2,7 @@ import {
   PolicyDecision,
   type AgentPrincipal,
   type PolicyConfig,
-} from "@torii/shared";
+} from "@keidai/shared";
 
 /**
  * Evaluates backend tool policy for a principal.

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { OAuthProviderConfig } from "@torii/shared";
+import type { OAuthProviderConfig } from "@keidai/shared";
 import {
   OAuthTokenRefreshError,
   refreshOAuthToken,

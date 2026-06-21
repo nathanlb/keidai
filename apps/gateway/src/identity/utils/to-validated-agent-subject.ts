@@ -1,4 +1,4 @@
-import type { AgentSubjectConfig } from "@torii/shared";
+import type { AgentSubjectConfig } from "@keidai/shared";
 import type { ValidatedAgentSubject } from "../types/validated-agent-subject.js";
 
 export function toValidatedAgentSubject(

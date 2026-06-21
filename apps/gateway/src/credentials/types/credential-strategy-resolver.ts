@@ -1,4 +1,4 @@
-import type { ServerConfig } from "@torii/shared";
+import type { ServerConfig } from "@keidai/shared";
 import type { ResolvedCredentials } from "./credential-resolution.js";
 
 export interface CredentialStrategyResolver {

@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { parse } from "yaml";
-import type { ToriiConfig } from "@torii/shared";
+import type { ToriiConfig } from "@keidai/shared";
 import {
   formatMissingEnvVars,
   resolveEnvRefs,

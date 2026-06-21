@@ -1,4 +1,4 @@
-import type { ServerConfig } from "@torii/shared";
+import type { ServerConfig } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
 import { NoneCredentialResolver } from "./resolvers/none-credential-resolver.service.js";
 import { UserOAuthCredentialResolver } from "./resolvers/user_oauth_credential-resolver.service.js";

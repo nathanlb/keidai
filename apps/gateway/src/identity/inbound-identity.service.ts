@@ -1,4 +1,4 @@
-import type { AgentIdentityResolver, AgentPrincipal } from "@torii/shared";
+import type { AgentIdentityResolver, AgentPrincipal } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
 import { IdentityResolutionError } from "./types/identity-resolution-error.js";
 import { AGENT_IDENTITY_RESOLVER } from "./types/tokens.js";

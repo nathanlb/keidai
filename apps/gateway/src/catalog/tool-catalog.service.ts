@@ -1,4 +1,4 @@
-import { PolicyDecision } from "@torii/shared";
+import { PolicyDecision } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
 import { ConnectionManager } from "../backends/connection-manager.service.js";
 import { CredentialResolverService } from "../credentials/credential-resolver.service.js";

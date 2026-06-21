@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { AgentPrincipal } from "@torii/shared";
+import type { AgentPrincipal } from "@keidai/shared";
 
 const storage = new AsyncLocalStorage<AgentPrincipal>();
 

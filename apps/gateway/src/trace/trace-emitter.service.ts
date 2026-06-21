@@ -1,4 +1,4 @@
-import type { CallTrace } from "@torii/shared";
+import type { CallTrace } from "@keidai/shared";
 import { injectable } from "tsyringe";
 import type { TraceEmitter } from "./types/trace-emitter.js";
 import { emitOtelSpan } from "./utils/otel-trace-sink.js";

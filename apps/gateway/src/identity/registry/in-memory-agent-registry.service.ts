@@ -1,4 +1,4 @@
-import type { AgentPrincipal } from "@torii/shared";
+import type { AgentPrincipal } from "@keidai/shared";
 import type { AgentRegistry } from "../types/agent-registry.js";
 import { IdentityResolutionError } from "../types/identity-resolution-error.js";
 import type { ValidatedAgentSubject } from "../types/validated-agent-subject.js";
