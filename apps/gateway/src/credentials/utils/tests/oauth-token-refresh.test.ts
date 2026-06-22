@@ -109,6 +109,37 @@ describe("refreshOAuthToken", () => {
     assert.equal(params.get("client_secret"), "top-secret");
   });
 
+  it("posts a public-client refresh_token grant for Notion MCP", async () => {
+    let capturedInit: RequestInit | undefined;
+    const fetchFn: OAuthFetch = async (_input, init) => {
+      capturedInit = init;
+      return new Response(
+        JSON.stringify({ access_token: "ntn_new", refresh_token: "nrt_new" }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    };
+
+    await refreshOAuthToken(
+      {
+        token_url: "https://mcp.notion.com/token",
+        client_id: "mcp-client-id",
+        scopes: [],
+      },
+      "nrt_stale",
+      fetchFn,
+    );
+
+    const headers = new Headers(capturedInit?.headers);
+    assert.equal(headers.get("Content-Type"), "application/x-www-form-urlencoded");
+    assert.equal(headers.get("Authorization"), null);
+
+    const params = new URLSearchParams(String(capturedInit?.body));
+    assert.equal(params.get("grant_type"), "refresh_token");
+    assert.equal(params.get("refresh_token"), "nrt_stale");
+    assert.equal(params.get("client_id"), "mcp-client-id");
+    assert.equal(params.get("client_secret"), null);
+  });
+
   it("returns a refreshed token from a JSON provider response", async () => {
     const token = await refreshOAuthToken(
       githubProvider,

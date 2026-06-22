@@ -6,7 +6,8 @@ End-to-end walkthrough for the NAT-16 **open-torii status digest** scenario: a d
 
 - Node.js 24, pnpm
 - [uv](https://docs.astral.sh/uv/) (for the Gmail MCP server): `uvx workspace-mcp`
-- OAuth apps for GitHub, Notion, and Google with redirect URI **`http://127.0.0.1:8765/callback`**
+- OAuth apps for GitHub and Google with redirect URI **`http://127.0.0.1:8765/callback`**
+- Notion uses **Notion MCP OAuth** at `https://mcp.notion.com` (no separate integration app — `torii link notion` registers a client automatically)
 
 ## Environment setup
 
@@ -36,7 +37,6 @@ cp apps/demo-agent/.env.example apps/demo-agent/.env
 | `TORII_CONFIG_PATH` | yes | Use `./torii.demo.yaml` (default in example) |
 | `LINEAR_API_KEY` | yes | Linear MCP `service_key` backend |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | for `torii link` | OAuth app credentials |
-| `NOTION_CLIENT_ID` / `NOTION_CLIENT_SECRET` | for `torii link` | OAuth app credentials |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | for `torii link` | OAuth app credentials |
 
 Optional: `TORII_PORT`, `TORII_HOST`, `TORII_TOKEN_STORE_PATH` (defaults: `3100`, `127.0.0.1`, `./data/torii-tokens.db`).
@@ -45,12 +45,15 @@ Optional: `TORII_PORT`, `TORII_HOST`, `TORII_TOKEN_STORE_PATH` (defaults: `3100`
 
 | Variable | Required | Purpose |
 |----------|----------|---------|
-| `ANTHROPIC_API_KEY` | yes | Claude API key |
+| `OPEN_ROUTER_API_KEY` | yes | [OpenRouter](https://openrouter.ai/) API key |
 | `DEMO_OWNER_EMAIL` | yes | Digest email recipient |
 | `TORII_MCP_URL` | no | Default `http://127.0.0.1:3100/mcp` |
+| `DEMO_MODEL_ID` | no | Default `cohere/north-mini-code:free` |
 | `DEMO_AGENT_BEARER` | no* | Only if not set in root `.env` |
 
-\*Must match `agents[].inbound_token` in `apps/gateway/torii.demo.yaml` (resolved at gateway boot).
+\*Must match `agents[].inbound_token` in `apps/gateway/torii.demo.yaml`. Set in repo root `.env` or here as `DEMO_AGENT_BEARER`.
+
+Inference uses [OpenRouter](https://openrouter.ai/) via the AI SDK OpenAI-compatible client. Override the model with `DEMO_MODEL_ID` (e.g. `openai/gpt-4o-mini`).
 
 ## CI without live credentials
 
@@ -67,11 +70,11 @@ Key test: `apps/gateway/src/mcp/tests/demo-scenario.integration.test.ts`
 Link tokens for owner **`demo-owner`** (stored in `apps/gateway/data/torii-tokens.db` by default):
 
 ```bash
-pnpm install && pnpm build
+pnpm install
 
-pnpm --filter @keidai/gateway exec torii link github
-pnpm --filter @keidai/gateway exec torii link notion
-pnpm --filter @keidai/gateway exec torii link google
+pnpm --filter @keidai/gateway run torii link github
+pnpm --filter @keidai/gateway run torii link notion
+pnpm --filter @keidai/gateway run torii link google
 ```
 
 Each command opens a browser and completes consent on `127.0.0.1:8765`. Re-run only when tokens expire or are revoked.
@@ -104,13 +107,11 @@ pnpm demo
 
 **Happy path**
 
-- Agent calls read tools on Linear, GitHub, and Notion
-- Report includes `## Linear`, `## GitHub`, `## Notion` and a `NAT-*` issue id
-- Email sent via `gmail.send_gmail_message` to `DEMO_OWNER_EMAIL`
+- Agent gathers status from Linear, GitHub, and Notion, then emails the report via `gmail.send_gmail_message` to `DEMO_OWNER_EMAIL` in a single agent turn
 
 **Policy denial**
 
-- Follow-up attempt to post to Notion shows **`policy_denied`** for `notion.notion-create-pages`
+- Separate follow-up attempt to post to Notion shows **`policy_denied`** for `notion.notion-create-pages`
 - Notion write tools do not appear in `tools/list`
 
 **Gateway traces**
@@ -137,8 +138,9 @@ Notion write tools (`notion-create-pages`, `notion-update-page`, etc.) should be
 | `401 identity_denied` | `DEMO_AGENT_BEARER` missing or mismatch between root `.env` and what the agent sends |
 | `linking_required` on GitHub/Notion/Gmail | Run `torii link <provider>` for `demo-owner` |
 | Gmail backend failed at boot | `workspace-mcp` not running on port 8000 |
-| `torii link` browser error | Redirect URI not registered as `http://127.0.0.1:8765/callback` |
+| `torii link` browser error | Redirect URI mismatch — GitHub/Google: `http://127.0.0.1:8765/callback`; Notion: `https://127.0.0.1:8765/callback` |
 | Linear tools missing | `LINEAR_API_KEY` unset or invalid in `apps/gateway/.env` |
+| Notion search denied or tool errors | Per-step summaries are always logged; set `DEMO_AGENT_VERBOSE=1` for full tool inputs/outputs |
 | Config file not found | `TORII_CONFIG_PATH` should be `./torii.demo.yaml` relative to `apps/gateway/` |
 
 ## Architecture notes

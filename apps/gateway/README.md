@@ -80,13 +80,13 @@ Link an owner's OAuth token before `user_oauth` backends can resolve credentials
 
 ```bash
 # Requires oauth_providers + agents[] in torii.yaml
-torii link github
-torii link notion --owner demo-owner
+pnpm --filter @keidai/gateway run torii link github
+pnpm --filter @keidai/gateway run torii link notion --owner demo-owner
 ```
 
 The command opens a browser, completes the authorization-code flow on `http://127.0.0.1:8765/callback`, and persists tokens to SQLite keyed by `(owner_id, provider)`. The `owner_id` must match the registered agent's owner — tokens linked for a different owner will not resolve at call time.
 
-Register `http://127.0.0.1:8765/callback` as an OAuth redirect URI in each provider's developer console.
+Register redirect URIs in each provider's developer console. GitHub and Google use `http://127.0.0.1:8765/callback`. Notion requires HTTPS — use `https://127.0.0.1:8765/callback` (Torii serves a local self-signed certificate for the callback; your browser may warn once).
 
 ## Demo harness
 

@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import type { ToriiConfig } from "@keidai/shared";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
 import { OAuthTokenLifecycleService } from "../oauth-token-lifecycle.service.js";
+import { InMemoryOAuthClientRepository } from "../in-memory-oauth-client-repository.service.js";
 import { InMemoryTokenRepository } from "../in-memory-token-repository.service.js";
 import {
   OAuthTokenRefreshError,
@@ -29,7 +30,12 @@ function createLifecycle(
     oauth_providers: providers,
     servers: [],
   });
-  return new OAuthTokenLifecycleService(repository, configService, fetchFn);
+  return new OAuthTokenLifecycleService(
+    repository,
+    new InMemoryOAuthClientRepository(),
+    configService,
+    fetchFn,
+  );
 }
 
 function mockRefreshFetch(options: {

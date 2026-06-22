@@ -10,7 +10,7 @@ import { ConnectionManager } from "./backends/connection-manager.service.js";
 import { ToolCatalogService } from "./catalog/tool-catalog.service.js";
 import { ToriiConfigService } from "./config/torii-config.service.js";
 import { runWithAgentPrincipal } from "./identity/agent-principal-context.js";
-import { STUB_AGENT_PRINCIPAL } from "./identity/stub-agent-principal.js";
+import { resolveBootAgentPrincipal } from "./identity/stub-agent-principal.js";
 import { GatewayMcpServer } from "./mcp/gateway-mcp-server.service.js";
 import { isLinkCommand, runLinkCommand } from "./cli/link-command.js";
 
@@ -35,7 +35,9 @@ export async function startServer(): Promise<void> {
     `Loaded Torii config with ${configService.get().servers.length} server(s)`,
   );
 
-  await runWithAgentPrincipal(STUB_AGENT_PRINCIPAL, async () => {
+  const bootPrincipal = resolveBootAgentPrincipal(config);
+
+  await runWithAgentPrincipal(bootPrincipal, async () => {
     await connectionManager.connectAll();
 
     const connections = connectionManager.list();

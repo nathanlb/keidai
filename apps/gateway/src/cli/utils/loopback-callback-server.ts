@@ -1,4 +1,7 @@
-import { createServer, type Server } from "node:http";
+import { createServer as createHttpServer, type Server } from "node:http";
+import type { IncomingMessage, ServerResponse } from "node:http";
+import { createServer as createHttpsServer } from "node:https";
+import selfsigned from "selfsigned";
 
 export interface OAuthCallbackResult {
   code: string;
@@ -18,6 +21,31 @@ const SUCCESS_HTML = `<!DOCTYPE html>
 </body>
 </html>`;
 
+function createLocalTlsMaterial(host: string): Promise<{ key: string; cert: string }> {
+  const altNames: Array<{ type: 2 | 7; ip?: string; value?: string }> = [
+    { type: 2, value: "localhost" },
+  ];
+
+  if (host === "127.0.0.1" || host === "::1") {
+    altNames.push({ type: 7, ip: host });
+  } else {
+    altNames.push({ type: 2, value: host });
+  }
+
+  return selfsigned
+    .generate([{ name: "commonName", value: host }], {
+      algorithm: "sha256",
+      keySize: 2048,
+      extensions: [
+        { name: "basicConstraints", cA: false },
+        { name: "keyUsage", digitalSignature: true, keyEncipherment: true },
+        { name: "extKeyUsage", serverAuth: true },
+        { name: "subjectAltName", altNames },
+      ],
+    })
+    .then((pems) => ({ key: pems.private, cert: pems.cert }));
+}
+
 export async function startLoopbackCallbackServer(
   redirectUri: string,
   timeoutMs = 120_000,
@@ -27,6 +55,7 @@ export async function startLoopbackCallbackServer(
   const host = parsed.hostname;
   const port =
     parsed.port.length > 0 ? Number.parseInt(parsed.port, 10) : 8765;
+  const useTls = parsed.protocol === "https:";
 
   let resolveCallback: (result: OAuthCallbackResult) => void;
   let rejectCallback: (error: Error) => void;
@@ -36,8 +65,12 @@ export async function startLoopbackCallbackServer(
     rejectCallback = reject;
   });
 
-  const server: Server = createServer((req, res) => {
-    const url = new URL(req.url ?? "/", `http://${req.headers.host ?? host}`);
+  const requestListener = (
+    req: IncomingMessage,
+    res: ServerResponse,
+  ): void => {
+    const scheme = useTls ? "https" : "http";
+    const url = new URL(req.url ?? "/", `${scheme}://${req.headers.host ?? host}`);
 
     if (url.pathname !== callbackPath) {
       res.writeHead(404).end("Not found");
@@ -64,7 +97,11 @@ export async function startLoopbackCallbackServer(
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" }).end(
       SUCCESS_HTML,
     );
-  });
+  };
+
+  const server: Server = useTls
+    ? createHttpsServer(await createLocalTlsMaterial(host), requestListener)
+    : createHttpServer(requestListener);
 
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);

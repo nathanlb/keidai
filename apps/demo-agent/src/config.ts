@@ -6,12 +6,20 @@ function requiredEnv(name: string): string {
   return value;
 }
 
+const DEFAULT_MODEL_ID = "cohere/north-mini-code:free";
+
 export interface DemoConfig {
   toriiMcpUrl: string;
   toriiBearerToken: string;
   ownerEmail: string;
-  anthropicApiKey: string;
+  openRouterApiKey: string;
   modelId: string;
+  verbose: boolean;
+}
+
+function parseVerboseFlag(): boolean {
+  const value = process.env.DEMO_AGENT_VERBOSE?.trim().toLowerCase();
+  return value === "1" || value === "true" || value === "yes";
 }
 
 export function loadDemoConfig(): DemoConfig {
@@ -19,8 +27,8 @@ export function loadDemoConfig(): DemoConfig {
     toriiMcpUrl: process.env.TORII_MCP_URL?.trim() ?? "http://127.0.0.1:3100/mcp",
     toriiBearerToken: requiredEnv("DEMO_AGENT_BEARER"),
     ownerEmail: requiredEnv("DEMO_OWNER_EMAIL"),
-    anthropicApiKey: requiredEnv("ANTHROPIC_API_KEY"),
-    modelId:
-      process.env.DEMO_MODEL_ID?.trim() ?? "claude-sonnet-4-5-20250929",
+    openRouterApiKey: requiredEnv("OPEN_ROUTER_API_KEY"),
+    modelId: process.env.DEMO_MODEL_ID?.trim() ?? DEFAULT_MODEL_ID,
+    verbose: parseVerboseFlag(),
   };
 }

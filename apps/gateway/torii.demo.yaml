@@ -3,9 +3,9 @@
 # Loaded via TORII_CONFIG_PATH=./torii.demo.yaml in apps/gateway/.env
 #
 # Link OAuth providers before running the demo:
-#   pnpm --filter @keidai/gateway exec torii link github
-#   pnpm --filter @keidai/gateway exec torii link notion
-#   pnpm --filter @keidai/gateway exec torii link google
+#   pnpm --filter @keidai/gateway run torii link github
+#   pnpm --filter @keidai/gateway run torii link notion
+#   pnpm --filter @keidai/gateway run torii link google
 #
 # See docs/demo.md for the full walkthrough.
 
@@ -18,12 +18,11 @@ oauth_providers:
     redirect_uri: http://127.0.0.1:8765/callback
 
   notion:
-    authorize_url: https://api.notion.com/v1/oauth/authorize
-    token_url: https://api.notion.com/v1/oauth/token
-    client_id: ${env:NOTION_CLIENT_ID}
-    client_secret: ${env:NOTION_CLIENT_SECRET}
+    authorize_url: https://mcp.notion.com/authorize
+    token_url: https://mcp.notion.com/token
+    registration_endpoint: https://mcp.notion.com/register
     scopes: []
-    redirect_uri: http://127.0.0.1:8765/callback
+    redirect_uri: https://127.0.0.1:8765/callback
 
   google:
     authorize_url: https://accounts.google.com/o/oauth2/v2/auth

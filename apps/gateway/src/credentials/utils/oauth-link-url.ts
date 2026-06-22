@@ -28,6 +28,9 @@ export function buildOAuthLinkUrl(
   options: BuildOAuthLinkUrlOptions = {},
 ): string {
   const authorizeUrl = resolveAuthorizeUrl(provider);
+  if (!provider.client_id) {
+    throw new Error("OAuth client_id is required to build an authorize URL");
+  }
   const state = Buffer.from(
     JSON.stringify({ ownerId, provider: providerName }),
   ).toString("base64url");

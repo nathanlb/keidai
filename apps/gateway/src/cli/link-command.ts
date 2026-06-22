@@ -8,6 +8,11 @@ import {
   TOKEN_REPOSITORY,
   type TokenRepository,
 } from "../credentials/types/token-repository.js";
+import {
+  OAUTH_CLIENT_REPOSITORY,
+  type OAuthClientRepository,
+} from "../credentials/types/oauth-client-repository.js";
+import { ensureRegisteredOAuthClient } from "../credentials/utils/resolve-oauth-provider-config.js";
 import { startLoopbackCallbackServer } from "./utils/loopback-callback-server.js";
 import { openBrowser } from "./utils/open-browser.js";
 
@@ -90,6 +95,9 @@ export async function runLinkCommand(
   const options = parseLinkArgs(argv);
   const configService = app.resolve(ToriiConfigService);
   const tokenRepository = app.resolve<TokenRepository>(TOKEN_REPOSITORY);
+  const clientRepository = app.resolve<OAuthClientRepository>(
+    OAUTH_CLIENT_REPOSITORY,
+  );
   const config = configService.get();
 
   const providerConfig = config.oauth_providers[options.provider];
@@ -101,15 +109,24 @@ export async function runLinkCommand(
 
   const ownerId = resolveOwnerId(config, options.ownerId);
   const redirectUri = providerConfig.redirect_uri ?? DEFAULT_REDIRECT_URI;
-  const { codeVerifier, codeChallenge } = createPkceChallenge();
+  const effectiveProviderConfig = await ensureRegisteredOAuthClient(
+    options.provider,
+    providerConfig,
+    redirectUri,
+    clientRepository,
+  );
+  const usePkce = effectiveProviderConfig.pkce !== false;
+  const { codeVerifier, codeChallenge } = usePkce
+    ? createPkceChallenge()
+    : { codeVerifier: undefined, codeChallenge: undefined };
   const expectedState = Buffer.from(
     JSON.stringify({ ownerId, provider: options.provider }),
   ).toString("base64url");
   const linkUrl = buildOAuthLinkUrl(
-    { ...providerConfig, redirect_uri: redirectUri },
+    { ...effectiveProviderConfig, redirect_uri: redirectUri },
     options.provider,
     ownerId,
-    { codeChallenge },
+    codeChallenge ? { codeChallenge } : {},
   );
 
   const callbackServer = await startLoopbackCallbackServer(redirectUri);
@@ -141,7 +158,7 @@ export async function runLinkCommand(
     }
 
     const token = await exchangeAuthorizationCode(
-      providerConfig,
+      effectiveProviderConfig,
       callback.code,
       redirectUri,
       codeVerifier,

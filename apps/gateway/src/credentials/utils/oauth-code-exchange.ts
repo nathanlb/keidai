@@ -1,5 +1,6 @@
 import type { OAuthProviderConfig } from "@keidai/shared";
 import type { OAuthToken } from "../types/token-repository.js";
+import { buildOAuthTokenRequest } from "./oauth-token-request.js";
 import {
   OAuthTokenExchangeError,
   parseOAuthTokenResponseBody,
@@ -15,28 +16,21 @@ export async function exchangeAuthorizationCode(
   codeVerifier?: string,
   fetchFn: OAuthFetch = fetch,
 ): Promise<OAuthToken> {
-  const body = new URLSearchParams({
+  const params: Record<string, string> = {
     grant_type: "authorization_code",
     code,
     redirect_uri: redirectUri,
-    client_id: providerConfig.client_id,
-    client_secret: providerConfig.client_secret,
-  });
+  };
 
   if (codeVerifier) {
-    body.set("code_verifier", codeVerifier);
+    params.code_verifier = codeVerifier;
   }
+
+  const { url, init } = buildOAuthTokenRequest(providerConfig, params);
 
   let response: Response;
   try {
-    response = await fetchFn(providerConfig.token_url, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body,
-    });
+    response = await fetchFn(url, init);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "OAuth code exchange failed";

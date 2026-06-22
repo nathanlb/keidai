@@ -2,6 +2,7 @@ import type { ToriiConfig } from "@keidai/shared";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
 import { CredentialResolverService } from "../credential-resolver.service.js";
 import { OAuthTokenLifecycleService } from "../oauth-token-lifecycle.service.js";
+import { InMemoryOAuthClientRepository } from "../in-memory-oauth-client-repository.service.js";
 import { InMemoryTokenRepository } from "../in-memory-token-repository.service.js";
 import type { TokenRepository } from "../types/token-repository.js";
 import { NoneCredentialResolver } from "../resolvers/none-credential-resolver.service.js";
@@ -56,6 +57,7 @@ export function createCredentialServices(
   const noneResolver = new NoneCredentialResolver();
   const tokenLifecycle = new OAuthTokenLifecycleService(
     tokenRepository,
+    new InMemoryOAuthClientRepository(),
     configService,
   );
   const userOAuthResolver = new UserOAuthCredentialResolver(

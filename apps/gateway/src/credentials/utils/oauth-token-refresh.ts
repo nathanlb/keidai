@@ -1,5 +1,6 @@
 import type { OAuthProviderConfig } from "@keidai/shared";
 import type { OAuthToken } from "../types/token-repository.js";
+import { buildOAuthTokenRequest } from "./oauth-token-request.js";
 import {
   OAuthTokenExchangeError,
   parseOAuthTokenResponseBody,
@@ -34,23 +35,14 @@ export async function refreshOAuthToken(
   refreshToken: string,
   fetchFn: OAuthFetch = fetch,
 ): Promise<OAuthToken> {
-  const body = new URLSearchParams({
+  const { url, init } = buildOAuthTokenRequest(providerConfig, {
     grant_type: "refresh_token",
     refresh_token: refreshToken,
-    client_id: providerConfig.client_id,
-    client_secret: providerConfig.client_secret,
   });
 
   let response: Response;
   try {
-    response = await fetchFn(providerConfig.token_url, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body,
-    });
+    response = await fetchFn(url, init);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "OAuth token refresh failed";

@@ -1,15 +1,42 @@
 import { z } from "zod";
 import type { ToriiConfig } from "@keidai/shared";
 
-const oauthProviderSchema = z.object({
-  token_url: z.string().min(1, "token_url is required"),
-  authorize_url: z.string().min(1).optional(),
-  client_id: z.string().min(1, "client_id is required"),
-  client_secret: z.string().min(1, "client_secret is required"),
-  scopes: z.array(z.string()),
-  redirect_uri: z.string().min(1).optional(),
-  authorize_params: z.record(z.string(), z.string()).optional(),
-});
+const oauthProviderSchema = z
+  .object({
+    token_url: z.string().min(1, "token_url is required"),
+    authorize_url: z.string().min(1).optional(),
+    client_id: z.string().min(1).optional(),
+    client_secret: z.string().min(1).optional(),
+    scopes: z.array(z.string()),
+    redirect_uri: z.string().min(1).optional(),
+    registration_endpoint: z.string().min(1).optional(),
+    authorize_params: z.record(z.string(), z.string()).optional(),
+    token_client_auth: z.enum(["body", "basic"]).optional(),
+    token_body_format: z.enum(["form", "json"]).optional(),
+    pkce: z.boolean().optional(),
+  })
+  .superRefine((provider, ctx) => {
+    if (provider.registration_endpoint) {
+      return;
+    }
+
+    if (!provider.client_id) {
+      ctx.addIssue({
+        code: "custom",
+        message: "client_id is required unless registration_endpoint is set",
+        path: ["client_id"],
+      });
+    }
+
+    if (!provider.client_secret) {
+      ctx.addIssue({
+        code: "custom",
+        message:
+          "client_secret is required unless registration_endpoint is set",
+        path: ["client_secret"],
+      });
+    }
+  });
 
 const credentialSchema = z.discriminatedUnion("strategy", [
   z

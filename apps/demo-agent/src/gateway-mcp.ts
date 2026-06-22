@@ -36,21 +36,3 @@ export async function callGatewayTool(
     await client.close();
   }
 }
-
-export async function assertNotionWritePolicyDenied(
-  gatewayUrl: string,
-  bearerToken: string,
-): Promise<string> {
-  try {
-    await callGatewayTool(gatewayUrl, bearerToken, "notion.notion-create-pages", {
-      title: "open-torii status digest",
-    });
-    throw new Error("Expected policy_denied for notion.notion-create-pages");
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (!/policy_denied/i.test(message)) {
-      throw error;
-    }
-    return message;
-  }
-}

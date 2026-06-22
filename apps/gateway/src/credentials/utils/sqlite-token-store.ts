@@ -9,6 +9,12 @@ CREATE TABLE IF NOT EXISTS oauth_tokens (
   expires_at TEXT,
   PRIMARY KEY (owner_id, provider)
 );
+
+CREATE TABLE IF NOT EXISTS oauth_provider_clients (
+  provider TEXT NOT NULL PRIMARY KEY,
+  client_id TEXT NOT NULL,
+  client_secret TEXT
+);
 `;
 
 export function openTokenDatabase(databasePath: string): DatabaseSync {

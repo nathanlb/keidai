@@ -10,12 +10,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^2.0.83",
     "@ai-sdk/mcp": "^0.0.11",
+    "@ai-sdk/openai": "^2.0.83",
     "@keidai/shared": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "ai": "^5.0.204",
-    "zod": "^3.25.76"
+    "ai": "^5.0.204"
   },
   "devDependencies": {
     "@types/node": "^22.20.0",

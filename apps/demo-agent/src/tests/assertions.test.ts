@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { DigestResult } from "../assertions.js";
 import {
-  assertDigestReportShape,
+  assertDigestEmailSent,
+  assertDigestAndEmailPhase,
   assertDigestToolCalls,
   assertPolicyDeniedVisible,
   collectToolCallNames,
@@ -28,18 +29,58 @@ function fakeResult(
 }
 
 describe("demo scenario assertions", () => {
-  it("accepts expected digest tool calls and report shape", () => {
+  it("accepts expected digest and email tool calls", () => {
     const toolNames = [
       "linear.list_issues",
       "github.search_issues",
       "notion.notion-search",
       "gmail.send_gmail_message",
     ];
-    const text = "## Linear\n- NAT-16 (Todo): demo harness\n\n## GitHub\n- 1 open PR\n\n## Notion\n- Architecture doc";
 
-    assertDigestToolCalls(toolNames);
-    assertDigestReportShape(text);
-    assert.deepEqual(collectToolCallNames(fakeResult(toolNames, text)), toolNames);
+    assertDigestAndEmailPhase(fakeResult(toolNames, ""));
+  });
+
+  it("accepts expected digest tool calls", () => {
+    const sourceToolNames = [
+      "linear.list_issues",
+      "github.search_issues",
+      "notion.notion-search",
+    ];
+
+    assertDigestToolCalls(sourceToolNames);
+    assert.deepEqual(
+      collectToolCallNames(fakeResult(sourceToolNames, "")),
+      sourceToolNames,
+    );
+  });
+
+  it("accepts model-reported underscore tool names and discovery meta tools", () => {
+    assertDigestToolCalls([
+      "linear_get",
+      "linear_get",
+      "github_get",
+      "get_tools",
+      "list_tools",
+      "notion_notion-search",
+    ]);
+  });
+
+  it("rejects notion write tools during digest", () => {
+    assert.throws(
+      () =>
+        assertDigestToolCalls([
+          "linear.list_issues",
+          "github.search_issues",
+          "notion.notion-search",
+          "notion.notion-create-pages",
+        ]),
+      /Unexpected tool call during digest scenario: notion\.notion-create-pages/,
+    );
+  });
+
+  it("accepts gmail tool names in dot and underscore forms", () => {
+    assertDigestEmailSent(["gmail.send_gmail_message"]);
+    assertDigestEmailSent(["gmail_send_message"]);
   });
 
   it("detects policy_denied in follow-up tool errors", () => {

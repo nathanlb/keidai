@@ -3,13 +3,22 @@ export interface OAuthProviderConfig {
   token_url: string;
   /** Explicit authorize endpoint; derived from token_url when omitted. */
   authorize_url?: string;
-  client_id: string;
-  client_secret: string;
+  /** Static client credentials. Omitted when using registration_endpoint. */
+  client_id?: string;
+  client_secret?: string;
   scopes: string[];
   /** OAuth redirect URI for the authorization-code link flow. */
   redirect_uri?: string;
+  /** RFC 7591 dynamic client registration endpoint (e.g. Notion MCP). */
+  registration_endpoint?: string;
   /** Extra static query params appended to the authorize URL. */
   authorize_params?: Record<string, string>;
+  /** Send client credentials in an Authorization: Basic header. Default: body. */
+  token_client_auth?: "body" | "basic";
+  /** Token endpoint body encoding. Default: form. */
+  token_body_format?: "form" | "json";
+  /** Include PKCE on the authorize URL. Default: true. */
+  pkce?: boolean;
 }
 
 export type CredentialConfig =

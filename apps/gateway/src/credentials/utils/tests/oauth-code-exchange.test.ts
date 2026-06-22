@@ -66,6 +66,43 @@ describe("exchangeAuthorizationCode", () => {
     assert.equal(params.get("client_secret"), "top-secret");
   });
 
+  it("posts a public-client authorization_code grant for Notion MCP", async () => {
+    let capturedInit: RequestInit | undefined;
+    const fetchFn: OAuthFetch = async (_input, init) => {
+      capturedInit = init;
+      return new Response(
+        JSON.stringify({
+          access_token: "ntn_new",
+          refresh_token: "nrt_new",
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    };
+
+    await exchangeAuthorizationCode(
+      {
+        token_url: "https://mcp.notion.com/token",
+        client_id: "mcp-client-id",
+        scopes: [],
+      },
+      "auth-code-123",
+      "https://127.0.0.1:8765/callback",
+      "verifier-123",
+      fetchFn,
+    );
+
+    const headers = new Headers(capturedInit?.headers);
+    assert.equal(headers.get("Content-Type"), "application/x-www-form-urlencoded");
+    assert.equal(headers.get("Authorization"), null);
+
+    const params = new URLSearchParams(String(capturedInit?.body));
+    assert.equal(params.get("grant_type"), "authorization_code");
+    assert.equal(params.get("code"), "auth-code-123");
+    assert.equal(params.get("client_id"), "mcp-client-id");
+    assert.equal(params.get("code_verifier"), "verifier-123");
+    assert.equal(params.get("client_secret"), null);
+  });
+
   it("returns a token from a JSON provider response", async () => {
     const token = await exchangeAuthorizationCode(
       githubProvider,
