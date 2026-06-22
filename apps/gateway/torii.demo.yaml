@@ -1,0 +1,95 @@
+# Demo gateway config — open-torii status digest scenario (NAT-16).
+#
+# Loaded via TORII_CONFIG_PATH=./torii.demo.yaml in apps/gateway/.env
+#
+# Link OAuth providers before running the demo:
+#   pnpm --filter @keidai/gateway exec torii link github
+#   pnpm --filter @keidai/gateway exec torii link notion
+#   pnpm --filter @keidai/gateway exec torii link google
+#
+# See docs/demo.md for the full walkthrough.
+
+oauth_providers:
+  github:
+    token_url: https://github.com/login/oauth/access_token
+    client_id: ${env:GITHUB_CLIENT_ID}
+    client_secret: ${env:GITHUB_CLIENT_SECRET}
+    scopes: [repo, read:user]
+    redirect_uri: http://127.0.0.1:8765/callback
+
+  notion:
+    authorize_url: https://api.notion.com/v1/oauth/authorize
+    token_url: https://api.notion.com/v1/oauth/token
+    client_id: ${env:NOTION_CLIENT_ID}
+    client_secret: ${env:NOTION_CLIENT_SECRET}
+    scopes: []
+    redirect_uri: http://127.0.0.1:8765/callback
+
+  google:
+    authorize_url: https://accounts.google.com/o/oauth2/v2/auth
+    token_url: https://oauth2.googleapis.com/token
+    client_id: ${env:GOOGLE_CLIENT_ID}
+    client_secret: ${env:GOOGLE_CLIENT_SECRET}
+    scopes:
+      - https://www.googleapis.com/auth/gmail.send
+    redirect_uri: http://127.0.0.1:8765/callback
+    authorize_params:
+      access_type: offline
+      prompt: consent
+
+servers:
+  - name: linear
+    transport:
+      type: http
+      url: https://mcp.linear.app/mcp
+    credential:
+      strategy: service_key
+      key: ${env:LINEAR_API_KEY}
+    policy:
+      default: deny
+      allow: [list_issues, get_issue, list_projects]
+
+  - name: github
+    transport:
+      type: http
+      url: https://api.githubcopilot.com/mcp/
+    credential:
+      strategy: user_oauth
+      provider: github
+    policy:
+      default: deny
+      allow: [search_issues, get_file_contents]
+
+  - name: notion
+    transport:
+      type: http
+      url: https://mcp.notion.com/mcp
+    credential:
+      strategy: user_oauth
+      provider: notion
+    policy:
+      default: deny
+      allow: [notion-search, notion-fetch]
+
+  - name: gmail
+    # Self-hosted Google Workspace MCP (workspace-mcp) with streamable HTTP transport.
+    # Start locally: uvx workspace-mcp --transport streamable-http --tools gmail
+    transport:
+      type: http
+      url: http://127.0.0.1:8000/mcp
+    credential:
+      strategy: user_oauth
+      provider: google
+    policy:
+      default: deny
+      allow: [send_gmail_message]
+
+agents:
+  - subject:
+      kind: k8s_service_account
+      namespace: torii-agents
+      service_account: demo-agent
+    agent_id: demo-agent-01
+    owner_id: demo-owner
+    groups: [agents]
+    inbound_token: ${env:DEMO_AGENT_BEARER}

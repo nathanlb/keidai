@@ -16,8 +16,11 @@ Keidai (境内) is a self-hostable platform for securely configuring, running, a
 ```
 apps/
   gateway/          # Torii — MCP gateway (see apps/gateway/README.md)
+  demo-agent/       # NAT-16 demo harness (see docs/demo.md)
 packages/
-  shared/           # @keidai/shared — Torii config, catalog, trace types
+  shared/           # @keidai/shared — Torii config, catalog, trace types, loadEnv
+docs/
+  demo.md           # how to run the open-torii demo end-to-end
 torii.example.yaml  # example server list + policy
 ```
 
@@ -28,6 +31,15 @@ pnpm install
 pnpm build
 cp torii.example.yaml torii.yaml   # edit backends as needed
 pnpm --filter @keidai/gateway dev
+```
+
+## Demo
+
+Full walkthrough (env setup, OAuth linking, three-terminal run): **[docs/demo.md](docs/demo.md)**
+
+```bash
+pnpm demo:gateway   # terminal 1 (+ Gmail MCP — see docs)
+pnpm demo           # terminal 2
 ```
 
 ## Docs

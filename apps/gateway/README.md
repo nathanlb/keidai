@@ -37,9 +37,12 @@ From the monorepo root:
 ```bash
 pnpm install
 pnpm build
-cp torii.example.yaml torii.yaml   # edit backends as needed
+cp apps/gateway/.env.example apps/gateway/.env   # edit as needed
+cp torii.example.yaml torii.yaml                 # or use torii.demo.yaml for the demo
 pnpm --filter @keidai/gateway dev
 ```
+
+Environment variables load from the repo root `.env` (shared) then `apps/gateway/.env` (overrides). See [`.env.example`](.env.example) and the repo root [`.env.example`](../../.env.example).
 
 Or run the built CLI:
 
@@ -55,12 +58,44 @@ pnpm --filter @keidai/gateway start
 | `TORII_CONFIG_PATH` | `./torii.yaml` | Gateway config file |
 | `TORII_PORT` | `3100` (falls back to `PORT`) | HTTP listen port |
 | `TORII_HOST` | `127.0.0.1` | HTTP bind address |
-| `TORII_TOKEN_STORE_PATH` | — | SQLite path for OAuth token store |
-| `TORII_K8S_SA_OIDC_ISSUER` | — | K8s SA OIDC issuer (identity) |
+| `TORII_TOKEN_STORE_PATH` | `./data/torii-tokens.db` | SQLite path for OAuth token store |
+| `TORII_K8S_SA_OIDC_ISSUER` | — | K8s SA OIDC issuer (optional; enables JWT identity when set with audience + JWKS) |
 | `TORII_K8S_SA_OIDC_AUDIENCE` | — | Expected JWT audience |
 | `TORII_K8S_SA_OIDC_JWKS_URI` | — | JWKS endpoint for token verification |
 
-See `torii.example.yaml` at the repo root for server list, policy, OAuth providers, and agent registration shapes.
+See `torii.example.yaml` at the repo root for server list, policy, OAuth providers, and agent registration shapes. Demo config: [`torii.demo.yaml`](torii.demo.yaml) in this package.
+
+## Agent identity
+
+Inbound requests are authenticated via a single resolver wired at boot:
+
+- **`agents[].inbound_token`** — static bearer declared in config (env refs resolved at load). Demo agents use this.
+- **K8s SA OIDC** — when `TORII_K8S_SA_OIDC_*` env vars are all set, projected service account JWTs are also accepted and mapped via `agents[].subject`.
+
+Backend OAuth for `user_oauth` servers is separate: tokens are persisted in SQLite via `torii link`, keyed by `(owner_id, provider)` from the resolved agent principal.
+
+## OAuth linking (CLI)
+
+Link an owner's OAuth token before `user_oauth` backends can resolve credentials:
+
+```bash
+# Requires oauth_providers + agents[] in torii.yaml
+torii link github
+torii link notion --owner demo-owner
+```
+
+The command opens a browser, completes the authorization-code flow on `http://127.0.0.1:8765/callback`, and persists tokens to SQLite keyed by `(owner_id, provider)`. The `owner_id` must match the registered agent's owner — tokens linked for a different owner will not resolve at call time.
+
+Register `http://127.0.0.1:8765/callback` as an OAuth redirect URI in each provider's developer console.
+
+## Demo harness
+
+See **[docs/demo.md](../../docs/demo.md)** for the full open-torii demo walkthrough.
+
+```bash
+pnpm demo:gateway   # from repo root
+pnpm demo
+```
 
 ## License
 

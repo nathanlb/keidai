@@ -1,5 +1,9 @@
 import type { OAuthProviderConfig } from "@keidai/shared";
 
+export interface BuildOAuthLinkUrlOptions {
+  codeChallenge?: string;
+}
+
 export function deriveAuthorizeUrl(tokenUrl: string): string {
   const url = new URL(tokenUrl);
   if (!url.pathname.endsWith("/access_token")) {
@@ -10,12 +14,20 @@ export function deriveAuthorizeUrl(tokenUrl: string): string {
   return url.toString();
 }
 
+function resolveAuthorizeUrl(provider: OAuthProviderConfig): string {
+  if (provider.authorize_url) {
+    return provider.authorize_url;
+  }
+  return deriveAuthorizeUrl(provider.token_url);
+}
+
 export function buildOAuthLinkUrl(
   provider: OAuthProviderConfig,
   providerName: string,
   ownerId: string,
+  options: BuildOAuthLinkUrlOptions = {},
 ): string {
-  const authorizeUrl = deriveAuthorizeUrl(provider.token_url);
+  const authorizeUrl = resolveAuthorizeUrl(provider);
   const state = Buffer.from(
     JSON.stringify({ ownerId, provider: providerName }),
   ).toString("base64url");
@@ -28,6 +40,15 @@ export function buildOAuthLinkUrl(
 
   if (provider.redirect_uri) {
     params.set("redirect_uri", provider.redirect_uri);
+  }
+
+  for (const [key, value] of Object.entries(provider.authorize_params ?? {})) {
+    params.set(key, value);
+  }
+
+  if (options.codeChallenge) {
+    params.set("code_challenge", options.codeChallenge);
+    params.set("code_challenge_method", "S256");
   }
 
   return `${authorizeUrl}?${params.toString()}`;

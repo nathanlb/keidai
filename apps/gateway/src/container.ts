@@ -16,14 +16,16 @@ import { ServiceKeyCredentialResolver } from "./credentials/resolvers/service-ke
 import { ToriiConfigService } from "./config/torii-config.service.js";
 import { ToolDispatchService } from "./dispatch/tool-dispatch.service.js";
 import { buildAgentRegistry } from "./identity/utils/build-agent-registry.js";
+import { buildBearerAgentRegistry } from "./identity/utils/build-bearer-agent-registry.js";
 import { InboundIdentityService } from "./identity/inbound-identity.service.js";
+import { CompositeAgentIdentityResolver } from "./identity/resolvers/composite-agent-identity-resolver.service.js";
 import { K8sSaOidcIdentityResolver } from "./identity/resolvers/k8s-sa-oidc-identity-resolver.service.js";
 import {
+  AGENT_BEARER_REGISTRY,
   AGENT_IDENTITY_RESOLVER,
   AGENT_REGISTRY,
-  K8S_SA_OIDC_CONFIG,
 } from "./identity/types/tokens.js";
-import { resolveK8sSaOidcConfig } from "./identity/utils/resolve-k8s-sa-oidc-config.js";
+import { tryResolveK8sSaOidcConfig } from "./identity/utils/resolve-k8s-sa-oidc-config.js";
 import { GatewayMcpServer } from "./mcp/gateway-mcp-server.service.js";
 import { PolicyEnforcementService } from "./policy/policy-enforcement.service.js";
 import { TraceEmitterService } from "./trace/trace-emitter.service.js";
@@ -37,11 +39,26 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
     useFactory: (c) =>
       buildAgentRegistry(c.resolve(ToriiConfigService).get().agents ?? []),
   });
-  appContainer.register(K8S_SA_OIDC_CONFIG, {
-    useValue: resolveK8sSaOidcConfig(),
+  appContainer.register(AGENT_BEARER_REGISTRY, {
+    useFactory: (c) =>
+      buildBearerAgentRegistry(
+        c.resolve(ToriiConfigService).get().agents ?? [],
+      ),
   });
   appContainer.register(AGENT_IDENTITY_RESOLVER, {
-    useClass: K8sSaOidcIdentityResolver,
+    useFactory: (c) => {
+      const k8sConfig = tryResolveK8sSaOidcConfig();
+      const k8sResolver = k8sConfig
+        ? new K8sSaOidcIdentityResolver(
+            c.resolve(AGENT_REGISTRY),
+            k8sConfig,
+          )
+        : null;
+      return new CompositeAgentIdentityResolver(
+        c.resolve(AGENT_BEARER_REGISTRY),
+        k8sResolver,
+      );
+    },
   });
   appContainer.register(InboundIdentityService, {
     useClass: InboundIdentityService,

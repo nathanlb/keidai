@@ -1,11 +1,15 @@
 /** OAuth provider registered at the gateway level. */
 export interface OAuthProviderConfig {
   token_url: string;
+  /** Explicit authorize endpoint; derived from token_url when omitted. */
+  authorize_url?: string;
   client_id: string;
   client_secret: string;
   scopes: string[];
   /** OAuth redirect URI for the authorization-code link flow. */
   redirect_uri?: string;
+  /** Extra static query params appended to the authorize URL. */
+  authorize_params?: Record<string, string>;
 }
 
 export type CredentialConfig =
@@ -46,6 +50,12 @@ export interface AgentRegistrationConfig {
   agent_id: string;
   owner_id: string;
   groups: string[];
+  /**
+   * Static bearer token this agent presents on inbound requests.
+   * Env refs (e.g. ${env:DEMO_AGENT_BEARER}) are resolved at config load.
+   * FOR DEMO USE.
+   */
+  inbound_token?: string;
 }
 
 /** Root torii.yaml shape — env refs are resolved before this type is populated. */

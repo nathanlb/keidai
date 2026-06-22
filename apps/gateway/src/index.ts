@@ -1,14 +1,18 @@
 #!/usr/bin/env node
-import "dotenv/config";
+import { loadEnvForPackage } from "@keidai/shared";
+
+loadEnvForPackage(import.meta.url);
+
 import "reflect-metadata";
+import { loadConfig, reportConfigError } from "./config/utils/loader.js";
+import { createContainer } from "./container.js";
 import { ConnectionManager } from "./backends/connection-manager.service.js";
 import { ToolCatalogService } from "./catalog/tool-catalog.service.js";
 import { ToriiConfigService } from "./config/torii-config.service.js";
-import { loadConfig, reportConfigError } from "./config/utils/loader.js";
-import { createContainer } from "./container.js";
 import { runWithAgentPrincipal } from "./identity/agent-principal-context.js";
 import { STUB_AGENT_PRINCIPAL } from "./identity/stub-agent-principal.js";
 import { GatewayMcpServer } from "./mcp/gateway-mcp-server.service.js";
+import { isLinkCommand, runLinkCommand } from "./cli/link-command.js";
 
 function resolvePort(): number {
   const raw = process.env.TORII_PORT ?? process.env.PORT ?? "3100";
@@ -19,7 +23,7 @@ function resolvePort(): number {
   return port;
 }
 
-async function main(): Promise<void> {
+export async function startServer(): Promise<void> {
   const config = await loadConfig();
   const app = createContainer(config);
   const configService = app.resolve(ToriiConfigService);
@@ -53,6 +57,19 @@ async function main(): Promise<void> {
     port: resolvePort(),
   });
   console.log(`Gateway MCP endpoint: ${gateway.url}`);
+}
+
+async function main(): Promise<void> {
+  const commandArgs = process.argv.slice(2);
+
+  if (isLinkCommand(commandArgs)) {
+    const config = await loadConfig();
+    const app = createContainer(config);
+    await runLinkCommand(app, commandArgs.slice(1));
+    return;
+  }
+
+  await startServer();
 }
 
 main().catch(reportConfigError);
