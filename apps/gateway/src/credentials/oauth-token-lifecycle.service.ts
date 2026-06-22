@@ -11,6 +11,11 @@ import {
   type OAuthToken,
   type TokenRepository,
 } from "./types/token-repository.js";
+import {
+  OAUTH_CLIENT_REPOSITORY,
+  type OAuthClientRepository,
+} from "./types/oauth-client-repository.js";
+import { resolveOAuthProviderConfig } from "./utils/resolve-oauth-provider-config.js";
 
 function isExpired(token: OAuthToken): boolean {
   return token.expiresAt !== undefined && token.expiresAt.getTime() <= Date.now();
@@ -27,6 +32,8 @@ export class OAuthTokenLifecycleService {
   constructor(
     @inject(TOKEN_REPOSITORY)
     private readonly tokenRepository: TokenRepository,
+    @inject(OAUTH_CLIENT_REPOSITORY)
+    private readonly clientRepository: OAuthClientRepository,
     @inject(ToriiConfigService)
     private readonly configService: ToriiConfigService,
     private readonly fetchFn: OAuthFetch = fetch,
@@ -78,7 +85,11 @@ export class OAuthTokenLifecycleService {
     provider: string,
     staleToken: OAuthToken,
   ): Promise<OAuthToken> {
-    const providerConfig = this.getProviderConfig(provider);
+    const providerConfig = await resolveOAuthProviderConfig(
+      provider,
+      this.getProviderConfig(provider),
+      this.clientRepository,
+    );
     const refreshToken = staleToken.refreshToken;
     if (!refreshToken) {
       throw new OAuthTokenRefreshError(

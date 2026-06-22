@@ -1,17 +1,34 @@
 import type { K8sSaOidcConfig } from "../types/k8s-sa-oidc-config.js";
 
-function requiredEnv(name: string): string {
+function readEnv(name: string): string | undefined {
   const value = process.env[name]?.trim();
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
+  return value || undefined;
+}
+
+export function tryResolveK8sSaOidcConfig(): K8sSaOidcConfig | null {
+  const issuer = readEnv("TORII_K8S_SA_OIDC_ISSUER");
+  const audience = readEnv("TORII_K8S_SA_OIDC_AUDIENCE");
+  const jwksUri = readEnv("TORII_K8S_SA_OIDC_JWKS_URI");
+
+  if (!issuer && !audience && !jwksUri) {
+    return null;
   }
-  return value;
+
+  if (!issuer || !audience || !jwksUri) {
+    throw new Error(
+      "K8s SA OIDC is partially configured; set TORII_K8S_SA_OIDC_ISSUER, TORII_K8S_SA_OIDC_AUDIENCE, and TORII_K8S_SA_OIDC_JWKS_URI together",
+    );
+  }
+
+  return { issuer, audience, jwksUri };
 }
 
 export function resolveK8sSaOidcConfig(): K8sSaOidcConfig {
-  return {
-    issuer: requiredEnv("TORII_K8S_SA_OIDC_ISSUER"),
-    audience: requiredEnv("TORII_K8S_SA_OIDC_AUDIENCE"),
-    jwksUri: requiredEnv("TORII_K8S_SA_OIDC_JWKS_URI"),
-  };
+  const config = tryResolveK8sSaOidcConfig();
+  if (!config) {
+    throw new Error(
+      "Missing K8s SA OIDC configuration (TORII_K8S_SA_OIDC_ISSUER, TORII_K8S_SA_OIDC_AUDIENCE, TORII_K8S_SA_OIDC_JWKS_URI)",
+    );
+  }
+  return config;
 }

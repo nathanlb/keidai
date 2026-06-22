@@ -45,4 +45,34 @@ describe("buildOAuthLinkUrl", () => {
     assert.doesNotMatch(linkUrl, /top-secret/);
     assert.doesNotMatch(linkUrl, /gho_/);
   });
+
+  it("uses authorize_url and authorize_params when configured", () => {
+    const linkUrl = buildOAuthLinkUrl(
+      {
+        authorize_url: "https://accounts.google.com/o/oauth2/v2/auth",
+        token_url: "https://oauth2.googleapis.com/token",
+        client_id: "google-client",
+        client_secret: "secret",
+        scopes: ["https://www.googleapis.com/auth/gmail.send"],
+        redirect_uri: "http://127.0.0.1:8765/callback",
+        authorize_params: {
+          access_type: "offline",
+          prompt: "consent",
+        },
+      },
+      "google",
+      "owner-1",
+      { codeChallenge: "challenge-123" },
+    );
+    const url = new URL(linkUrl);
+
+    assert.equal(
+      url.origin + url.pathname,
+      "https://accounts.google.com/o/oauth2/v2/auth",
+    );
+    assert.equal(url.searchParams.get("access_type"), "offline");
+    assert.equal(url.searchParams.get("prompt"), "consent");
+    assert.equal(url.searchParams.get("code_challenge"), "challenge-123");
+    assert.equal(url.searchParams.get("code_challenge_method"), "S256");
+  });
 });

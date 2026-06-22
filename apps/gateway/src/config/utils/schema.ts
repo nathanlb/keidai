@@ -1,13 +1,42 @@
 import { z } from "zod";
 import type { ToriiConfig } from "@keidai/shared";
 
-const oauthProviderSchema = z.object({
-  token_url: z.string().min(1, "token_url is required"),
-  client_id: z.string().min(1, "client_id is required"),
-  client_secret: z.string().min(1, "client_secret is required"),
-  scopes: z.array(z.string()),
-  redirect_uri: z.string().min(1).optional(),
-});
+const oauthProviderSchema = z
+  .object({
+    token_url: z.string().min(1, "token_url is required"),
+    authorize_url: z.string().min(1).optional(),
+    client_id: z.string().min(1).optional(),
+    client_secret: z.string().min(1).optional(),
+    scopes: z.array(z.string()),
+    redirect_uri: z.string().min(1).optional(),
+    registration_endpoint: z.string().min(1).optional(),
+    authorize_params: z.record(z.string(), z.string()).optional(),
+    token_client_auth: z.enum(["body", "basic"]).optional(),
+    token_body_format: z.enum(["form", "json"]).optional(),
+    pkce: z.boolean().optional(),
+  })
+  .superRefine((provider, ctx) => {
+    if (provider.registration_endpoint) {
+      return;
+    }
+
+    if (!provider.client_id) {
+      ctx.addIssue({
+        code: "custom",
+        message: "client_id is required unless registration_endpoint is set",
+        path: ["client_id"],
+      });
+    }
+
+    if (!provider.client_secret) {
+      ctx.addIssue({
+        code: "custom",
+        message:
+          "client_secret is required unless registration_endpoint is set",
+        path: ["client_secret"],
+      });
+    }
+  });
 
 const credentialSchema = z.discriminatedUnion("strategy", [
   z
@@ -52,6 +81,7 @@ const agentRegistrationSchema = z
     agent_id: z.string().min(1, "agent_id is required"),
     owner_id: z.string().min(1, "owner_id is required"),
     groups: z.array(z.string()),
+    inbound_token: z.string().min(1).optional(),
   })
   .strict();
 
@@ -74,6 +104,7 @@ export const toriiConfigSchema = z
   .superRefine((config, ctx) => {
     const seenNames = new Map<string, number>();
     const seenAgentSubjects = new Map<string, number>();
+    const seenInboundTokens = new Map<string, number>();
 
     config.agents.forEach((agent, index) => {
       const subjectKey = `${agent.subject.namespace}/${agent.subject.service_account}`;
@@ -86,6 +117,19 @@ export const toriiConfigSchema = z
         });
       } else {
         seenAgentSubjects.set(subjectKey, index);
+      }
+
+      if (agent.inbound_token) {
+        const firstTokenIndex = seenInboundTokens.get(agent.inbound_token);
+        if (firstTokenIndex !== undefined) {
+          ctx.addIssue({
+            code: "custom",
+            message: `duplicate agent inbound_token (also defined at agents[${firstTokenIndex}])`,
+            path: ["agents", index, "inbound_token"],
+          });
+        } else {
+          seenInboundTokens.set(agent.inbound_token, index);
+        }
       }
     });
 

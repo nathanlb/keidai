@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import type { ToriiConfig } from "@keidai/shared";
 import { ToriiConfigService } from "../../../config/torii-config.service.js";
 import { OAuthTokenLifecycleService } from "../../oauth-token-lifecycle.service.js";
+import { InMemoryOAuthClientRepository } from "../../in-memory-oauth-client-repository.service.js";
 import { InMemoryTokenRepository } from "../../in-memory-token-repository.service.js";
 import { UserOAuthCredentialResolver } from "../user_oauth_credential-resolver.service.js";
 import {
@@ -49,6 +50,7 @@ function createResolver(
   });
   const tokenLifecycle = new OAuthTokenLifecycleService(
     repository,
+    new InMemoryOAuthClientRepository(),
     configService,
     fetchFn,
   );

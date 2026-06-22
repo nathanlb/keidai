@@ -10,6 +10,27 @@ oauth_providers:
     client_id: ${env:GITHUB_CLIENT_ID}
     client_secret: ${env:GITHUB_CLIENT_SECRET}
     scopes: [repo]
+    redirect_uri: http://127.0.0.1:8765/callback
+
+  notion:
+    authorize_url: https://api.notion.com/v1/oauth/authorize
+    token_url: https://api.notion.com/v1/oauth/token
+    client_id: ${env:NOTION_CLIENT_ID}
+    client_secret: ${env:NOTION_CLIENT_SECRET}
+    scopes: []
+    redirect_uri: http://127.0.0.1:8765/callback
+
+  google:
+    authorize_url: https://accounts.google.com/o/oauth2/v2/auth
+    token_url: https://oauth2.googleapis.com/token
+    client_id: ${env:GOOGLE_CLIENT_ID}
+    client_secret: ${env:GOOGLE_CLIENT_SECRET}
+    scopes:
+      - https://www.googleapis.com/auth/gmail.send
+    redirect_uri: http://127.0.0.1:8765/callback
+    authorize_params:
+      access_type: offline
+      prompt: consent
 
 servers:
   - name: github
@@ -50,6 +71,7 @@ servers:
 
 # Agent registrations bind validated credential subjects to internal principals.
 # owner_id is fixed at registration — never taken from inbound requests.
+# Optional inbound_token enables Authorization: Bearer auth for local/demo agents.
 agents:
   - subject:
       kind: k8s_service_account
