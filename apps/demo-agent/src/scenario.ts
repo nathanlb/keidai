@@ -13,7 +13,7 @@ import {
   type AgentGenerateSnapshot,
 } from "./adapt-agent-result.js";
 import {
-  assertDigestAndEmailPhase,
+  assertDigestAndDraftPhase,
   assertDirectNotionWriteDenied,
   assertNotionFollowUpPhase,
   collectToolCallNames,
@@ -21,7 +21,7 @@ import {
 import type { DemoConfig } from "./config.js";
 import { createOpenRouterModel } from "./model.js";
 import {
-  digestAndEmailPrompt,
+  digestAndDraftPrompt,
   DIGEST_SYSTEM,
   NOTION_FOLLOW_UP_PROMPT,
 } from "./prompts.js";
@@ -74,13 +74,13 @@ async function runAgentGenerate(
   return snapshot;
 }
 
-async function runDigestAndEmailPhase(
+async function runDigestAndDraftPhase(
   agent: ToolLoopAgent<ToolSet>,
   phaseLabel: { current: string },
   config: DemoConfig,
 ): Promise<string> {
   const snapshot = await runAgentGenerate(agent, phaseLabel, "digest", {
-    prompt: digestAndEmailPrompt(config.ownerEmail),
+    prompt: digestAndDraftPrompt(config.ownerEmail),
   });
   const parsed = toDigestResult(snapshot);
   const displayedText = extractDisplayedText(snapshot);
@@ -90,7 +90,7 @@ async function runDigestAndEmailPhase(
   console.log("\n--- End digest report ---\n");
 
   try {
-    assertDigestAndEmailPhase(parsed);
+    assertDigestAndDraftPhase(parsed);
   } catch (error) {
     console.error(
       `[digest] assertion failed after run with finishReason=${snapshot.finishReason}, toolCalls=${collectToolCallNames(parsed).join(", ") || "(none)"}`,
@@ -108,7 +108,7 @@ async function runNotionPolicyPhase(
   digestText: string,
 ): Promise<void> {
   const messages: ModelMessage[] = [
-    { role: "user", content: digestAndEmailPrompt(config.ownerEmail) },
+    { role: "user", content: digestAndDraftPrompt(config.ownerEmail) },
     { role: "assistant", content: digestText },
     { role: "user", content: NOTION_FOLLOW_UP_PROMPT },
   ];
@@ -152,7 +152,7 @@ export async function runDemoScenario(config: DemoConfig): Promise<void> {
       );
     }
 
-    const digestText = await runDigestAndEmailPhase(agent, phaseLabel, config);
+    const digestText = await runDigestAndDraftPhase(agent, phaseLabel, config);
     await runNotionPolicyPhase(agent, phaseLabel, config, digestText);
 
     console.log("\nDemo scenario completed successfully.");

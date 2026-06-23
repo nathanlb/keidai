@@ -53,7 +53,10 @@ describe("buildOAuthLinkUrl", () => {
         token_url: "https://oauth2.googleapis.com/token",
         client_id: "google-client",
         client_secret: "secret",
-        scopes: ["https://www.googleapis.com/auth/gmail.send"],
+        scopes: [
+          "https://www.googleapis.com/auth/gmail.readonly",
+          "https://www.googleapis.com/auth/gmail.compose",
+        ],
         redirect_uri: "http://127.0.0.1:8765/callback",
         authorize_params: {
           access_type: "offline",

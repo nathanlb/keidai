@@ -26,7 +26,8 @@ oauth_providers:
     client_id: ${env:GOOGLE_CLIENT_ID}
     client_secret: ${env:GOOGLE_CLIENT_SECRET}
     scopes:
-      - https://www.googleapis.com/auth/gmail.send
+      - https://www.googleapis.com/auth/gmail.readonly
+      - https://www.googleapis.com/auth/gmail.compose
     redirect_uri: http://127.0.0.1:8765/callback
     authorize_params:
       access_type: offline

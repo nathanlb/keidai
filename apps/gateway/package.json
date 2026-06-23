@@ -12,6 +12,7 @@
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "torii": "tsx src/index.ts",
+    "dev:inspect": "tsx scripts/run-mcp-inspector.ts",
     "test": "tsx --test 'src/**/tests/**/*.test.ts'",
     "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json"
   },
@@ -33,6 +34,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@modelcontextprotocol/inspector": "^0.22.0",
     "@types/node": "^22.20.0",
     "@types/selfsigned": "^2.1.0",
     "tsx": "^4.22.4",
