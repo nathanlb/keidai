@@ -10,10 +10,8 @@ import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
 import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import { createCredentialServices } from "../../credentials/tests/test-helpers.js";
-import {
-  connectAgentToGateway,
-  createTestGatewayMcpServer,
-} from "../../identity/tests/test-helpers.js";
+import { createTestGatewayHttpServer } from "../../http/tests/test-helpers.js";
+import { connectAgentToGateway } from "../../identity/tests/test-helpers.js";
 import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
 
 function serverConfig(
@@ -69,11 +67,11 @@ describe("Gateway MCP tools/list", () => {
       new CapturingTraceEmitter(),
       createPolicyEnforcement(configService),
     );
-    const gatewayMcpServer = createTestGatewayMcpServer(toolCatalog, toolDispatch);
+    const gatewayHttpServer = createTestGatewayHttpServer(toolCatalog, toolDispatch);
 
     try {
       await connectionManager.connectAll();
-      const gateway = await gatewayMcpServer.start();
+      const gateway = await gatewayHttpServer.start();
       const agent = await connectAgentToGateway(gateway.url);
 
       try {

@@ -7,7 +7,7 @@ import {
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 import { PolicyDecision } from "@keidai/shared";
-import Fastify, { type FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 import { inject, injectable } from "tsyringe";
 import { ToolCatalogService } from "../catalog/tool-catalog.service.js";
 import { CredentialResolutionError, LinkingRequiredError } from "../credentials/types/credential-resolution.js";
@@ -28,16 +28,10 @@ import {
   finalizeCallTrace,
 } from "../trace/utils/build-call-trace.js";
 import { parseNamespacedToolName } from "../trace/utils/parse-namespaced-tool-name.js";
-import type {
-  GatewayMcpServerHandle,
-  GatewayMcpServerOptions,
-} from "./types/gateway-mcp-server.js";
 import { parseInboundMcpRequest } from "./utils/parse-inbound-mcp-request.js";
 
 @injectable()
 export class GatewayMcpServer {
-  private app: FastifyInstance | null = null;
-
   constructor(
     @inject(ToolCatalogService)
     private readonly toolCatalog: ToolCatalogService,
@@ -49,37 +43,7 @@ export class GatewayMcpServer {
     private readonly traceEmitter: TraceEmitterService,
   ) {}
 
-  createApp(): FastifyInstance {
-    const app = Fastify({ logger: false });
-    this.registerRoutes(app);
-    return app;
-  }
-
-  async start(
-    options: GatewayMcpServerOptions = {},
-  ): Promise<GatewayMcpServerHandle> {
-    const host = options.host ?? "127.0.0.1";
-    const app = this.createApp();
-    this.app = app;
-
-    const port = options.port ?? 0;
-    await app.listen({ host, port });
-
-    const address = app.server.address();
-    if (!address || typeof address === "string") {
-      throw new Error("Failed to resolve gateway MCP server address");
-    }
-
-    return {
-      url: `http://${host}:${address.port}/mcp`,
-      close: async () => {
-        await app.close();
-        this.app = null;
-      },
-    };
-  }
-
-  private registerRoutes(app: FastifyInstance): void {
+  registerRoutes(app: FastifyInstance): void {
     app.post("/mcp", async (request, reply) => {
       const mcpRequest = parseInboundMcpRequest(request.body);
 

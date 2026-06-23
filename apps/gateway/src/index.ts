@@ -11,7 +11,7 @@ import { ToolCatalogService } from "./catalog/tool-catalog.service.js";
 import { ToriiConfigService } from "./config/torii-config.service.js";
 import { runWithAgentPrincipal } from "./identity/agent-principal-context.js";
 import { resolveBootAgentPrincipal } from "./identity/stub-agent-principal.js";
-import { GatewayMcpServer } from "./mcp/gateway-mcp-server.service.js";
+import { GatewayHttpServer } from "./http/gateway-http-server.service.js";
 import { isLinkCommand, runLinkCommand } from "./cli/link-command.js";
 
 function resolvePort(): number {
@@ -29,7 +29,7 @@ export async function startServer(): Promise<void> {
   const configService = app.resolve(ToriiConfigService);
   const connectionManager = app.resolve(ConnectionManager);
   const toolCatalog = app.resolve(ToolCatalogService);
-  const gatewayMcpServer = app.resolve(GatewayMcpServer);
+  const gatewayHttpServer = app.resolve(GatewayHttpServer);
 
   console.log(
     `Loaded Torii config with ${configService.get().servers.length} server(s)`,
@@ -54,7 +54,7 @@ export async function startServer(): Promise<void> {
     console.log(`Tool catalog: ${catalog.length} tool(s) from connected backends`);
   });
 
-  const gateway = await gatewayMcpServer.start({
+  const gateway = await gatewayHttpServer.start({
     host: process.env.TORII_HOST ?? "127.0.0.1",
     port: resolvePort(),
   });
