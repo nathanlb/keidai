@@ -88,6 +88,20 @@ The command opens a browser, completes the authorization-code flow on `http://12
 
 Register redirect URIs in each provider's developer console. GitHub and Google use `http://127.0.0.1:8765/callback`. Notion requires HTTPS — use `https://127.0.0.1:8765/callback` (Torii serves a local self-signed certificate for the callback; your browser may warn once).
 
+## MCP Inspector (dev)
+
+Browse Torii's tools, resources, and prompts in the browser during development.
+
+**Prerequisite:** Torii must be running (e.g. `pnpm --filter @keidai/gateway dev` or `pnpm demo:gateway` from the repo root).
+
+```bash
+pnpm --filter @keidai/gateway dev:inspect
+```
+
+This launches [@modelcontextprotocol/inspector](https://github.com/modelcontextprotocol/inspector) via a local auth shim that injects `Authorization: Bearer <DEMO_AGENT_BEARER>` on every request to Torii. Use the same bearer value as `agents[].inbound_token` in your `torii.yaml` (demo: `DEMO_AGENT_BEARER` in the repo root `.env`). Without it, Torii returns `401` and the Inspector incorrectly attempts MCP OAuth — you will see **OAuth Authentication Failed**.
+
+The Inspector UI opens automatically at `http://localhost:6274` (or prints the URL with a session token). Torii's MCP endpoint defaults to `http://127.0.0.1:3100/mcp`; override with `TORII_HOST` / `TORII_PORT` if needed.
+
 ## Demo harness
 
 See **[docs/demo.md](../../docs/demo.md)** for the full open-torii demo walkthrough.

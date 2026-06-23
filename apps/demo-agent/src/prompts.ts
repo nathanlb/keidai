@@ -5,11 +5,11 @@ Report requirements:
 - Subject line: keidai status digest — {today's date in YYYY-MM-DD}
 - Sections with exact headers: ## Linear, ## GitHub, ## Notion
 - Include recognizable issue ids (e.g. NAT-16) when present in tool results
-- Send the finished report via gmail.send_gmail_message to the owner email given in the user prompt
+- Create a Gmail draft via gmail.create_draft with to set to the owner email from the user prompt, subject keidai status digest — {today's date in YYYY-MM-DD}, and body set to the finished markdown report
 - Do not attempt Notion write/create/update tools`;
 
-export function digestAndEmailPrompt(ownerEmail: string): string {
-  return `Pull together a status report on keidai from Linear, GitHub, and Notion, then email it to me at ${ownerEmail}.
+export function digestAndDraftPrompt(ownerEmail: string): string {
+  return `Pull together a status report on keidai from Linear, GitHub, and Notion, then create a Gmail draft to me at ${ownerEmail}.
 The repo is located at https://github.com/nathanlb/keidai.`;
 }
 

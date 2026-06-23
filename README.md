@@ -1,8 +1,11 @@
-# 🏞️ Keidai — Agent Platform
+# 🏞️ Keidai — Agent Ecosystem
 
-Keidai (境内) is a self-hostable platform for securely configuring, running, and observing autonomous agents: who they are, what they may touch, and what they did.
+Keidai (境内) is a self-hostable ecosystem for securely configuring, running, and observing autonomous agents: who they are, what they may touch, and what they did.
 
-**Torii** is the gate — the MCP gateway and control plane. It is the only component actively built in v0. Other Keidai components (Fuda/AIdP for agent identity, Shaiden/Runtime for execution) are sketched in [Notion](https://app.notion.com/p/Keidai-Agent-Platform-38307ec181ff815b8276d59d005fd612) so Torii is designed against a real system rather than in isolation.
+- **Torii** - the MCP gateway and control plane. (In Progress)
+- **Fuda**- the agent registry and identity provider (Planned)
+- **Shaiden** - the agent runtime and orchestration (Planned)
+- **Keidai-UI** - the GUI to tie them all together ~and the the darkness bind them~ (Planned)
 
 ## Stack
 

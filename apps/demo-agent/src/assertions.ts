@@ -78,26 +78,26 @@ export function assertDigestToolCalls(toolNames: string[]): void {
   }
 }
 
-export function assertDigestEmailSent(toolNames: string[]): void {
+export function assertDigestGmailDraftCreated(toolNames: string[]): void {
   if (!toolNames.some((name) => GMAIL_TOOL_PATTERN.test(name))) {
     throw new Error(
-      `Expected a gmail tool call to send the report, got: ${toolNames.join(", ") || "(none)"}`,
+      `Expected a gmail tool call to create a draft, got: ${toolNames.join(", ") || "(none)"}`,
     );
   }
 }
 
-export function assertDigestAndEmailPhase(result: DigestResult): void {
+export function assertDigestAndDraftPhase(result: DigestResult): void {
   const toolNames = collectToolCallNames(result);
   assertDigestToolCalls(toolNames);
-  assertDigestEmailSent(toolNames);
+  assertDigestGmailDraftCreated(toolNames);
 }
 
 export function assertDigestPhase(result: DigestResult): void {
   assertDigestToolCalls(collectToolCallNames(result));
 }
 
-export function assertEmailPhase(result: DigestResult): void {
-  assertDigestEmailSent(collectToolCallNames(result));
+export function assertDraftPhase(result: DigestResult): void {
+  assertDigestGmailDraftCreated(collectToolCallNames(result));
 }
 
 export function assertPolicyDeniedVisible(

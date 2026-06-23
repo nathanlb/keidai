@@ -1,13 +1,16 @@
 # Running the open-torii demo
 
-End-to-end walkthrough for the NAT-16 **open-torii status digest** scenario: a demo agent connects to Torii, reads from Linear/GitHub/Notion, emails a report via Gmail, then hits a policy wall on Notion writes.
+End-to-end walkthrough for the NAT-16 **open-torii status digest** scenario: a demo agent connects to Torii, reads from Linear/GitHub/Notion, creates a Gmail draft with the report, then hits a policy wall on Notion writes.
 
 ## Prerequisites
 
 - Node.js 24, pnpm
-- [uv](https://docs.astral.sh/uv/) (for the Gmail MCP server): `uvx workspace-mcp`
 - OAuth apps for GitHub and Google with redirect URI **`http://127.0.0.1:8765/callback`**
 - Notion uses **Notion MCP OAuth** at `https://mcp.notion.com` (no separate integration app — `torii link notion` registers a client automatically)
+- **Google managed Gmail MCP** ([developer preview](https://developers.google.com/workspace/gmail/api/guides/configure-mcp-server)):
+  - Join the Google Workspace Developer Preview Program for your GCP project
+  - Enable `gmail.googleapis.com` and `gmailmcp.googleapis.com`
+  - Configure OAuth consent with `gmail.readonly` and `gmail.compose` scopes
 
 ## Environment setup
 
@@ -46,7 +49,7 @@ Optional: `TORII_PORT`, `TORII_HOST`, `TORII_TOKEN_STORE_PATH` (defaults: `3100`
 | Variable | Required | Purpose |
 |----------|----------|---------|
 | `OPEN_ROUTER_API_KEY` | yes | [OpenRouter](https://openrouter.ai/) API key |
-| `DEMO_OWNER_EMAIL` | yes | Digest email recipient |
+| `DEMO_OWNER_EMAIL` | yes | Digest draft recipient |
 | `TORII_MCP_URL` | no | Default `http://127.0.0.1:3100/mcp` |
 | `DEMO_MODEL_ID` | no | Default `cohere/north-mini-code:free` |
 | `DEMO_AGENT_BEARER` | no* | Only if not set in root `.env` |
@@ -77,27 +80,19 @@ pnpm --filter @keidai/gateway run torii link notion
 pnpm --filter @keidai/gateway run torii link google
 ```
 
-Each command opens a browser and completes consent on `127.0.0.1:8765`. Re-run only when tokens expire or are revoked.
+Each command opens a browser and completes consent on `127.0.0.1:8765`. Re-run when tokens expire, are revoked, or OAuth scopes change (e.g. after switching Gmail from `gmail.send` to `gmail.compose`).
 
 ## Run the demo
 
-### Terminal A — Gmail MCP backend
-
-```bash
-uvx workspace-mcp --transport streamable-http --tools gmail
-```
-
-Listens on `http://127.0.0.1:8000/mcp` (see `torii.demo.yaml`).
-
-### Terminal B — Torii gateway
+### Terminal A — Torii gateway
 
 ```bash
 pnpm demo:gateway
 ```
 
-Expect backend connection logs and `Gateway MCP endpoint: http://127.0.0.1:3100/mcp`. JSON traces print on stdout for each tool call.
+Expect backend connection logs and `Gateway MCP endpoint: http://127.0.0.1:3100/mcp`. JSON traces print on stdout for each tool call. Gmail uses Google's managed MCP at `https://gmailmcp.googleapis.com/mcp/v1` — no local sidecar.
 
-### Terminal C — Demo agent
+### Terminal B — Demo agent
 
 ```bash
 pnpm demo
@@ -107,7 +102,8 @@ pnpm demo
 
 **Happy path**
 
-- Agent gathers status from Linear, GitHub, and Notion, then emails the report via `gmail.send_gmail_message` to `DEMO_OWNER_EMAIL` in a single agent turn
+- Agent gathers status from Linear, GitHub, and Notion, then creates a Gmail draft via `gmail.create_draft` to `DEMO_OWNER_EMAIL` in a single agent turn
+- Draft appears in your Gmail Drafts folder (review before sending)
 
 **Policy denial**
 
@@ -116,7 +112,7 @@ pnpm demo
 
 **Gateway traces**
 
-- stdout traces for reads, Gmail send, and policy denial
+- stdout traces for reads, Gmail draft creation, and policy denial
 
 ### Optional smoke test
 
@@ -137,7 +133,10 @@ Notion write tools (`notion-create-pages`, `notion-update-page`, etc.) should be
 |---------|----------------|
 | `401 identity_denied` | `DEMO_AGENT_BEARER` missing or mismatch between root `.env` and what the agent sends |
 | `linking_required` on GitHub/Notion/Gmail | Run `torii link <provider>` for `demo-owner` |
-| Gmail backend failed at boot | `workspace-mcp` not running on port 8000 |
+| Gmail backend failed at boot | Gmail MCP API not enabled, preview access missing, or `torii link google` not done |
+| Gmail tool errors after scope change | Re-run `torii link google` to refresh tokens with `gmail.compose` |
+| Gmail `create_draft`: "The caller does not have permission" | APIs enabled but project not enrolled in [Workspace Developer Preview](https://developers.google.com/workspace/gmail/api/guides/configure-mcp-server); for External OAuth apps, add your Google account under Test users |
+| Gmail trace shows generic backend error | Gateway stdout now surfaces the MCP error text (e.g. permission denied); re-run the call and check the trace `error` field |
 | `torii link` browser error | Redirect URI mismatch — GitHub/Google: `http://127.0.0.1:8765/callback`; Notion: `https://127.0.0.1:8765/callback` |
 | Linear tools missing | `LINEAR_API_KEY` unset or invalid in `apps/gateway/.env` |
 | Notion search denied or tool errors | Per-step summaries are always logged; set `DEMO_AGENT_VERBOSE=1` for full tool inputs/outputs |
@@ -147,4 +146,5 @@ Notion write tools (`notion-create-pages`, `notion-update-page`, etc.) should be
 
 - **Inbound identity:** `DEMO_AGENT_BEARER` → gateway resolves `demo-owner` via `agents[].inbound_token`
 - **Outbound OAuth:** `torii link` persists tokens in SQLite; keyed by `(owner_id, provider)`
+- **Gmail:** hosted remote MCP (like Notion) — Torii forwards bearer tokens from `torii link google`; no local `workspace-mcp` process
 - **Production:** containers inject env per service; no `.env` files in images. Shared secrets use one K8s Secret referenced by both gateway and agent deployments.

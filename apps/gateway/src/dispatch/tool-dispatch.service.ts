@@ -29,6 +29,7 @@ import {
   BackendUnavailableError,
   ToolNotFoundError,
 } from "./types/tool-dispatch.js";
+import { formatBackendToolError } from "./utils/format-backend-tool-error.js";
 
 @injectable()
 export class ToolDispatchService {
@@ -152,7 +153,7 @@ export class ToolDispatchService {
         credentialRef: resolved.credentialRef ?? credentialRef,
         policyDecision: PolicyDecision.Allowed,
         durationMs: Date.now() - startedAt,
-        ...(result.isError ? { error: "backend returned error result" } : {}),
+        ...(result.isError ? { error: formatBackendToolError(result) } : {}),
       });
 
       return result;

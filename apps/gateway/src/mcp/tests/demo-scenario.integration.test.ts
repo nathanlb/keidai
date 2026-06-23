@@ -47,7 +47,10 @@ const DEMO_OAUTH_PROVIDERS: ToriiConfig["oauth_providers"] = {
     token_url: "https://oauth2.googleapis.com/token",
     client_id: "client",
     client_secret: "secret",
-    scopes: ["https://www.googleapis.com/auth/gmail.send"],
+    scopes: [
+      "https://www.googleapis.com/auth/gmail.readonly",
+      "https://www.googleapis.com/auth/gmail.compose",
+    ],
     redirect_uri: "http://127.0.0.1:8765/callback",
   },
 };
@@ -101,8 +104,8 @@ describe("Demo scenario — open-torii status digest", () => {
       requireAuth: true,
       expectedBearer: googleToken,
       tools: [
-        { name: "send_gmail_message", description: "Send Gmail message" },
-        { name: "search_gmail_messages", description: "Search Gmail" },
+        { name: "create_draft", description: "Create Gmail draft" },
+        { name: "search_threads", description: "Search Gmail threads" },
       ],
     });
 
@@ -153,7 +156,7 @@ describe("Demo scenario — open-torii status digest", () => {
           name: "gmail",
           transport: { type: "http", url: gmailBackend.url },
           credential: { strategy: "user_oauth", provider: "google" },
-          policy: { default: "deny", allow: ["send_gmail_message"] },
+          policy: { default: "deny", allow: ["create_draft"] },
         },
       ],
     });
@@ -198,7 +201,7 @@ describe("Demo scenario — open-torii status digest", () => {
 
         assert.deepEqual(toolNames, [
           "github.search_issues",
-          "gmail.send_gmail_message",
+          "gmail.create_draft",
           "linear.get_issue",
           "linear.list_issues",
           "notion.notion-fetch",
@@ -226,10 +229,10 @@ describe("Demo scenario — open-torii status digest", () => {
         assert.notEqual(notionResult.isError, true);
 
         const gmailResult = await agent.client.callTool({
-          name: "gmail.send_gmail_message",
+          name: "gmail.create_draft",
           arguments: {
-            to: "owner@example.com",
-            subject: "open-torii status digest",
+            to: ["owner@example.com"],
+            subject: "keidai status digest — 2026-06-22",
             body: "## Linear\n- NAT-16\n\n## GitHub\n- PR #1\n\n## Notion\n- Architecture doc",
           },
         });

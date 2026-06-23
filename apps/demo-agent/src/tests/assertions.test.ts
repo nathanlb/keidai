@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { DigestResult } from "../assertions.js";
 import {
-  assertDigestEmailSent,
-  assertDigestAndEmailPhase,
+  assertDigestGmailDraftCreated,
+  assertDigestAndDraftPhase,
   assertDigestToolCalls,
   assertPolicyDeniedVisible,
   collectToolCallNames,
@@ -29,15 +29,15 @@ function fakeResult(
 }
 
 describe("demo scenario assertions", () => {
-  it("accepts expected digest and email tool calls", () => {
+  it("accepts expected digest and draft tool calls", () => {
     const toolNames = [
       "linear.list_issues",
       "github.search_issues",
       "notion.notion-search",
-      "gmail.send_gmail_message",
+      "gmail.create_draft",
     ];
 
-    assertDigestAndEmailPhase(fakeResult(toolNames, ""));
+    assertDigestAndDraftPhase(fakeResult(toolNames, ""));
   });
 
   it("accepts expected digest tool calls", () => {
@@ -79,8 +79,8 @@ describe("demo scenario assertions", () => {
   });
 
   it("accepts gmail tool names in dot and underscore forms", () => {
-    assertDigestEmailSent(["gmail.send_gmail_message"]);
-    assertDigestEmailSent(["gmail_send_message"]);
+    assertDigestGmailDraftCreated(["gmail.create_draft"]);
+    assertDigestGmailDraftCreated(["gmail_create_draft"]);
   });
 
   it("detects policy_denied in follow-up tool errors", () => {

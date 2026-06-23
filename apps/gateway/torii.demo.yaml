@@ -30,7 +30,8 @@ oauth_providers:
     client_id: ${env:GOOGLE_CLIENT_ID}
     client_secret: ${env:GOOGLE_CLIENT_SECRET}
     scopes:
-      - https://www.googleapis.com/auth/gmail.send
+      - https://www.googleapis.com/auth/gmail.readonly
+      - https://www.googleapis.com/auth/gmail.compose
     redirect_uri: http://127.0.0.1:8765/callback
     authorize_params:
       access_type: offline
@@ -71,17 +72,16 @@ servers:
       allow: [notion-search, notion-fetch]
 
   - name: gmail
-    # Self-hosted Google Workspace MCP (workspace-mcp) with streamable HTTP transport.
-    # Start locally: uvx workspace-mcp --transport streamable-http --tools gmail
+    # Google managed Gmail MCP (developer preview) — no local sidecar required.
     transport:
       type: http
-      url: http://127.0.0.1:8000/mcp
+      url: https://gmailmcp.googleapis.com/mcp/v1
     credential:
       strategy: user_oauth
       provider: google
     policy:
       default: deny
-      allow: [send_gmail_message]
+      allow: [create_draft]
 
 agents:
   - subject:
