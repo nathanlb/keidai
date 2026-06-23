@@ -1,6 +1,6 @@
 import { PolicyDecision } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
-import { ConnectionManager } from "../backends/connection-manager.service.js";
+import { ConnectionManager } from "../connections/connection-manager.service.js";
 import { CredentialResolverService } from "../credentials/credential-resolver.service.js";
 import { CredentialResolutionError, LinkingRequiredError } from "../credentials/types/credential-resolution.js";
 import { getAgentPrincipal } from "../identity/agent-principal-context.js";

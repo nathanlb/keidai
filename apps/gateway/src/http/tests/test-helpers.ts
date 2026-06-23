@@ -3,6 +3,10 @@ import type {
   AgentPrincipal,
 } from "@keidai/shared";
 import type { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
+import { ConnectionsApiController } from "../../connections/connections-api.controller.js";
+import { ConnectionManager } from "../../connections/connection-manager.service.js";
+import { ConnectionReadService } from "../../connections/connection-read.service.js";
+import { ConfigApiController } from "../../config/config-api.controller.js";
 import { ConfigReadService } from "../../config/config-read.service.js";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
 import type { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
@@ -22,12 +26,21 @@ export function createTestGatewayHttpServer(
     identityResolver?: AgentIdentityResolver;
     traceEmitter?: TraceEmitter;
     configService?: ToriiConfigService;
+    connectionManager?: ConnectionManager;
   } = {},
 ): GatewayHttpServer {
-  const configRead = new ConfigReadService(
+  const configService =
     options.configService ??
-      new ToriiConfigService({ oauth_providers: {}, servers: [], agents: [] }),
-  );
+    new ToriiConfigService({ oauth_providers: {}, servers: [], agents: [] });
+  const configRead = new ConfigReadService(configService);
+  const connectionManager =
+    options.connectionManager ??
+    new ConnectionManager(configService, {
+      connect: async () => {
+        throw new Error("connection manager not configured for test");
+      },
+    });
+  const connectionRead = new ConnectionReadService(connectionManager);
   const mcpServer = new GatewayMcpServer(
     toolCatalog,
     toolDispatch,
@@ -35,7 +48,11 @@ export function createTestGatewayHttpServer(
     options.traceEmitter ?? new CapturingTraceEmitter(),
   );
 
-  return new GatewayHttpServer(configRead, mcpServer);
+  return new GatewayHttpServer(
+    new ConfigApiController(configRead),
+    new ConnectionsApiController(connectionRead),
+    mcpServer,
+  );
 }
 
 export { FixedIdentityResolver };

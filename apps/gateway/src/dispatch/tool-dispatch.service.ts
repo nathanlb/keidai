@@ -4,7 +4,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { PolicyDecision } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
-import { ConnectionManager } from "../backends/connection-manager.service.js";
+import { ConnectionManager } from "../connections/connection-manager.service.js";
 import { ToolCatalogService } from "../catalog/tool-catalog.service.js";
 import { CredentialResolverService } from "../credentials/credential-resolver.service.js";
 import {

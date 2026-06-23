@@ -13,7 +13,7 @@ import type {
   PublicCredentialConfig,
   PublicOAuthProviderConfig,
   PublicServerConfig,
-} from "../types/config-api.js";
+} from "../types/config.dto.js";
 
 export function projectPublicCredential(
   credential: CredentialConfig,

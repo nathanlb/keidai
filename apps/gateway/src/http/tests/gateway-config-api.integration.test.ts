@@ -8,9 +8,12 @@ import type {
   ConfigAgentsResponse,
   ConfigOAuthProvidersResponse,
   ConfigServersResponse,
-} from "../../config/types/config-api.js";
-import { ConnectionManager } from "../../backends/connection-manager.service.js";
-import { DefaultMcpClientConnector } from "../../backends/mcp-client-connector.service.js";
+} from "../../config/types/config.dto.js";
+import { ConnectionManager } from "../../connections/connection-manager.service.js";
+import { ConnectionsApiController } from "../../connections/connections-api.controller.js";
+import { ConnectionReadService } from "../../connections/connection-read.service.js";
+import { DefaultMcpClientConnector } from "../../connections/mcp-client-connector.service.js";
+import { ConfigApiController } from "../../config/config-api.controller.js";
 import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
 import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
@@ -145,7 +148,18 @@ describe("Gateway /api/config endpoints", () => {
       }),
     );
     const gatewayHttpServer = new GatewayHttpServer(
-      configRead,
+      new ConfigApiController(configRead),
+      new ConnectionsApiController(
+        new ConnectionReadService(
+          new ConnectionManager(
+            new ToriiConfigService({
+              oauth_providers: {},
+              servers: [],
+            }),
+            { connect: async () => { throw new Error("unused"); } },
+          ),
+        ),
+      ),
       new GatewayMcpServer(
         {} as ToolCatalogService,
         {} as ToolDispatchService,
