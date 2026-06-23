@@ -1,0 +1,101 @@
+/* Design tokens from Claude Design handoff (NAT-29 / shadcn neutral theme) */
+
+:root {
+  /* Primitive: Neutral */
+  --neutral-50: #fafafa;
+  --neutral-100: #f5f5f5;
+  --neutral-200: #e5e5e5;
+  --neutral-300: #d4d4d4;
+  --neutral-400: #a3a3a3;
+  --neutral-500: #737373;
+  --neutral-600: #525252;
+  --neutral-700: #404040;
+  --neutral-800: #262626;
+  --neutral-900: #171717;
+  --neutral-950: #0a0a0a;
+  --white: #ffffff;
+  --black: #000000;
+
+  /* Primitive: semantic accents */
+  --red-400: #f87171;
+  --red-500: #ef4444;
+  --red-600: #dc2626;
+  --green-600: #16a34a;
+  --amber-500: #f59e0b;
+  --blue-500: #3b82f6;
+
+  /* Chart palette */
+  --chart-1: #5eb1ef;
+  --chart-2: #0090ff;
+  --chart-3: #0588f0;
+  --chart-4: #0d74ce;
+  --chart-5: #113264;
+
+  /* Semantic — light */
+  --background: var(--white);
+  --foreground: var(--neutral-950);
+  --card: var(--white);
+  --card-foreground: var(--neutral-950);
+  --popover: var(--white);
+  --popover-foreground: var(--neutral-950);
+  --primary: var(--neutral-900);
+  --primary-foreground: var(--neutral-50);
+  --secondary: var(--neutral-100);
+  --secondary-foreground: var(--neutral-900);
+  --muted: var(--neutral-100);
+  --muted-foreground: var(--neutral-500);
+  --accent: var(--neutral-100);
+  --accent-foreground: var(--neutral-900);
+  --destructive: var(--red-600);
+  --destructive-foreground: var(--neutral-50);
+  --success: var(--green-600);
+  --success-foreground: var(--neutral-50);
+  --warning: var(--amber-500);
+  --warning-foreground: var(--neutral-900);
+  --border: var(--neutral-200);
+  --input: var(--neutral-200);
+  --ring: var(--neutral-400);
+  --sidebar: var(--neutral-50);
+  --sidebar-foreground: var(--neutral-950);
+  --sidebar-primary: var(--neutral-900);
+  --sidebar-primary-foreground: var(--neutral-50);
+  --sidebar-accent: var(--neutral-100);
+  --sidebar-accent-foreground: var(--neutral-900);
+  --sidebar-border: var(--neutral-200);
+  --sidebar-ring: var(--neutral-400);
+}
+
+:root[data-theme="dark"],
+.dark {
+  --background: var(--neutral-950);
+  --foreground: var(--neutral-50);
+  --card: var(--neutral-900);
+  --card-foreground: var(--neutral-50);
+  --popover: var(--neutral-800);
+  --popover-foreground: var(--neutral-50);
+  --primary: var(--neutral-200);
+  --primary-foreground: var(--neutral-900);
+  --secondary: var(--neutral-800);
+  --secondary-foreground: var(--neutral-50);
+  --muted: var(--neutral-800);
+  --muted-foreground: var(--neutral-400);
+  --accent: var(--neutral-700);
+  --accent-foreground: var(--neutral-50);
+  --destructive: var(--red-400);
+  --destructive-foreground: var(--neutral-50);
+  --success: var(--green-600);
+  --success-foreground: var(--neutral-50);
+  --warning: var(--amber-500);
+  --warning-foreground: var(--neutral-900);
+  --border: var(--neutral-700);
+  --input: var(--neutral-900);
+  --ring: var(--neutral-500);
+  --sidebar: var(--neutral-900);
+  --sidebar-foreground: var(--neutral-50);
+  --sidebar-primary: var(--blue-500);
+  --sidebar-primary-foreground: var(--neutral-50);
+  --sidebar-accent: var(--neutral-800);
+  --sidebar-accent-foreground: var(--neutral-50);
+  --sidebar-border: var(--neutral-700);
+  --sidebar-ring: var(--neutral-500);
+}
