@@ -8,4 +8,4 @@ dist/
 !.env.example
 torii.yaml
 data/
-.design/
+.designs/
