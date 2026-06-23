@@ -14,9 +14,12 @@ import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { InMemoryAgentRegistry } from "../../identity/registry/in-memory-agent-registry.service.js";
 import { K8sSaOidcIdentityResolver } from "../../identity/resolvers/k8s-sa-oidc-identity-resolver.service.js";
 import type { K8sSaOidcConfig } from "../../identity/types/k8s-sa-oidc-config.js";
+import { createTestGatewayHttpServer } from "../../http/tests/test-helpers.js";
 import {
   connectAgentToGateway,
-  createTestGatewayMcpServer,
+  createInboundIdentityService,
+  FixedIdentityResolver,
+  TEST_AGENT_BEARER,
 } from "../../identity/tests/test-helpers.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
@@ -155,7 +158,7 @@ describe("Gateway inbound identity", () => {
       traceEmitter,
       createPolicyEnforcement(configService),
     );
-    const gatewayMcpServer = createTestGatewayMcpServer(
+    const gatewayHttpServer = createTestGatewayHttpServer(
       toolCatalog,
       toolDispatch,
       {
@@ -166,7 +169,7 @@ describe("Gateway inbound identity", () => {
 
     try {
       await connectionManager.connectAll();
-      const gateway = await gatewayMcpServer.start();
+      const gateway = await gatewayHttpServer.start();
       const token = await signToken(keys.privateKey);
       const agent = await connectAgentToGateway(gateway.url, token);
 
@@ -223,7 +226,7 @@ describe("Gateway inbound identity", () => {
       traceEmitter,
       createPolicyEnforcement(configService),
     );
-    const gatewayMcpServer = createTestGatewayMcpServer(
+    const gatewayHttpServer = createTestGatewayHttpServer(
       toolCatalog,
       toolDispatch,
       {
@@ -234,7 +237,7 @@ describe("Gateway inbound identity", () => {
 
     try {
       await connectionManager.connectAll();
-      const gateway = await gatewayMcpServer.start();
+      const gateway = await gatewayHttpServer.start();
       const invalidToken = await signToken(keys.otherPrivateKey);
 
       try {

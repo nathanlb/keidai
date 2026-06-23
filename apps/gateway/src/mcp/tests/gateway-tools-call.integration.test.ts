@@ -8,10 +8,8 @@ import { DefaultMcpClientConnector } from "../../backends/mcp-client-connector.s
 import { startMockMcpServer } from "../../backends/tests/mock-mcp-server.js";
 import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
 import { createCredentialServices, withStubAgentPrincipal } from "../../credentials/tests/test-helpers.js";
-import {
-  connectAgentToGateway,
-  createTestGatewayMcpServer,
-} from "../../identity/tests/test-helpers.js";
+import { createTestGatewayHttpServer } from "../../http/tests/test-helpers.js";
+import { connectAgentToGateway } from "../../identity/tests/test-helpers.js";
 import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
 import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
@@ -126,13 +124,13 @@ describe("Gateway MCP tools/call", () => {
       new CapturingTraceEmitter(),
       createPolicyEnforcement(configService),
     );
-    const gatewayMcpServer = createTestGatewayMcpServer(toolCatalog, toolDispatch);
+    const gatewayHttpServer = createTestGatewayHttpServer(toolCatalog, toolDispatch);
 
     try {
       await withStubAgentPrincipal(async () => {
         await connectionManager.connectAll();
       });
-      const gateway = await gatewayMcpServer.start();
+      const gateway = await gatewayHttpServer.start();
       const agent = await connectAgentToGateway(gateway.url);
 
       try {
@@ -205,11 +203,11 @@ describe("Gateway MCP tools/call", () => {
       new CapturingTraceEmitter(),
       createPolicyEnforcement(configService),
     );
-    const gatewayMcpServer = createTestGatewayMcpServer(toolCatalog, toolDispatch);
+    const gatewayHttpServer = createTestGatewayHttpServer(toolCatalog, toolDispatch);
 
     try {
       await connectionManager.connectAll();
-      const gateway = await gatewayMcpServer.start();
+      const gateway = await gatewayHttpServer.start();
       const agent = await connectAgentToGateway(gateway.url);
 
       try {
@@ -273,11 +271,11 @@ describe("Gateway MCP tools/call", () => {
       new CapturingTraceEmitter(),
       createPolicyEnforcement(configService),
     );
-    const gatewayMcpServer = createTestGatewayMcpServer(toolCatalog, toolDispatch);
+    const gatewayHttpServer = createTestGatewayHttpServer(toolCatalog, toolDispatch);
 
     try {
       await connectionManager.connectAll();
-      const gateway = await gatewayMcpServer.start();
+      const gateway = await gatewayHttpServer.start();
       const agent = await connectAgentToGateway(gateway.url);
 
       try {

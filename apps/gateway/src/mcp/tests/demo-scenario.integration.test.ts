@@ -13,9 +13,9 @@ import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { runWithAgentPrincipal } from "../../identity/agent-principal-context.js";
 import {
   connectAgentToGateway,
-  createTestGatewayMcpServer,
   FixedIdentityResolver,
 } from "../../identity/tests/test-helpers.js";
+import { createTestGatewayHttpServer } from "../../http/tests/test-helpers.js";
 import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 
@@ -178,7 +178,7 @@ describe("Demo scenario — open-torii status digest", () => {
       traceEmitter,
       createPolicyEnforcement(configService),
     );
-    const gatewayMcpServer = createTestGatewayMcpServer(
+    const gatewayHttpServer = createTestGatewayHttpServer(
       toolCatalog,
       toolDispatch,
       {
@@ -192,7 +192,7 @@ describe("Demo scenario — open-torii status digest", () => {
         await connectionManager.connectAll();
       });
 
-      const gateway = await gatewayMcpServer.start();
+      const gateway = await gatewayHttpServer.start();
       const agent = await connectAgentToGateway(gateway.url);
 
       try {

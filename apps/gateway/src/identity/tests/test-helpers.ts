@@ -4,11 +4,6 @@ import type {
 } from "@keidai/shared";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import type { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
-import type { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
-import { GatewayMcpServer } from "../../mcp/gateway-mcp-server.service.js";
-import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
-import type { TraceEmitter } from "../../trace/types/trace-emitter.js";
 import { InboundIdentityService } from "../inbound-identity.service.js";
 import { STUB_AGENT_PRINCIPAL } from "../stub-agent-principal.js";
 
@@ -28,22 +23,6 @@ export function createInboundIdentityService(
   resolver: AgentIdentityResolver = new FixedIdentityResolver(),
 ): InboundIdentityService {
   return new InboundIdentityService(resolver);
-}
-
-export function createTestGatewayMcpServer(
-  toolCatalog: ToolCatalogService,
-  toolDispatch: ToolDispatchService,
-  options: {
-    identityResolver?: AgentIdentityResolver;
-    traceEmitter?: TraceEmitter;
-  } = {},
-): GatewayMcpServer {
-  return new GatewayMcpServer(
-    toolCatalog,
-    toolDispatch,
-    createInboundIdentityService(options.identityResolver),
-    options.traceEmitter ?? new CapturingTraceEmitter(),
-  );
 }
 
 export const TEST_AGENT_BEARER = "test-agent-credential";
