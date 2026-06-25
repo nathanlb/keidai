@@ -2,6 +2,7 @@ import type { OAuthProviderConfig } from "@keidai/shared";
 
 export interface BuildOAuthLinkUrlOptions {
   codeChallenge?: string;
+  linkId?: string;
 }
 
 export function deriveAuthorizeUrl(tokenUrl: string): string {
@@ -31,9 +32,14 @@ export function buildOAuthLinkUrl(
   if (!provider.client_id) {
     throw new Error("OAuth client_id is required to build an authorize URL");
   }
-  const state = Buffer.from(
-    JSON.stringify({ ownerId, provider: providerName }),
-  ).toString("base64url");
+  const statePayload: { ownerId: string; provider: string; linkId?: string } = {
+    ownerId,
+    provider: providerName,
+  };
+  if (options.linkId) {
+    statePayload.linkId = options.linkId;
+  }
+  const state = Buffer.from(JSON.stringify(statePayload)).toString("base64url");
   const params = new URLSearchParams({
     client_id: provider.client_id,
     scope: provider.scopes.join(" "),

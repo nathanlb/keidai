@@ -1,11 +1,13 @@
 import type { FastifyInstance } from "fastify";
 import type { ConnectionsApiController } from "../../connections/connections-api.controller.js";
 import type { ConfigApiController } from "../../config/config-api.controller.js";
+import type { OAuthApiController } from "../../credentials/oauth-api.controller.js";
 import type { GatewayMcpServer } from "../../mcp/gateway-mcp-server.service.js";
 
 export interface GatewayRouteControllers {
   configApi: ConfigApiController;
   connectionsApi: ConnectionsApiController;
+  oauthApi: OAuthApiController;
   mcpServer: GatewayMcpServer;
 }
 
@@ -16,5 +18,6 @@ export function registerGatewayRoutes(
 ): void {
   controllers.configApi.registerRoutes(app);
   controllers.connectionsApi.registerRoutes(app);
+  controllers.oauthApi.registerRoutes(app);
   controllers.mcpServer.registerRoutes(app);
 }

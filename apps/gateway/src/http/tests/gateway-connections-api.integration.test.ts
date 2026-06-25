@@ -3,18 +3,13 @@ import assert from "node:assert/strict";
 import http from "node:http";
 import { describe, it } from "node:test";
 import type { ToriiConfig } from "@keidai/shared";
-import { ConnectionsApiController } from "../../connections/connections-api.controller.js";
 import { ConnectionManager } from "../../connections/connection-manager.service.js";
-import { ConnectionReadService } from "../../connections/connection-read.service.js";
 import { DefaultMcpClientConnector } from "../../connections/mcp-client-connector.service.js";
 import { startMockMcpServer } from "../../connections/tests/mock-mcp-server.js";
-import { ConfigApiController } from "../../config/config-api.controller.js";
-import { ConfigReadService } from "../../config/config-read.service.js";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
 import type { ConnectionStatus, ConnectionsResponse } from "@keidai/shared";
-import { GatewayHttpServer } from "../gateway-http-server.service.js";
-import { GatewayMcpServer } from "../../mcp/gateway-mcp-server.service.js";
-import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
+import type { GatewayHttpServer } from "../gateway-http-server.service.js";
+import { createTestGatewayHttpServer } from "./test-helpers.js";
 import {
   createCredentialServices,
   withStubAgentPrincipal,
@@ -47,15 +42,13 @@ function createConnectionsGateway(
   configService: ToriiConfigService,
   connectionManager: ConnectionManager,
 ): GatewayHttpServer {
-  return new GatewayHttpServer(
-    new ConfigApiController(new ConfigReadService(configService)),
-    new ConnectionsApiController(new ConnectionReadService(connectionManager)),
-    new GatewayMcpServer(
-      {} as never,
-      {} as never,
-      {} as never,
-      new CapturingTraceEmitter(),
-    ),
+  return createTestGatewayHttpServer(
+    {} as never,
+    {} as never,
+    {
+      configService,
+      connectionManager,
+    },
   );
 }
 
