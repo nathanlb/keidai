@@ -1,6 +1,7 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import { inject, injectable } from "tsyringe";
-import { ConfigReadService } from "../config/config-read.service.js";
+import { ConnectionsApiController } from "../connections/connections-api.controller.js";
+import { ConfigApiController } from "../config/config-api.controller.js";
 import { GatewayMcpServer } from "../mcp/gateway-mcp-server.service.js";
 import type {
   GatewayHttpServerHandle,
@@ -13,8 +14,10 @@ export class GatewayHttpServer {
   private app: FastifyInstance | null = null;
 
   constructor(
-    @inject(ConfigReadService)
-    private readonly configRead: ConfigReadService,
+    @inject(ConfigApiController)
+    private readonly configApi: ConfigApiController,
+    @inject(ConnectionsApiController)
+    private readonly connectionsApi: ConnectionsApiController,
     @inject(GatewayMcpServer)
     private readonly mcpServer: GatewayMcpServer,
   ) {}
@@ -22,7 +25,8 @@ export class GatewayHttpServer {
   createApp(): FastifyInstance {
     const app = Fastify({ logger: false });
     registerGatewayRoutes(app, {
-      configRead: this.configRead,
+      configApi: this.configApi,
+      connectionsApi: this.connectionsApi,
       mcpServer: this.mcpServer,
     });
     return app;

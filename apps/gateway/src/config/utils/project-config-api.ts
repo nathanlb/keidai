@@ -1,19 +1,17 @@
 import type {
   AgentRegistrationConfig,
-  CredentialConfig,
-  OAuthProviderConfig,
-  ServerConfig,
-  ToriiConfig,
-} from "@keidai/shared";
-import type {
   ConfigAgentsResponse,
   ConfigOAuthProvidersResponse,
   ConfigServersResponse,
+  CredentialConfig,
+  OAuthProviderConfig,
   PublicAgentConfig,
   PublicCredentialConfig,
   PublicOAuthProviderConfig,
   PublicServerConfig,
-} from "../types/config-api.js";
+  ServerConfig,
+  ToriiConfig,
+} from "@keidai/shared";
 
 export function projectPublicCredential(
   credential: CredentialConfig,

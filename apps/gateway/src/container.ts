@@ -1,8 +1,8 @@
 import "reflect-metadata";
 import { container, type DependencyContainer, Lifecycle } from "tsyringe";
 import type { ToriiConfig } from "@keidai/shared";
-import { ConnectionManager } from "./backends/connection-manager.service.js";
-import { DefaultMcpClientConnector } from "./backends/mcp-client-connector.service.js";
+import { ConnectionManager } from "./connections/connection-manager.service.js";
+import { DefaultMcpClientConnector } from "./connections/mcp-client-connector.service.js";
 import { ToolCatalogService } from "./catalog/tool-catalog.service.js";
 import { CredentialResolverService } from "./credentials/credential-resolver.service.js";
 import { OAuthTokenLifecycleService } from "./credentials/oauth-token-lifecycle.service.js";
@@ -16,7 +16,10 @@ import { NoneCredentialResolver } from "./credentials/resolvers/none-credential-
 import { UserOAuthCredentialResolver } from "./credentials/resolvers/user_oauth_credential-resolver.service.js";
 import { ServiceKeyCredentialResolver } from "./credentials/resolvers/service-key-credential-resolver.service.js";
 import { ConfigReadService } from "./config/config-read.service.js";
+import { ConfigApiController } from "./config/config-api.controller.js";
 import { ToriiConfigService } from "./config/torii-config.service.js";
+import { ConnectionReadService } from "./connections/connection-read.service.js";
+import { ConnectionsApiController } from "./connections/connections-api.controller.js";
 import { ToolDispatchService } from "./dispatch/tool-dispatch.service.js";
 import { buildAgentRegistry } from "./identity/utils/build-agent-registry.js";
 import { buildBearerAgentRegistry } from "./identity/utils/build-bearer-agent-registry.js";
@@ -53,6 +56,21 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
   appContainer.register(
     ConfigReadService,
     { useClass: ConfigReadService },
+    SINGLETON,
+  );
+  appContainer.register(
+    ConfigApiController,
+    { useClass: ConfigApiController },
+    SINGLETON,
+  );
+  appContainer.register(
+    ConnectionReadService,
+    { useClass: ConnectionReadService },
+    SINGLETON,
+  );
+  appContainer.register(
+    ConnectionsApiController,
+    { useClass: ConnectionsApiController },
     SINGLETON,
   );
   appContainer.register(AGENT_REGISTRY, {

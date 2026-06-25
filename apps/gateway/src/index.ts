@@ -6,7 +6,7 @@ loadEnvForPackage(import.meta.url);
 import "reflect-metadata";
 import { loadConfig, reportConfigError } from "./config/utils/loader.js";
 import { createContainer } from "./container.js";
-import { ConnectionManager } from "./backends/connection-manager.service.js";
+import { ConnectionManager } from "./connections/connection-manager.service.js";
 import { ToolCatalogService } from "./catalog/tool-catalog.service.js";
 import { ToriiConfigService } from "./config/torii-config.service.js";
 import { runWithAgentPrincipal } from "./identity/agent-principal-context.js";

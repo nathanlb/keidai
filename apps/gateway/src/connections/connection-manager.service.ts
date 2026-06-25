@@ -5,9 +5,12 @@ import { DefaultMcpClientConnector } from "./mcp-client-connector.service.js";
 import type { BackendConnection } from "./types/backend-connection.js";
 import type { McpClientConnector } from "./types/mcp-client-connector.js";
 
+export type ConnectionStateListener = (connection: BackendConnection) => void;
+
 @injectable()
 export class ConnectionManager {
   private readonly connections = new Map<string, BackendConnection>();
+  private readonly stateListeners = new Set<ConnectionStateListener>();
 
   constructor(
     @inject(ToriiConfigService)
@@ -20,7 +23,7 @@ export class ConnectionManager {
     const servers = this.configService.get().servers;
 
     for (const server of servers) {
-      this.connections.set(server.name, {
+      this.setConnection(server.name, {
         config: server,
         state: "connecting",
         client: null,
@@ -38,10 +41,28 @@ export class ConnectionManager {
     return [...this.connections.values()];
   }
 
+  subscribe(listener: ConnectionStateListener): () => void {
+    this.stateListeners.add(listener);
+    return () => {
+      this.stateListeners.delete(listener);
+    };
+  }
+
+  private setConnection(name: string, connection: BackendConnection): void {
+    this.connections.set(name, connection);
+    this.notifyStateChange(connection);
+  }
+
+  private notifyStateChange(connection: BackendConnection): void {
+    for (const listener of this.stateListeners) {
+      listener(connection);
+    }
+  }
+
   private async connectServer(server: ServerConfig): Promise<void> {
     try {
       const client = await this.connector.connect(server);
-      this.connections.set(server.name, {
+      this.setConnection(server.name, {
         config: server,
         state: "connected",
         client,
@@ -51,7 +72,7 @@ export class ConnectionManager {
       console.error(
         `Failed to connect to backend "${server.name}" (${server.transport.url}): ${err.message}`,
       );
-      this.connections.set(server.name, {
+      this.setConnection(server.name, {
         config: server,
         state: "failed",
         client: null,

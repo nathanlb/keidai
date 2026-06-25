@@ -15,7 +15,7 @@ Do **not** create empty domain folders ahead of need. Add a folder when a story 
 | Story | Folder | Owns |
 |-------|--------|------|
 | 1 — Config | `config/` | Boot-time load, env resolution, zod validation, `ToriiConfigService` |
-| 2 — Connections | `backends/` | Backend registry, connection state, MCP client connector |
+| 2 — Connections | `connections/` | Backend registry, connection state, MCP client connector |
 | 3 — Tool catalog | `catalog/` | Fan-out `tools/list`, namespacing (`server.tool`) |
 | 4a–c — Auth | `credentials/` | user_oauth / `service_key` / `none` credential resolvers |
 | 5 — Dispatch | `dispatch/` | Route `tools/call` to the correct backend |
@@ -30,7 +30,7 @@ Do **not** create empty domain folders ahead of need. Add a folder when a story 
 ```
 src/
   config/           # exists — boot + ToriiConfigService
-  backends/         # Story 2
+  connections/         # Story 2
   catalog/          # Story 3
   credentials/      # Story 4
   dispatch/         # Story 5
@@ -70,7 +70,7 @@ credentials/
     tests/                         # unit tests for resolver behavior
   tests/
     test-helpers.ts
-    integration/                   # wiring tests (backends, catalog, live MCP)
+    integration/                   # wiring tests (connections, catalog, live MCP)
 ```
 
 Unit tests belong under `resolvers/tests/`; cross-domain integration tests belong under `tests/integration/`. Do not nest full per-strategy modules unless a strategy grows its own adapters, types, and helpers.
@@ -82,7 +82,7 @@ Unit tests belong under `resolvers/tests/`; cross-domain integration tests belon
 ```text
 Agent → mcp/ (tools/list, tools/call)
           → catalog/ | dispatch/
-               → credentials/ | policy/ | backends/
+               → credentials/ | policy/ | connections/
 ```
 
 ## DI (tsyringe, not Nest)
