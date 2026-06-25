@@ -1,6 +1,8 @@
 import { PolicyDecision, type AgentPrincipal, type ServerConfig } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
 import { ToriiConfigService } from "../config/torii-config.service.js";
+import { StructuredLoggerService } from "../logging/structured-logger.service.js";
+import type { Logger } from "../logging/types/logger.js";
 import type { PolicyEvaluator } from "./types/policy-evaluator.js";
 import { evaluatePolicy } from "./utils/evaluate-policy.js";
 
@@ -9,6 +11,8 @@ export class PolicyEnforcementService implements PolicyEvaluator {
   constructor(
     @inject(ToriiConfigService)
     private readonly configService: ToriiConfigService,
+    @inject(StructuredLoggerService)
+    private readonly logger: Logger,
   ) {}
 
   evaluate(
@@ -39,9 +43,10 @@ export class PolicyEnforcementService implements PolicyEvaluator {
 
     for (const toolName of configuredTools) {
       if (!knownTools.has(toolName)) {
-        console.warn(
-          `Backend "${server.name}": policy references unknown tool "${toolName}"`,
-        );
+        this.logger.warn("policy.unknown_tool", {
+          server: server.name,
+          tool: toolName,
+        });
       }
     }
   }

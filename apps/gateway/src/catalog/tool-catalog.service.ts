@@ -4,6 +4,8 @@ import { ConnectionManager } from "../connections/connection-manager.service.js"
 import { CredentialResolverService } from "../credentials/credential-resolver.service.js";
 import { CredentialResolutionError, LinkingRequiredError } from "../credentials/types/credential-resolution.js";
 import { getAgentPrincipal } from "../identity/agent-principal-context.js";
+import { StructuredLoggerService } from "../logging/structured-logger.service.js";
+import type { Logger } from "../logging/types/logger.js";
 import { PolicyEnforcementService } from "../policy/policy-enforcement.service.js";
 import type { AgentTool, CatalogTool } from "./types/catalog-tool.js";
 import { namespaceTool } from "./utils/namespacing.js";
@@ -19,6 +21,8 @@ export class ToolCatalogService {
     private readonly credentialResolver: CredentialResolverService,
     @inject(PolicyEnforcementService)
     private readonly policyEnforcement: PolicyEnforcementService,
+    @inject(StructuredLoggerService)
+    private readonly logger: Logger,
   ) {}
 
   /** Read-only view of the last refreshed catalog (used by policy post-boot). */
@@ -81,9 +85,10 @@ export class ToolCatalogService {
           }
         } catch (error) {
           if (error instanceof LinkingRequiredError) {
-            console.error(
-              `Backend "${connection.config.name}" requires OAuth linking for provider "${error.payload.provider}"`,
-            );
+            this.logger.warn("catalog.linking_required", {
+              server: connection.config.name,
+              provider: error.payload.provider,
+            });
             return;
           }
 
@@ -92,7 +97,10 @@ export class ToolCatalogService {
             error instanceof CredentialResolutionError
               ? err.message
               : `Failed to list tools from backend "${connection.config.name}": ${err.message}`;
-          console.error(message);
+          this.logger.error("catalog.list_failed", {
+            server: connection.config.name,
+            error: message,
+          });
         }
       }),
     );

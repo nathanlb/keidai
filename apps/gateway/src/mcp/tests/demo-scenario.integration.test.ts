@@ -18,6 +18,7 @@ import {
 import { createTestGatewayHttpServer } from "../../http/tests/test-helpers.js";
 import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
+import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 
 const DEMO_OWNER = "demo-owner";
 const DEMO_PRINCIPAL = {
@@ -161,15 +162,8 @@ describe("Demo scenario — open-torii status digest", () => {
       ],
     });
 
-    const connectionManager = new ConnectionManager(
-      configService,
-      new DefaultMcpClientConnector(credentialResolver),
-    );
-    const toolCatalog = new ToolCatalogService(
-      connectionManager,
-      credentialResolver,
-      createPolicyEnforcement(configService),
-    );
+    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
+    const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
     const traceEmitter = new CapturingTraceEmitter();
     const toolDispatch = new ToolDispatchService(
       toolCatalog,

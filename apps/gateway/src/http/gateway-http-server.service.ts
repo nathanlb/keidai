@@ -1,14 +1,22 @@
-import Fastify, { type FastifyInstance } from "fastify";
+import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import { inject, injectable } from "tsyringe";
 import { ConnectionsApiController } from "../connections/connections-api.controller.js";
 import { ConfigApiController } from "../config/config-api.controller.js";
 import { OAuthApiController } from "../credentials/oauth-api.controller.js";
 import { GatewayMcpServer } from "../mcp/gateway-mcp-server.service.js";
+import { StructuredLoggerService } from "../logging/structured-logger.service.js";
+import type { Logger } from "../logging/types/logger.js";
 import type {
   GatewayHttpServerHandle,
   GatewayHttpServerOptions,
 } from "./types/gateway-http-server.js";
 import { registerGatewayRoutes } from "./utils/register-gateway-routes.js";
+
+const requestStartTime = Symbol("requestStartTime");
+
+function readRequestPath(request: FastifyRequest): string {
+  return request.url.split("?")[0] ?? request.url;
+}
 
 @injectable()
 export class GatewayHttpServer {
@@ -23,10 +31,32 @@ export class GatewayHttpServer {
     private readonly oauthApi: OAuthApiController,
     @inject(GatewayMcpServer)
     private readonly mcpServer: GatewayMcpServer,
+    @inject(StructuredLoggerService)
+    private readonly logger: Logger,
   ) {}
 
   createApp(): FastifyInstance {
     const app = Fastify({ logger: false });
+
+    app.addHook("onRequest", async (request) => {
+      (request as FastifyRequest & { [requestStartTime]?: number })[
+        requestStartTime
+      ] = Date.now();
+    });
+
+    app.addHook("onResponse", async (request, reply) => {
+      const startedAt =
+        (request as FastifyRequest & { [requestStartTime]?: number })[
+          requestStartTime
+        ] ?? Date.now();
+      this.logger.info("http.request", {
+        method: request.method,
+        url: readRequestPath(request),
+        statusCode: reply.statusCode,
+        durationMs: Date.now() - startedAt,
+      });
+    });
+
     registerGatewayRoutes(app, {
       configApi: this.configApi,
       connectionsApi: this.connectionsApi,

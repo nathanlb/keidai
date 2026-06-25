@@ -13,6 +13,7 @@ import { createCredentialServices } from "../../credentials/tests/test-helpers.j
 import { createTestGatewayHttpServer } from "../../http/tests/test-helpers.js";
 import { connectAgentToGateway } from "../../identity/tests/test-helpers.js";
 import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
+import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 
 function serverConfig(
   name: string,
@@ -51,15 +52,8 @@ describe("Gateway MCP tools/list", () => {
       servers: [serverConfig("github", backend.url)],
     });
     const { credentialResolver } = createCredentialServices();
-    const connectionManager = new ConnectionManager(
-      configService,
-      new DefaultMcpClientConnector(credentialResolver),
-    );
-    const toolCatalog = new ToolCatalogService(
-      connectionManager,
-      credentialResolver,
-      createPolicyEnforcement(configService),
-    );
+    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
+    const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
     const toolDispatch = new ToolDispatchService(
       toolCatalog,
       connectionManager,

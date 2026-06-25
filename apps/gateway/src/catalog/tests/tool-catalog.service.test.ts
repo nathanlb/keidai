@@ -7,6 +7,7 @@ import { ConnectionManager } from "../../connections/connection-manager.service.
 import { DefaultMcpClientConnector } from "../../connections/mcp-client-connector.service.js";
 import { startMockMcpServer } from "../../connections/tests/mock-mcp-server.js";
 import { ToolCatalogService } from "../tool-catalog.service.js";
+import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 import { createCredentialServices, bootBackends, withStubAgentPrincipal } from "../../credentials/tests/test-helpers.js";
 import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
 
@@ -49,11 +50,13 @@ describe("ToolCatalogService", () => {
     const connectionManager = new ConnectionManager(
       configService,
       new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
     );
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
       createPolicyEnforcement(configService),
+      createNoopLogger(),
     );
 
     try {
@@ -104,11 +107,13 @@ describe("ToolCatalogService", () => {
     const connectionManager = new ConnectionManager(
       configService,
       new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
     );
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
       createPolicyEnforcement(configService),
+      createNoopLogger(),
     );
 
     try {
@@ -146,7 +151,9 @@ describe("ToolCatalogService", () => {
       ],
     });
     const { credentialResolver } = createCredentialServices();
-    const connectionManager = new ConnectionManager(configService, {
+    const connectionManager = new ConnectionManager(
+      configService,
+      {
       connect: async (server) => {
         const client = await new DefaultMcpClientConnector(
           credentialResolver,
@@ -158,11 +165,14 @@ describe("ToolCatalogService", () => {
         }
         return client;
       },
-    });
+    },
+      createNoopLogger(),
+    );
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
       createPolicyEnforcement(configService),
+      createNoopLogger(),
     );
 
     try {
@@ -199,11 +209,13 @@ describe("ToolCatalogService", () => {
     const connectionManager = new ConnectionManager(
       configService,
       new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
     );
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
       createPolicyEnforcement(configService),
+      createNoopLogger(),
     );
 
     await bootBackends(connectionManager, catalogService);

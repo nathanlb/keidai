@@ -9,6 +9,7 @@ import { ToriiConfigService } from "../../../config/torii-config.service.js";
 import { ToolCatalogService } from "../../../catalog/tool-catalog.service.js";
 import { bootBackends, createCredentialServices, withStubAgentPrincipal } from "../test-helpers.js";
 import { createPolicyEnforcement } from "../../../policy/tests/test-helpers.js";
+import { createCapturingLogger } from "../../../logging/tests/test-helpers.js";
 
 function serviceKeyServer(
   name: string,
@@ -51,21 +52,18 @@ describe("service_key credentials with tools/list", () => {
       servers: [serviceKeyServer("stripe", mockServer.url, secretKey)],
     });
     const { credentialResolver } = createCredentialServices();
+    const logger = createCapturingLogger();
     const connectionManager = new ConnectionManager(
       configService,
       new DefaultMcpClientConnector(credentialResolver),
+      logger,
     );
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
       createPolicyEnforcement(configService),
+      logger,
     );
-
-    const logs: string[] = [];
-    const originalError = console.error;
-    console.error = (message?: unknown) => {
-      logs.push(String(message));
-    };
 
     try {
       await bootBackends(connectionManager, catalogService);
@@ -74,12 +72,10 @@ describe("service_key credentials with tools/list", () => {
       );
 
       assert.deepEqual(tools.map((tool) => tool.name), ["stripe.list_customers"]);
-      for (const log of logs) {
-        assert.doesNotMatch(log, new RegExp(secretKey));
-        assert.doesNotMatch(log, /Bearer/);
-      }
+      const serialized = JSON.stringify(logger.logs);
+      assert.doesNotMatch(serialized, new RegExp(secretKey));
+      assert.doesNotMatch(serialized, /Bearer/);
     } finally {
-      console.error = originalError;
       await closeManagerConnections(connectionManager);
       await mockServer.close();
     }
@@ -99,21 +95,18 @@ describe("service_key credentials with tools/list", () => {
       servers: [serviceKeyServer("stripe", mockServer.url, wrongKey)],
     });
     const { credentialResolver } = createCredentialServices();
+    const logger = createCapturingLogger();
     const connectionManager = new ConnectionManager(
       configService,
       new DefaultMcpClientConnector(credentialResolver),
+      logger,
     );
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
       createPolicyEnforcement(configService),
+      logger,
     );
-
-    const errors: string[] = [];
-    const originalError = console.error;
-    console.error = (message?: unknown) => {
-      errors.push(String(message));
-    };
 
     try {
       await bootBackends(connectionManager, catalogService);
@@ -123,12 +116,13 @@ describe("service_key credentials with tools/list", () => {
 
       assert.equal(connectionManager.get("stripe")?.state, "failed");
       assert.deepEqual(tools, []);
-      assert.equal(errors.length, 1);
-      assert.match(errors[0] ?? "", /Failed to connect to backend "stripe"/);
-      assert.doesNotMatch(errors[0] ?? "", new RegExp(wrongKey));
-      assert.doesNotMatch(errors[0] ?? "", /Bearer/);
+      assert.equal(logger.logs.length, 1);
+      assert.equal(logger.logs[0]?.event, "connection.failed");
+      assert.equal(logger.logs[0]?.fields.server, "stripe");
+      const serialized = JSON.stringify(logger.logs);
+      assert.doesNotMatch(serialized, new RegExp(wrongKey));
+      assert.doesNotMatch(serialized, /Bearer/);
     } finally {
-      console.error = originalError;
       await closeManagerConnections(connectionManager);
       await mockServer.close();
     }
@@ -159,21 +153,18 @@ describe("service_key credentials with Stripe MCP", () => {
       ],
     });
     const { credentialResolver } = createCredentialServices();
+    const logger = createCapturingLogger();
     const connectionManager = new ConnectionManager(
       configService,
       new DefaultMcpClientConnector(credentialResolver),
+      logger,
     );
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
       createPolicyEnforcement(configService),
+      logger,
     );
-
-    const logs: string[] = [];
-    const originalError = console.error;
-    console.error = (message?: unknown) => {
-      logs.push(String(message));
-    };
 
     try {
       await bootBackends(connectionManager, catalogService);
@@ -183,11 +174,8 @@ describe("service_key credentials with Stripe MCP", () => {
 
       assert.ok(tools.length > 0);
       assert.ok(tools.some((tool) => tool.name.startsWith("stripe.")));
-      for (const log of logs) {
-        assert.doesNotMatch(log, new RegExp(stripeKey));
-      }
+      assert.doesNotMatch(JSON.stringify(logger.logs), new RegExp(stripeKey));
     } finally {
-      console.error = originalError;
       await closeManagerConnections(connectionManager);
     }
   });

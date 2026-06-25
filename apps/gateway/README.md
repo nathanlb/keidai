@@ -1,6 +1,6 @@
 # ⛩️ Torii — MCP Gateway
 
-Torii is the MCP gateway component of [Keidai](https://app.notion.com/p/Keidai-Agent-Platform-38307ec181ff815b8276d59d005fd612) — the agent platform monorepo. One endpoint for agents, fan-out to many backends. v0 is a long-lived proxy process + a config file, with structured traces to stdout/OTel.
+Torii is the MCP gateway component of [Keidai](https://app.notion.com/p/Keidai-Agent-Platform-38307ec181ff815b8276d59d005fd612) — the agent platform monorepo. One endpoint for agents, fan-out to many backends. v0 is a long-lived proxy process + a config file, with structured traces to stdout/OTel and structured operational logs to stderr.
 
 **Keidai** (境内) is the umbrella; **Torii** (鳥居, the gate) is this service. Torii owns access control and credential lifecycle at the MCP boundary. Agent identity (Fuda/AIdP) and execution (Shaiden/Runtime) live elsewhere in Keidai.
 
@@ -24,6 +24,7 @@ src/
   dispatch/     # route tools/call to the correct backend
   policy/       # list-level and call-level policy enforcement
   trace/        # structured CallTrace emission
+  logging/      # structured operational logs (stderr)
   identity/     # inbound agent identity (k8s SA OIDC in v0)
   mcp/          # inbound gateway MCP server (Fastify + SDK)
   container.ts  # tsyringe registrations
@@ -43,6 +44,17 @@ pnpm --filter @keidai/gateway dev
 ```
 
 Environment variables load from the repo root `.env` (shared) then `apps/gateway/.env` (overrides). See [`.env.example`](.env.example) and the repo root [`.env.example`](../../.env.example).
+
+## Log streams
+
+During normal gateway operation Torii uses two machine-readable streams:
+
+| Stream | Content | Schema |
+|--------|---------|--------|
+| **stdout** | `CallTrace` audit records (`tools/call`) only | JSON with `recordType: "call_trace"` and `traceId` |
+| **stderr** | Structured operational logs (boot, connections, catalog, policy, OAuth, HTTP access) | JSON with `recordType: "log"`, `level`, and `event` |
+
+Human-readable CLI output (`torii link`, config validation errors) may still use prose on the terminal; it is not part of the operational log stream.
 
 Or run the built CLI:
 

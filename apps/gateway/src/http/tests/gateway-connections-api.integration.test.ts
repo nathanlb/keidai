@@ -10,6 +10,7 @@ import { ToriiConfigService } from "../../config/torii-config.service.js";
 import type { ConnectionStatus, ConnectionsResponse } from "@keidai/shared";
 import type { GatewayHttpServer } from "../gateway-http-server.service.js";
 import { createTestGatewayHttpServer } from "./test-helpers.js";
+import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 import {
   createCredentialServices,
   withStubAgentPrincipal,
@@ -137,10 +138,7 @@ describe("Gateway /api/connections endpoints", () => {
       ],
     });
     const { credentialResolver } = createCredentialServices();
-    const connectionManager = new ConnectionManager(
-      configService,
-      new DefaultMcpClientConnector(credentialResolver),
-    );
+    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
     const gatewayHttpServer = createConnectionsGateway(
       configService,
       connectionManager,
@@ -179,10 +177,7 @@ describe("Gateway /api/connections endpoints", () => {
       servers: [serverConfig("alpha", mockServer.url)],
     });
     const { credentialResolver } = createCredentialServices();
-    const connectionManager = new ConnectionManager(
-      configService,
-      new DefaultMcpClientConnector(credentialResolver),
-    );
+    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
     const gatewayHttpServer = createConnectionsGateway(
       configService,
       connectionManager,

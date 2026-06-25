@@ -23,6 +23,7 @@ import { GatewayHttpServer } from "../gateway-http-server.service.js";
 import { GatewayMcpServer } from "../../mcp/gateway-mcp-server.service.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import type { TraceEmitter } from "../../trace/types/trace-emitter.js";
+import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 import {
   createInboundIdentityService,
   FixedIdentityResolver,
@@ -43,12 +44,7 @@ export function createOAuthApiController(
     options.pendingLinkStore ?? new InMemoryPendingLinkStore();
 
   return new OAuthApiController(
-    new OAuthLinkService(
-      configService,
-      tokenRepository,
-      clientRepository,
-      pendingLinkStore,
-    ),
+    new OAuthLinkService(configService, tokenRepository, clientRepository, pendingLinkStore, createNoopLogger()),
     new OAuthConnectionReadService(
       configService,
       tokenRepository,
@@ -74,25 +70,19 @@ export function createTestGatewayHttpServer(
   const configRead = new ConfigReadService(configService);
   const connectionManager =
     options.connectionManager ??
-    new ConnectionManager(configService, {
-      connect: async () => {
-        throw new Error("connection manager not configured for test");
+    new ConnectionManager(
+      configService,
+      {
+        connect: async () => {
+          throw new Error("connection manager not configured for test");
+        },
       },
-    });
+      createNoopLogger(),
+    );
   const connectionRead = new ConnectionReadService(connectionManager);
-  const mcpServer = new GatewayMcpServer(
-    toolCatalog,
-    toolDispatch,
-    createInboundIdentityService(options.identityResolver),
-    options.traceEmitter ?? new CapturingTraceEmitter(),
-  );
+  const mcpServer = new GatewayMcpServer(toolCatalog, toolDispatch, createInboundIdentityService(options.identityResolver), options.traceEmitter ?? new CapturingTraceEmitter(), createNoopLogger());
 
-  return new GatewayHttpServer(
-    new ConfigApiController(configRead),
-    new ConnectionsApiController(connectionRead),
-    options.oauthApi ?? createOAuthApiController(configService),
-    mcpServer,
-  );
+  return new GatewayHttpServer(new ConfigApiController(configRead), new ConnectionsApiController(connectionRead), options.oauthApi ?? createOAuthApiController(configService), mcpServer, createNoopLogger());
 }
 
 export { FixedIdentityResolver };

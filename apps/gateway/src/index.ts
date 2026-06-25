@@ -12,6 +12,7 @@ import { ToriiConfigService } from "./config/torii-config.service.js";
 import { runWithAgentPrincipal } from "./identity/agent-principal-context.js";
 import { resolveBootAgentPrincipal } from "./identity/stub-agent-principal.js";
 import { GatewayHttpServer } from "./http/gateway-http-server.service.js";
+import { StructuredLoggerService } from "./logging/structured-logger.service.js";
 import { isLinkCommand, runLinkCommand } from "./cli/link-command.js";
 
 function resolvePort(): number {
@@ -30,10 +31,11 @@ export async function startServer(): Promise<void> {
   const connectionManager = app.resolve(ConnectionManager);
   const toolCatalog = app.resolve(ToolCatalogService);
   const gatewayHttpServer = app.resolve(GatewayHttpServer);
+  const logger = app.resolve(StructuredLoggerService);
 
-  console.log(
-    `Loaded Torii config with ${configService.get().servers.length} server(s)`,
-  );
+  logger.info("boot.config_loaded", {
+    serverCount: configService.get().servers.length,
+  });
 
   const bootPrincipal = resolveBootAgentPrincipal(config);
 
@@ -48,17 +50,17 @@ export async function startServer(): Promise<void> {
       (connection) => connection.state === "failed",
     ).length;
 
-    console.log(`Backend connections: ${connected} connected, ${failed} failed`);
+    logger.info("boot.connections_ready", { connected, failed });
 
     const catalog = await toolCatalog.refresh();
-    console.log(`Tool catalog: ${catalog.length} tool(s) from connected backends`);
+    logger.info("boot.catalog_ready", { toolCount: catalog.length });
   });
 
   const gateway = await gatewayHttpServer.start({
     host: process.env.TORII_HOST ?? "127.0.0.1",
     port: resolvePort(),
   });
-  console.log(`Gateway MCP endpoint: ${gateway.url}`);
+  logger.info("boot.listening", { url: gateway.url });
 }
 
 async function main(): Promise<void> {

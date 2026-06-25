@@ -10,6 +10,7 @@ import { ToolCatalogService } from "../../../catalog/tool-catalog.service.js";
 import { createCredentialServices, withStubAgentPrincipal } from "../test-helpers.js";
 import { createPolicyEnforcement } from "../../../policy/tests/test-helpers.js";
 import { STUB_AGENT_PRINCIPAL } from "../../../identity/stub-agent-principal.js";
+import { createCapturingLogger, createNoopLogger } from "../../../logging/tests/test-helpers.js";
 
 function userOAuthServer(
   name: string,
@@ -61,15 +62,8 @@ describe("user_oauth credentials with tools/list", () => {
       },
       servers: [userOAuthServer("github", mockServer.url)],
     });
-    const connectionManager = new ConnectionManager(
-      configService,
-      new DefaultMcpClientConnector(credentialResolver),
-    );
-    const catalogService = new ToolCatalogService(
-      connectionManager,
-      credentialResolver,
-      createPolicyEnforcement(configService),
-    );
+    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
+    const catalogService = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
 
     try {
       await withStubAgentPrincipal(async () => {
@@ -102,21 +96,9 @@ describe("user_oauth credentials with tools/list", () => {
       },
       servers: [userOAuthServer("github", mockServer.url)],
     });
-    const connectionManager = new ConnectionManager(
-      configService,
-      new DefaultMcpClientConnector(credentialResolver),
-    );
-    const catalogService = new ToolCatalogService(
-      connectionManager,
-      credentialResolver,
-      createPolicyEnforcement(configService),
-    );
-
-    const errors: string[] = [];
-    const originalError = console.error;
-    console.error = (message?: unknown) => {
-      errors.push(String(message));
-    };
+    const logger = createCapturingLogger();
+    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), logger);
+    const catalogService = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), logger);
 
     try {
       await withStubAgentPrincipal(async () => {
@@ -124,15 +106,13 @@ describe("user_oauth credentials with tools/list", () => {
         const tools = await catalogService.listToolsForAgent();
 
         assert.deepEqual(tools, []);
-        assert.equal(errors.length, 1);
-        assert.match(
-          errors[0] ?? "",
-          /requires OAuth linking for provider "github"/,
-        );
-        assert.doesNotMatch(errors[0] ?? "", /Bearer/);
+        assert.equal(logger.logs.length, 1);
+        assert.equal(logger.logs[0]?.event, "catalog.linking_required");
+        assert.equal(logger.logs[0]?.fields.provider, "github");
+        const serialized = JSON.stringify(logger.logs);
+        assert.doesNotMatch(serialized, /Bearer/);
       });
     } finally {
-      console.error = originalError;
       await closeManagerConnections(connectionManager);
       await mockServer.close();
     }

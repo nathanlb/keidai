@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import type { OAuthInitiateResponse } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
 import { ToriiConfigService } from "../config/torii-config.service.js";
+import { StructuredLoggerService } from "../logging/structured-logger.service.js";
+import type { Logger } from "../logging/types/logger.js";
 import {
   OAUTH_CLIENT_REPOSITORY,
   type OAuthClientRepository,
@@ -64,6 +66,8 @@ export class OAuthLinkService {
     private readonly clientRepository: OAuthClientRepository,
     @inject(PENDING_OAUTH_LINK_STORE)
     private readonly pendingLinkStore: PendingOAuthLinkStore,
+    @inject(StructuredLoggerService)
+    private readonly logger: Logger,
   ) {}
 
   buildCallbackRedirectUri(baseUrl: string, provider: string): string {
@@ -117,6 +121,11 @@ export class OAuthLinkService {
       },
     );
 
+    this.logger.info("oauth.initiated", {
+      provider,
+      ownerId: resolvedOwnerId,
+    });
+
     return { authorizationUrl, linkId };
   }
 
@@ -127,12 +136,24 @@ export class OAuthLinkService {
     if (query.error) {
       const error =
         query.error_description ?? query.error ?? "Authorization denied";
+      const ownerId = this.tryResolveOwnerIdFromState(query.state);
+      this.logger.warn("oauth.callback_failed", {
+        provider,
+        ...(ownerId ? { ownerId } : {}),
+        error,
+      });
       await this.failLatestLink(provider, query.state, error);
       return { success: false, error };
     }
 
     const resolved = await this.resolveCallbackContext(provider, query);
     if (isCallbackError(resolved)) {
+      const ownerId = this.tryResolveOwnerIdFromState(query.state);
+      this.logger.warn("oauth.callback_failed", {
+        provider,
+        ...(ownerId ? { ownerId } : {}),
+        error: resolved.error,
+      });
       return resolved;
     }
 
@@ -146,7 +167,14 @@ export class OAuthLinkService {
     }
 
     const resolvedOwnerId = resolveOAuthOwnerId(config, ownerId);
-    return this.tokenRepository.delete(resolvedOwnerId, provider);
+    const removed = await this.tokenRepository.delete(resolvedOwnerId, provider);
+    if (removed) {
+      this.logger.info("oauth.unlinked", {
+        provider,
+        ownerId: resolvedOwnerId,
+      });
+    }
+    return removed;
   }
 
   private async resolveCallbackContext(
@@ -244,12 +272,32 @@ export class OAuthLinkService {
         ...pendingLink,
         status: "completed",
       });
+      this.logger.info("oauth.callback_success", {
+        provider,
+        ownerId: pendingLink.ownerId,
+      });
       return { success: true };
     } catch (error) {
-      return this.callbackFailure(
-        error instanceof Error ? error.message : "OAuth code exchange failed",
-        pendingLink.linkId,
-      );
+      const message =
+        error instanceof Error ? error.message : "OAuth code exchange failed";
+      this.logger.warn("oauth.callback_failed", {
+        provider,
+        ownerId: pendingLink.ownerId,
+        error: message,
+      });
+      return this.callbackFailure(message, pendingLink.linkId);
+    }
+  }
+
+  private tryResolveOwnerIdFromState(state: string | undefined): string | undefined {
+    if (!state) {
+      return undefined;
+    }
+
+    try {
+      return decodeOAuthLinkState(state).ownerId;
+    } catch {
+      return undefined;
     }
   }
 
