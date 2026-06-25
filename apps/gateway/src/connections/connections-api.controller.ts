@@ -1,7 +1,7 @@
+import { CONNECTION_SSE_EVENT, type ConnectionSseEvent } from "@keidai/shared";
 import type { FastifyInstance } from "fastify";
 import { inject, injectable } from "tsyringe";
 import { ConnectionReadService } from "./connection-read.service.js";
-import type { ConnectionStateChangedEvent } from "./types/connections.dto.js";
 
 @injectable()
 export class ConnectionsApiController {
@@ -23,13 +23,16 @@ export class ConnectionsApiController {
         Connection: "keep-alive",
       });
 
-      const writeEvent = (event: ConnectionStateChangedEvent): void => {
+      const writeEvent = (event: ConnectionSseEvent): void => {
         reply.raw.write(`event: ${event.type}\n`);
         reply.raw.write(`data: ${JSON.stringify(event.connection)}\n\n`);
       };
 
       for (const connection of this.connectionRead.listConnections().connections) {
-        writeEvent({ type: "connection_state_changed", connection });
+        writeEvent({
+          type: CONNECTION_SSE_EVENT.stateChanged,
+          connection,
+        });
       }
 
       const unsubscribe = this.connectionRead.subscribe(writeEvent);

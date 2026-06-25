@@ -3,7 +3,7 @@ import type {
   ConfigAgentsResponse,
   ConfigOAuthProvidersResponse,
   ConfigServersResponse,
-} from "./types/config.dto.js";
+} from "@keidai/shared";
 import { ToriiConfigService } from "./torii-config.service.js";
 import {
   projectConfigAgents,

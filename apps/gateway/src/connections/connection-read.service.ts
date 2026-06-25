@@ -1,9 +1,10 @@
+import {
+  CONNECTION_SSE_EVENT,
+  type ConnectionSseEvent,
+  type ConnectionsResponse,
+} from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
 import { ConnectionManager } from "./connection-manager.service.js";
-import type {
-  ConnectionStateChangedEvent,
-  ConnectionsResponse,
-} from "./types/connections.dto.js";
 import { projectPublicConnection } from "./utils/project-connections-api.js";
 
 /** Read-only projections of live backend connection state for UI consumption. */
@@ -22,10 +23,10 @@ export class ConnectionReadService {
     };
   }
 
-  subscribe(listener: (event: ConnectionStateChangedEvent) => void): () => void {
+  subscribe(listener: (event: ConnectionSseEvent) => void): () => void {
     return this.connectionManager.subscribe((connection) => {
       listener({
-        type: "connection_state_changed",
+        type: CONNECTION_SSE_EVENT.stateChanged,
         connection: projectPublicConnection(connection),
       });
     });

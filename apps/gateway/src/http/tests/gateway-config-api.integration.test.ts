@@ -8,7 +8,7 @@ import type {
   ConfigAgentsResponse,
   ConfigOAuthProvidersResponse,
   ConfigServersResponse,
-} from "../../config/types/config.dto.js";
+} from "@keidai/shared";
 import { ConnectionManager } from "../../connections/connection-manager.service.js";
 import { ConnectionsApiController } from "../../connections/connections-api.controller.js";
 import { ConnectionReadService } from "../../connections/connection-read.service.js";

@@ -1,9 +1,9 @@
+import type { ConnectionStatus } from "@keidai/shared";
 import type { BackendConnection } from "../types/backend-connection.js";
-import type { PublicConnectionStatus } from "../types/connections.dto.js";
 
 export function projectPublicConnection(
   connection: BackendConnection,
-): PublicConnectionStatus {
+): ConnectionStatus {
   return {
     name: connection.config.name,
     state: connection.state,

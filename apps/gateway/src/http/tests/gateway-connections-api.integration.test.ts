@@ -11,7 +11,7 @@ import { startMockMcpServer } from "../../connections/tests/mock-mcp-server.js";
 import { ConfigApiController } from "../../config/config-api.controller.js";
 import { ConfigReadService } from "../../config/config-read.service.js";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
-import type { ConnectionsResponse } from "../../connections/types/connections.dto.js";
+import type { ConnectionStatus, ConnectionsResponse } from "@keidai/shared";
 import { GatewayHttpServer } from "../gateway-http-server.service.js";
 import { GatewayMcpServer } from "../../mcp/gateway-mcp-server.service.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
@@ -81,14 +81,14 @@ function parseSseChunk(chunk: string): Array<{ event: string; data: string }> {
 async function readSseEventsUntil(
   url: string,
   predicate: (
-    events: Array<{ event: string; connection: ConnectionsResponse["connections"][number] }>,
+    events: Array<{ event: string; connection: ConnectionStatus }>,
   ) => boolean,
   timeoutMs = 5_000,
-): Promise<Array<{ event: string; connection: ConnectionsResponse["connections"][number] }>> {
+): Promise<Array<{ event: string; connection: ConnectionStatus }>> {
   return new Promise((resolve, reject) => {
     const parsed: Array<{
       event: string;
-      connection: ConnectionsResponse["connections"][number];
+      connection: ConnectionStatus;
     }> = [];
     let buffer = "";
 
@@ -106,7 +106,7 @@ async function readSseEventsUntil(
           }
           parsed.push({
             event: event.event,
-            connection: JSON.parse(event.data) as ConnectionsResponse["connections"][number],
+            connection: JSON.parse(event.data) as ConnectionStatus,
           });
         }
 

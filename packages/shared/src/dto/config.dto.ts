@@ -1,4 +1,4 @@
-import type { AgentSubjectConfig } from "@keidai/shared";
+import type { AgentSubjectConfig } from "../config.js";
 
 /** Credential metadata exposed to the UI — no secret values. */
 export type PublicCredentialConfig =
@@ -33,14 +33,17 @@ export interface PublicAgentConfig {
   groups: string[];
 }
 
+/** Response body for `GET /api/config/servers`. */
 export interface ConfigServersResponse {
   servers: PublicServerConfig[];
 }
 
+/** Response body for `GET /api/config/oauth-providers`. */
 export interface ConfigOAuthProvidersResponse {
   providers: Record<string, PublicOAuthProviderConfig>;
 }
 
+/** Response body for `GET /api/config/agents`. */
 export interface ConfigAgentsResponse {
   agents: PublicAgentConfig[];
 }
