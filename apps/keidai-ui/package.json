@@ -14,21 +14,21 @@
     "lint": "pnpm typecheck"
   },
   "dependencies": {
-    "@fastify/http-proxy": "^11.4.0",
+    "@fastify/http-proxy": "^11.5.0",
     "@fastify/static": "^8.3.0",
     "@keidai/ui": "workspace:*",
     "fastify": "^5.8.5",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-router-dom": "^7.9.1"
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-router-dom": "^7.18.0"
   },
   "devDependencies": {
     "@types/node": "^22.20.0",
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
-    "@vitejs/plugin-react": "^5.0.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.2.0",
     "tsx": "^4.22.4",
     "typescript": "^5.9.3",
-    "vite": "^7.1.5"
+    "vite": "^7.3.5"
   }
 }
