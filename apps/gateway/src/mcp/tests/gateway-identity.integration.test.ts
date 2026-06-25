@@ -23,6 +23,7 @@ import {
 } from "../../identity/tests/test-helpers.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
+import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 
 const ISSUER = "https://kubernetes.default.svc.cluster.local";
 const AUDIENCE = "https://kubernetes.default.svc.cluster.local";
@@ -141,15 +142,8 @@ describe("Gateway inbound identity", () => {
       servers: [noneServer("deepwiki", backend.url)],
     });
     const { credentialResolver } = createCredentialServices();
-    const connectionManager = new ConnectionManager(
-      configService,
-      new DefaultMcpClientConnector(credentialResolver),
-    );
-    const toolCatalog = new ToolCatalogService(
-      connectionManager,
-      credentialResolver,
-      createPolicyEnforcement(configService),
-    );
+    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
+    const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
     const traceEmitter = new CapturingTraceEmitter();
     const toolDispatch = new ToolDispatchService(
       toolCatalog,
@@ -209,15 +203,8 @@ describe("Gateway inbound identity", () => {
       servers: [noneServer("deepwiki", backend.url)],
     });
     const { credentialResolver } = createCredentialServices();
-    const connectionManager = new ConnectionManager(
-      configService,
-      new DefaultMcpClientConnector(credentialResolver),
-    );
-    const toolCatalog = new ToolCatalogService(
-      connectionManager,
-      credentialResolver,
-      createPolicyEnforcement(configService),
-    );
+    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
+    const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
     const traceEmitter = new CapturingTraceEmitter();
     const toolDispatch = new ToolDispatchService(
       toolCatalog,

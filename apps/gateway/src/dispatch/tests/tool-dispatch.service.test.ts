@@ -15,6 +15,7 @@ import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter
 import type { CapturingTraceEmitter as CapturingTraceEmitterType } from "../../trace/tests/capturing-trace-emitter.js";
 import { PolicyDeniedError } from "../../policy/types/policy-denied.js";
 import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
+import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 import { ToolDispatchService } from "../tool-dispatch.service.js";
 import {
   BackendUnavailableError,
@@ -98,15 +99,8 @@ async function createDispatchStack(
     },
     servers,
   });
-  const connectionManager = new ConnectionManager(
-    configService,
-    new DefaultMcpClientConnector(credentialResolver),
-  );
-  const toolCatalog = new ToolCatalogService(
-    connectionManager,
-    credentialResolver,
-    createPolicyEnforcement(configService),
-  );
+  const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
+  const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
   const traceEmitter = new CapturingTraceEmitter();
   const toolDispatch = new ToolDispatchService(
     toolCatalog,
@@ -302,15 +296,8 @@ describe("ToolDispatchService", () => {
       oauth_providers: oauthProviders,
       servers: [userOAuthServer("github", mockServer.url)],
     });
-    const connectionManager = new ConnectionManager(
-      configService,
-      new DefaultMcpClientConnector(credentialResolver),
-    );
-    const toolCatalog = new ToolCatalogService(
-      connectionManager,
-      credentialResolver,
-      createPolicyEnforcement(configService),
-    );
+    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
+    const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
     const traceEmitter = new CapturingTraceEmitter();
     const toolDispatch = new ToolDispatchService(
       toolCatalog,

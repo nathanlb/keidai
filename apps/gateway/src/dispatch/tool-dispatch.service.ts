@@ -170,10 +170,6 @@ export class ToolDispatchService {
         return toLinkingRequiredToolResult(error);
       }
 
-      if (error instanceof CredentialResolutionError) {
-        console.error(error.message);
-      }
-
       emit({
         server: entry.server,
         tool: entry.bareName,

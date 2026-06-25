@@ -22,6 +22,7 @@ import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
 import { GatewayHttpServer } from "../gateway-http-server.service.js";
 import { GatewayMcpServer } from "../../mcp/gateway-mcp-server.service.js";
 import { createOAuthApiController, createTestGatewayHttpServer } from "./test-helpers.js";
+import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 
 const sampleConfig: ToriiConfig = {
   oauth_providers: {
@@ -59,15 +60,8 @@ const sampleConfig: ToriiConfig = {
 function createGateway(): GatewayHttpServer {
   const configService = new ToriiConfigService(sampleConfig);
   const { credentialResolver } = createCredentialServices();
-  const connectionManager = new ConnectionManager(
-    configService,
-    new DefaultMcpClientConnector(credentialResolver),
-  );
-  const toolCatalog = new ToolCatalogService(
-    connectionManager,
-    credentialResolver,
-    createPolicyEnforcement(configService),
-  );
+  const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
+  const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
   const toolDispatch = new ToolDispatchService(
     toolCatalog,
     connectionManager,
@@ -149,11 +143,15 @@ describe("Gateway /api/config endpoints", () => {
       new ConfigApiController(new ConfigReadService(configService)),
       new ConnectionsApiController(
         new ConnectionReadService(
-          new ConnectionManager(configService, {
-            connect: async () => {
-              throw new Error("unused");
+          new ConnectionManager(
+            configService,
+            {
+              connect: async () => {
+                throw new Error("unused");
+              },
             },
-          }),
+            createNoopLogger(),
+          ),
         ),
       ),
       createOAuthApiController(configService),
@@ -162,7 +160,9 @@ describe("Gateway /api/config endpoints", () => {
         {} as ToolDispatchService,
         {} as never,
         new CapturingTraceEmitter(),
+        createNoopLogger(),
       ),
+      createNoopLogger(),
     );
     const gateway = await gatewayHttpServer.start();
 

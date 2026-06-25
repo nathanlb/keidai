@@ -14,6 +14,8 @@ import { CredentialResolutionError, LinkingRequiredError } from "../credentials/
 import { ToolDispatchService } from "../dispatch/tool-dispatch.service.js";
 import { runWithAgentPrincipal } from "../identity/agent-principal-context.js";
 import { InboundIdentityService } from "../identity/inbound-identity.service.js";
+import { StructuredLoggerService } from "../logging/structured-logger.service.js";
+import type { Logger } from "../logging/types/logger.js";
 import { IdentityDeniedError } from "../identity/types/identity-denied.js";
 import { IdentityResolutionError } from "../identity/types/identity-resolution-error.js";
 import {
@@ -41,6 +43,8 @@ export class GatewayMcpServer {
     private readonly inboundIdentity: InboundIdentityService,
     @inject(TraceEmitterService)
     private readonly traceEmitter: TraceEmitterService,
+    @inject(StructuredLoggerService)
+    private readonly logger: Logger,
   ) {}
 
   registerRoutes(app: FastifyInstance): void {
@@ -85,7 +89,9 @@ export class GatewayMcpServer {
             void mcpServer.close();
           });
         } catch (error) {
-          console.error("Error handling gateway MCP request:", error);
+          const message =
+            error instanceof Error ? error.message : "Internal server error";
+          this.logger.error("mcp.request_error", { error: message });
           if (!reply.raw.headersSent) {
             reply
               .code(500)

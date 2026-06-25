@@ -1,6 +1,8 @@
 import type { ServerConfig } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
 import { ToriiConfigService } from "../config/torii-config.service.js";
+import { StructuredLoggerService } from "../logging/structured-logger.service.js";
+import type { Logger } from "../logging/types/logger.js";
 import { DefaultMcpClientConnector } from "./mcp-client-connector.service.js";
 import type { BackendConnection } from "./types/backend-connection.js";
 import type { McpClientConnector } from "./types/mcp-client-connector.js";
@@ -17,6 +19,8 @@ export class ConnectionManager {
     private readonly configService: ToriiConfigService,
     @inject(DefaultMcpClientConnector)
     private readonly connector: McpClientConnector,
+    @inject(StructuredLoggerService)
+    private readonly logger: Logger,
   ) {}
 
   async connectAll(): Promise<void> {
@@ -69,9 +73,11 @@ export class ConnectionManager {
       });
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      console.error(
-        `Failed to connect to backend "${server.name}" (${server.transport.url}): ${err.message}`,
-      );
+      this.logger.error("connection.failed", {
+        server: server.name,
+        url: server.transport.url,
+        error: err.message,
+      });
       this.setConnection(server.name, {
         config: server,
         state: "failed",

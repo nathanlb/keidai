@@ -14,6 +14,7 @@ import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
 import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
+import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 
 function userOAuthServer(
   name: string,
@@ -108,15 +109,8 @@ describe("Gateway MCP tools/call", () => {
         noneServer("deepwiki", deepwikiBackend.url),
       ],
     });
-    const connectionManager = new ConnectionManager(
-      configService,
-      new DefaultMcpClientConnector(credentialResolver),
-    );
-    const toolCatalog = new ToolCatalogService(
-      connectionManager,
-      credentialResolver,
-      createPolicyEnforcement(configService),
-    );
+    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
+    const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
     const toolDispatch = new ToolDispatchService(
       toolCatalog,
       connectionManager,
@@ -187,15 +181,8 @@ describe("Gateway MCP tools/call", () => {
       ],
     });
     const { credentialResolver } = createCredentialServices();
-    const connectionManager = new ConnectionManager(
-      configService,
-      new DefaultMcpClientConnector(credentialResolver),
-    );
-    const toolCatalog = new ToolCatalogService(
-      connectionManager,
-      credentialResolver,
-      createPolicyEnforcement(configService),
-    );
+    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
+    const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
     const toolDispatch = new ToolDispatchService(
       toolCatalog,
       connectionManager,
@@ -255,15 +242,8 @@ describe("Gateway MCP tools/call", () => {
       ],
     });
     const { credentialResolver } = createCredentialServices();
-    const connectionManager = new ConnectionManager(
-      configService,
-      new DefaultMcpClientConnector(credentialResolver),
-    );
-    const toolCatalog = new ToolCatalogService(
-      connectionManager,
-      credentialResolver,
-      createPolicyEnforcement(configService),
-    );
+    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
+    const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
     const toolDispatch = new ToolDispatchService(
       toolCatalog,
       connectionManager,

@@ -8,6 +8,7 @@ import type { McpClientConnector } from "../types/mcp-client-connector.js";
 import { DefaultMcpClientConnector } from "../mcp-client-connector.service.js";
 import { startMockMcpServer } from "./mock-mcp-server.js";
 import { createCredentialServices, withStubAgentPrincipal } from "../../credentials/tests/test-helpers.js";
+import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 
 function serverConfig(
   name: string,
@@ -43,10 +44,7 @@ describe("ConnectionManager", () => {
       servers: [serverConfig("alpha", mockServer.url)],
     });
     const { credentialResolver } = createCredentialServices();
-    const manager = new ConnectionManager(
-      configService,
-      new DefaultMcpClientConnector(credentialResolver),
-    );
+    const manager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
 
     try {
       await withStubAgentPrincipal(() => manager.connectAll());
@@ -73,10 +71,7 @@ describe("ConnectionManager", () => {
       ],
     });
     const { credentialResolver } = createCredentialServices();
-    const manager = new ConnectionManager(
-      configService,
-      new DefaultMcpClientConnector(credentialResolver),
-    );
+    const manager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
 
     try {
       await withStubAgentPrincipal(() => manager.connectAll());
@@ -111,10 +106,7 @@ describe("ConnectionManager", () => {
       ],
     });
     const { credentialResolver } = createCredentialServices();
-    const manager = new ConnectionManager(
-      configService,
-      new DefaultMcpClientConnector(credentialResolver),
-    );
+    const manager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
 
     try {
       await withStubAgentPrincipal(() => manager.connectAll());
@@ -143,7 +135,7 @@ describe("ConnectionManager", () => {
         throw new Error("offline");
       },
     };
-    const manager = new ConnectionManager(configService, connector);
+    const manager = new ConnectionManager(configService, connector, createNoopLogger());
 
     await manager.connectAll();
 

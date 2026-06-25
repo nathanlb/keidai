@@ -40,6 +40,7 @@ import { tryResolveK8sSaOidcConfig } from "./identity/utils/resolve-k8s-sa-oidc-
 import { GatewayHttpServer } from "./http/gateway-http-server.service.js";
 import { GatewayMcpServer } from "./mcp/gateway-mcp-server.service.js";
 import { PolicyEnforcementService } from "./policy/policy-enforcement.service.js";
+import { StructuredLoggerService } from "./logging/structured-logger.service.js";
 import { TraceEmitterService } from "./trace/trace-emitter.service.js";
 
 const SINGLETON = { lifecycle: Lifecycle.Singleton } as const;
@@ -181,6 +182,11 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
   appContainer.register(
     ToolCatalogService,
     { useClass: ToolCatalogService },
+    SINGLETON,
+  );
+  appContainer.register(
+    StructuredLoggerService,
+    { useClass: StructuredLoggerService },
     SINGLETON,
   );
   appContainer.register(

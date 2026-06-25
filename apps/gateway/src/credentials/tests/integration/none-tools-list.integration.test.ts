@@ -10,6 +10,7 @@ import { ToriiConfigService } from "../../../config/torii-config.service.js";
 import { ToolCatalogService } from "../../../catalog/tool-catalog.service.js";
 import { bootBackends, createCredentialServices, withStubAgentPrincipal } from "../test-helpers.js";
 import { createPolicyEnforcement } from "../../../policy/tests/test-helpers.js";
+import { createNoopLogger } from "../../../logging/tests/test-helpers.js";
 
 function noneServer(
   name: string,
@@ -61,15 +62,8 @@ describe("none credentials with tools/list", () => {
       servers: [noneServer("deepwiki", mockServer.url)],
     });
     const { credentialResolver } = createCredentialServices();
-    const connectionManager = new ConnectionManager(
-      configService,
-      new DefaultMcpClientConnector(credentialResolver),
-    );
-    const catalogService = new ToolCatalogService(
-      connectionManager,
-      credentialResolver,
-      createPolicyEnforcement(configService),
-    );
+    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
+    const catalogService = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
 
     try {
       await bootBackends(connectionManager, catalogService);
@@ -108,10 +102,7 @@ describe("none credentials with tools/call", () => {
       servers: [noneServer("deepwiki", mockServer.url)],
     });
     const { credentialResolver } = createCredentialServices();
-    const connectionManager = new ConnectionManager(
-      configService,
-      new DefaultMcpClientConnector(credentialResolver),
-    );
+    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
 
     try {
       await connectionManager.connectAll();
@@ -149,15 +140,8 @@ describe("none credentials with DeepWiki MCP", () => {
       ],
     });
     const { credentialResolver } = createCredentialServices();
-    const connectionManager = new ConnectionManager(
-      configService,
-      new DefaultMcpClientConnector(credentialResolver),
-    );
-    const catalogService = new ToolCatalogService(
-      connectionManager,
-      credentialResolver,
-      createPolicyEnforcement(configService),
-    );
+    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
+    const catalogService = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
 
     try {
       await bootBackends(connectionManager, catalogService);

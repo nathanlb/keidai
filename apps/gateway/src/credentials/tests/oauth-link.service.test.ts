@@ -8,6 +8,9 @@ import { InMemoryPendingLinkStore } from "../in-memory-pending-link-store.servic
 import { InMemoryTokenRepository } from "../in-memory-token-repository.service.js";
 import { OAuthLinkService } from "../oauth-link.service.js";
 import { encodeOAuthLinkState } from "../utils/oauth-link-state.js";
+import {
+  createCapturingLogger,
+} from "../../logging/tests/test-helpers.js";
 
 const sampleConfig: ToriiConfig = {
   oauth_providers: {
@@ -38,15 +41,18 @@ function createOAuthLinkService(
   options: {
     tokenRepository?: InMemoryTokenRepository;
     pendingLinkStore?: InMemoryPendingLinkStore;
+    logger?: ReturnType<typeof createCapturingLogger>;
   } = {},
 ): {
   service: OAuthLinkService;
   tokenRepository: InMemoryTokenRepository;
   pendingLinkStore: InMemoryPendingLinkStore;
+  logger: ReturnType<typeof createCapturingLogger>;
 } {
   const tokenRepository = options.tokenRepository ?? new InMemoryTokenRepository();
   const pendingLinkStore =
     options.pendingLinkStore ?? new InMemoryPendingLinkStore();
+  const logger = options.logger ?? createCapturingLogger();
   const configService = new ToriiConfigService(config);
 
   return {
@@ -55,9 +61,11 @@ function createOAuthLinkService(
       tokenRepository,
       new InMemoryOAuthClientRepository(),
       pendingLinkStore,
+      logger,
     ),
     tokenRepository,
     pendingLinkStore,
+    logger,
   };
 }
 
@@ -353,5 +361,84 @@ describe("OAuthLinkService", () => {
       () => service.unlink("missing"),
       /Unknown OAuth provider "missing"/,
     );
+  });
+
+  it("emits structured OAuth lifecycle events without secrets", async () => {
+    const { service, pendingLinkStore, logger } = createOAuthLinkService();
+    const restoreFetch = mockTokenExchange();
+
+    try {
+      const initiated = await service.initiate(
+        "github",
+        "http://127.0.0.1:3100",
+      );
+      assert.ok(
+        logger.logs.some(
+          (entry) =>
+            entry.event === "oauth.initiated" &&
+            entry.fields.provider === "github" &&
+            entry.fields.ownerId === "demo-owner",
+        ),
+      );
+
+      const state = encodeOAuthLinkState({
+        provider: "github",
+        ownerId: "demo-owner",
+        linkId: initiated.linkId,
+      });
+      const result = await service.completeCallback("github", {
+        code: "auth-code-value",
+        state,
+      });
+
+      assert.equal(result.success, true);
+      assert.ok(
+        logger.logs.some(
+          (entry) =>
+            entry.event === "oauth.callback_success" &&
+            entry.fields.ownerId === "demo-owner",
+        ),
+      );
+
+      assert.equal(await service.unlink("github"), true);
+      assert.ok(
+        logger.logs.some(
+          (entry) =>
+            entry.event === "oauth.unlinked" &&
+            entry.fields.ownerId === "demo-owner",
+        ),
+      );
+
+      const serialized = JSON.stringify(logger.logs);
+      assert.doesNotMatch(serialized, /auth-code-value/);
+      assert.doesNotMatch(serialized, /new-access-token/);
+      assert.doesNotMatch(serialized, /new-refresh-token/);
+      assert.doesNotMatch(serialized, /gh-secret/);
+    } finally {
+      restoreFetch();
+    }
+  });
+
+  it("logs oauth.callback_failed without OAuth secrets", async () => {
+    const { service, logger } = createOAuthLinkService();
+    const result = await service.completeCallback("github", {
+      error: "access_denied",
+      error_description: "User denied access",
+      state: encodeOAuthLinkState({
+        provider: "github",
+        ownerId: "demo-owner",
+        linkId: "link-1",
+      }),
+    });
+
+    assert.equal(result.success, false);
+    const failure = logger.logs.find(
+      (entry) => entry.event === "oauth.callback_failed",
+    );
+    assert.ok(failure);
+    assert.equal(failure.fields.provider, "github");
+    assert.equal(failure.fields.ownerId, "demo-owner");
+    assert.match(String(failure.fields.error), /denied/i);
+    assert.doesNotMatch(JSON.stringify(logger.logs), /gh-secret/);
   });
 });

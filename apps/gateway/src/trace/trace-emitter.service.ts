@@ -6,7 +6,9 @@ import { emitOtelSpan } from "./utils/otel-trace-sink.js";
 @injectable()
 export class TraceEmitterService implements TraceEmitter {
   emit(trace: CallTrace): void {
-    process.stdout.write(`${JSON.stringify(trace)}\n`);
+    process.stdout.write(
+      `${JSON.stringify({ ...trace, recordType: "call_trace" })}\n`,
+    );
     emitOtelSpan(trace);
   }
 }
