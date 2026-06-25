@@ -13,11 +13,14 @@ Design reference: [keidai-ui — Frontend](https://app.notion.com/p/keidai-ui-Fr
 ## Layout
 
 ```
-src/           # React app (routes, pages, modules)
-server/        # Fastify server (create-server, dev entry, prod entry)
+src/
+  shell/         # Shared app chrome (sidebar, top bar, theme, gateway status)
+  torii/         # Torii module (nav, pages, layout)
+  routes.tsx     # Route tree
+server/          # Fastify server (create-server, dev entry, prod entry)
 dist/
-  client/      # Vite build output
-  server/      # Compiled server entrypoints
+  client/        # Vite build output
+  server/        # Compiled server entrypoints
 ```
 
 ## Getting started
@@ -48,6 +51,8 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
 |----------|---------|---------|
 | `KEIDAI_UI_HOST` | `127.0.0.1` | Fastify bind address |
 | `KEIDAI_UI_PORT` | `3000` | Fastify listen port |
+| `VITE_GATEWAY_URL` | `http://127.0.0.1:3100` | Torii gateway origin for `/api` proxy (dev) and health footer display |
+| `VITE_GATEWAY_VERSION` | `0.0.0` | Version shown in the gateway health footer |
 
 Vite always binds to `127.0.0.1:5173` in dev (see `vite.config.ts`).
 
