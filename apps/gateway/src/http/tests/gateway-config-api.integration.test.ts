@@ -21,7 +21,7 @@ import { createCredentialServices } from "../../credentials/tests/test-helpers.j
 import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
 import { GatewayHttpServer } from "../gateway-http-server.service.js";
 import { GatewayMcpServer } from "../../mcp/gateway-mcp-server.service.js";
-import { createTestGatewayHttpServer } from "./test-helpers.js";
+import { createOAuthApiController, createTestGatewayHttpServer } from "./test-helpers.js";
 
 const sampleConfig: ToriiConfig = {
   oauth_providers: {
@@ -141,25 +141,22 @@ describe("Gateway /api/config endpoints", () => {
   });
 
   it("returns empty collections when config has no entries", async () => {
-    const configRead = new ConfigReadService(
-      new ToriiConfigService({
-        oauth_providers: {},
-        servers: [],
-      }),
-    );
+    const configService = new ToriiConfigService({
+      oauth_providers: {},
+      servers: [],
+    });
     const gatewayHttpServer = new GatewayHttpServer(
-      new ConfigApiController(configRead),
+      new ConfigApiController(new ConfigReadService(configService)),
       new ConnectionsApiController(
         new ConnectionReadService(
-          new ConnectionManager(
-            new ToriiConfigService({
-              oauth_providers: {},
-              servers: [],
-            }),
-            { connect: async () => { throw new Error("unused"); } },
-          ),
+          new ConnectionManager(configService, {
+            connect: async () => {
+              throw new Error("unused");
+            },
+          }),
         ),
       ),
+      createOAuthApiController(configService),
       new GatewayMcpServer(
         {} as ToolCatalogService,
         {} as ToolDispatchService,

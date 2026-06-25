@@ -20,6 +20,11 @@ import { ConfigApiController } from "./config/config-api.controller.js";
 import { ToriiConfigService } from "./config/torii-config.service.js";
 import { ConnectionReadService } from "./connections/connection-read.service.js";
 import { ConnectionsApiController } from "./connections/connections-api.controller.js";
+import { InMemoryPendingLinkStore } from "./credentials/in-memory-pending-link-store.service.js";
+import { OAuthApiController } from "./credentials/oauth-api.controller.js";
+import { OAuthConnectionReadService } from "./credentials/oauth-connection-read.service.js";
+import { OAuthLinkService } from "./credentials/oauth-link.service.js";
+import { PENDING_OAUTH_LINK_STORE } from "./credentials/types/pending-oauth-link-store.js";
 import { ToolDispatchService } from "./dispatch/tool-dispatch.service.js";
 import { buildAgentRegistry } from "./identity/utils/build-agent-registry.js";
 import { buildBearerAgentRegistry } from "./identity/utils/build-bearer-agent-registry.js";
@@ -73,6 +78,24 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
     { useClass: ConnectionsApiController },
     SINGLETON,
   );
+  appContainer.register(
+    OAuthLinkService,
+    { useClass: OAuthLinkService },
+    SINGLETON,
+  );
+  appContainer.register(
+    OAuthConnectionReadService,
+    { useClass: OAuthConnectionReadService },
+    SINGLETON,
+  );
+  appContainer.register(
+    OAuthApiController,
+    { useClass: OAuthApiController },
+    SINGLETON,
+  );
+  appContainer.register(PENDING_OAUTH_LINK_STORE, {
+    useFactory: () => new InMemoryPendingLinkStore(),
+  });
   appContainer.register(AGENT_REGISTRY, {
     useFactory: (c) =>
       buildAgentRegistry(c.resolve(ToriiConfigService).get().agents ?? []),

@@ -1,11 +1,19 @@
 import type { DatabaseSync } from "node:sqlite";
 import { injectable } from "tsyringe";
-import type { OAuthToken, TokenRepository } from "./types/token-repository.js";
+import type {
+  OAuthToken,
+  StoredOAuthGrant,
+  TokenRepository,
+} from "./types/token-repository.js";
 
 interface TokenRow {
   access_token: string;
   refresh_token: string | null;
   expires_at: string | null;
+}
+
+interface ListByOwnerRow extends TokenRow {
+  provider: string;
 }
 
 function rowToToken(row: TokenRow): OAuthToken {
@@ -19,12 +27,23 @@ function rowToToken(row: TokenRow): OAuthToken {
 @injectable()
 export class SqliteTokenRepository implements TokenRepository {
   private readonly getStatement;
+  private readonly listByOwnerStatement;
+  private readonly deleteStatement;
   private readonly upsertStatement;
 
   constructor(private readonly db: DatabaseSync) {
     this.getStatement = db.prepare(`
       SELECT access_token, refresh_token, expires_at
       FROM oauth_tokens
+      WHERE owner_id = ? AND provider = ?
+    `);
+    this.listByOwnerStatement = db.prepare(`
+      SELECT provider, access_token, refresh_token, expires_at
+      FROM oauth_tokens
+      WHERE owner_id = ?
+    `);
+    this.deleteStatement = db.prepare(`
+      DELETE FROM oauth_tokens
       WHERE owner_id = ? AND provider = ?
     `);
     this.upsertStatement = db.prepare(`
@@ -60,5 +79,18 @@ export class SqliteTokenRepository implements TokenRepository {
       token.refreshToken ?? null,
       token.expiresAt?.toISOString() ?? null,
     );
+  }
+
+  async delete(ownerId: string, provider: string): Promise<boolean> {
+    const result = this.deleteStatement.run(ownerId, provider);
+    return (result.changes ?? 0) > 0;
+  }
+
+  async listByOwner(ownerId: string): Promise<StoredOAuthGrant[]> {
+    const rows = this.listByOwnerStatement.all(ownerId) as unknown as ListByOwnerRow[];
+    return rows.map((row) => ({
+      provider: row.provider,
+      token: rowToToken(row),
+    }));
   }
 }

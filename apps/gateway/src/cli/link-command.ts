@@ -1,8 +1,8 @@
-import type { ToriiConfig } from "@keidai/shared";
 import type { DependencyContainer } from "tsyringe";
 import { ToriiConfigService } from "../config/torii-config.service.js";
 import { exchangeAuthorizationCode } from "../credentials/utils/oauth-code-exchange.js";
 import { buildOAuthLinkUrl } from "../credentials/utils/oauth-link-url.js";
+import { decodeOAuthLinkState } from "../credentials/utils/oauth-link-state.js";
 import { createPkceChallenge } from "../credentials/utils/pkce.js";
 import {
   TOKEN_REPOSITORY,
@@ -13,6 +13,7 @@ import {
   type OAuthClientRepository,
 } from "../credentials/types/oauth-client-repository.js";
 import { ensureRegisteredOAuthClient } from "../credentials/utils/resolve-oauth-provider-config.js";
+import { resolveOAuthOwnerId } from "../credentials/utils/resolve-oauth-owner.js";
 import { startLoopbackCallbackServer } from "./utils/loopback-callback-server.js";
 import { openBrowser } from "./utils/open-browser.js";
 
@@ -46,48 +47,6 @@ function parseLinkArgs(argv: string[]): LinkCommandOptions {
   return { provider, ownerId };
 }
 
-function resolveOwnerId(
-  config: ToriiConfig,
-  ownerIdFlag: string | undefined,
-): string {
-  if (ownerIdFlag) {
-    return ownerIdFlag;
-  }
-
-  const agents = config.agents ?? [];
-  if (agents.length === 1) {
-    return agents[0]!.owner_id;
-  }
-
-  if (agents.length === 0) {
-    throw new Error(
-      "No agents configured. Pass --owner <owner_id> to specify the token owner.",
-    );
-  }
-
-  throw new Error(
-    `Multiple agents configured. Pass --owner <owner_id> (available: ${agents.map((agent) => agent.owner_id).join(", ")})`,
-  );
-}
-
-function decodeLinkState(state: string): { ownerId: string; provider: string } {
-  try {
-    const parsed = JSON.parse(
-      Buffer.from(state, "base64url").toString("utf8"),
-    ) as { ownerId?: string; provider?: string };
-
-    if (!parsed.ownerId || !parsed.provider) {
-      throw new Error("state payload missing ownerId or provider");
-    }
-
-    return { ownerId: parsed.ownerId, provider: parsed.provider };
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Invalid OAuth state payload";
-    throw new Error(`OAuth callback state validation failed: ${message}`);
-  }
-}
-
 export async function runLinkCommand(
   app: DependencyContainer,
   argv: string[],
@@ -107,7 +66,7 @@ export async function runLinkCommand(
     );
   }
 
-  const ownerId = resolveOwnerId(config, options.ownerId);
+  const ownerId = resolveOAuthOwnerId(config, options.ownerId);
   const redirectUri = providerConfig.redirect_uri ?? DEFAULT_REDIRECT_URI;
   const effectiveProviderConfig = await ensureRegisteredOAuthClient(
     options.provider,
@@ -142,7 +101,7 @@ export async function runLinkCommand(
 
   try {
     const callback = await callbackServer.waitForCallback();
-    const decodedState = decodeLinkState(callback.state);
+    const decodedState = decodeOAuthLinkState(callback.state);
     if (callback.state !== expectedState) {
       throw new Error("OAuth callback state does not match the expected value");
     }

@@ -2,6 +2,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import { inject, injectable } from "tsyringe";
 import { ConnectionsApiController } from "../connections/connections-api.controller.js";
 import { ConfigApiController } from "../config/config-api.controller.js";
+import { OAuthApiController } from "../credentials/oauth-api.controller.js";
 import { GatewayMcpServer } from "../mcp/gateway-mcp-server.service.js";
 import type {
   GatewayHttpServerHandle,
@@ -18,6 +19,8 @@ export class GatewayHttpServer {
     private readonly configApi: ConfigApiController,
     @inject(ConnectionsApiController)
     private readonly connectionsApi: ConnectionsApiController,
+    @inject(OAuthApiController)
+    private readonly oauthApi: OAuthApiController,
     @inject(GatewayMcpServer)
     private readonly mcpServer: GatewayMcpServer,
   ) {}
@@ -27,6 +30,7 @@ export class GatewayHttpServer {
     registerGatewayRoutes(app, {
       configApi: this.configApi,
       connectionsApi: this.connectionsApi,
+      oauthApi: this.oauthApi,
       mcpServer: this.mcpServer,
     });
     return app;
