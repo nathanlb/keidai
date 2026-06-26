@@ -65,3 +65,7 @@ export async function fetchGatewayStatus(): Promise<GatewayStatus> {
 export async function fetchAgents(): Promise<ConfigAgentsResponse> {
   return fetchJson<ConfigAgentsResponse>("/api/config/agents");
 }
+
+export async function fetchServers(): Promise<ConfigServersResponse> {
+  return fetchJson<ConfigServersResponse>("/api/config/servers");
+}

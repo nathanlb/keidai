@@ -2,8 +2,7 @@ import { useCallback, useEffect, type ReactNode } from "react";
 import { Outlet } from "react-router-dom";
 import { useSWRConfig } from "swr";
 import { cn } from "@keidai/ui";
-import { AGENTS_KEY } from "./hooks/use-acting-owner.js";
-import { GATEWAY_STATUS_KEY } from "./hooks/use-gateway-status.js";
+import { refreshGatewayConfig } from "./hooks/refresh-gateway-config.js";
 import { useShellDesktop } from "./hooks/use-media-query.js";
 import { useShellUi } from "./hooks/use-shell-ui.js";
 import { useTheme } from "./hooks/use-theme.js";
@@ -40,8 +39,7 @@ export function AppShell({
   }, [isDesktop, setNavOpen]);
 
   const refresh = useCallback(() => {
-    void mutate(GATEWAY_STATUS_KEY);
-    void mutate(AGENTS_KEY);
+    refreshGatewayConfig(mutate);
     onRefresh?.();
   }, [mutate, onRefresh]);
 
