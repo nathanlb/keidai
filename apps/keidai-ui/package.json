@@ -8,8 +8,15 @@
     "build": "vite build && tsc -p tsconfig.server.json",
     "dev": "tsx server/dev.ts",
     "start": "node dist/server/index.js",
-    "pretest": "pnpm run build",
-    "test": "tsx --test 'server/tests/**/*.test.ts'",
+    "test": "vitest run && pnpm run test:server && pnpm run test:e2e",
+    "test:ui": "vitest --ui",
+    "test:unit": "vitest --project unit",
+    "test:browser": "vitest --project browser",
+    "test:coverage": "vitest run --coverage",
+    "pretest:server": "pnpm run build",
+    "test:server": "tsx --test 'server/tests/**/*.test.ts'",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.server.json --noEmit",
     "lint": "pnpm typecheck"
   },
@@ -26,14 +33,25 @@
     "swr": "^2.3.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/vite": "^4.3.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22.20.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.2.0",
+    "@vitest/browser-playwright": "^4.1.9",
+    "@vitest/coverage-v8": "^4.1.9",
+    "@vitest/ui": "^4.1.9",
+    "jsdom": "^29.1.1",
+    "playwright": "^1.61.1",
     "tailwindcss": "^4.3.1",
     "tsx": "^4.22.4",
     "typescript": "^5.9.3",
-    "vite": "^7.3.5"
+    "vite": "^7.3.5",
+    "vitest": "^4.1.9",
+    "vitest-browser-react": "^2.2.0"
   }
 }
