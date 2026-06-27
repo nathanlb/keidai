@@ -1,7 +1,66 @@
+import { useMemo } from "react";
+import { useFetchAgents } from "../../shell/hooks/use-fetch-agents.js";
+import { useFetchOAuthConnections } from "../../shell/hooks/use-fetch-oauth-connections.js";
+import { useFetchOAuthProviders } from "../../shell/hooks/use-fetch-oauth-providers.js";
+import { buildOAuthProviderSummaries } from "../oauth/utils/build-oauth-provider-summaries.js";
+import { OAuthProvidersView } from "../oauth/oauth-providers-view.js";
+
 export function OAuthProvidersPage() {
-  return (
-    <p className="text-sm text-muted-foreground">
-      OAuth providers panel — implemented in a follow-up issue.
-    </p>
+  const {
+    data: providersData,
+    error: providersError,
+    isLoading: providersLoading,
+  } = useFetchOAuthProviders();
+
+  const {
+    data: agentsData,
+    error: agentsError,
+    isLoading: agentsLoading,
+  } = useFetchAgents();
+
+  const ownerIds = useMemo(
+    () => [
+      ...new Set((agentsData?.agents ?? []).map((agent) => agent.owner_id)),
+    ],
+    [agentsData],
   );
+
+  const {
+    data: connectionsByOwner,
+    error: connectionsError,
+    isLoading: connectionsLoading,
+  } = useFetchOAuthConnections(ownerIds);
+
+  const isLoading =
+    providersLoading ||
+    agentsLoading ||
+    (ownerIds.length > 0 && connectionsLoading && !connectionsByOwner);
+
+  const error = providersError ?? agentsError ?? connectionsError;
+
+  const summaries = useMemo(
+    () =>
+      buildOAuthProviderSummaries(
+        providersData?.providers ?? {},
+        ownerIds,
+        connectionsByOwner ?? new Map(),
+      ),
+    [connectionsByOwner, ownerIds, providersData],
+  );
+
+  if (isLoading && !providersData) {
+    return (
+      <p className="text-sm text-muted-foreground">Loading OAuth providers…</p>
+    );
+  }
+
+  if (error) {
+    return (
+      <p className="text-sm text-destructive">
+        Could not load OAuth provider configuration from the gateway.
+      </p>
+    );
+  }
+
+  return <OAuthProvidersView providers={summaries} />;
 }

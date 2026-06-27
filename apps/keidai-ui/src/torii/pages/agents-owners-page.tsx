@@ -1,7 +1,7 @@
 import { useFetchAgents } from "../../shell/hooks/use-fetch-agents.js";
 import { useFetchServers } from "../../shell/hooks/use-fetch-servers.js";
 import { AgentsOwnersView } from "../agents/agents-owners-view.js";
-import { groupAgentsByOwner } from "../agents/group-agents-by-owner.js";
+import { groupAgentsByOwner } from "../agents/utils/group-agents-by-owner.js";
 
 export function AgentsOwnersPage() {
   const {
