@@ -1,6 +1,8 @@
 import type {
   ConfigAgentsResponse,
+  ConfigOAuthProvidersResponse,
   ConfigServersResponse,
+  OAuthConnectionsResponse,
 } from "@keidai/shared";
 
 const gatewayDisplayUrl =
@@ -68,4 +70,15 @@ export async function fetchAgents(): Promise<ConfigAgentsResponse> {
 
 export async function fetchServers(): Promise<ConfigServersResponse> {
   return fetchJson<ConfigServersResponse>("/api/config/servers");
+}
+
+export async function fetchOAuthProviders(): Promise<ConfigOAuthProvidersResponse> {
+  return fetchJson<ConfigOAuthProvidersResponse>("/api/config/oauth-providers");
+}
+
+export async function fetchOAuthConnections(
+  ownerId: string,
+): Promise<OAuthConnectionsResponse> {
+  const query = `?owner=${encodeURIComponent(ownerId)}`;
+  return fetchJson<OAuthConnectionsResponse>(`/api/oauth/connections${query}`);
 }

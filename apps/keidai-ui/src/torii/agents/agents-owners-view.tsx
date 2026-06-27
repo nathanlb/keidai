@@ -2,8 +2,8 @@ import type { PublicAgentConfig } from "@keidai/shared";
 import { Badge } from "@keidai/ui";
 import { Bot, Lock, Users } from "lucide-react";
 import { deriveOwnerInitials } from "../../shell/utils/derive-owner-initials.js";
-import { formatAgentSubject } from "./format-agent-subject.js";
-import type { OwnerAgentGroup } from "./group-agents-by-owner.js";
+import { formatAgentSubject } from "./utils/format-agent-subject.js";
+import type { OwnerAgentGroup } from "./utils/group-agents-by-owner.js";
 import { OwnerAvatar } from "./owner-avatar.js";
 
 function StrictOwnershipBanner() {
