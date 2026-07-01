@@ -1,13 +1,16 @@
 import { expect, test } from "@playwright/test";
+import {
+  emptyOAuthProvidersConfig,
+  linkedGitHubProvidersConfig,
+  notLinkedGitHubProvidersConfig,
+} from "./fixtures/oauth-providers.js";
 import { mockGatewayConfig } from "./helpers/mock-gateway.js";
 
 test.describe("OAuth providers page", () => {
   test("shows the empty state when no providers are configured", async ({
     page,
   }) => {
-    await mockGatewayConfig(page, {
-      oauthProviders: { providers: {} },
-    });
+    await mockGatewayConfig(page, emptyOAuthProvidersConfig);
 
     await page.goto("/oauth-providers");
 
@@ -18,45 +21,7 @@ test.describe("OAuth providers page", () => {
   });
 
   test("lists provider config and linked owner grants", async ({ page }) => {
-    await mockGatewayConfig(page, {
-      agents: {
-        agents: [
-          {
-            agent_id: "alpha",
-            owner_id: "owner-a",
-            subject: {
-              kind: "k8s_service_account",
-              namespace: "agents",
-              service_account: "alpha",
-            },
-            groups: [],
-          },
-        ],
-      },
-      oauthProviders: {
-        providers: {
-          github: {
-            token_url: "https://github.com/login/oauth/access_token",
-            authorize_url: "https://github.com/login/oauth/authorize",
-            client_id: "Iv1.public-client",
-            scopes: ["repo", "read:user"],
-            pkce: true,
-          },
-        },
-      },
-      oauthConnections: {
-        "owner-a": {
-          connections: [
-            {
-              provider: "github",
-              ownerId: "owner-a",
-              status: "linked",
-              scopes: ["repo", "read:user"],
-            },
-          ],
-        },
-      },
-    });
+    await mockGatewayConfig(page, linkedGitHubProvidersConfig);
 
     await page.goto("/oauth-providers");
 
@@ -74,56 +39,18 @@ test.describe("OAuth providers page", () => {
   }) => {
     let pollCount = 0;
 
-    await mockGatewayConfig(page, {
-      agents: {
-        agents: [
-          {
-            agent_id: "alpha",
-            owner_id: "owner-a",
-            subject: {
-              kind: "k8s_service_account",
-              namespace: "agents",
-              service_account: "alpha",
-            },
-            groups: [],
-          },
-        ],
-      },
-      oauthProviders: {
-        providers: {
-          github: {
-            token_url: "https://github.com/login/oauth/access_token",
-            authorize_url: "https://github.com/login/oauth/authorize",
-            client_id: "Iv1.public-client",
-            scopes: ["repo", "read:user"],
-            pkce: true,
-          },
-        },
-      },
-      oauthConnections: {
-        "owner-a": {
-          connections: [
-            {
-              provider: "github",
-              ownerId: "owner-a",
-              status: "not_linked",
-              scopes: [],
-            },
-          ],
-        },
-      },
-      oauthInitiate: {
-        github: {
-          authorizationUrl: "https://github.com/login/oauth/authorize?state=test",
-          linkId: "link-1",
-          redirectUri: "http://127.0.0.1:3100/oauth/callback/github",
-        },
-      },
-    });
+    await mockGatewayConfig(page, notLinkedGitHubProvidersConfig);
 
     await page.route("**/api/oauth/connections**", async (route) => {
       pollCount += 1;
-      const status = pollCount >= 2 ? "linked" : "pending";
+      // 1: page load, 2: beginAuthorization baseline — must stay not_linked so
+      // shouldAcceptLinkedOutcome does not treat the eventual linked poll as stale.
+      const status =
+        pollCount >= 4
+          ? "linked"
+          : pollCount >= 3
+            ? "pending"
+            : "not_linked";
       await route.fulfill({
         json: {
           connections: [
