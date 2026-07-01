@@ -44,6 +44,7 @@ export function createOAuthApiController(
     options.pendingLinkStore ?? new InMemoryPendingLinkStore();
 
   return new OAuthApiController(
+    configService,
     new OAuthLinkService(configService, tokenRepository, clientRepository, pendingLinkStore, createNoopLogger()),
     new OAuthConnectionReadService(
       configService,

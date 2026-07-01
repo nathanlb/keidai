@@ -1,5 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { inject, injectable } from "tsyringe";
+import { ToriiConfigService } from "../config/torii-config.service.js";
+import { resolveGatewayBaseUrl } from "../config/utils/resolve-gateway-base-url.js";
 import { OAuthConnectionReadService } from "./oauth-connection-read.service.js";
 import { OAuthLinkService } from "./oauth-link.service.js";
 import {
@@ -14,19 +16,21 @@ function readOwnerQuery(
   return owner || undefined;
 }
 
-function readBaseUrl(request: FastifyRequest): string {
-  const forwardedProto = request.headers["x-forwarded-proto"];
-  const protocol =
-    (typeof forwardedProto === "string"
-      ? forwardedProto.split(",")[0]?.trim()
-      : undefined) ?? "http";
-  const host = request.headers.host ?? "127.0.0.1";
-  return `${protocol}://${host}`;
+function readUiOrigin(request: FastifyRequest): string | undefined {
+  const header = request.headers["x-torii-ui-origin"];
+  if (typeof header !== "string") {
+    return undefined;
+  }
+
+  const trimmed = header.trim();
+  return trimmed || undefined;
 }
 
 @injectable()
 export class OAuthApiController {
   constructor(
+    @inject(ToriiConfigService)
+    private readonly configService: ToriiConfigService,
     @inject(OAuthLinkService)
     private readonly oauthLink: OAuthLinkService,
     @inject(OAuthConnectionReadService)
@@ -40,8 +44,9 @@ export class OAuthApiController {
         try {
           const result = await this.oauthLink.initiate(
             request.params.provider,
-            readBaseUrl(request),
+            resolveGatewayBaseUrl(this.configService.get(), request),
             readOwnerQuery(request),
+            readUiOrigin(request),
           );
           reply.send(result);
         } catch (error) {
@@ -122,13 +127,26 @@ export class OAuthApiController {
       reply
         .code(200)
         .type("text/html; charset=utf-8")
-        .send(oauthCallbackSuccessHtml());
+        .send(
+          oauthCallbackSuccessHtml(
+            result.page ?? { provider: request.params.provider, status: "success" },
+          ),
+        );
       return;
     }
 
     reply
       .code(400)
       .type("text/html; charset=utf-8")
-      .send(oauthCallbackErrorHtml(result.error ?? "Authorization failed"));
+      .send(
+        oauthCallbackErrorHtml(
+          result.error ?? "Authorization failed",
+          result.page ?? {
+            provider: request.params.provider,
+            status: "error",
+            error: result.error ?? "Authorization failed",
+          },
+        ),
+      );
   }
 }

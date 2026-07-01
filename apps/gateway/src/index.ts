@@ -13,7 +13,6 @@ import { runWithAgentPrincipal } from "./identity/agent-principal-context.js";
 import { resolveBootAgentPrincipal } from "./identity/stub-agent-principal.js";
 import { GatewayHttpServer } from "./http/gateway-http-server.service.js";
 import { StructuredLoggerService } from "./logging/structured-logger.service.js";
-import { isLinkCommand, runLinkCommand } from "./cli/link-command.js";
 
 function resolvePort(): number {
   const raw = process.env.TORII_PORT ?? process.env.PORT ?? "3100";
@@ -64,15 +63,6 @@ export async function startServer(): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const commandArgs = process.argv.slice(2);
-
-  if (isLinkCommand(commandArgs)) {
-    const config = await loadConfig();
-    const app = createContainer(config);
-    await runLinkCommand(app, commandArgs.slice(1));
-    return;
-  }
-
   await startServer();
 }
 

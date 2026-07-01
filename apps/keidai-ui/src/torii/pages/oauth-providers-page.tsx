@@ -1,9 +1,14 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
+import type { OAuthConnectionStatus } from "@keidai/shared";
+import { useActingOwner } from "../../shell/hooks/use-acting-owner.js";
 import { useFetchAgents } from "../../shell/hooks/use-fetch-agents.js";
 import { useFetchOAuthConnections } from "../../shell/hooks/use-fetch-oauth-connections.js";
 import { useFetchOAuthProviders } from "../../shell/hooks/use-fetch-oauth-providers.js";
 import { buildOAuthProviderSummaries } from "../oauth/utils/build-oauth-provider-summaries.js";
+import { buildGatewayOAuthCallbackUrl } from "../oauth/utils/build-gateway-oauth-callback-url.js";
+import { OAuthLinkDialog } from "../oauth/oauth-link-dialog.js";
 import { OAuthProvidersView } from "../oauth/oauth-providers-view.js";
+import { useOAuthLinkDialog } from "../oauth/hooks/use-oauth-link-dialog.js";
 
 export function OAuthProvidersPage() {
   const {
@@ -18,6 +23,8 @@ export function OAuthProvidersPage() {
     isLoading: agentsLoading,
   } = useFetchAgents();
 
+  const { owner } = useActingOwner();
+
   const ownerIds = useMemo(
     () => [
       ...new Set((agentsData?.agents ?? []).map((agent) => agent.owner_id)),
@@ -29,7 +36,17 @@ export function OAuthProvidersPage() {
     data: connectionsByOwner,
     error: connectionsError,
     isLoading: connectionsLoading,
+    patchOwnerConnections,
   } = useFetchOAuthConnections(ownerIds);
+
+  const handleLinkCompleted = useCallback(
+    async (ownerId: string, connections: OAuthConnectionStatus[]) => {
+      await patchOwnerConnections(ownerId, connections);
+    },
+    [patchOwnerConnections],
+  );
+
+  const linkDialog = useOAuthLinkDialog(handleLinkCompleted);
 
   const isLoading =
     providersLoading ||
@@ -48,6 +65,24 @@ export function OAuthProvidersPage() {
     [connectionsByOwner, ownerIds, providersData],
   );
 
+  const handleLinkProvider = useCallback(
+    (providerId: string) => {
+      const summary = summaries.find((entry) => entry.id === providerId);
+      if (!summary || summary.aggregateStatus === "misconfigured") {
+        return;
+      }
+
+      linkDialog.openLink({
+        providerId,
+        providerLabel: summary.label,
+        ownerId: owner.ownerId,
+        scopes: summary.config.scopes,
+        redirectUri: buildGatewayOAuthCallbackUrl(providerId),
+      });
+    },
+    [linkDialog, owner.ownerId, summaries],
+  );
+
   if (isLoading && !providersData) {
     return (
       <p className="text-sm text-muted-foreground">Loading OAuth providers…</p>
@@ -62,5 +97,24 @@ export function OAuthProvidersPage() {
     );
   }
 
-  return <OAuthProvidersView providers={summaries} />;
+  return (
+    <>
+      <OAuthProvidersView
+        providers={summaries}
+        onLinkProvider={handleLinkProvider}
+      />
+      <OAuthLinkDialog
+        open={linkDialog.open}
+        step={linkDialog.step}
+        context={linkDialog.context}
+        errorMessage={linkDialog.errorMessage}
+        isSubmitting={linkDialog.isSubmitting}
+        onClose={linkDialog.close}
+        onBeginAuthorization={linkDialog.beginAuthorization}
+        onReopenAuthorization={linkDialog.reopenAuthorization}
+        onConfirmFinished={linkDialog.confirmFinished}
+        onRetry={linkDialog.retry}
+      />
+    </>
+  );
 }

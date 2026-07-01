@@ -28,7 +28,6 @@
     "fastify": "^5.8.5",
     "jose": "^6.2.3",
     "reflect-metadata": "^0.2.2",
-    "selfsigned": "^5.5.0",
     "tsyringe": "^4.10.0",
     "yaml": "^2.9.0",
     "zod": "^3.25.76"
@@ -36,7 +35,6 @@
   "devDependencies": {
     "@modelcontextprotocol/inspector": "^0.22.0",
     "@types/node": "^22.20.0",
-    "@types/selfsigned": "^2.1.0",
     "tsx": "^4.22.4",
     "typescript": "^5.9.3"
   }

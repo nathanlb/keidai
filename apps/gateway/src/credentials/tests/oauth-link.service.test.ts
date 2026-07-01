@@ -120,6 +120,10 @@ describe("OAuthLinkService", () => {
 
     assert.ok(result.linkId);
     assert.match(result.authorizationUrl, /github\.com\/login\/oauth\/authorize/);
+    assert.equal(
+      result.redirectUri,
+      "http://127.0.0.1:3100/oauth/callback/github",
+    );
 
     const pending = await pendingLinkStore.getLatest("demo-owner", "github");
     assert.equal(pending?.status, "pending");
@@ -154,10 +158,9 @@ describe("OAuthLinkService", () => {
       state,
     });
 
-    assert.deepEqual(result, {
-      success: false,
-      error: "User denied access",
-    });
+    assert.equal(result.success, false);
+    assert.equal(result.error, "User denied access");
+    assert.equal(result.page?.status, "error");
     const pending = await pendingLinkStore.get(linkId);
     assert.equal(pending?.status, "failed");
     assert.equal(pending?.error, "User denied access");
@@ -166,17 +169,13 @@ describe("OAuthLinkService", () => {
   it("completeCallback rejects callbacks missing code or state", async () => {
     const { service } = createOAuthLinkService();
 
-    assert.deepEqual(await service.completeCallback("github", {}), {
-      success: false,
-      error: "OAuth callback missing code or state",
-    });
-    assert.deepEqual(
-      await service.completeCallback("github", { code: "only-code" }),
-      {
-        success: false,
-        error: "OAuth callback missing code or state",
-      },
-    );
+    const missing = await service.completeCallback("github", {});
+    assert.equal(missing.success, false);
+    assert.equal(missing.error, "OAuth callback missing code or state");
+
+    const codeOnly = await service.completeCallback("github", { code: "only-code" });
+    assert.equal(codeOnly.success, false);
+    assert.equal(codeOnly.error, "OAuth callback missing code or state");
   });
 
   it("completeCallback rejects invalid state payloads", async () => {
@@ -229,6 +228,11 @@ describe("OAuthLinkService", () => {
     assert.deepEqual(result, {
       success: false,
       error: "OAuth callback has no matching pending link",
+      page: {
+        provider: "github",
+        status: "error",
+        error: "OAuth callback has no matching pending link",
+      },
     });
   });
 
@@ -254,10 +258,9 @@ describe("OAuthLinkService", () => {
       state,
     });
 
-    assert.deepEqual(result, {
-      success: false,
-      error: "OAuth link is already completed",
-    });
+    assert.equal(result.success, false);
+    assert.equal(result.error, "OAuth link is already completed");
+    assert.equal(result.page?.linkId, linkId);
   });
 
   it("completeCallback stores tokens and completes the pending link on success", async () => {
@@ -284,7 +287,10 @@ describe("OAuthLinkService", () => {
         state,
       });
 
-      assert.deepEqual(result, { success: true });
+      assert.equal(result.success, true);
+      assert.equal(result.page?.status, "success");
+      assert.equal(result.page?.linkId, linkId);
+      assert.equal(result.page?.provider, "github");
       assert.equal(
         (await tokenRepository.get("demo-owner", "github"))?.accessToken,
         "new-access-token",

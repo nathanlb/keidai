@@ -11,8 +11,9 @@ const githubProvider: OAuthProviderConfig = {
   client_id: "test-client-id",
   client_secret: "top-secret",
   scopes: ["repo"],
-  redirect_uri: "http://127.0.0.1:8765/callback",
 };
+
+const gatewayRedirect = "http://127.0.0.1:3100/oauth/callback/github";
 
 function mockFetch(response: {
   body?: string;
@@ -52,7 +53,7 @@ describe("exchangeAuthorizationCode", () => {
     await exchangeAuthorizationCode(
       githubProvider,
       "auth-code-123",
-      "http://127.0.0.1:8765/callback",
+      gatewayRedirect,
       "verifier-123",
       fetchFn,
     );
@@ -60,7 +61,7 @@ describe("exchangeAuthorizationCode", () => {
     const params = new URLSearchParams(capturedBody);
     assert.equal(params.get("grant_type"), "authorization_code");
     assert.equal(params.get("code"), "auth-code-123");
-    assert.equal(params.get("redirect_uri"), "http://127.0.0.1:8765/callback");
+    assert.equal(params.get("redirect_uri"), gatewayRedirect);
     assert.equal(params.get("code_verifier"), "verifier-123");
     assert.equal(params.get("client_id"), "test-client-id");
     assert.equal(params.get("client_secret"), "top-secret");

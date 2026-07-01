@@ -100,7 +100,6 @@ describe("Gateway MCP tools/call", () => {
           client_id: "client",
           client_secret: "secret",
           scopes: ["repo"],
-          redirect_uri: "http://localhost:3100/oauth/callback",
         },
       },
       servers: [

@@ -33,7 +33,6 @@ const DEMO_OAUTH_PROVIDERS: ToriiConfig["oauth_providers"] = {
     client_id: "client",
     client_secret: "secret",
     scopes: ["repo"],
-    redirect_uri: "http://127.0.0.1:8765/callback",
   },
   notion: {
     authorize_url: "https://api.notion.com/v1/oauth/authorize",
@@ -41,7 +40,6 @@ const DEMO_OAUTH_PROVIDERS: ToriiConfig["oauth_providers"] = {
     client_id: "client",
     client_secret: "secret",
     scopes: [],
-    redirect_uri: "https://127.0.0.1:8765/callback",
   },
   google: {
     authorize_url: "https://accounts.google.com/o/oauth2/v2/auth",
@@ -52,7 +50,6 @@ const DEMO_OAUTH_PROVIDERS: ToriiConfig["oauth_providers"] = {
       "https://www.googleapis.com/auth/gmail.readonly",
       "https://www.googleapis.com/auth/gmail.compose",
     ],
-    redirect_uri: "http://127.0.0.1:8765/callback",
   },
 };
 

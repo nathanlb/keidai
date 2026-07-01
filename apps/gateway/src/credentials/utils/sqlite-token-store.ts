@@ -17,9 +17,19 @@ CREATE TABLE IF NOT EXISTS oauth_provider_clients (
 );
 `;
 
+function ensureOAuthClientRedirectUriColumn(db: DatabaseSync): void {
+  const columns = db
+    .prepare("PRAGMA table_info(oauth_provider_clients)")
+    .all() as Array<{ name: string }>;
+  if (!columns.some((column) => column.name === "redirect_uri")) {
+    db.exec("ALTER TABLE oauth_provider_clients ADD COLUMN redirect_uri TEXT");
+  }
+}
+
 export function openTokenDatabase(databasePath: string): DatabaseSync {
   const db = new DatabaseSync(databasePath);
   db.exec("PRAGMA journal_mode = WAL");
   db.exec(SCHEMA_SQL);
+  ensureOAuthClientRedirectUriColumn(db);
   return db;
 }

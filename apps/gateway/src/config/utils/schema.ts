@@ -8,7 +8,6 @@ const oauthProviderSchema = z
     client_id: z.string().min(1).optional(),
     client_secret: z.string().min(1).optional(),
     scopes: z.array(z.string()),
-    redirect_uri: z.string().min(1).optional(),
     registration_endpoint: z.string().min(1).optional(),
     authorize_params: z.record(z.string(), z.string()).optional(),
     token_client_auth: z.enum(["body", "basic"]).optional(),
@@ -97,6 +96,7 @@ const serverSchema = z.object({
 
 export const toriiConfigSchema = z
   .object({
+    gateway_base_url: z.string().url().optional(),
     oauth_providers: z.record(z.string(), oauthProviderSchema),
     servers: z.array(serverSchema).min(1, "at least one server is required"),
     agents: z.array(agentRegistrationSchema).default([]),

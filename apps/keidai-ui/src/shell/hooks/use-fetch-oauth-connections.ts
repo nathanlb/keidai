@@ -1,6 +1,9 @@
 import type { OAuthConnectionStatus } from "@keidai/shared";
+import { useCallback } from "react";
 import useSWR from "swr";
 import { fetchOAuthConnections } from "../api/gateway-client.js";
+
+export const OAUTH_CONNECTIONS_KEY_PREFIX = "oauth-connections";
 
 const swrOptions = { onError: () => undefined } as const;
 
@@ -9,7 +12,11 @@ export function oauthConnectionsKey(ownerIds: readonly string[]): string[] | nul
     return null;
   }
 
-  return ["oauth-connections", ...[...ownerIds].sort()];
+  return [OAUTH_CONNECTIONS_KEY_PREFIX, ...[...ownerIds].sort()];
+}
+
+export function isOAuthConnectionsKey(key: unknown): boolean {
+  return Array.isArray(key) && key[0] === OAUTH_CONNECTIONS_KEY_PREFIX;
 }
 
 async function fetchConnectionsByOwner(
@@ -32,5 +39,24 @@ export function useFetchOAuthConnections(ownerIds: readonly string[]) {
     swrOptions,
   );
 
-  return { data, error, isLoading, refresh: mutate };
+  const refresh = useCallback(
+    () => mutate(undefined, { revalidate: true }),
+    [mutate],
+  );
+
+  const patchOwnerConnections = useCallback(
+    async (ownerId: string, connections: OAuthConnectionStatus[]) => {
+      await mutate(
+        (current) => {
+          const next = new Map(current ?? []);
+          next.set(ownerId, connections);
+          return next;
+        },
+        { revalidate: true },
+      );
+    },
+    [mutate],
+  );
+
+  return { data, error, isLoading, refresh, patchOwnerConnections };
 }

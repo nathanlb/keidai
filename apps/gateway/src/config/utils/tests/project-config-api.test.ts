@@ -15,7 +15,6 @@ const fullConfig: ToriiConfig = {
       client_id: "public-client-id",
       client_secret: "super-secret",
       scopes: ["repo"],
-      redirect_uri: "http://127.0.0.1:8765/callback",
     },
   },
   servers: [
@@ -86,7 +85,6 @@ describe("project-config-api", () => {
       token_url: "https://github.com/login/oauth/access_token",
       client_id: "public-client-id",
       scopes: ["repo"],
-      redirect_uri: "http://127.0.0.1:8765/callback",
     });
     assert.equal(
       "client_secret" in result.providers.github,

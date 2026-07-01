@@ -5,8 +5,8 @@ End-to-end walkthrough for the NAT-16 **open-torii status digest** scenario: a d
 ## Prerequisites
 
 - Node.js 24, pnpm
-- OAuth apps for GitHub and Google with redirect URI **`http://127.0.0.1:8765/callback`**
-- Notion uses **Notion MCP OAuth** at `https://mcp.notion.com` (no separate integration app — `torii link notion` registers a client automatically)
+- OAuth apps for GitHub and Google with redirect URI **`http://127.0.0.1:3100/oauth/callback/github`** and **`http://127.0.0.1:3100/oauth/callback/google`** (register in each provider's developer console)
+- Notion uses **Notion MCP OAuth** at `https://mcp.notion.com` (no separate integration app — linking via the UI registers a client automatically)
 - **Google managed Gmail MCP** ([developer preview](https://developers.google.com/workspace/gmail/api/guides/configure-mcp-server)):
   - Join the Google Workspace Developer Preview Program for your GCP project
   - Enable `gmail.googleapis.com` and `gmailmcp.googleapis.com`
@@ -39,10 +39,10 @@ cp apps/demo-agent/.env.example apps/demo-agent/.env
 |----------|-------------------|---------|
 | `TORII_CONFIG_PATH` | yes | Use `./torii.demo.yaml` (default in example) |
 | `LINEAR_API_KEY` | yes | Linear MCP `service_key` backend |
-| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | for `torii link` | OAuth app credentials |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | for `torii link` | OAuth app credentials |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | for OAuth linking | OAuth app credentials |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | for OAuth linking | OAuth app credentials |
 
-Optional: `TORII_PORT`, `TORII_HOST`, `TORII_TOKEN_STORE_PATH` (defaults: `3100`, `127.0.0.1`, `./data/torii-tokens.db`).
+Optional: `TORII_PORT`, `TORII_HOST`, `TORII_TOKEN_STORE_PATH` (defaults: `3100`, `127.0.0.1`, `./data/torii-tokens.db`), `TORII_GATEWAY_BASE_URL` (stable public base URL when behind a reverse proxy).
 
 ### `apps/demo-agent/.env`
 
@@ -70,17 +70,31 @@ Key test: `apps/gateway/src/mcp/tests/demo-scenario.integration.test.ts`
 
 ## One-time: OAuth linking
 
-Link tokens for owner **`demo-owner`** (stored in `apps/gateway/data/torii-tokens.db` by default):
+Link tokens for owner **`demo-owner`** via the **keidai-ui OAuth providers screen** (stored in `apps/gateway/data/torii-tokens.db` by default):
 
 ```bash
 pnpm install
 
-pnpm --filter @keidai/gateway run torii link github
-pnpm --filter @keidai/gateway run torii link notion
-pnpm --filter @keidai/gateway run torii link google
+# Terminal A — gateway
+pnpm demo:gateway
+
+# Terminal B — UI (from repo root)
+pnpm --filter @keidai/keidai-ui dev
 ```
 
-Each command opens a browser and completes consent on `127.0.0.1:8765`. Re-run when tokens expire, are revoked, or OAuth scopes change (e.g. after switching Gmail from `gmail.send` to `gmail.compose`).
+Open the OAuth providers page in the UI, select owner `demo-owner`, and link GitHub, Notion, and Google. Re-link when tokens expire, are revoked, or OAuth scopes change (e.g. after switching Gmail from `gmail.send` to `gmail.compose`).
+
+### Resetting stale OAuth registrations
+
+If you previously linked via the old CLI loopback flow (`127.0.0.1:8765/callback`), dynamic clients (Notion) were registered with the wrong redirect URI. Clear stale registrations and tokens, then re-link via the UI:
+
+```bash
+# Default SQLite path (override with TORII_TOKEN_STORE_PATH if set)
+sqlite3 apps/gateway/data/torii-tokens.db \
+  "DELETE FROM oauth_provider_clients; DELETE FROM oauth_tokens;"
+```
+
+Or delete the file entirely: `rm apps/gateway/data/torii-tokens.db` (recreated on next gateway boot).
 
 ## Run the demo
 
@@ -132,12 +146,13 @@ Notion write tools (`notion-create-pages`, `notion-update-page`, etc.) should be
 | Symptom | Likely cause |
 |---------|----------------|
 | `401 identity_denied` | `DEMO_AGENT_BEARER` missing or mismatch between root `.env` and what the agent sends |
-| `linking_required` on GitHub/Notion/Gmail | Run `torii link <provider>` for `demo-owner` |
-| Gmail backend failed at boot | Gmail MCP API not enabled, preview access missing, or `torii link google` not done |
-| Gmail tool errors after scope change | Re-run `torii link google` to refresh tokens with `gmail.compose` |
+| `linking_required` on GitHub/Notion/Gmail | Link the provider via the keidai-ui OAuth providers screen for `demo-owner` |
+| Gmail backend failed at boot | Gmail MCP API not enabled, preview access missing, or Google not linked via UI |
+| Gmail tool errors after scope change | Re-link Google via the UI to refresh tokens with `gmail.compose` |
 | Gmail `create_draft`: "The caller does not have permission" | APIs enabled but project not enrolled in [Workspace Developer Preview](https://developers.google.com/workspace/gmail/api/guides/configure-mcp-server); for External OAuth apps, add your Google account under Test users |
 | Gmail trace shows generic backend error | Gateway stdout now surfaces the MCP error text (e.g. permission denied); re-run the call and check the trace `error` field |
-| `torii link` browser error | Redirect URI mismatch — GitHub/Google: `http://127.0.0.1:8765/callback`; Notion: `https://127.0.0.1:8765/callback` |
+| OAuth `Invalid redirect_uri` (Notion) | Stale dynamic client registered with old loopback redirect — clear `oauth_provider_clients` (see reset above) and re-link via UI |
+| OAuth redirect mismatch (GitHub/Google) | Provider console must list `http://127.0.0.1:3100/oauth/callback/{provider}` |
 | Linear tools missing | `LINEAR_API_KEY` unset or invalid in `apps/gateway/.env` |
 | Notion search denied or tool errors | Per-step summaries are always logged; set `DEMO_AGENT_VERBOSE=1` for full tool inputs/outputs |
 | Config file not found | `TORII_CONFIG_PATH` should be `./torii.demo.yaml` relative to `apps/gateway/` |
@@ -145,6 +160,7 @@ Notion write tools (`notion-create-pages`, `notion-update-page`, etc.) should be
 ## Architecture notes
 
 - **Inbound identity:** `DEMO_AGENT_BEARER` → gateway resolves `demo-owner` via `agents[].inbound_token`
-- **Outbound OAuth:** `torii link` persists tokens in SQLite; keyed by `(owner_id, provider)`
-- **Gmail:** hosted remote MCP (like Notion) — Torii forwards bearer tokens from `torii link google`; no local `workspace-mcp` process
+- **Outbound OAuth:** UI linking persists tokens in SQLite; keyed by `(owner_id, provider)`
+- **OAuth callbacks:** Gateway derives `{base}/oauth/callback/{provider}` — configure `gateway_base_url` in torii.yaml or `TORII_GATEWAY_BASE_URL` when behind a proxy
+- **Gmail:** hosted remote MCP (like Notion) — Torii forwards bearer tokens from UI-linked Google OAuth; no local `workspace-mcp` process
 - **Production:** containers inject env per service; no `.env` files in images. Shared secrets use one K8s Secret referenced by both gateway and agent deployments.

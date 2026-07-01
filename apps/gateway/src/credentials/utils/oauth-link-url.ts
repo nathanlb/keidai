@@ -1,6 +1,7 @@
 import type { OAuthProviderConfig } from "@keidai/shared";
 
 export interface BuildOAuthLinkUrlOptions {
+  redirectUri: string;
   codeChallenge?: string;
   linkId?: string;
 }
@@ -42,14 +43,15 @@ export function buildOAuthLinkUrl(
   const state = Buffer.from(JSON.stringify(statePayload)).toString("base64url");
   const params = new URLSearchParams({
     client_id: provider.client_id,
-    scope: provider.scopes.join(" "),
     response_type: "code",
     state,
   });
 
-  if (provider.redirect_uri) {
-    params.set("redirect_uri", provider.redirect_uri);
+  if (provider.scopes.length > 0) {
+    params.set("scope", provider.scopes.join(" "));
   }
+
+  params.set("redirect_uri", options.redirectUri);
 
   for (const [key, value] of Object.entries(provider.authorize_params ?? {})) {
     params.set(key, value);

@@ -1,6 +1,7 @@
 export interface OAuthProviderClient {
   clientId: string;
   clientSecret?: string;
+  redirectUri?: string;
 }
 
 export interface OAuthClientRepository {

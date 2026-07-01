@@ -18,7 +18,6 @@ export interface PublicOAuthProviderConfig {
   authorize_url?: string;
   client_id?: string;
   scopes: string[];
-  redirect_uri?: string;
   registration_endpoint?: string;
   authorize_params?: Record<string, string>;
   token_client_auth?: "body" | "basic";

@@ -35,7 +35,6 @@ const defaultOAuthProviders: ToriiConfig["oauth_providers"] = {
     client_id: "test-client-id",
     client_secret: "secret",
     scopes: ["repo"],
-    redirect_uri: "http://localhost:3100/oauth/callback",
   },
 };
 

@@ -15,6 +15,7 @@ const fallbackOwner: ActingOwner = {
 export function useActingOwner() {
   const { data, refresh, isLoading } = useFetchAgents();
 
+  // This method is temporary for v0 as there is one implicit owner and no form of user auth.
   const owner = useMemo((): ActingOwner => {
     const ownerId = data?.agents[0]?.owner_id;
     if (!ownerId) {

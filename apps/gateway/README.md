@@ -54,7 +54,7 @@ During normal gateway operation Torii uses two machine-readable streams:
 | **stdout** | `CallTrace` audit records (`tools/call`) only | JSON with `recordType: "call_trace"` and `traceId` |
 | **stderr** | Structured operational logs (boot, connections, catalog, policy, OAuth, HTTP access) | JSON with `recordType: "log"`, `level`, and `event` |
 
-Human-readable CLI output (`torii link`, config validation errors) may still use prose on the terminal; it is not part of the operational log stream.
+Human-readable config validation errors may still use prose on the terminal; they are not part of the operational log stream.
 
 Or run the built CLI:
 
@@ -71,11 +71,14 @@ pnpm --filter @keidai/gateway start
 | `TORII_PORT` | `3100` (falls back to `PORT`) | HTTP listen port |
 | `TORII_HOST` | `127.0.0.1` | HTTP bind address |
 | `TORII_TOKEN_STORE_PATH` | `./data/torii-tokens.db` | SQLite path for OAuth token store |
+| `TORII_GATEWAY_BASE_URL` | — | Stable public base URL for OAuth callbacks (overrides per-request Host derivation) |
 | `TORII_K8S_SA_OIDC_ISSUER` | — | K8s SA OIDC issuer (optional; enables JWT identity when set with audience + JWKS) |
 | `TORII_K8S_SA_OIDC_AUDIENCE` | — | Expected JWT audience |
 | `TORII_K8S_SA_OIDC_JWKS_URI` | — | JWKS endpoint for token verification |
 
 See `torii.example.yaml` at the repo root for server list, policy, OAuth providers, and agent registration shapes. Demo config: [`torii.demo.yaml`](torii.demo.yaml) in this package.
+
+Optional `gateway_base_url` in torii.yaml (or `TORII_GATEWAY_BASE_URL`) sets the stable public URL used to derive OAuth callback URIs: `{base}/oauth/callback/{provider}`.
 
 ## Agent identity
 
@@ -84,21 +87,28 @@ Inbound requests are authenticated via a single resolver wired at boot:
 - **`agents[].inbound_token`** — static bearer declared in config (env refs resolved at load). Demo agents use this.
 - **K8s SA OIDC** — when `TORII_K8S_SA_OIDC_*` env vars are all set, projected service account JWTs are also accepted and mapped via `agents[].subject`.
 
-Backend OAuth for `user_oauth` servers is separate: tokens are persisted in SQLite via `torii link`, keyed by `(owner_id, provider)` from the resolved agent principal.
+Backend OAuth for `user_oauth` servers is separate: tokens are persisted in SQLite via the keidai-ui OAuth providers screen, keyed by `(owner_id, provider)` from the resolved agent principal.
 
-## OAuth linking (CLI)
+## OAuth linking (UI)
 
 Link an owner's OAuth token before `user_oauth` backends can resolve credentials:
 
+1. Start the gateway and keidai-ui (`pnpm --filter @keidai/keidai-ui dev`)
+2. Open the **OAuth providers** screen
+3. Select the owner and click **Link account** for each provider
+
+The gateway derives the callback URL as `{gateway_base}/oauth/callback/{provider}` (default local: `http://127.0.0.1:3100/oauth/callback/github`). For **static** providers (GitHub, Google), register that exact callback URL in the provider's developer console. **Dynamic** providers (Notion MCP) register automatically on first link.
+
+The `owner_id` must match the registered agent's owner — tokens linked for a different owner will not resolve at call time.
+
+### Resetting stale OAuth data
+
+If dynamic clients were registered with an old redirect URI, clear SQLite and re-link:
+
 ```bash
-# Requires oauth_providers + agents[] in torii.yaml
-pnpm --filter @keidai/gateway run torii link github
-pnpm --filter @keidai/gateway run torii link notion --owner demo-owner
+sqlite3 ./data/torii-tokens.db \
+  "DELETE FROM oauth_provider_clients; DELETE FROM oauth_tokens;"
 ```
-
-The command opens a browser, completes the authorization-code flow on `http://127.0.0.1:8765/callback`, and persists tokens to SQLite keyed by `(owner_id, provider)`. The `owner_id` must match the registered agent's owner — tokens linked for a different owner will not resolve at call time.
-
-Register redirect URIs in each provider's developer console. GitHub and Google use `http://127.0.0.1:8765/callback`. Notion requires HTTPS — use `https://127.0.0.1:8765/callback` (Torii serves a local self-signed certificate for the callback; your browser may warn once).
 
 ## MCP Inspector (dev)
 
