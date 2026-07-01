@@ -31,7 +31,6 @@ const sampleConfig: ToriiConfig = {
       client_id: "gh-client",
       client_secret: "gh-secret",
       scopes: ["repo"],
-      redirect_uri: "http://127.0.0.1:8765/callback",
     },
   },
   servers: [
@@ -109,7 +108,6 @@ describe("Gateway /api/config endpoints", () => {
         token_url: "https://github.com/login/oauth/access_token",
         client_id: "gh-client",
         scopes: ["repo"],
-        redirect_uri: "http://127.0.0.1:8765/callback",
       });
       assert.deepEqual(agents, {
         agents: [

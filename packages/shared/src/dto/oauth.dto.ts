@@ -24,4 +24,5 @@ export interface OAuthConnectionsResponse {
 export interface OAuthInitiateResponse {
   authorizationUrl: string;
   linkId: string;
+  redirectUri: string;
 }

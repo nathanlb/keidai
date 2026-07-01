@@ -6,6 +6,7 @@ export interface PendingOAuthLink {
   provider: string;
   codeVerifier?: string;
   redirectUri: string;
+  uiOrigin?: string;
   status: PendingOAuthLinkStatus;
   error?: string;
   createdAt: Date;

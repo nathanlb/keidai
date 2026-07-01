@@ -30,7 +30,7 @@ export async function resolveOAuthProviderConfig(
   const registered = await clientRepository.get(providerName);
   if (!registered) {
     throw new Error(
-      `OAuth provider "${providerName}" has no registered client. Run torii link ${providerName}.`,
+      `OAuth provider "${providerName}" has no registered client. Link this provider from the Torii UI (OAuth providers screen) before use.`,
     );
   }
 
@@ -47,13 +47,13 @@ export async function ensureRegisteredOAuthClient(
   redirectUri: string,
   clientRepository: OAuthClientRepository,
 ): Promise<OAuthProviderConfig> {
-  const existing = await clientRepository.get(providerName);
-  if (existing) {
-    return resolveOAuthProviderConfig(providerName, providerConfig, clientRepository);
-  }
-
   if (!providerConfig.registration_endpoint) {
     return requireStaticClientCredentials(providerName, providerConfig);
+  }
+
+  const existing = await clientRepository.get(providerName);
+  if (existing && existing.redirectUri === redirectUri) {
+    return resolveOAuthProviderConfig(providerName, providerConfig, clientRepository);
   }
 
   const registered = await registerDynamicOAuthClient(
@@ -61,7 +61,10 @@ export async function ensureRegisteredOAuthClient(
     redirectUri,
     `Torii (${providerName})`,
   );
-  await clientRepository.set(providerName, registered);
+  await clientRepository.set(providerName, {
+    ...registered,
+    redirectUri,
+  });
 
   return {
     ...providerConfig,

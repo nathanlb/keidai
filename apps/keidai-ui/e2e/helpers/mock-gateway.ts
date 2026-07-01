@@ -4,6 +4,7 @@ import type {
   ConfigOAuthProvidersResponse,
   ConfigServersResponse,
   OAuthConnectionsResponse,
+  OAuthInitiateResponse,
 } from "@keidai/shared";
 
 export interface MockGatewayConfig {
@@ -11,6 +12,10 @@ export interface MockGatewayConfig {
   servers?: ConfigServersResponse;
   oauthProviders?: ConfigOAuthProvidersResponse;
   oauthConnections?: Record<string, OAuthConnectionsResponse>;
+  oauthInitiate?: Record<
+    string,
+    OAuthInitiateResponse | { status: number; error: string }
+  >;
   healthy?: boolean;
 }
 
@@ -21,6 +26,7 @@ export async function mockGatewayConfig(
     servers = { servers: [] },
     oauthProviders = { providers: {} },
     oauthConnections = {},
+    oauthInitiate = {},
     healthy = true,
   }: MockGatewayConfig = {},
 ): Promise<void> {
@@ -60,6 +66,31 @@ export async function mockGatewayConfig(
     const url = new URL(route.request().url());
     const ownerId = url.searchParams.get("owner") ?? "";
     const response = oauthConnections[ownerId] ?? { connections: [] };
+    await route.fulfill({ json: response });
+  });
+
+  await page.route("**/api/oauth/initiate/**", async (route) => {
+    if (!healthy) {
+      await route.fulfill({ status: 503, body: "Gateway unavailable" });
+      return;
+    }
+
+    const url = new URL(route.request().url());
+    const provider = url.pathname.split("/").pop() ?? "";
+    const response = oauthInitiate[provider] ?? {
+      authorizationUrl: `https://example.com/oauth/${provider}`,
+      linkId: "link-1",
+      redirectUri: `http://127.0.0.1:3100/oauth/callback/${provider}`,
+    };
+
+    if ("status" in response) {
+      await route.fulfill({
+        status: response.status,
+        json: { error: response.error },
+      });
+      return;
+    }
+
     await route.fulfill({ json: response });
   });
 }

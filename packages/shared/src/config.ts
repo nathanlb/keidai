@@ -7,8 +7,6 @@ export interface OAuthProviderConfig {
   client_id?: string;
   client_secret?: string;
   scopes: string[];
-  /** OAuth redirect URI for the authorization-code link flow. */
-  redirect_uri?: string;
   /** RFC 7591 dynamic client registration endpoint (e.g. Notion MCP). */
   registration_endpoint?: string;
   /** Extra static query params appended to the authorize URL. */
@@ -69,6 +67,12 @@ export interface AgentRegistrationConfig {
 
 /** Root torii.yaml shape — env refs are resolved before this type is populated. */
 export interface ToriiConfig {
+  /**
+   * Public gateway base URL used for OAuth callback derivation
+   * (`{gateway_base_url}/oauth/callback/{provider}`). When omitted, derived per
+   * request from Host / X-Forwarded-* headers (local dev) or TORII_HOST/TORII_PORT.
+   */
+  gateway_base_url?: string;
   oauth_providers: Record<string, OAuthProviderConfig>;
   servers: ServerConfig[];
   /** Boot-time agent registrations; omitted or empty when none are configured. */

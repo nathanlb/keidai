@@ -2,10 +2,10 @@
 #
 # Loaded via TORII_CONFIG_PATH=./torii.demo.yaml in apps/gateway/.env
 #
-# Link OAuth providers before running the demo:
-#   pnpm --filter @keidai/gateway run torii link github
-#   pnpm --filter @keidai/gateway run torii link notion
-#   pnpm --filter @keidai/gateway run torii link google
+# Link OAuth providers via the keidai-ui OAuth providers screen before running
+# the demo. For GitHub and Google, register the gateway callback URL in each
+# provider's developer console: {gateway_base}/oauth/callback/{provider}
+# (default local: http://127.0.0.1:3100/oauth/callback/github, etc.)
 #
 # See docs/demo.md for the full walkthrough.
 
@@ -15,14 +15,12 @@ oauth_providers:
     client_id: ${env:GITHUB_CLIENT_ID}
     client_secret: ${env:GITHUB_CLIENT_SECRET}
     scopes: [repo, read:user]
-    redirect_uri: http://127.0.0.1:8765/callback
 
   notion:
     authorize_url: https://mcp.notion.com/authorize
     token_url: https://mcp.notion.com/token
     registration_endpoint: https://mcp.notion.com/register
     scopes: []
-    redirect_uri: https://127.0.0.1:8765/callback
 
   google:
     authorize_url: https://accounts.google.com/o/oauth2/v2/auth
@@ -32,7 +30,6 @@ oauth_providers:
     scopes:
       - https://www.googleapis.com/auth/gmail.readonly
       - https://www.googleapis.com/auth/gmail.compose
-    redirect_uri: http://127.0.0.1:8765/callback
     authorize_params:
       access_type: offline
       prompt: consent

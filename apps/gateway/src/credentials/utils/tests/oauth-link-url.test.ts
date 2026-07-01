@@ -8,8 +8,9 @@ const githubProvider: OAuthProviderConfig = {
   client_id: "test-client-id",
   client_secret: "top-secret",
   scopes: ["repo", "read:user"],
-  redirect_uri: "http://localhost:3100/oauth/callback",
 };
+
+const gatewayRedirect = "http://localhost:3100/oauth/callback/github";
 
 describe("deriveAuthorizeUrl", () => {
   it("derives authorize URL from a standard token URL", () => {
@@ -22,7 +23,9 @@ describe("deriveAuthorizeUrl", () => {
 
 describe("buildOAuthLinkUrl", () => {
   it("builds an authorize URL with client_id, scopes, and redirect_uri", () => {
-    const linkUrl = buildOAuthLinkUrl(githubProvider, "github", "owner-1");
+    const linkUrl = buildOAuthLinkUrl(githubProvider, "github", "owner-1", {
+      redirectUri: gatewayRedirect,
+    });
     const url = new URL(linkUrl);
 
     assert.equal(url.origin + url.pathname, "https://github.com/login/oauth/authorize");
@@ -31,7 +34,7 @@ describe("buildOAuthLinkUrl", () => {
     assert.equal(url.searchParams.get("response_type"), "code");
     assert.equal(
       url.searchParams.get("redirect_uri"),
-      "http://localhost:3100/oauth/callback",
+      gatewayRedirect,
     );
     assert.ok(url.searchParams.get("state"));
 
@@ -46,6 +49,23 @@ describe("buildOAuthLinkUrl", () => {
     assert.doesNotMatch(linkUrl, /gho_/);
   });
 
+  it("omits the scope parameter when no scopes are configured", () => {
+    const linkUrl = buildOAuthLinkUrl(
+      {
+        authorize_url: "https://mcp.notion.com/authorize",
+        token_url: "https://mcp.notion.com/token",
+        client_id: "notion-client",
+        scopes: [],
+      },
+      "notion",
+      "owner-1",
+      { redirectUri: "http://127.0.0.1:3100/oauth/callback/notion" },
+    );
+    const url = new URL(linkUrl);
+
+    assert.equal(url.searchParams.has("scope"), false);
+  });
+
   it("uses authorize_url and authorize_params when configured", () => {
     const linkUrl = buildOAuthLinkUrl(
       {
@@ -57,7 +77,6 @@ describe("buildOAuthLinkUrl", () => {
           "https://www.googleapis.com/auth/gmail.readonly",
           "https://www.googleapis.com/auth/gmail.compose",
         ],
-        redirect_uri: "http://127.0.0.1:8765/callback",
         authorize_params: {
           access_type: "offline",
           prompt: "consent",
@@ -65,7 +84,10 @@ describe("buildOAuthLinkUrl", () => {
       },
       "google",
       "owner-1",
-      { codeChallenge: "challenge-123" },
+      {
+        redirectUri: "http://127.0.0.1:3100/oauth/callback/google",
+        codeChallenge: "challenge-123",
+      },
     );
     const url = new URL(linkUrl);
 

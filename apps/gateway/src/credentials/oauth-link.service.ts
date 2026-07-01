@@ -21,6 +21,7 @@ import { exchangeAuthorizationCode } from "./utils/oauth-code-exchange.js";
 import { buildOAuthLinkUrl } from "./utils/oauth-link-url.js";
 import { decodeOAuthLinkState, type OAuthLinkState } from "./utils/oauth-link-state.js";
 import { createPkceChallenge } from "./utils/pkce.js";
+import { buildOAuthCallbackRedirectUri } from "./utils/oauth-callback-redirect-uri.js";
 import { ensureRegisteredOAuthClient } from "./utils/resolve-oauth-provider-config.js";
 import { resolveOAuthOwnerId } from "./utils/resolve-oauth-owner.js";
 
@@ -34,6 +35,13 @@ export interface OAuthCallbackQuery {
 export interface OAuthCallbackResult {
   success: boolean;
   error?: string;
+  page?: {
+    uiOrigin?: string;
+    linkId?: string;
+    provider: string;
+    status: "success" | "error";
+    error?: string;
+  };
 }
 
 interface CallbackError {
@@ -70,14 +78,11 @@ export class OAuthLinkService {
     private readonly logger: Logger,
   ) {}
 
-  buildCallbackRedirectUri(baseUrl: string, provider: string): string {
-    return `${baseUrl.replace(/\/$/, "")}/oauth/callback/${provider}`;
-  }
-
   async initiate(
     provider: string,
     baseUrl: string,
     ownerId?: string,
+    uiOrigin?: string,
   ): Promise<OAuthInitiateResponse> {
     const config = this.configService.get();
     const providerConfig = config.oauth_providers[provider];
@@ -88,7 +93,7 @@ export class OAuthLinkService {
     }
 
     const resolvedOwnerId = resolveOAuthOwnerId(config, ownerId);
-    const redirectUri = this.buildCallbackRedirectUri(baseUrl, provider);
+    const redirectUri = buildOAuthCallbackRedirectUri(baseUrl, provider);
     const effectiveProviderConfig = await ensureRegisteredOAuthClient(
       provider,
       providerConfig,
@@ -107,15 +112,17 @@ export class OAuthLinkService {
       provider,
       codeVerifier,
       redirectUri,
+      ...(uiOrigin ? { uiOrigin } : {}),
       status: "pending",
       createdAt: new Date(),
     });
 
     const authorizationUrl = buildOAuthLinkUrl(
-      { ...effectiveProviderConfig, redirect_uri: redirectUri },
+      effectiveProviderConfig,
       provider,
       resolvedOwnerId,
       {
+        redirectUri,
         ...(codeChallenge ? { codeChallenge } : {}),
         linkId,
       },
@@ -126,7 +133,7 @@ export class OAuthLinkService {
       ownerId: resolvedOwnerId,
     });
 
-    return { authorizationUrl, linkId };
+    return { authorizationUrl, linkId, redirectUri };
   }
 
   async completeCallback(
@@ -142,8 +149,12 @@ export class OAuthLinkService {
         ...(ownerId ? { ownerId } : {}),
         error,
       });
-      await this.failLatestLink(provider, query.state, error);
-      return { success: false, error };
+      const notify = await this.failLatestLink(provider, query.state, error);
+      return {
+        success: false,
+        error,
+        page: notify,
+      };
     }
 
     const resolved = await this.resolveCallbackContext(provider, query);
@@ -154,7 +165,8 @@ export class OAuthLinkService {
         ...(ownerId ? { ownerId } : {}),
         error: resolved.error,
       });
-      return resolved;
+      const page = await this.callbackPageFromState(provider, query.state, "error", resolved.error);
+      return { ...resolved, page };
     }
 
     return this.exchangeAndStoreToken(provider, resolved);
@@ -276,7 +288,10 @@ export class OAuthLinkService {
         provider,
         ownerId: pendingLink.ownerId,
       });
-      return { success: true };
+      return {
+        success: true,
+        page: this.callbackPageFromPendingLink(pendingLink, "success"),
+      };
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "OAuth code exchange failed";
@@ -285,7 +300,57 @@ export class OAuthLinkService {
         ownerId: pendingLink.ownerId,
         error: message,
       });
-      return this.callbackFailure(message, pendingLink.linkId);
+      const failure = await this.callbackFailure(message, pendingLink.linkId);
+      return {
+        ...failure,
+        page: this.callbackPageFromPendingLink(pendingLink, "error", message),
+      };
+    }
+  }
+
+  private callbackPageFromPendingLink(
+    pendingLink: PendingOAuthLink,
+    status: "success" | "error",
+    error?: string,
+  ): OAuthCallbackResult["page"] {
+    return {
+      uiOrigin: pendingLink.uiOrigin,
+      linkId: pendingLink.linkId,
+      provider: pendingLink.provider,
+      status,
+      ...(error ? { error } : {}),
+    };
+  }
+
+  private async callbackPageFromState(
+    provider: string,
+    state: string | undefined,
+    status: "success" | "error",
+    error?: string,
+  ): Promise<OAuthCallbackResult["page"]> {
+    if (!state) {
+      return { provider, status, ...(error ? { error } : {}) };
+    }
+
+    try {
+      const decodedState = decodeOAuthLinkState(state);
+      if (!decodedState.linkId) {
+        return { provider, status, ...(error ? { error } : {}) };
+      }
+
+      const pendingLink = await this.pendingLinkStore.get(decodedState.linkId);
+      if (!pendingLink) {
+        return {
+          provider,
+          linkId: decodedState.linkId,
+          status,
+          ...(error ? { error } : {}),
+        };
+      }
+
+      return this.callbackPageFromPendingLink(pendingLink, status, error);
+    } catch {
+      return { provider, status, ...(error ? { error } : {}) };
     }
   }
 
@@ -313,9 +378,9 @@ export class OAuthLinkService {
     provider: string,
     state: string | undefined,
     message: string,
-  ): Promise<void> {
+  ): Promise<OAuthCallbackResult["page"]> {
     if (!state) {
-      return;
+      return { provider, status: "error", error: message };
     }
 
     try {
@@ -323,8 +388,9 @@ export class OAuthLinkService {
       if (decodedState.provider === provider && decodedState.linkId) {
         await this.markLinkFailed(decodedState.linkId, message);
       }
+      return this.callbackPageFromState(provider, state, "error", message);
     } catch {
-      // Ignore invalid state when provider already returned an error.
+      return { provider, status: "error", error: message };
     }
   }
 

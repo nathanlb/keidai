@@ -12,7 +12,6 @@ const githubConfig: PublicOAuthProviderConfig = {
   authorize_url: "https://github.com/login/oauth/authorize",
   client_id: "Iv1.8a61f9publicclient",
   scopes: ["repo", "read:user"],
-  redirect_uri: "http://127.0.0.1:8765/callback",
   pkce: true,
 };
 
@@ -31,8 +30,17 @@ describe("isProviderMisconfigured", () => {
       isProviderMisconfigured({
         token_url: "https://example.com/token",
         registration_endpoint: "https://example.com/register",
-        redirect_uri: "http://127.0.0.1:8765/callback",
         scopes: ["read"],
+      }),
+    ).toBe(false);
+  });
+
+  it("does not require redirect_uri in yaml config", () => {
+    expect(
+      isProviderMisconfigured({
+        token_url: "https://github.com/login/oauth/access_token",
+        client_id: "gh-client",
+        scopes: ["repo"],
       }),
     ).toBe(false);
   });
@@ -68,7 +76,6 @@ describe("buildOAuthProviderSummaries", () => {
           token_url: "https://oauth2.googleapis.com/token",
           client_id: "4079.apps.googleusercontent.com",
           scopes: ["calendar.readonly"],
-          redirect_uri: "http://127.0.0.1:8765/callback",
         },
       },
       ["owner-a", "owner-b"],

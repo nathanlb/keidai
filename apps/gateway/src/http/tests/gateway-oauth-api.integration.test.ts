@@ -75,6 +75,10 @@ describe("Gateway OAuth linking API", () => {
       assert.equal(url.searchParams.get("client_id"), "gh-client");
       assert.ok(url.searchParams.get("state"));
       assert.ok(body.linkId);
+      assert.equal(
+        body.redirectUri,
+        `${gateway.baseUrl}/oauth/callback/github`,
+      );
 
       const state = decodeOAuthLinkState(url.searchParams.get("state") ?? "");
       assert.equal(state.ownerId, "demo-owner");

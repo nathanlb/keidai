@@ -3,6 +3,7 @@ import type {
   ConfigOAuthProvidersResponse,
   ConfigServersResponse,
   OAuthConnectionsResponse,
+  OAuthInitiateResponse,
 } from "@keidai/shared";
 
 const gatewayDisplayUrl =
@@ -28,6 +29,10 @@ function parseDisplayAddress(url: string): string {
 
 export function getGatewayDisplayAddress(): string {
   return parseDisplayAddress(gatewayDisplayUrl);
+}
+
+export function getGatewayOrigin(): string {
+  return new URL(gatewayDisplayUrl).origin;
 }
 
 export function getGatewayVersion(): string {
@@ -81,4 +86,31 @@ export async function fetchOAuthConnections(
 ): Promise<OAuthConnectionsResponse> {
   const query = `?owner=${encodeURIComponent(ownerId)}`;
   return fetchJson<OAuthConnectionsResponse>(`/api/oauth/connections${query}`);
+}
+
+export async function initiateOAuthLink(
+  provider: string,
+  ownerId: string,
+): Promise<OAuthInitiateResponse> {
+  const query = `?owner=${encodeURIComponent(ownerId)}`;
+  const response = await fetch(
+    `/api/oauth/initiate/${encodeURIComponent(provider)}${query}`,
+    {
+      method: "POST",
+      headers: {
+        "X-Torii-UI-Origin": window.location.origin,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      error?: string;
+    } | null;
+    throw new Error(
+      body?.error ?? `OAuth initiate failed: ${response.status}`,
+    );
+  }
+
+  return (await response.json()) as OAuthInitiateResponse;
 }

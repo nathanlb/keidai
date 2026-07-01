@@ -13,7 +13,6 @@ const githubProvider: OAuthProviderConfig = {
   client_id: "test-client-id",
   client_secret: "top-secret",
   scopes: ["repo"],
-  redirect_uri: "http://localhost:3100/oauth/callback",
 };
 
 function mockFetch(response: {
