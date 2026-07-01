@@ -21,6 +21,7 @@ import { exchangeAuthorizationCode } from "./utils/oauth-code-exchange.js";
 import { buildOAuthLinkUrl } from "./utils/oauth-link-url.js";
 import { decodeOAuthLinkState, type OAuthLinkState } from "./utils/oauth-link-state.js";
 import { createPkceChallenge } from "./utils/pkce.js";
+import { buildOAuthCallbackRedirectUri } from "./utils/oauth-callback-redirect-uri.js";
 import { ensureRegisteredOAuthClient } from "./utils/resolve-oauth-provider-config.js";
 import { resolveOAuthOwnerId } from "./utils/resolve-oauth-owner.js";
 
@@ -77,10 +78,6 @@ export class OAuthLinkService {
     private readonly logger: Logger,
   ) {}
 
-  buildCallbackRedirectUri(baseUrl: string, provider: string): string {
-    return `${baseUrl.replace(/\/$/, "")}/oauth/callback/${provider}`;
-  }
-
   async initiate(
     provider: string,
     baseUrl: string,
@@ -96,7 +93,7 @@ export class OAuthLinkService {
     }
 
     const resolvedOwnerId = resolveOAuthOwnerId(config, ownerId);
-    const redirectUri = this.buildCallbackRedirectUri(baseUrl, provider);
+    const redirectUri = buildOAuthCallbackRedirectUri(baseUrl, provider);
     const effectiveProviderConfig = await ensureRegisteredOAuthClient(
       provider,
       providerConfig,

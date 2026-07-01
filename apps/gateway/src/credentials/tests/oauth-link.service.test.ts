@@ -100,14 +100,6 @@ function mockTokenExchange(response: Record<string, unknown> = {}): () => void {
 }
 
 describe("OAuthLinkService", () => {
-  it("builds callback redirect URIs from the gateway base URL", () => {
-    const { service } = createOAuthLinkService();
-    assert.equal(
-      service.buildCallbackRedirectUri("http://127.0.0.1:3100/", "github"),
-      "http://127.0.0.1:3100/oauth/callback/github",
-    );
-  });
-
   it("initiate stores a pending link and returns an authorization URL", async () => {
     const pendingLinkStore = new InMemoryPendingLinkStore();
     const { service } = createOAuthLinkService(sampleConfig, { pendingLinkStore });

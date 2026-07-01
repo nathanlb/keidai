@@ -1,6 +1,8 @@
 import type { ServerConfig } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
+import { resolveGatewayBaseUrl } from "../../config/utils/resolve-gateway-base-url.js";
+import { buildOAuthCallbackRedirectUri } from "../utils/oauth-callback-redirect-uri.js";
 import { getAgentPrincipal } from "../../identity/agent-principal-context.js";
 import { OAuthTokenLifecycleService } from "../oauth-token-lifecycle.service.js";
 import { OAuthTokenRefreshError } from "../utils/oauth-token-refresh.js";
@@ -58,19 +60,27 @@ export class UserOAuthCredentialResolver implements CredentialStrategyResolver {
     ownerId: string,
     backend: string,
   ): LinkingRequiredError {
-    const providerConfig = this.configService.get().oauth_providers[provider];
+    const config = this.configService.get();
+    const providerConfig = config.oauth_providers[provider];
     if (!providerConfig) {
       throw new Error(
         `user_oauth provider "${provider}" is not defined in oauth_providers`,
       );
     }
 
+    const redirectUri = buildOAuthCallbackRedirectUri(
+      resolveGatewayBaseUrl(config),
+      provider,
+    );
+
     return new LinkingRequiredError({
       code: LINKING_REQUIRED_CODE,
       provider,
       ownerId,
       backend,
-      linkUrl: buildOAuthLinkUrl(providerConfig, provider, ownerId),
+      linkUrl: buildOAuthLinkUrl(providerConfig, provider, ownerId, {
+        redirectUri,
+      }),
     });
   }
 }

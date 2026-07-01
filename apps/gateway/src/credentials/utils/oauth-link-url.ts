@@ -27,7 +27,7 @@ export function buildOAuthLinkUrl(
   provider: OAuthProviderConfig,
   providerName: string,
   ownerId: string,
-  options: BuildOAuthLinkUrlOptions = {},
+  options: BuildOAuthLinkUrlOptions,
 ): string {
   const authorizeUrl = resolveAuthorizeUrl(provider);
   if (!provider.client_id) {
