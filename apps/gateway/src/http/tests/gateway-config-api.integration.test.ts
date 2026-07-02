@@ -21,7 +21,7 @@ import { createCredentialServices } from "../../credentials/tests/test-helpers.j
 import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
 import { GatewayHttpServer } from "../gateway-http-server.service.js";
 import { GatewayMcpServer } from "../../mcp/gateway-mcp-server.service.js";
-import { createOAuthApiController, createStubToolCatalog, createTestGatewayHttpServer } from "./test-helpers.js";
+import { createOAuthApiController, createStubToolCatalog, createTestGatewayHttpServer, createTracesApiController } from "./test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 
 const sampleConfig: ToriiConfig = {
@@ -155,6 +155,7 @@ describe("Gateway /api/config endpoints", () => {
         connectionManager,
       ),
       createOAuthApiController(configService),
+      createTracesApiController({ traceEmitter: new CapturingTraceEmitter() }),
       new GatewayMcpServer(
         {} as ToolCatalogService,
         {} as ToolDispatchService,

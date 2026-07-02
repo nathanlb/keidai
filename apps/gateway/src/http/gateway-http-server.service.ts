@@ -5,6 +5,7 @@ import { ConfigApiController } from "../config/config-api.controller.js";
 import { OAuthApiController } from "../credentials/oauth-api.controller.js";
 import { GatewayMcpServer } from "../mcp/gateway-mcp-server.service.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
+import { TracesApiController } from "../trace/traces-api.controller.js";
 import type { Logger } from "../logging/types/logger.js";
 import type {
   GatewayHttpServerHandle,
@@ -29,6 +30,8 @@ export class GatewayHttpServer {
     private readonly connectionsApi: ConnectionsApiController,
     @inject(OAuthApiController)
     private readonly oauthApi: OAuthApiController,
+    @inject(TracesApiController)
+    private readonly tracesApi: TracesApiController,
     @inject(GatewayMcpServer)
     private readonly mcpServer: GatewayMcpServer,
     @inject(StructuredLoggerService)
@@ -61,6 +64,7 @@ export class GatewayHttpServer {
       configApi: this.configApi,
       connectionsApi: this.connectionsApi,
       oauthApi: this.oauthApi,
+      tracesApi: this.tracesApi,
       mcpServer: this.mcpServer,
     });
     return app;

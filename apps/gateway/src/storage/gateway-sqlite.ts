@@ -15,6 +15,24 @@ CREATE TABLE IF NOT EXISTS oauth_provider_clients (
   client_id TEXT NOT NULL,
   client_secret TEXT
 );
+
+CREATE TABLE IF NOT EXISTS call_traces (
+  trace_id TEXT NOT NULL PRIMARY KEY,
+  timestamp TEXT NOT NULL,
+  server TEXT NOT NULL,
+  tool TEXT NOT NULL,
+  agent_id TEXT,
+  owner_id TEXT,
+  credential_ref TEXT,
+  policy_decision TEXT NOT NULL,
+  duration_ms INTEGER,
+  error TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_call_traces_timestamp
+  ON call_traces(timestamp DESC, trace_id DESC);
+CREATE INDEX IF NOT EXISTS idx_call_traces_server
+  ON call_traces(server);
 `;
 
 function ensureOAuthClientRedirectUriColumn(db: DatabaseSync): void {
@@ -26,7 +44,7 @@ function ensureOAuthClientRedirectUriColumn(db: DatabaseSync): void {
   }
 }
 
-export function openTokenDatabase(databasePath: string): DatabaseSync {
+export function openGatewayDatabase(databasePath: string): DatabaseSync {
   const db = new DatabaseSync(databasePath);
   db.exec("PRAGMA journal_mode = WAL");
   db.exec(SCHEMA_SQL);

@@ -70,7 +70,7 @@ pnpm --filter @keidai/gateway start
 | `TORII_CONFIG_PATH` | `./torii.yaml` | Gateway config file |
 | `TORII_PORT` | `3100` (falls back to `PORT`) | HTTP listen port |
 | `TORII_HOST` | `127.0.0.1` | HTTP bind address |
-| `TORII_TOKEN_STORE_PATH` | `./data/torii-tokens.db` | SQLite path for OAuth token store |
+| `TORII_DB_PATH` | `./data/torii.db` | SQLite path for gateway persistent storage (OAuth tokens, provider clients, call traces) |
 | `TORII_GATEWAY_BASE_URL` | — | Stable public base URL for OAuth callbacks (overrides per-request Host derivation) |
 | `TORII_K8S_SA_OIDC_ISSUER` | — | K8s SA OIDC issuer (optional; enables JWT identity when set with audience + JWKS) |
 | `TORII_K8S_SA_OIDC_AUDIENCE` | — | Expected JWT audience |
@@ -89,6 +89,12 @@ Inbound requests are authenticated via a single resolver wired at boot:
 
 Backend OAuth for `user_oauth` servers is separate: tokens are persisted in SQLite via the keidai-ui OAuth providers screen, keyed by `(owner_id, provider)` from the resolved agent principal.
 
+## Trace feed API (UI)
+
+The Activity & traces screen reads from HTTP endpoints backed by a SQLite buffer in the gateway database (`TORII_DB_PATH`). The API contract is store-agnostic so the backing implementation can move to an external observability backend later (OTel collector → time-series / log store) without UI changes.
+
+Traces are retained in SQLite (most recent 200 by default). Payloads include credential **refs** only — never token values or other secrets.
+
 ## OAuth linking (UI)
 
 Link an owner's OAuth token before `user_oauth` backends can resolve credentials:
@@ -106,7 +112,7 @@ The `owner_id` must match the registered agent's owner — tokens linked for a d
 If dynamic clients were registered with an old redirect URI, clear SQLite and re-link:
 
 ```bash
-sqlite3 ./data/torii-tokens.db \
+sqlite3 ./data/torii.db \
   "DELETE FROM oauth_provider_clients; DELETE FROM oauth_tokens;"
 ```
 

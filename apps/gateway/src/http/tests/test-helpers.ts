@@ -22,7 +22,11 @@ import type { TokenRepository } from "../../credentials/types/token-repository.j
 import type { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { GatewayHttpServer } from "../gateway-http-server.service.js";
 import { GatewayMcpServer } from "../../mcp/gateway-mcp-server.service.js";
-import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
+import { InMemoryTraceRepository } from "../../trace/in-memory-trace-repository.service.js";
+import { TraceEmitterService } from "../../trace/trace-emitter.service.js";
+import { TraceReadService } from "../../trace/trace-read.service.js";
+import { TracesApiController } from "../../trace/traces-api.controller.js";
+import type { TraceRepository } from "../../trace/types/trace-repository.js";
 import type { TraceEmitter } from "../../trace/types/trace-emitter.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 import {
@@ -66,12 +70,27 @@ export function createOAuthApiController(
   );
 }
 
+export function createTracesApiController(
+  options: {
+    traceRepository?: TraceRepository;
+    traceEmitter?: TraceEmitter;
+  } = {},
+): TracesApiController {
+  const traceRepository = options.traceRepository ?? new InMemoryTraceRepository();
+  const traceEmitter =
+    options.traceEmitter ?? new TraceEmitterService(traceRepository);
+  return new TracesApiController(
+    new TraceReadService(traceRepository, traceEmitter),
+  );
+}
+
 export function createTestGatewayHttpServer(
   toolCatalog: ToolCatalogService,
   toolDispatch: ToolDispatchService,
   options: {
     identityResolver?: AgentIdentityResolver;
     traceEmitter?: TraceEmitter;
+    traceRepository?: TraceRepository;
     configService?: ToriiConfigService;
     connectionManager?: ConnectionManager;
     oauthApi?: OAuthApiController;
@@ -94,9 +113,27 @@ export function createTestGatewayHttpServer(
     );
   const catalog = createStubToolCatalog();
   const connectionRead = new ConnectionReadService(connectionManager, catalog);
-  const mcpServer = new GatewayMcpServer(toolCatalog, toolDispatch, createInboundIdentityService(options.identityResolver), options.traceEmitter ?? new CapturingTraceEmitter(), createNoopLogger());
+  const traceRepository = options.traceRepository ?? new InMemoryTraceRepository();
+  const traceEmitter =
+    options.traceEmitter ??
+    new TraceEmitterService(traceRepository);
+  const traceRead = new TraceReadService(traceRepository, traceEmitter);
+  const mcpServer = new GatewayMcpServer(
+    toolCatalog,
+    toolDispatch,
+    createInboundIdentityService(options.identityResolver),
+    traceEmitter,
+    createNoopLogger(),
+  );
 
-  return new GatewayHttpServer(new ConfigApiController(configRead), new ConnectionsApiController(connectionRead, connectionManager), options.oauthApi ?? createOAuthApiController(configService), mcpServer, createNoopLogger());
+  return new GatewayHttpServer(
+    new ConfigApiController(configRead),
+    new ConnectionsApiController(connectionRead, connectionManager),
+    options.oauthApi ?? createOAuthApiController(configService),
+    new TracesApiController(traceRead),
+    mcpServer,
+    createNoopLogger(),
+  );
 }
 
 export { FixedIdentityResolver };

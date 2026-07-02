@@ -18,6 +18,7 @@ import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter
 import { createCapturingLogger } from "../tests/test-helpers.js";
 import { StructuredLoggerService } from "../structured-logger.service.js";
 import { TraceEmitterService } from "../../trace/trace-emitter.service.js";
+import { InMemoryTraceRepository } from "../../trace/in-memory-trace-repository.service.js";
 import {
   finalizeCallTrace,
   toTracePrincipal,
@@ -85,7 +86,9 @@ describe("gateway log streams", () => {
         await toolDispatch.callTool("demo.ping");
       });
 
-      const traceEmitterService = new TraceEmitterService();
+      const traceEmitterService = new TraceEmitterService(
+        new InMemoryTraceRepository(),
+      );
       traceEmitterService.emit(
         finalizeCallTrace(
           {

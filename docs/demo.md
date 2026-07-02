@@ -42,7 +42,7 @@ cp apps/demo-agent/.env.example apps/demo-agent/.env
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | for OAuth linking | OAuth app credentials |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | for OAuth linking | OAuth app credentials |
 
-Optional: `TORII_PORT`, `TORII_HOST`, `TORII_TOKEN_STORE_PATH` (defaults: `3100`, `127.0.0.1`, `./data/torii-tokens.db`), `TORII_GATEWAY_BASE_URL` (stable public base URL when behind a reverse proxy).
+Optional: `TORII_PORT`, `TORII_HOST`, `TORII_DB_PATH` (defaults: `3100`, `127.0.0.1`, `./data/torii.db`), `TORII_GATEWAY_BASE_URL` (stable public base URL when behind a reverse proxy).
 
 ### `apps/demo-agent/.env`
 
@@ -70,7 +70,7 @@ Key test: `apps/gateway/src/mcp/tests/demo-scenario.integration.test.ts`
 
 ## One-time: OAuth linking
 
-Link tokens for owner **`demo-owner`** via the **keidai-ui OAuth providers screen** (stored in `apps/gateway/data/torii-tokens.db` by default):
+Link tokens for owner **`demo-owner`** via the **keidai-ui OAuth providers screen** (stored in `apps/gateway/data/torii.db` by default):
 
 ```bash
 pnpm install
@@ -89,12 +89,12 @@ Open the OAuth providers page in the UI, select owner `demo-owner`, and link Git
 If you previously linked via the old CLI loopback flow (`127.0.0.1:8765/callback`), dynamic clients (Notion) were registered with the wrong redirect URI. Clear stale registrations and tokens, then re-link via the UI:
 
 ```bash
-# Default SQLite path (override with TORII_TOKEN_STORE_PATH if set)
-sqlite3 apps/gateway/data/torii-tokens.db \
+# Default SQLite path (override with TORII_DB_PATH if set)
+sqlite3 apps/gateway/data/torii.db \
   "DELETE FROM oauth_provider_clients; DELETE FROM oauth_tokens;"
 ```
 
-Or delete the file entirely: `rm apps/gateway/data/torii-tokens.db` (recreated on next gateway boot).
+Or delete the file entirely: `rm apps/gateway/data/torii.db` (recreated on next gateway boot).
 
 ## Run the demo
 

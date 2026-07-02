@@ -10,8 +10,8 @@ import { SqliteTokenRepository } from "./credentials/sqlite-token-repository.ser
 import { SqliteOAuthClientRepository } from "./credentials/sqlite-oauth-client-repository.service.js";
 import { TOKEN_REPOSITORY } from "./credentials/types/token-repository.js";
 import { OAUTH_CLIENT_REPOSITORY } from "./credentials/types/oauth-client-repository.js";
-import { openTokenDatabase } from "./credentials/utils/sqlite-token-store.js";
-import { resolveTokenStorePath } from "./credentials/utils/token-store-path.js";
+import { resolveGatewayDbPath } from "./storage/gateway-db-path.js";
+import { openGatewayDatabase } from "./storage/gateway-sqlite.js";
 import { NoneCredentialResolver } from "./credentials/resolvers/none-credential-resolver.service.js";
 import { UserOAuthCredentialResolver } from "./credentials/resolvers/user_oauth_credential-resolver.service.js";
 import { ServiceKeyCredentialResolver } from "./credentials/resolvers/service-key-credential-resolver.service.js";
@@ -42,20 +42,25 @@ import { GatewayMcpServer } from "./mcp/gateway-mcp-server.service.js";
 import { PolicyEnforcementService } from "./policy/policy-enforcement.service.js";
 import { StructuredLoggerService } from "./logging/structured-logger.service.js";
 import { TraceEmitterService } from "./trace/trace-emitter.service.js";
+import { TraceReadService } from "./trace/trace-read.service.js";
+import { TracesApiController } from "./trace/traces-api.controller.js";
+import { SqliteTraceRepository } from "./trace/sqlite-trace-repository.service.js";
+import { TRACE_REPOSITORY } from "./trace/types/trace-repository.js";
 
 const SINGLETON = { lifecycle: Lifecycle.Singleton } as const;
 
 export function createContainer(config: ToriiConfig): DependencyContainer {
   const appContainer = container.createChildContainer();
-  let tokenDatabase: ReturnType<typeof openTokenDatabase> | undefined;
+  let gatewayDatabase: ReturnType<typeof openGatewayDatabase> | undefined;
 
-  const resolveTokenDatabase = () => {
-    tokenDatabase ??= openTokenDatabase(resolveTokenStorePath());
-    return tokenDatabase;
+  const resolveGatewayDatabase = () => {
+    gatewayDatabase ??= openGatewayDatabase(resolveGatewayDbPath());
+    return gatewayDatabase;
   };
 
   let tokenRepository: SqliteTokenRepository | undefined;
   let oauthClientRepository: SqliteOAuthClientRepository | undefined;
+  let traceRepository: SqliteTraceRepository | undefined;
   appContainer.register(ToriiConfigService, {
     useValue: new ToriiConfigService(config),
   });
@@ -77,6 +82,16 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
   appContainer.register(
     ConnectionsApiController,
     { useClass: ConnectionsApiController },
+    SINGLETON,
+  );
+  appContainer.register(
+    TraceReadService,
+    { useClass: TraceReadService },
+    SINGLETON,
+  );
+  appContainer.register(
+    TracesApiController,
+    { useClass: TracesApiController },
     SINGLETON,
   );
   appContainer.register(
@@ -127,16 +142,22 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
   });
   appContainer.register(TOKEN_REPOSITORY, {
     useFactory: () => {
-      tokenRepository ??= new SqliteTokenRepository(resolveTokenDatabase());
+      tokenRepository ??= new SqliteTokenRepository(resolveGatewayDatabase());
       return tokenRepository;
     },
   });
   appContainer.register(OAUTH_CLIENT_REPOSITORY, {
     useFactory: () => {
       oauthClientRepository ??= new SqliteOAuthClientRepository(
-        resolveTokenDatabase(),
+        resolveGatewayDatabase(),
       );
       return oauthClientRepository;
+    },
+  });
+  appContainer.register(TRACE_REPOSITORY, {
+    useFactory: () => {
+      traceRepository ??= new SqliteTraceRepository(resolveGatewayDatabase());
+      return traceRepository;
     },
   });
   appContainer.register(

@@ -7,4 +7,8 @@ export class CapturingTraceEmitter implements TraceEmitter {
   emit(trace: CallTrace): void {
     this.traces.push(trace);
   }
+
+  subscribe(): () => void {
+    return () => {};
+  }
 }
