@@ -5,6 +5,8 @@ export interface ConnectionStatus {
   name: string;
   state: ConnectionState;
   error?: string;
+  /** Namespaced tools exposed for this server after catalog refresh; omitted when unknown. */
+  toolCount?: number;
 }
 
 /** Response body for `GET /api/connections`. */

@@ -46,6 +46,7 @@ test.describe("Agents & owners page", () => {
             name: "linear",
             transport: { type: "http", url: "http://127.0.0.1:3100" },
             credential: { strategy: "none" },
+            policy: { default: "allow" },
           },
         ],
       },

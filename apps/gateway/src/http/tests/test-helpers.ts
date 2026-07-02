@@ -2,6 +2,7 @@ import type {
   AgentIdentityResolver,
   AgentPrincipal,
 } from "@keidai/shared";
+import type { CatalogTool } from "../../catalog/types/catalog-tool.js";
 import type { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
 import { ConnectionsApiController } from "../../connections/connections-api.controller.js";
 import { ConnectionManager } from "../../connections/connection-manager.service.js";
@@ -28,6 +29,17 @@ import {
   createInboundIdentityService,
   FixedIdentityResolver,
 } from "../../identity/tests/test-helpers.js";
+
+export function createStubToolCatalog(
+  catalog: readonly CatalogTool[] = [],
+): ToolCatalogService {
+  return {
+    getCatalog: () => catalog,
+    findTool: () => undefined,
+    refresh: async () => [...catalog],
+    listToolsForAgent: async () => [],
+  } as unknown as ToolCatalogService;
+}
 
 export function createOAuthApiController(
   configService: ToriiConfigService,
@@ -80,10 +92,11 @@ export function createTestGatewayHttpServer(
       },
       createNoopLogger(),
     );
-  const connectionRead = new ConnectionReadService(connectionManager);
+  const catalog = createStubToolCatalog();
+  const connectionRead = new ConnectionReadService(connectionManager, catalog);
   const mcpServer = new GatewayMcpServer(toolCatalog, toolDispatch, createInboundIdentityService(options.identityResolver), options.traceEmitter ?? new CapturingTraceEmitter(), createNoopLogger());
 
-  return new GatewayHttpServer(new ConfigApiController(configRead), new ConnectionsApiController(connectionRead), options.oauthApi ?? createOAuthApiController(configService), mcpServer, createNoopLogger());
+  return new GatewayHttpServer(new ConfigApiController(configRead), new ConnectionsApiController(connectionRead, connectionManager), options.oauthApi ?? createOAuthApiController(configService), mcpServer, createNoopLogger());
 }
 
 export { FixedIdentityResolver };

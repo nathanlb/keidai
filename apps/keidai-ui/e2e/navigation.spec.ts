@@ -11,7 +11,7 @@ test.describe("Torii navigation", () => {
 
     await expect(page).toHaveURL(/\/connections$/);
     await expect(
-      page.getByText("Connection health dashboard"),
+      page.getByText("Backend connection health for the gateway."),
     ).toBeVisible();
   });
 

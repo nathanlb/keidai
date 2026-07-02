@@ -1,4 +1,12 @@
-import { Badge, Button } from "@keidai/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@keidai/ui";
 import type { OAuthLinkStatus } from "@keidai/shared";
 import {
   ChevronDown,
@@ -95,7 +103,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-2.5 text-[12.5px]">
       <span className="text-muted-foreground">{label}</span>
-      <span className="max-w-[220px] truncate text-right font-mono">{value}</span>
+      <span title={value} className="max-w-[290px] truncate text-right font-mono">{value}</span>
     </div>
   );
 }
@@ -123,9 +131,9 @@ export function OAuthProviderCard({ provider, onLink }: OAuthProviderCardProps) 
   const dynamicClient = Boolean(provider.config.registration_endpoint);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
-      <div
-        className="grid cursor-pointer grid-cols-[minmax(0,200px)_1fr_auto_auto_auto] items-center gap-4 px-[18px] py-[15px] transition-colors hover:bg-muted/30 max-lg:grid-cols-1"
+    <Card className="overflow-hidden shadow-none">
+      <CardHeader
+        className="grid cursor-pointer grid-cols-[minmax(0,200px)_1fr_auto_auto_auto] items-center gap-4 space-y-0 px-[18px] py-[15px] transition-colors hover:bg-muted/30 max-lg:grid-cols-1"
         onClick={() => setExpanded((current) => !current)}
         onKeyDown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
@@ -143,10 +151,10 @@ export function OAuthProviderCard({ provider, onLink }: OAuthProviderCardProps) 
             className="size-8 rounded-lg bg-secondary text-[11px] text-secondary-foreground"
           />
           <div className="min-w-0">
-            <div className="text-sm font-semibold">{provider.label}</div>
-            <div className="font-mono text-[11.5px] text-muted-foreground">
+            <CardTitle className="text-sm">{provider.label}</CardTitle>
+            <CardDescription className="font-mono text-[11.5px]">
               {provider.id}
-            </div>
+            </CardDescription>
           </div>
         </div>
 
@@ -188,10 +196,10 @@ export function OAuthProviderCard({ provider, onLink }: OAuthProviderCardProps) 
             aria-hidden
           />
         </div>
-      </div>
+      </CardHeader>
 
       {expanded ? (
-        <div className="grid gap-[22px] border-t border-border px-[18px] py-4 lg:grid-cols-2">
+        <CardContent className="grid gap-[22px] border-t border-border px-[18px] py-4 lg:grid-cols-2">
           <div>
             <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               Provider config
@@ -239,44 +247,45 @@ export function OAuthProviderCard({ provider, onLink }: OAuthProviderCardProps) 
                   const ownerStatus = ownerStatusMeta[owner.status];
 
                   return (
-                    <div
-                      key={owner.ownerId}
-                      className="flex items-center gap-2.5 rounded-lg border border-border px-[11px] py-2.5"
-                    >
-                      <OwnerAvatar
-                        initials={owner.initials}
-                        className="size-6 text-[9px]"
-                      />
-                      <div className="min-w-0">
-                        <div className="font-mono text-[12.5px] font-medium">
-                          {owner.ownerId}
-                        </div>
-                        <div
-                          className={`text-[11px] ${ownerStatus.healthClass}`}
-                        >
-                          {owner.healthLabel}
-                        </div>
-                      </div>
-                      <div className="ml-auto">
-                        <StatusBadge
-                          label={ownerStatus.label}
-                          dotClass={ownerStatus.dotClass}
-                          badgeClass={ownerStatus.badgeClass}
-                          showDot={owner.status !== "failed"}
+                    <Card key={owner.ownerId} className="shadow-none">
+                      <CardContent className="flex items-center gap-2.5 px-[11px] py-2.5">
+                        <OwnerAvatar
+                          initials={owner.initials}
+                          className="size-6 text-[9px]"
                         />
-                      </div>
-                    </div>
+                        <div className="min-w-0">
+                          <div className="font-mono text-[12.5px] font-medium">
+                            {owner.ownerId}
+                          </div>
+                          <div
+                            className={`text-[11px] ${ownerStatus.healthClass}`}
+                          >
+                            {owner.healthLabel}
+                          </div>
+                        </div>
+                        <div className="ml-auto">
+                          <StatusBadge
+                            label={ownerStatus.label}
+                            dotClass={ownerStatus.dotClass}
+                            badgeClass={ownerStatus.badgeClass}
+                            showDot={owner.status !== "failed"}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
                   );
                 })}
               </div>
             ) : (
-              <div className="rounded-lg border border-dashed border-border px-3.5 py-3.5 text-center text-[12.5px] text-muted-foreground">
-                No owner has linked this provider.
-              </div>
+              <Card className="border-dashed shadow-none">
+                <CardContent className="px-3.5 py-3.5 text-center text-[12.5px] text-muted-foreground">
+                  No owner has linked this provider.
+                </CardContent>
+              </Card>
             )}
           </div>
-        </div>
+        </CardContent>
       ) : null}
-    </div>
+    </Card>
   );
 }

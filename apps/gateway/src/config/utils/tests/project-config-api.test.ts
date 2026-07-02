@@ -64,7 +64,11 @@ describe("project-config-api", () => {
     assert.deepEqual(result.servers[0]!, {
       name: "linear",
       transport: { type: "http", url: "https://mcp.linear.app/mcp" },
-      credential: { strategy: "service_key" },
+      credential: {
+        strategy: "service_key",
+        inject: { header: "Authorization" },
+      },
+      policy: { default: "deny" },
     });
     assert.deepEqual(result.servers[1]!.credential, {
       strategy: "user_oauth",
@@ -141,6 +145,14 @@ describe("project-config-api", () => {
         key: "hidden",
       }),
       { strategy: "service_key" },
+    );
+    assert.deepEqual(
+      projectPublicCredential({
+        strategy: "service_key",
+        key: "hidden",
+        inject: { header: "X-Api-Key" },
+      }),
+      { strategy: "service_key", inject: { header: "X-Api-Key" } },
     );
     assert.deepEqual(projectPublicCredential({ strategy: "none" }), {
       strategy: "none",

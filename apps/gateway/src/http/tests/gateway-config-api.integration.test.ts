@@ -21,7 +21,7 @@ import { createCredentialServices } from "../../credentials/tests/test-helpers.j
 import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
 import { GatewayHttpServer } from "../gateway-http-server.service.js";
 import { GatewayMcpServer } from "../../mcp/gateway-mcp-server.service.js";
-import { createOAuthApiController, createTestGatewayHttpServer } from "./test-helpers.js";
+import { createOAuthApiController, createStubToolCatalog, createTestGatewayHttpServer } from "./test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 
 const sampleConfig: ToriiConfig = {
@@ -101,6 +101,7 @@ describe("Gateway /api/config endpoints", () => {
             name: "github",
             transport: { type: "http", url: "https://example.com/mcp" },
             credential: { strategy: "user_oauth", provider: "github" },
+            policy: { default: "deny" },
           },
         ],
       });
@@ -137,20 +138,21 @@ describe("Gateway /api/config endpoints", () => {
       oauth_providers: {},
       servers: [],
     });
+    const connectionManager = new ConnectionManager(
+      configService,
+      {
+        connect: async () => {
+          throw new Error("unused");
+        },
+      },
+      createNoopLogger(),
+    );
+    const toolCatalog = createStubToolCatalog();
     const gatewayHttpServer = new GatewayHttpServer(
       new ConfigApiController(new ConfigReadService(configService)),
       new ConnectionsApiController(
-        new ConnectionReadService(
-          new ConnectionManager(
-            configService,
-            {
-              connect: async () => {
-                throw new Error("unused");
-              },
-            },
-            createNoopLogger(),
-          ),
-        ),
+        new ConnectionReadService(connectionManager, toolCatalog),
+        connectionManager,
       ),
       createOAuthApiController(configService),
       new GatewayMcpServer(

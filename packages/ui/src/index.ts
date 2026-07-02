@@ -22,6 +22,14 @@ export {
 } from "./components/ui/dialog.js";
 export { Separator } from "./components/ui/separator.js";
 export {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./components/ui/table.js";
+export {
   Sheet,
   SheetClose,
   SheetContent,

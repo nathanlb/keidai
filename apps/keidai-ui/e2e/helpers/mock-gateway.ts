@@ -3,13 +3,16 @@ import type {
   ConfigAgentsResponse,
   ConfigOAuthProvidersResponse,
   ConfigServersResponse,
+  ConnectionsResponse,
   OAuthConnectionsResponse,
   OAuthInitiateResponse,
 } from "@keidai/shared";
+import { CONNECTION_SSE_EVENT } from "@keidai/shared";
 
 export interface MockGatewayConfig {
   agents?: ConfigAgentsResponse;
   servers?: ConfigServersResponse;
+  connections?: ConnectionsResponse;
   oauthProviders?: ConfigOAuthProvidersResponse;
   oauthConnections?: Record<string, OAuthConnectionsResponse>;
   oauthInitiate?: Record<
@@ -24,6 +27,7 @@ export async function mockGatewayConfig(
   {
     agents = { agents: [] },
     servers = { servers: [] },
+    connections = { connections: [] },
     oauthProviders = { providers: {} },
     oauthConnections = {},
     oauthInitiate = {},
@@ -46,6 +50,56 @@ export async function mockGatewayConfig(
     }
 
     await route.fulfill({ json: servers });
+  });
+
+  await page.route("**/api/connections", async (route) => {
+    if (!healthy) {
+      await route.fulfill({ status: 503, body: "Gateway unavailable" });
+      return;
+    }
+
+    if (route.request().method() === "POST") {
+      await route.fulfill({ json: { ok: true } });
+      return;
+    }
+
+    await route.fulfill({ json: connections });
+  });
+
+  await page.route("**/api/connections/**", async (route) => {
+    if (!healthy) {
+      await route.fulfill({ status: 503, body: "Gateway unavailable" });
+      return;
+    }
+
+    if (route.request().method() === "POST") {
+      await route.fulfill({ json: { ok: true } });
+      return;
+    }
+
+    await route.continue();
+  });
+
+  await page.route("**/api/connections/events", async (route) => {
+    if (!healthy) {
+      await route.fulfill({ status: 503, body: "Gateway unavailable" });
+      return;
+    }
+
+    const events = connections.connections
+      .map(
+        (connection) =>
+          `event: ${CONNECTION_SSE_EVENT.stateChanged}\ndata: ${JSON.stringify(connection)}\n\n`,
+      )
+      .join("");
+
+    await route.fulfill({
+      status: 200,
+      headers: {
+        "content-type": "text/event-stream",
+      },
+      body: events,
+    });
   });
 
   await page.route("**/api/config/oauth-providers", async (route) => {
