@@ -1,5 +1,6 @@
 import { ChevronsUpDown } from "lucide-react";
 import type { MouseEvent, ReactNode } from "react";
+import { KeidaiLogo } from "../logo/keidai-logo.js";
 import { GatewayHealthFooter } from "./gateway-health-footer.js";
 
 export interface SidebarPanelProps {
@@ -16,9 +17,7 @@ export function SidebarPanel({
   return (
     <>
       <div className="box-border flex h-[58px] shrink-0 items-center gap-2.5 border-b border-sidebar-border px-3.5">
-        <div className="flex size-[30px] shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-[15px] font-bold text-sidebar-primary-foreground">
-          鳥
-        </div>
+        <KeidaiLogo size={28} title="" className="shrink-0" />
         <div className="min-w-0 leading-tight">
           <div className="text-[13.5px] font-semibold text-sidebar-foreground">
             Keidai
