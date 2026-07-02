@@ -143,4 +143,57 @@ describe("ConnectionManager", () => {
     assert.equal(manager.get("github")?.state, "failed");
     assert.equal(manager.get("github")?.config.name, "github");
   });
+
+  it("connects user_oauth backends using boot agent principal without caller context", async () => {
+    const mockServer = await startMockMcpServer({ requireAuth: true });
+    const ownerId = "demo-owner";
+    const { credentialResolver, tokenRepository } = createCredentialServices();
+    await tokenRepository.set(ownerId, "github", { accessToken: "gho_valid" });
+
+    const configService = new ToriiConfigService({
+      oauth_providers: {
+        github: {
+          token_url: "https://github.com/login/oauth/access_token",
+          client_id: "client",
+          client_secret: "secret",
+          scopes: ["repo"],
+        },
+      },
+      servers: [
+        serverConfig("github", mockServer.url, {
+          strategy: "user_oauth",
+          provider: "github",
+        }),
+      ],
+      agents: [
+        {
+          subject: {
+            kind: "k8s_service_account",
+            namespace: "torii-agents",
+            service_account: "demo-agent",
+          },
+          agent_id: "demo-agent-01",
+          owner_id: ownerId,
+          groups: ["agents"],
+        },
+      ],
+    });
+    const manager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
+
+    try {
+      await manager.connectAll();
+      assert.equal(manager.get("github")?.state, "connected");
+
+      await manager.reconnect("github");
+      assert.equal(manager.get("github")?.state, "connected");
+      assert.equal(manager.get("github")?.error, undefined);
+    } finally {
+      await closeManagerConnections(manager);
+      await mockServer.close();
+    }
+  });
 });

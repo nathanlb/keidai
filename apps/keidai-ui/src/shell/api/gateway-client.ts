@@ -2,6 +2,7 @@ import type {
   ConfigAgentsResponse,
   ConfigOAuthProvidersResponse,
   ConfigServersResponse,
+  ConnectionsResponse,
   OAuthConnectionsResponse,
   OAuthInitiateResponse,
 } from "@keidai/shared";
@@ -75,6 +76,27 @@ export async function fetchAgents(): Promise<ConfigAgentsResponse> {
 
 export async function fetchServers(): Promise<ConfigServersResponse> {
   return fetchJson<ConfigServersResponse>("/api/config/servers");
+}
+
+export async function fetchConnections(): Promise<ConnectionsResponse> {
+  return fetchJson<ConnectionsResponse>("/api/connections");
+}
+
+export async function reconnectAllConnections(): Promise<void> {
+  const response = await fetch("/api/connections/reconnect", { method: "POST" });
+  if (!response.ok) {
+    throw new Error(`Reconnect all failed: ${response.status}`);
+  }
+}
+
+export async function reconnectConnection(serverName: string): Promise<void> {
+  const response = await fetch(
+    `/api/connections/${encodeURIComponent(serverName)}/reconnect`,
+    { method: "POST" },
+  );
+  if (!response.ok) {
+    throw new Error(`Reconnect failed: ${response.status}`);
+  }
 }
 
 export async function fetchOAuthProviders(): Promise<ConfigOAuthProvidersResponse> {

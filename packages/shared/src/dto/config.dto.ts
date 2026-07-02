@@ -1,15 +1,16 @@
-import type { AgentSubjectConfig } from "../config.js";
+import type { AgentSubjectConfig, PolicyConfig } from "../config.js";
 
 /** Credential metadata exposed to the UI — no secret values. */
 export type PublicCredentialConfig =
   | { strategy: "user_oauth"; provider: string }
-  | { strategy: "service_key" }
+  | { strategy: "service_key"; inject?: { header: string } }
   | { strategy: "none" };
 
 export interface PublicServerConfig {
   name: string;
   transport: { type: "http"; url: string };
   credential: PublicCredentialConfig;
+  policy: PolicyConfig;
 }
 
 /** OAuth provider metadata exposed to the UI — no client_secret. */

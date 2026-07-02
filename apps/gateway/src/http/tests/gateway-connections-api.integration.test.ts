@@ -9,7 +9,7 @@ import { startMockMcpServer } from "../../connections/tests/mock-mcp-server.js";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
 import type { ConnectionStatus, ConnectionsResponse } from "@keidai/shared";
 import type { GatewayHttpServer } from "../gateway-http-server.service.js";
-import { createTestGatewayHttpServer } from "./test-helpers.js";
+import { createStubToolCatalog, createTestGatewayHttpServer } from "./test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 import {
   createCredentialServices,
@@ -44,7 +44,7 @@ function createConnectionsGateway(
   connectionManager: ConnectionManager,
 ): GatewayHttpServer {
   return createTestGatewayHttpServer(
-    {} as never,
+    createStubToolCatalog(),
     {} as never,
     {
       configService,

@@ -20,7 +20,9 @@ export function projectPublicCredential(
     case "user_oauth":
       return { strategy: "user_oauth", provider: credential.provider };
     case "service_key":
-      return { strategy: "service_key" };
+      return credential.inject
+        ? { strategy: "service_key", inject: credential.inject }
+        : { strategy: "service_key" };
     case "none":
       return { strategy: "none" };
   }
@@ -31,6 +33,7 @@ export function projectPublicServer(server: ServerConfig): PublicServerConfig {
     name: server.name,
     transport: server.transport,
     credential: projectPublicCredential(server.credential),
+    policy: server.policy,
   };
 }
 
