@@ -1,0 +1,59 @@
+---
+description: Use @keidai/ui shadcn primitives in keidai-ui — not raw HTML markup
+globs: apps/keidai-ui/**/*.tsx
+alwaysApply: false
+---
+
+# keidai-ui component library
+
+`@keidai/ui` (`packages/ui`) is the design system. **Reach for it first** when building UI in `apps/keidai-ui`. Check `packages/ui/src/index.ts` for available exports; see `packages/ui/README.md` for workflow and patterns.
+
+## Import from `@keidai/ui`
+
+```tsx
+// ✅ GOOD
+import { Card, CardContent, Table, TableRow, Button, Badge } from "@keidai/ui";
+
+// ❌ BAD — hand-rolled equivalents
+<div className="rounded-xl border border-border bg-card">…</div>
+<table>…</table>
+<button type="button">…</button>
+```
+
+Use `cn` from `@keidai/ui` for conditional classes. Use design tokens (`bg-card`, `border-border`, `text-muted-foreground`) — not one-off styling that duplicates primitives.
+
+## Component map
+
+| UI need | Use |
+|---------|-----|
+| Bordered panel / empty state / summary tile | `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` |
+| Tabular data | `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell` |
+| Modal / multi-step flow | `Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle`, `DialogDescription`, `DialogFooter`, `DialogClose` |
+| Side panel | `Sheet` + subcomponents |
+| Actions | `Button` |
+| Status / tags / chips | `Badge` |
+| Dividers | `Separator` |
+| Hover detail | `Tooltip` + `TooltipProvider` |
+
+## Reference implementations
+
+Copy patterns from these before inventing new markup:
+
+- `apps/keidai-ui/src/torii/connections/connections-view.tsx` — Card + Table page layout
+- `apps/keidai-ui/src/torii/connections/connection-server-row.tsx` — TableRow, Badge, Button
+- `apps/keidai-ui/src/torii/agents/agents-owners-view.tsx` — grouped Card + Table
+- `apps/keidai-ui/src/torii/oauth/oauth-link-dialog.tsx` — Dialog flow
+
+## Missing primitive?
+
+If no `@keidai/ui` export fits (e.g. Alert, Avatar, Collapsible, DropdownMenu), **add it to `packages/ui` via shadcn CLI and export from `index.ts`** — do not inline a one-off in keidai-ui.
+
+```bash
+cd packages/ui && npx shadcn@latest add alert
+```
+
+Then export the new component from `packages/ui/src/index.ts` and use it in keidai-ui.
+
+## Allowed raw markup
+
+Layout wrappers (`div`, `span`, `p`), icons (`lucide-react`), and domain-specific composites (e.g. `OwnerAvatar` until `Avatar` lands in `@keidai/ui`) are fine. Do not use raw HTML for primitives that already exist in the library.

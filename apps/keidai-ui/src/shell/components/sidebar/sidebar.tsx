@@ -21,13 +21,10 @@ export function SidebarPanel({
         </div>
         <div className="min-w-0 leading-tight">
           <div className="text-[13.5px] font-semibold text-sidebar-foreground">
-            keidai
+            Keidai
           </div>
           <div className="text-[11px] text-muted-foreground">{subtitle}</div>
         </div>
-        <span className="ml-auto inline-flex text-muted-foreground">
-          <ChevronsUpDown className="size-[15px]" />
-        </span>
       </div>
 
       <div
@@ -42,7 +39,7 @@ export function SidebarPanel({
   );
 }
 
-interface SidebarProps extends SidebarPanelProps {}
+interface SidebarProps extends SidebarPanelProps { }
 
 export function Sidebar(props: SidebarProps) {
   return (

@@ -1,7 +1,10 @@
 import {
   Badge,
   Button,
+  Card,
+  CardContent,
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -53,32 +56,36 @@ function InitiatingStep({
       </DialogHeader>
 
       {hasConfiguredScopes ? (
-        <div className="mt-4 flex flex-col gap-[7px] rounded-lg border border-border px-3.5 py-3">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Scopes requested
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {scopes.map((scope) => (
-              <Badge
-                key={scope}
-                variant="secondary"
-                className="font-mono text-[11px] font-normal"
-              >
-                {scope}
-              </Badge>
-            ))}
-          </div>
-        </div>
+        <Card className="mt-4 shadow-none">
+          <CardContent className="flex flex-col gap-[7px] px-3.5 py-3">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Scopes requested
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {scopes.map((scope) => (
+                <Badge
+                  key={scope}
+                  variant="secondary"
+                  className="font-mono text-[11px] font-normal"
+                >
+                  {scope}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="mt-4 flex flex-col gap-1.5 rounded-lg border border-border px-3.5 py-3">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Authorization
-          </div>
-          <p className="text-[13px] leading-normal text-muted-foreground">
-            {providerLabel} does not declare scopes in <Mono>torii.yaml</Mono>.
-            Torii requests provider-default access during authorization.
-          </p>
-        </div>
+        <Card className="mt-4 shadow-none">
+          <CardContent className="flex flex-col gap-1.5 px-3.5 py-3">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Authorization
+            </div>
+            <p className="text-[13px] leading-normal text-muted-foreground">
+              {providerLabel} does not declare scopes in <Mono>torii.yaml</Mono>.
+              Torii requests provider-default access during authorization.
+            </p>
+          </CardContent>
+        </Card>
       )}
 
       <DialogFooter className="mt-6 sm:justify-end">
@@ -130,7 +137,7 @@ function WaitingStep({
         </p>
       </div>
 
-      <div className="mt-[18px] flex gap-2">
+      <DialogFooter className="mt-[18px] gap-2 sm:justify-stretch">
         <Button
           variant="ghost"
           className="flex-1 text-muted-foreground"
@@ -152,7 +159,7 @@ function WaitingStep({
         >
           Check now
         </Button>
-      </div>
+      </DialogFooter>
     </>
   );
 }
@@ -264,14 +271,17 @@ export function OAuthLinkDialog({
       }}
     >
       <DialogContent className="max-w-md gap-0 p-0 sm:rounded-xl">
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          aria-label="Close"
-        >
-          <X className="size-4" aria-hidden />
-        </button>
+        <DialogClose asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute right-4 top-4 size-8 opacity-70 hover:opacity-100"
+            aria-label="Close"
+          >
+            <X className="size-4" aria-hidden />
+          </Button>
+        </DialogClose>
 
         <div className="p-6">
           {step === "initiating" ? (

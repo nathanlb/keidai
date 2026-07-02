@@ -1,5 +1,19 @@
 import type { PublicAgentConfig } from "@keidai/shared";
-import { Badge } from "@keidai/ui";
+import {
+  Badge,
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@keidai/ui";
 import { Bot, Lock, Users } from "lucide-react";
 import { deriveOwnerInitials } from "../../shell/utils/derive-owner-initials.js";
 import { formatAgentSubject } from "./utils/format-agent-subject.js";
@@ -22,17 +36,19 @@ function StrictOwnershipBanner() {
 
 function AgentsEmptyState() {
   return (
-    <div className="flex flex-col items-center rounded-xl border border-border bg-card px-6 py-[60px] text-center">
-      <span className="flex size-[52px] items-center justify-center rounded-[14px] bg-muted/55 text-muted-foreground">
-        <Bot className="size-[30px]" aria-hidden />
-      </span>
-      <div className="mt-4 text-base font-semibold">No agents registered</div>
-      <p className="mt-1.5 max-w-[380px] text-[13px] leading-normal text-muted-foreground">
-        Register an agent bound to an owner to start routing calls. Each agent
-        acts as exactly one <span className="font-mono">owner_id</span>, fixed
-        at registration — never asserted per request.
-      </p>
-    </div>
+    <Card className="shadow-none">
+      <CardContent className="flex flex-col items-center px-6 py-[60px] text-center">
+        <span className="flex size-[52px] items-center justify-center rounded-[14px] bg-muted/55 text-muted-foreground">
+          <Bot className="size-[30px]" aria-hidden />
+        </span>
+        <div className="mt-4 text-base font-semibold">No agents registered</div>
+        <p className="mt-1.5 max-w-[380px] text-[13px] leading-normal text-muted-foreground">
+          Register an agent bound to an owner to start routing calls. Each agent
+          acts as exactly one <span className="font-mono">owner_id</span>, fixed
+          at registration — never asserted per request.
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -52,19 +68,19 @@ function AgentRow({
   serverNames: readonly string[];
 }) {
   return (
-    <tr className="border-t border-border transition-colors hover:bg-muted/30">
-      <td className="py-3 pl-[18px]">
+    <TableRow className="border-border hover:bg-muted/30">
+      <TableCell className="py-3 pl-[18px]">
         <div className="flex items-center gap-2.5 text-muted-foreground">
           <Bot className="size-[15px] shrink-0" aria-hidden />
           <span className="font-mono text-[13px] font-semibold text-foreground">
             {agent.agent_id}
           </span>
         </div>
-      </td>
-      <td className="py-3 font-mono text-xs text-muted-foreground">
+      </TableCell>
+      <TableCell className="py-3 font-mono text-xs text-muted-foreground">
         {formatAgentSubject(agent.subject)}
-      </td>
-      <td className="py-3">
+      </TableCell>
+      <TableCell className="py-3">
         <div className="flex flex-wrap gap-1.5">
           {agent.groups.length > 0 ? (
             agent.groups.map((group) => (
@@ -80,8 +96,8 @@ function AgentRow({
             <span className="text-xs text-muted-foreground">—</span>
           )}
         </div>
-      </td>
-      <td className="py-3 pr-[18px]">
+      </TableCell>
+      <TableCell className="py-3 pr-[18px]">
         <div className="flex flex-wrap gap-1.5">
           {serverNames.length > 0 ? (
             serverNames.map((server) => (
@@ -97,8 +113,8 @@ function AgentRow({
             <span className="text-xs text-muted-foreground">—</span>
           )}
         </div>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -114,33 +130,41 @@ function OwnerAgentGroupCard({
   const initials = deriveOwnerInitials(group.ownerId);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
-      <div className="flex items-center gap-[11px] border-b border-border bg-muted/30 px-[18px] py-3.5">
+    <Card className="overflow-hidden shadow-none">
+      <CardHeader className="flex flex-row items-center gap-[11px] space-y-0 border-border px-[18px] py-3.5">
         <OwnerAvatar initials={initials} className="size-7 text-[11px]" />
-        <div>
-          <div className="font-mono text-[13.5px] font-semibold">
+        <div className="min-w-0 flex-1">
+          <CardTitle className="font-mono text-[13.5px]">
             {group.ownerId}
-          </div>
-          <div className="text-[11.5px] text-muted-foreground">
+          </CardTitle>
+          <CardDescription className="text-[11.5px]">
             <AgentCountLabel count={group.agents.length} />
-          </div>
+          </CardDescription>
         </div>
-        <Badge variant="outline" className="ml-auto font-mono">
+        <Badge variant="outline" className="ml-auto shrink-0 font-mono">
           owner_id
         </Badge>
-      </div>
+      </CardHeader>
 
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-left text-sm">
-          <thead>
-            <tr className="text-xs font-medium text-muted-foreground">
-              <th className="py-2.5 pl-[18px] font-medium">Agent</th>
-              <th className="py-2.5 font-medium">Workload subject</th>
-              <th className="py-2.5 font-medium">Groups</th>
-              <th className="py-2.5 pr-[18px] font-medium">Uses</th>
-            </tr>
-          </thead>
-          <tbody>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="h-auto py-2.5 pl-[18px] text-xs font-medium">
+                Agent
+              </TableHead>
+              <TableHead className="h-auto py-2.5 text-xs font-medium">
+                Workload subject
+              </TableHead>
+              <TableHead className="h-auto py-2.5 text-xs font-medium">
+                Groups
+              </TableHead>
+              <TableHead className="h-auto py-2.5 pr-[18px] text-xs font-medium">
+                Uses
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {group.agents.map((agent) => (
               <AgentRow
                 key={agent.agent_id}
@@ -148,22 +172,22 @@ function OwnerAgentGroupCard({
                 serverNames={serverNames}
               />
             ))}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </CardContent>
 
       {showFooterNote ? <MultiOwnerFooterNote /> : null}
-    </div>
+    </Card>
   );
 }
 
 function MultiOwnerFooterNote() {
   return (
-    <div className="flex items-center gap-1.5 border-t border-dashed border-border px-[18px] py-3.5 text-xs text-muted-foreground">
+    <CardFooter className="gap-1.5 border-t border-dashed border-border px-[18px] py-3.5 text-xs text-muted-foreground">
       <Users className="size-3.5 shrink-0" aria-hidden />
       Additional owners and their agents group here once an external IdP is
       connected.
-    </div>
+    </CardFooter>
   );
 }
 

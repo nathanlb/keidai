@@ -201,7 +201,7 @@ export function ConnectionServerRow({
         {summary.name}
       </TableCell>
       <TableCell className="max-w-[220px] py-3">
-        <div className="truncate font-mono text-xs text-muted-foreground">
+        <div title={summary.endpoint} className="truncate font-mono text-xs text-muted-foreground">
           {summary.endpoint}
         </div>
         {summary.state === "failed" && summary.error ? (

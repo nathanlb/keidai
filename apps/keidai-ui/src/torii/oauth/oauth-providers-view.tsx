@@ -1,3 +1,4 @@
+import { Card, CardContent } from "@keidai/ui";
 import { KeyRound, Shield } from "lucide-react";
 import type { OAuthProviderSummary } from "./utils/build-oauth-provider-summaries.js";
 import { OAuthProviderCard } from "./oauth-provider-card.js";
@@ -15,20 +16,22 @@ function PrivacyBanner() {
 
 function OAuthProvidersEmptyState() {
   return (
-    <div className="flex flex-col items-center rounded-xl border border-border bg-card px-6 py-[60px] text-center">
-      <span className="flex size-[52px] items-center justify-center rounded-[14px] bg-muted/55 text-muted-foreground">
-        <KeyRound className="size-[30px]" aria-hidden />
-      </span>
-      <div className="mt-4 text-base font-semibold">
-        No OAuth providers configured
-      </div>
-      <p className="mt-1.5 max-w-[380px] text-[13px] leading-normal text-muted-foreground">
-        Configure a provider such as GitHub, Google, or Slack to enable{" "}
-        <span className="font-mono">user_oauth</span> credential resolution.
-        Grants are stored per{" "}
-        <span className="font-mono">(owner, provider)</span> pair.
-      </p>
-    </div>
+    <Card className="shadow-none">
+      <CardContent className="flex flex-col items-center px-6 py-[60px] text-center">
+        <span className="flex size-[52px] items-center justify-center rounded-[14px] bg-muted/55 text-muted-foreground">
+          <KeyRound className="size-[30px]" aria-hidden />
+        </span>
+        <div className="mt-4 text-base font-semibold">
+          No OAuth providers configured
+        </div>
+        <p className="mt-1.5 max-w-[380px] text-[13px] leading-normal text-muted-foreground">
+          Configure a provider such as GitHub, Google, or Slack to enable{" "}
+          <span className="font-mono">user_oauth</span> credential resolution.
+          Grants are stored per{" "}
+          <span className="font-mono">(owner, provider)</span> pair.
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 
