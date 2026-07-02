@@ -23,6 +23,7 @@ import {
   ToolNotFoundError,
 } from "../dispatch/types/tool-dispatch.js";
 import { PolicyDeniedError } from "../policy/types/policy-denied.js";
+import type { TraceEmitter } from "../trace/types/trace-emitter.js";
 import { TraceEmitterService } from "../trace/trace-emitter.service.js";
 import {
   createTraceId,
@@ -42,7 +43,7 @@ export class GatewayMcpServer {
     @inject(InboundIdentityService)
     private readonly inboundIdentity: InboundIdentityService,
     @inject(TraceEmitterService)
-    private readonly traceEmitter: TraceEmitterService,
+    private readonly traceEmitter: TraceEmitter,
     @inject(StructuredLoggerService)
     private readonly logger: Logger,
   ) {}

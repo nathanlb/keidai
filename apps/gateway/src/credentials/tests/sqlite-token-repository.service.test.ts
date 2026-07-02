@@ -5,16 +5,16 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { SqliteTokenRepository } from "../sqlite-token-repository.service.js";
-import { openTokenDatabase } from "../utils/sqlite-token-store.js";
+import { openGatewayDatabase } from "../../storage/gateway-sqlite.js";
 
 function createRepository(databasePath: string): SqliteTokenRepository {
-  return new SqliteTokenRepository(openTokenDatabase(databasePath));
+  return new SqliteTokenRepository(openGatewayDatabase(databasePath));
 }
 
 describe("SqliteTokenRepository", () => {
   it("stores and retrieves tokens by owner and provider", async () => {
     const databasePath = path.join(
-      mkdtempSync(path.join(tmpdir(), "torii-token-store-")),
+      mkdtempSync(path.join(tmpdir(), "torii-gateway-db-")),
       "tokens.db",
     );
     const repository = createRepository(databasePath);
@@ -32,7 +32,7 @@ describe("SqliteTokenRepository", () => {
 
   it("persists tokens across repository instances", async () => {
     const databasePath = path.join(
-      mkdtempSync(path.join(tmpdir(), "torii-token-store-")),
+      mkdtempSync(path.join(tmpdir(), "torii-gateway-db-")),
       "tokens.db",
     );
     const firstRepository = createRepository(databasePath);
@@ -53,7 +53,7 @@ describe("SqliteTokenRepository", () => {
 
   it("upserts tokens for the same owner and provider", async () => {
     const databasePath = path.join(
-      mkdtempSync(path.join(tmpdir(), "torii-token-store-")),
+      mkdtempSync(path.join(tmpdir(), "torii-gateway-db-")),
       "tokens.db",
     );
     const repository = createRepository(databasePath);
