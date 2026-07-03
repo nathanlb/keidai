@@ -7,7 +7,8 @@ Design reference: [keidai-ui — Frontend](https://app.notion.com/p/keidai-ui-Fr
 ## Stack
 
 - **Client:** React 19, Vite, React Router, Tailwind 4 (via `@keidai/ui/globals.css`)
-- **Server:** Fastify 5 — dev proxy to Vite, prod static serving with SPA fallback
+- **Dev server:** Vite (serves the client, HMR, and proxies `/api` to the gateway)
+- **Prod server:** Fastify 5 — static serving with SPA fallback (also reused by Torii)
 - **Shared UI:** `@keidai/ui`
 
 ## Layout
@@ -17,7 +18,7 @@ src/
   shell/         # Shared app chrome (sidebar, top bar, theme, gateway status)
   torii/         # Torii module (nav, pages, layout)
   routes.tsx     # Route tree
-server/          # Fastify server (create-server, dev entry, prod entry)
+server/          # Fastify prod server (create-server: static + SPA fallback, prod entry)
 dist/
   client/        # Vite build output
   server/        # Compiled server entrypoints
@@ -39,7 +40,7 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
 
 | Script | Purpose |
 |--------|---------|
-| `dev` | Start Vite + Fastify dev proxy |
+| `dev` | Start the Vite dev server on `:3000` |
 | `build` | Build client (`dist/client`) and server (`dist/server`) |
 | `start` | Serve the production build from Fastify |
 | `test` | Server integration tests (builds first) |
@@ -49,34 +50,42 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `KEIDAI_UI_HOST` | `127.0.0.1` | Fastify bind address |
-| `KEIDAI_UI_PORT` | `3000` | Fastify listen port |
-| `VITE_GATEWAY_URL` | `http://127.0.0.1:3100` | Torii gateway origin for `/api` proxy (dev) and health footer display |
+| `KEIDAI_UI_HOST` | `127.0.0.1` | Prod Fastify bind address |
+| `KEIDAI_UI_PORT` | `3000` | Prod Fastify listen port |
+| `VITE_GATEWAY_URL` | `http://127.0.0.1:3100` | Torii gateway origin for the dev `/api` proxy and health footer display |
 | `VITE_GATEWAY_VERSION` | `0.0.0` | Version shown in the gateway health footer |
 
-Vite always binds to `127.0.0.1:5173` in dev (see `vite.config.ts`).
+The dev server (Vite) binds to `127.0.0.1:3000` — see `vite.config.ts`.
 
-## Proxy server setup
+## Server setup
 
-`server/create-server.ts` is the single factory for both dev and prod. The goal is one stable origin (`KEIDAI_UI_HOST`:`KEIDAI_UI_PORT`) whether you are developing or serving a build — matching how Torii will host the UI later.
+**Development** (`pnpm dev` → `vite`):
 
-**Development** (`pnpm dev` → `server/dev.ts`):
-
-1. Spawns the Vite dev server on `127.0.0.1:5173`.
-2. Waits until Vite responds.
-3. Starts Fastify with `@fastify/http-proxy`, forwarding all requests (including WebSocket HMR) to Vite.
-
-You browse Fastify on port 3000; Vite handles transforms and hot reload behind the proxy.
+Vite serves the client with HMR on `127.0.0.1:3000` and proxies `/api` to
+`VITE_GATEWAY_URL` (see `vite.config.ts`). Client-side routes fall back to
+`index.html` automatically. There is no separate server process to manage.
 
 **Production** (`pnpm start` → `dist/server/index.js`):
 
-1. Fastify registers `@fastify/static` against `dist/client`.
-2. Unknown `GET` routes without a file extension fall through to `index.html` so React Router client routes work after a refresh.
+`server/create-server.ts` exposes `registerUiStatic(app, { clientRoot })`, a
+Fastify plugin that serves `dist/client` and falls back to `index.html` for
+extensionless `GET` routes so React Router routes survive a refresh.
+`server/index.ts` is a thin standalone preview server that registers it.
 
 ```
-Browser → Fastify (:3000)
-            ├─ dev:  proxy → Vite (:5173)
-            └─ prod: static files from dist/client + SPA fallback
+dev   Browser → Vite (:3000) ── /api ──▶ gateway (:3100)
+prod  Browser → Fastify ─ static dist/client + SPA fallback
 ```
 
-Future Torii integration will reuse this server factory: the gateway Fastify instance can register the same static/proxy behaviour alongside `/mcp` and `/api/*` routes.
+### Torii integration (v0)
+
+When Torii serves the UI, it registers the same plugin on its own Fastify
+instance next to `registerGatewayRoutes(app, controllers)`:
+
+```ts
+await registerUiStatic(app, { clientRoot: "<keidai-ui>/dist/client" });
+```
+
+One origin then serves `/mcp`, `/api/*`, and the SPA. At that point
+`registerUiStatic` moves into a shared server package so `apps/gateway` imports
+it directly rather than reaching across apps. No dev-only proxy code is involved.

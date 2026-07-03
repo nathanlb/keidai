@@ -6,7 +6,7 @@ describe("createServer", () => {
   let app: Awaited<ReturnType<typeof createServer>>;
 
   before(async () => {
-    app = await createServer({ mode: "production" });
+    app = await createServer();
     await app.listen({ port: 0, host: "127.0.0.1" });
   });
 

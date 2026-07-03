@@ -14,7 +14,7 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    command: "pnpm exec tsx server/dev.ts",
+    command: "pnpm exec vite",
     url: baseURL,
     cwd: import.meta.dirname,
     reuseExistingServer: !process.env.CI,

@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build && tsc -p tsconfig.server.json",
-    "dev": "tsx server/dev.ts",
+    "dev": "vite",
     "start": "node dist/server/index.js",
     "test": "vitest run && pnpm run test:server && pnpm run test:e2e",
     "test:ui": "vitest --ui",
@@ -21,7 +21,6 @@
     "lint": "pnpm typecheck"
   },
   "dependencies": {
-    "@fastify/http-proxy": "^11.5.0",
     "@fastify/static": "^9.1.3",
     "@keidai/shared": "workspace:*",
     "@keidai/ui": "workspace:*",
