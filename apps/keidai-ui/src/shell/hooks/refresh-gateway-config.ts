@@ -1,4 +1,5 @@
 import { useSWRConfig } from "swr";
+import { TRACE_STATS_KEY } from "./use-fetch-trace-stats.js";
 import { AGENTS_KEY } from "./use-fetch-agents.js";
 import { isOAuthConnectionsKey } from "./use-fetch-oauth-connections.js";
 import { OAUTH_PROVIDERS_KEY } from "./use-fetch-oauth-providers.js";
@@ -15,4 +16,5 @@ export function refreshGatewayConfig(mutate: SwrMutate): void {
   void mutate(SERVERS_KEY, undefined, revalidate);
   void mutate(OAUTH_PROVIDERS_KEY, undefined, revalidate);
   void mutate(isOAuthConnectionsKey, undefined, revalidate);
+  void mutate(TRACE_STATS_KEY, undefined, revalidate);
 }

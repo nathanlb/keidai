@@ -5,6 +5,10 @@ import type {
   ConnectionsResponse,
   OAuthConnectionsResponse,
   OAuthInitiateResponse,
+  TraceListItem,
+  TraceListQuery,
+  TraceStatsResponse,
+  TracesResponse,
 } from "@keidai/shared";
 
 const gatewayDisplayUrl =
@@ -108,6 +112,47 @@ export async function fetchOAuthConnections(
 ): Promise<OAuthConnectionsResponse> {
   const query = `?owner=${encodeURIComponent(ownerId)}`;
   return fetchJson<OAuthConnectionsResponse>(`/api/oauth/connections${query}`);
+}
+
+function buildTraceQuery(query: TraceListQuery = {}): string {
+  const params = new URLSearchParams();
+  if (query.limit !== undefined) {
+    params.set("limit", String(query.limit));
+  }
+  if (query.cursor) {
+    params.set("cursor", query.cursor);
+  }
+  if (query.outcome) {
+    params.set("outcome", query.outcome);
+  }
+  if (query.server) {
+    params.set("server", query.server);
+  }
+  if (query.q) {
+    params.set("q", query.q);
+  }
+  const serialized = params.toString();
+  return serialized ? `?${serialized}` : "";
+}
+
+export async function fetchTraces(
+  query: TraceListQuery = {},
+): Promise<TracesResponse> {
+  return fetchJson<TracesResponse>(`/api/traces${buildTraceQuery(query)}`);
+}
+
+export async function fetchTraceStats(
+  windowMs?: number,
+): Promise<TraceStatsResponse> {
+  const query =
+    windowMs !== undefined ? `?windowMs=${encodeURIComponent(windowMs)}` : "";
+  return fetchJson<TraceStatsResponse>(`/api/traces/stats${query}`);
+}
+
+export async function fetchTrace(traceId: string): Promise<TraceListItem> {
+  return fetchJson<TraceListItem>(
+    `/api/traces/${encodeURIComponent(traceId)}`,
+  );
 }
 
 export async function initiateOAuthLink(

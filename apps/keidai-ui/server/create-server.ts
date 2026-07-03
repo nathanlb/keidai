@@ -1,4 +1,3 @@
-import fastifyHttpProxy from "@fastify/http-proxy";
 import fastifyStatic from "@fastify/static";
 import Fastify, { type FastifyInstance } from "fastify";
 import { existsSync } from "node:fs";
@@ -7,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const serverDir = path.dirname(fileURLToPath(import.meta.url));
 
-function resolveStaticRoot(): string {
+function resolveDefaultClientRoot(): string {
   const builtClientRoot = path.resolve(serverDir, "../client");
   if (existsSync(builtClientRoot)) {
     return builtClientRoot;
@@ -16,29 +15,29 @@ function resolveStaticRoot(): string {
   return path.resolve(serverDir, "../dist/client");
 }
 
-export interface CreateServerOptions {
-  mode: "development" | "production";
-  viteDevServerUrl?: string;
+export interface RegisterUiStaticOptions {
+  /** Directory containing the built client (Vite `dist/client`). */
+  clientRoot?: string;
 }
 
-export async function createServer(
-  options: CreateServerOptions,
-): Promise<FastifyInstance> {
-  const app = Fastify({ logger: false });
-  const viteDevServerUrl = options.viteDevServerUrl ?? "http://127.0.0.1:5173";
+/**
+ * Serves the built UI: static assets plus SPA fallback so client-side routes
+ * resolve to `index.html` on refresh.
+ *
+ * This is the single piece of server behaviour the UI needs in production. It is
+ * host-agnostic on purpose: the standalone preview server (`server/index.ts`)
+ * registers it, and Torii will register it on its own Fastify instance
+ * alongside `/api/*` and `/mcp`. There is deliberately no dev/proxy path here —
+ * local development runs Vite directly.
+ */
+export async function registerUiStatic(
+  app: FastifyInstance,
+  options: RegisterUiStaticOptions = {},
+): Promise<void> {
+  const clientRoot = options.clientRoot ?? resolveDefaultClientRoot();
 
-  if (options.mode === "development") {
-    await app.register(fastifyHttpProxy, {
-      upstream: viteDevServerUrl,
-      prefix: "/",
-      websocket: true,
-    });
-    return app;
-  }
-
-  const staticRoot = resolveStaticRoot();
   await app.register(fastifyStatic, {
-    root: staticRoot,
+    root: clientRoot,
     wildcard: false,
   });
 
@@ -49,6 +48,13 @@ export async function createServer(
 
     return reply.code(404).send({ error: "Not Found" });
   });
+}
 
+/** Builds a standalone Fastify server that serves the production UI build. */
+export async function createServer(
+  options: RegisterUiStaticOptions = {},
+): Promise<FastifyInstance> {
+  const app = Fastify({ logger: false });
+  await registerUiStatic(app, options);
   return app;
 }
