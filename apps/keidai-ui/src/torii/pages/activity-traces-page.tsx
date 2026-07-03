@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { TraceListItem } from "@keidai/shared";
 import { useActivityTraces } from "../../shell/hooks/use-activity-traces.js";
+import { useFetchOAuthProviders } from "../../shell/hooks/use-fetch-oauth-providers.js";
 import { useFetchServers } from "../../shell/hooks/use-fetch-servers.js";
 import { useFetchTraceStats } from "../../shell/hooks/use-fetch-trace-stats.js";
 import { ActivityTracesView } from "../activity/activity-traces-view.js";
@@ -11,6 +12,10 @@ import {
   type TraceFilters,
 } from "../activity/utils/filter-traces.js";
 import type { OutcomeFilter } from "../activity/utils/format-trace-outcome.js";
+import { OAuthLinkDialog } from "../oauth/oauth-link-dialog.js";
+import { useOAuthLinkDialog } from "../oauth/hooks/use-oauth-link-dialog.js";
+import { buildGatewayOAuthCallbackUrl } from "../oauth/utils/build-gateway-oauth-callback-url.js";
+import { formatProviderLabel } from "../oauth/utils/oauth-provider-config.js";
 
 export function ActivityTracesPage() {
   const [isLive, setIsLive] = useState(true);
@@ -34,11 +39,33 @@ export function ActivityTracesPage() {
   } = useFetchServers();
 
   const {
+    data: providersData,
+    error: providersError,
+    isLoading: providersLoading,
+  } = useFetchOAuthProviders();
+
+  const {
     traces,
     bufferCount,
     error: tracesError,
     isLoading: tracesLoading,
   } = useActivityTraces(isLive);
+
+  const linkDialog = useOAuthLinkDialog();
+
+  const serversByName = useMemo(() => {
+    const map = new Map(
+      (serversData?.servers ?? []).map((server) => [server.name, server]),
+    );
+    return map;
+  }, [serversData?.servers]);
+
+  const selectedTraceServer = useMemo(() => {
+    if (!selectedTrace) {
+      return undefined;
+    }
+    return serversByName.get(selectedTrace.server);
+  }, [selectedTrace, serversByName]);
 
   const serverOptions = useMemo(() => {
     const names = new Set<string>();
@@ -75,12 +102,32 @@ export function ActivityTracesPage() {
     setDrawerOpen(true);
   }, []);
 
+  const handleLinkProvider = useCallback(
+    (providerId: string, ownerId: string) => {
+      const providerConfig = providersData?.providers[providerId];
+      if (!providerConfig) {
+        return;
+      }
+
+      linkDialog.openLink({
+        providerId,
+        providerLabel: formatProviderLabel(providerId),
+        ownerId,
+        scopes: providerConfig.scopes,
+        redirectUri: buildGatewayOAuthCallbackUrl(providerId),
+      });
+    },
+    [linkDialog, providersData?.providers],
+  );
+
   const isLoading =
     (statsLoading && !statsData) ||
     (tracesLoading && traces.length === 0) ||
-    (serversLoading && !serversData);
+    (serversLoading && !serversData) ||
+    (providersLoading && !providersData);
 
-  const error = statsError ?? tracesError ?? serversError;
+  const error =
+    statsError ?? tracesError ?? serversError ?? providersError;
 
   if (isLoading) {
     return (
@@ -97,25 +144,41 @@ export function ActivityTracesPage() {
   }
 
   return (
-    <ActivityTracesView
-      stats={statsData}
-      traces={traces}
-      bufferCount={bufferCount}
-      filteredTraces={filteredTraces}
-      outcomeCounts={outcomeCounts}
-      filters={filters}
-      serverOptions={serverOptions}
-      pageIndex={pageIndex}
-      isLive={isLive}
-      selectedTrace={selectedTrace}
-      drawerOpen={drawerOpen}
-      onFiltersChange={setFilters}
-      onOutcomeChange={handleOutcomeChange}
-      onClearFilters={handleClearFilters}
-      onToggleLive={() => setIsLive((current) => !current)}
-      onPageChange={setPageIndex}
-      onOpenTrace={handleOpenTrace}
-      onDrawerOpenChange={setDrawerOpen}
-    />
+    <>
+      <ActivityTracesView
+        stats={statsData}
+        traces={traces}
+        bufferCount={bufferCount}
+        filteredTraces={filteredTraces}
+        outcomeCounts={outcomeCounts}
+        filters={filters}
+        serverOptions={serverOptions}
+        pageIndex={pageIndex}
+        isLive={isLive}
+        selectedTrace={selectedTrace}
+        selectedTraceServer={selectedTraceServer}
+        drawerOpen={drawerOpen}
+        onFiltersChange={setFilters}
+        onOutcomeChange={handleOutcomeChange}
+        onClearFilters={handleClearFilters}
+        onToggleLive={() => setIsLive((current) => !current)}
+        onPageChange={setPageIndex}
+        onOpenTrace={handleOpenTrace}
+        onDrawerOpenChange={setDrawerOpen}
+        onLinkProvider={handleLinkProvider}
+      />
+      <OAuthLinkDialog
+        open={linkDialog.open}
+        step={linkDialog.step}
+        context={linkDialog.context}
+        errorMessage={linkDialog.errorMessage}
+        isSubmitting={linkDialog.isSubmitting}
+        onClose={linkDialog.close}
+        onBeginAuthorization={linkDialog.beginAuthorization}
+        onReopenAuthorization={linkDialog.reopenAuthorization}
+        onConfirmFinished={linkDialog.confirmFinished}
+        onRetry={linkDialog.retry}
+      />
+    </>
   );
 }

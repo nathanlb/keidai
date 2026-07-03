@@ -8,6 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@keidai/ui";
+import type { PublicServerConfig } from "@keidai/shared/dto";
 import type { TraceListItem, TraceStatsResponse } from "@keidai/shared";
 import { Activity, Info, Search } from "lucide-react";
 import { ActivityFilterBar } from "./activity-filter-bar.js";
@@ -104,6 +105,7 @@ export interface ActivityTracesViewProps {
   pageIndex: number;
   isLive: boolean;
   selectedTrace: TraceListItem | null;
+  selectedTraceServer?: PublicServerConfig;
   drawerOpen: boolean;
   onFiltersChange: (filters: TraceFilters) => void;
   onOutcomeChange: (outcome: OutcomeFilter) => void;
@@ -112,6 +114,7 @@ export interface ActivityTracesViewProps {
   onPageChange: (pageIndex: number) => void;
   onOpenTrace: (trace: TraceListItem) => void;
   onDrawerOpenChange: (open: boolean) => void;
+  onLinkProvider?: (providerId: string, ownerId: string) => void;
 }
 
 export function ActivityTracesView({
@@ -125,6 +128,7 @@ export function ActivityTracesView({
   pageIndex,
   isLive,
   selectedTrace,
+  selectedTraceServer,
   drawerOpen,
   onFiltersChange,
   onOutcomeChange,
@@ -133,6 +137,7 @@ export function ActivityTracesView({
   onPageChange,
   onOpenTrace,
   onDrawerOpenChange,
+  onLinkProvider,
 }: ActivityTracesViewProps) {
   const isIdle = traces.length === 0;
   const hasMatches = filteredTraces.length > 0;
@@ -270,8 +275,10 @@ export function ActivityTracesView({
 
       <TraceDetailDrawer
         trace={selectedTrace}
+        server={selectedTraceServer}
         open={drawerOpen}
         onOpenChange={onDrawerOpenChange}
+        onLinkProvider={onLinkProvider}
       />
     </div>
   );
