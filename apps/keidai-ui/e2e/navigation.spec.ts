@@ -24,8 +24,6 @@ test.describe("Torii navigation", () => {
 
     await page.getByRole("link", { name: "Activity & traces" }).click();
     await expect(page).toHaveURL(/\/activity$/);
-    await expect(
-      page.getByText("Activity and traces feed"),
-    ).toBeVisible();
+    await expect(page.getByText("No activity yet")).toBeVisible();
   });
 });

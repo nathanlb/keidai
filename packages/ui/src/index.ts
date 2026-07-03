@@ -1,3 +1,16 @@
+export { Input } from "./components/ui/input.js";
+export {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectScrollDownButton,
+  SelectScrollUpButton,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "./components/ui/select.js";
 export { Badge, badgeVariants, type BadgeProps } from "./components/ui/badge.js";
 export { Button, buttonVariants, type ButtonProps } from "./components/ui/button.js";
 export {

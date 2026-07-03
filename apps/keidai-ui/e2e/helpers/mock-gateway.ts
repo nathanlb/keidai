@@ -6,8 +6,11 @@ import type {
   ConnectionsResponse,
   OAuthConnectionsResponse,
   OAuthInitiateResponse,
+  TraceListItem,
+  TraceStatsResponse,
+  TracesResponse,
 } from "@keidai/shared";
-import { CONNECTION_SSE_EVENT } from "@keidai/shared";
+import { CONNECTION_SSE_EVENT, TRACE_SSE_EVENT } from "@keidai/shared/dto";
 
 export interface MockGatewayConfig {
   agents?: ConfigAgentsResponse;
@@ -19,6 +22,8 @@ export interface MockGatewayConfig {
     string,
     OAuthInitiateResponse | { status: number; error: string }
   >;
+  traces?: TracesResponse;
+  traceStats?: TraceStatsResponse;
   healthy?: boolean;
 }
 
@@ -31,6 +36,16 @@ export async function mockGatewayConfig(
     oauthProviders = { providers: {} },
     oauthConnections = {},
     oauthInitiate = {},
+    traces = { traces: [] },
+    traceStats = {
+      windowMs: 900_000,
+      callsPerMinute: 0,
+      successRate: 0,
+      p50DurationMs: null,
+      p95DurationMs: null,
+      deniedCount: 0,
+      linkingRequiredCount: 0,
+    },
     healthy = true,
   }: MockGatewayConfig = {},
 ): Promise<void> {
@@ -146,5 +161,56 @@ export async function mockGatewayConfig(
     }
 
     await route.fulfill({ json: response });
+  });
+
+  await page.route(/\/api\/traces(\?|$)/, async (route) => {
+    if (!healthy) {
+      await route.fulfill({ status: 503, body: "Gateway unavailable" });
+      return;
+    }
+
+    await route.fulfill({ json: traces });
+  });
+
+  await page.route(/\/api\/traces\/[^/?]+/, async (route) => {
+    if (!healthy) {
+      await route.fulfill({ status: 503, body: "Gateway unavailable" });
+      return;
+    }
+
+    const url = new URL(route.request().url());
+    const segments = url.pathname.split("/");
+    const resource = segments.at(-1);
+
+    if (resource === "events") {
+      const events = traces.traces
+        .map(
+          (trace) =>
+            `event: ${TRACE_SSE_EVENT.traceCreated}\ndata: ${JSON.stringify(trace)}\n\n`,
+        )
+        .join("");
+
+      await route.fulfill({
+        status: 200,
+        headers: {
+          "content-type": "text/event-stream",
+        },
+        body: events,
+      });
+      return;
+    }
+
+    if (resource === "stats") {
+      await route.fulfill({ json: traceStats });
+      return;
+    }
+
+    const match = traces.traces.find((trace) => trace.traceId === resource);
+    if (match) {
+      await route.fulfill({ json: match });
+      return;
+    }
+
+    await route.fulfill({ status: 404, json: { error: "trace not found" } });
   });
 }
