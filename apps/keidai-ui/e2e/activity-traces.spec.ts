@@ -64,8 +64,13 @@ test.describe("Activity & traces", () => {
     await expect(page.getByText("search_issues")).not.toBeVisible();
 
     await page.getByRole("row", { name: /list_customers/i }).click();
-    await expect(page.getByRole("dialog")).toBeVisible();
-    await expect(page.getByText("trace-denied")).toBeVisible();
+    const drawer = page.getByRole("dialog");
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByText("trace-denied")).toBeVisible();
+    await expect(drawer.getByText("Trace timeline")).toBeVisible();
+    await expect(drawer.getByText("Policy decision", { exact: true })).toBeVisible();
+    await expect(drawer.getByText("Denied by policy")).toBeVisible();
+    await expect(drawer.getByText("Credential resolution")).toBeVisible();
   });
 
   test("shows idle and no-match empty states", async ({ page }) => {
