@@ -35,13 +35,19 @@ export type OAuthLinkCompletedHandler = (
   connections: OAuthConnectionStatus[],
 ) => void | Promise<void>;
 
-export function useOAuthLinkDialog(onLinked?: OAuthLinkCompletedHandler) {
+export interface OpenOAuthLinkOptions {
+  onLinked?: OAuthLinkCompletedHandler;
+}
+
+export function useOAuthLinkDialog() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<OAuthLinkDialogStep>("initiating");
   const [context, setContext] = useState<OAuthLinkDialogContext | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const onLinkedRef = useRef<OAuthLinkCompletedHandler | undefined>(undefined);
+  const isCompletingRef = useRef(false);
   const authWindowRef = useRef<Window | null>(null);
   const authorizationUrlRef = useRef<string | null>(null);
   const activeLinkIdRef = useRef<string | null>(null);
@@ -78,34 +84,51 @@ export function useOAuthLinkDialog(onLinked?: OAuthLinkCompletedHandler) {
     setStep("initiating");
     setErrorMessage(undefined);
     setIsSubmitting(false);
+    onLinkedRef.current = undefined;
+    isCompletingRef.current = false;
   }, [clearPollTimer, clearPopupTimer]);
 
   const completeLinkedFlow = useCallback(
     async (ownerId: string, connections: OAuthConnectionStatus[]) => {
+      if (isCompletingRef.current) {
+        return;
+      }
+
+      isCompletingRef.current = true;
       clearPollTimer();
       clearPopupTimer();
       authWindowRef.current?.close();
       authWindowRef.current = null;
-      await onLinked?.(ownerId, connections);
-      close();
+      const onLinked = onLinkedRef.current;
+      onLinkedRef.current = undefined;
+
+      try {
+        await onLinked?.(ownerId, connections);
+      } finally {
+        close();
+      }
     },
-    [clearPollTimer, clearPopupTimer, close, onLinked],
+    [clearPollTimer, clearPopupTimer, close],
   );
 
-  const openLink = useCallback((next: OAuthLinkDialogContext) => {
-    clearPollTimer();
-    clearPopupTimer();
-    authWindowRef.current = null;
-    authorizationUrlRef.current = null;
-    activeLinkIdRef.current = null;
-    statusAtStartRef.current = "not_linked";
-    sawPendingRef.current = false;
-    setContext(next);
-    setStep("initiating");
-    setErrorMessage(undefined);
-    setIsSubmitting(false);
-    setOpen(true);
-  }, [clearPollTimer, clearPopupTimer]);
+  const openLink = useCallback(
+    (next: OAuthLinkDialogContext, options?: OpenOAuthLinkOptions) => {
+      clearPollTimer();
+      clearPopupTimer();
+      authWindowRef.current = null;
+      authorizationUrlRef.current = null;
+      activeLinkIdRef.current = null;
+      statusAtStartRef.current = "not_linked";
+      sawPendingRef.current = false;
+      onLinkedRef.current = options?.onLinked;
+      setContext(next);
+      setStep("initiating");
+      setErrorMessage(undefined);
+      setIsSubmitting(false);
+      setOpen(true);
+    },
+    [clearPollTimer, clearPopupTimer],
+  );
 
   const openAuthWindow = useCallback((url: string) => {
     authorizationUrlRef.current = url;

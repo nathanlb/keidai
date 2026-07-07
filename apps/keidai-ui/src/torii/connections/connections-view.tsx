@@ -12,15 +12,10 @@ import {
   TableRow,
 } from "@keidai/ui";
 import { Cable, RefreshCw, Shield } from "lucide-react";
-import type { PublicServerConfig } from "@keidai/shared/dto";
-import type { TraceListItem } from "@keidai/shared";
+import { useConnectionsPage } from "./context/use-connections-page.js";
 import { ConnectionServerRow } from "./connection-server-row.js";
 import { ConnectionsSummaryTiles } from "./connections-summary-tiles.js";
 import { LinkingRequiredBanner } from "./linking-required-banner.js";
-import type {
-  ConnectionSummaryCounts,
-  ServerConnectionSummary,
-} from "./utils/build-server-summaries.js";
 
 function PrivacyBanner() {
   return (
@@ -51,31 +46,17 @@ function ConnectionsEmptyState() {
   );
 }
 
-export interface ConnectionsViewProps {
-  summaries: ServerConnectionSummary[];
-  counts: ConnectionSummaryCounts;
-  reconnectingServers: ReadonlySet<string>;
-  isReconnectingAll: boolean;
-  linkingRequiredTrace?: TraceListItem | null;
-  linkingRequiredServer?: PublicServerConfig;
-  onReconnect: (serverName: string) => void;
-  onReconnectAll: () => void;
-  onLink: (providerId: string) => void;
-  onLinkFromBanner?: (providerId: string, ownerId: string) => void;
-}
+export function ConnectionsView() {
+  const {
+    summaries,
+    counts,
+    isReconnectingAll,
+    linkingRequiredTrace,
+    linkingRequiredServer,
+    onReconnectAll,
+    onLinkFromBanner,
+  } = useConnectionsPage();
 
-export function ConnectionsView({
-  summaries,
-  counts,
-  reconnectingServers,
-  isReconnectingAll,
-  linkingRequiredTrace,
-  linkingRequiredServer,
-  onReconnect,
-  onReconnectAll,
-  onLink,
-  onLinkFromBanner,
-}: ConnectionsViewProps) {
   const isEmpty = summaries.length === 0;
 
   return (
@@ -84,7 +65,7 @@ export function ConnectionsView({
         <ConnectionsEmptyState />
       ) : (
         <div className="space-y-4">
-          {linkingRequiredTrace && onLinkFromBanner ? (
+          {linkingRequiredTrace ? (
             <LinkingRequiredBanner
               trace={linkingRequiredTrace}
               server={linkingRequiredServer}
@@ -146,16 +127,7 @@ export function ConnectionsView({
                 </TableHeader>
                 <TableBody>
                   {summaries.map((summary) => (
-                    <ConnectionServerRow
-                      key={summary.name}
-                      summary={summary}
-                      onReconnect={onReconnect}
-                      onLink={onLink}
-                      isReconnecting={
-                        reconnectingServers.has(summary.name) ||
-                        isReconnectingAll
-                      }
-                    />
+                    <ConnectionServerRow key={summary.name} summary={summary} />
                   ))}
                 </TableBody>
               </Table>

@@ -1,45 +1,24 @@
-import { PolicyDecision } from "@keidai/shared";
-import type { TraceListItem } from "@keidai/shared";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { TraceDetailDrawer } from "../trace-detail-drawer.js";
-import { githubServer } from "../utils/tests/trace-detail-fixtures.js";
-
-const deniedTrace: TraceListItem = {
-  traceId: "trace-denied",
-  timestamp: "2026-06-23T14:32:30.000Z",
-  server: "github",
-  tool: "delete_repo",
-  principal: { agentId: "demo-agent", ownerId: "nathanlb" },
-  policyDecision: PolicyDecision.Denied,
-  error: "policy denied",
-  outcome: "denied",
-};
-
-const linkingTrace: TraceListItem = {
-  traceId: "trace-linking",
-  timestamp: "2026-06-23T14:32:49.000Z",
-  server: "github",
-  tool: "search_issues",
-  principal: { agentId: "triage-bot", ownerId: "nathanlb" },
-  credentialRef: "github:nathanlb",
-  policyDecision: PolicyDecision.Allowed,
-  error:
-    'OAuth connection required for provider "github" (backend "github")',
-  outcome: "linking_required",
-};
+import {
+  createMockLinkProvider,
+  renderWithActivityTracesPage,
+} from "../../test-utils/render-with-providers.js";
+import {
+  deniedTrace,
+  githubServer,
+  linkingRequiredTrace,
+} from "../utils/tests/trace-detail-fixtures.js";
 
 describe("TraceDetailDrawer", () => {
   it("renders denied trace sections when open", () => {
-    render(
-      <TraceDetailDrawer
-        trace={deniedTrace}
-        server={githubServer}
-        open
-        onOpenChange={() => {}}
-      />,
-    );
+    renderWithActivityTracesPage(<TraceDetailDrawer />, {
+      selectedTrace: deniedTrace,
+      selectedTraceServer: githubServer,
+      drawerOpen: true,
+    });
 
     expect(screen.getByText("delete_repo")).toBeInTheDocument();
     expect(screen.getByText("trace-denied")).toBeInTheDocument();
@@ -50,36 +29,29 @@ describe("TraceDetailDrawer", () => {
     ).toBeInTheDocument();
   });
 
-  it("invokes onLinkProvider for linking_required traces", async () => {
+  it("invokes linkProvider for linking_required traces", async () => {
     const user = userEvent.setup();
-    const onLinkProvider = vi.fn();
+    const linkProvider = createMockLinkProvider();
 
-    render(
-      <TraceDetailDrawer
-        trace={linkingTrace}
-        server={githubServer}
-        open
-        onOpenChange={() => {}}
-        onLinkProvider={onLinkProvider}
-      />,
-    );
+    renderWithActivityTracesPage(<TraceDetailDrawer />, {
+      selectedTrace: linkingRequiredTrace,
+      selectedTraceServer: githubServer,
+      drawerOpen: true,
+      linkProvider,
+    });
 
     await user.click(screen.getByRole("button", { name: "Link" }));
 
-    expect(onLinkProvider).toHaveBeenCalledWith("github", "nathanlb");
+    expect(linkProvider).toHaveBeenCalledWith("github", "nathanlb");
   });
 
   it("hides the link CTA after linking is resolved in-session", () => {
-    render(
-      <TraceDetailDrawer
-        trace={linkingTrace}
-        server={githubServer}
-        open
-        onOpenChange={() => {}}
-        onLinkProvider={() => {}}
-        linkingResolvedKeys={new Set(["nathanlb:github"])}
-      />,
-    );
+    renderWithActivityTracesPage(<TraceDetailDrawer />, {
+      selectedTrace: linkingRequiredTrace,
+      selectedTraceServer: githubServer,
+      drawerOpen: true,
+      linkingResolvedKeys: new Set(["nathanlb:github"]),
+    });
 
     expect(
       screen.queryByRole("button", { name: "Link" }),
@@ -87,9 +59,10 @@ describe("TraceDetailDrawer", () => {
   });
 
   it("renders nothing when trace is null", () => {
-    const { container } = render(
-      <TraceDetailDrawer trace={null} open onOpenChange={() => {}} />,
-    );
+    const { container } = renderWithActivityTracesPage(<TraceDetailDrawer />, {
+      selectedTrace: null,
+      drawerOpen: true,
+    });
 
     expect(container).toBeEmptyDOMElement();
   });

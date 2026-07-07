@@ -8,18 +8,14 @@ import {
   TableHeader,
   TableRow,
 } from "@keidai/ui";
-import type { PublicServerConfig } from "@keidai/shared/dto";
-import type { TraceListItem, TraceStatsResponse } from "@keidai/shared";
 import { Activity, Info, Search } from "lucide-react";
+import { useMemo } from "react";
+import { useActivityTracesPage } from "./context/use-activity-traces.js";
 import { ActivityFilterBar } from "./activity-filter-bar.js";
 import { ActivityOutcomeChips } from "./activity-outcome-chips.js";
 import { ActivitySummaryTiles } from "./activity-summary-tiles.js";
 import { ActivityTraceRow } from "./activity-trace-row.js";
 import { TraceDetailDrawer } from "./trace-detail-drawer.js";
-import type { OutcomeCounts } from "./utils/count-trace-outcomes.js";
-import type { TraceFilters } from "./utils/filter-traces.js";
-import type { OutcomeFilter } from "./utils/format-trace-outcome.js";
-import { useMemo } from "react";
 
 const PAGE_SIZE = 50;
 
@@ -94,53 +90,25 @@ function ActivityNoMatchEmptyState({
   );
 }
 
-export interface ActivityTracesViewProps {
-  stats: TraceStatsResponse;
-  traces: TraceListItem[];
-  bufferCount: number;
-  filteredTraces: TraceListItem[];
-  outcomeCounts: OutcomeCounts;
-  filters: TraceFilters;
-  serverOptions: readonly string[];
-  pageIndex: number;
-  isLive: boolean;
-  selectedTrace: TraceListItem | null;
-  selectedTraceServer?: PublicServerConfig;
-  drawerOpen: boolean;
-  onFiltersChange: (filters: TraceFilters) => void;
-  onOutcomeChange: (outcome: OutcomeFilter) => void;
-  onClearFilters: () => void;
-  onToggleLive: () => void;
-  onPageChange: (pageIndex: number) => void;
-  onOpenTrace: (trace: TraceListItem) => void;
-  onDrawerOpenChange: (open: boolean) => void;
-  onLinkProvider?: (providerId: string, ownerId: string) => void;
-  linkingResolvedKeys?: ReadonlySet<string>;
-}
+export function ActivityTracesView() {
+  const {
+    stats,
+    traces,
+    bufferCount,
+    filteredTraces,
+    outcomeCounts,
+    filters,
+    serverOptions,
+    pageIndex,
+    isLive,
+    setFilters,
+    onOutcomeChange,
+    onClearFilters,
+    onToggleLive,
+    onPageChange,
+    onOpenTrace,
+  } = useActivityTracesPage();
 
-export function ActivityTracesView({
-  stats,
-  traces,
-  bufferCount,
-  filteredTraces,
-  outcomeCounts,
-  filters,
-  serverOptions,
-  pageIndex,
-  isLive,
-  selectedTrace,
-  selectedTraceServer,
-  drawerOpen,
-  onFiltersChange,
-  onOutcomeChange,
-  onClearFilters,
-  onToggleLive,
-  onPageChange,
-  onOpenTrace,
-  onDrawerOpenChange,
-  onLinkProvider,
-  linkingResolvedKeys,
-}: ActivityTracesViewProps) {
   const isIdle = traces.length === 0;
   const hasMatches = filteredTraces.length > 0;
   const pageStart = pageIndex * PAGE_SIZE;
@@ -182,8 +150,8 @@ export function ActivityTracesView({
         query={filters.query}
         server={filters.server}
         serverOptions={serverOptions}
-        onQueryChange={(query) => onFiltersChange({ ...filters, query })}
-        onServerChange={(server) => onFiltersChange({ ...filters, server })}
+        onQueryChange={(query) => setFilters({ ...filters, query })}
+        onServerChange={(server) => setFilters({ ...filters, server })}
       />
 
       <ActivityOutcomeChips
@@ -275,14 +243,7 @@ export function ActivityTracesView({
         <ActivityNoMatchEmptyState onClearFilters={onClearFilters} />
       )}
 
-      <TraceDetailDrawer
-        trace={selectedTrace}
-        server={selectedTraceServer}
-        open={drawerOpen}
-        onOpenChange={onDrawerOpenChange}
-        onLinkProvider={onLinkProvider}
-        linkingResolvedKeys={linkingResolvedKeys}
-      />
+      <TraceDetailDrawer />
     </div>
   );
 }

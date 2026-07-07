@@ -6,9 +6,8 @@ import { useFetchOAuthConnections } from "../../shell/hooks/use-fetch-oauth-conn
 import { useFetchOAuthProviders } from "../../shell/hooks/use-fetch-oauth-providers.js";
 import { buildOAuthProviderSummaries } from "../oauth/utils/build-oauth-provider-summaries.js";
 import { buildGatewayOAuthCallbackUrl } from "../oauth/utils/build-gateway-oauth-callback-url.js";
-import { OAuthLinkDialog } from "../oauth/oauth-link-dialog.js";
+import { useOAuthLink } from "../oauth/context/use-oauth-link.js";
 import { OAuthProvidersView } from "../oauth/oauth-providers-view.js";
-import { useOAuthLinkDialog } from "../oauth/hooks/use-oauth-link-dialog.js";
 
 export function OAuthProvidersPage() {
   const {
@@ -37,16 +36,18 @@ export function OAuthProvidersPage() {
     error: connectionsError,
     isLoading: connectionsLoading,
     patchOwnerConnections,
+    refresh: refreshConnections,
   } = useFetchOAuthConnections(ownerIds);
 
   const handleLinkCompleted = useCallback(
     async (ownerId: string, connections: OAuthConnectionStatus[]) => {
       await patchOwnerConnections(ownerId, connections);
+      await refreshConnections();
     },
-    [patchOwnerConnections],
+    [patchOwnerConnections, refreshConnections],
   );
 
-  const linkDialog = useOAuthLinkDialog(handleLinkCompleted);
+  const linkDialog = useOAuthLink();
 
   const isLoading =
     providersLoading ||
@@ -72,15 +73,18 @@ export function OAuthProvidersPage() {
         return;
       }
 
-      linkDialog.openLink({
-        providerId,
-        providerLabel: summary.label,
-        ownerId: owner.ownerId,
-        scopes: summary.config.scopes,
-        redirectUri: buildGatewayOAuthCallbackUrl(providerId),
-      });
+      linkDialog.openLink(
+        {
+          providerId,
+          providerLabel: summary.label,
+          ownerId: owner.ownerId,
+          scopes: summary.config.scopes,
+          redirectUri: buildGatewayOAuthCallbackUrl(providerId),
+        },
+        { onLinked: handleLinkCompleted },
+      );
     },
-    [linkDialog, owner.ownerId, summaries],
+    [handleLinkCompleted, linkDialog, owner.ownerId, summaries],
   );
 
   if (isLoading && !providersData) {
@@ -98,23 +102,9 @@ export function OAuthProvidersPage() {
   }
 
   return (
-    <>
-      <OAuthProvidersView
-        providers={summaries}
-        onLinkProvider={handleLinkProvider}
-      />
-      <OAuthLinkDialog
-        open={linkDialog.open}
-        step={linkDialog.step}
-        context={linkDialog.context}
-        errorMessage={linkDialog.errorMessage}
-        isSubmitting={linkDialog.isSubmitting}
-        onClose={linkDialog.close}
-        onBeginAuthorization={linkDialog.beginAuthorization}
-        onReopenAuthorization={linkDialog.reopenAuthorization}
-        onConfirmFinished={linkDialog.confirmFinished}
-        onRetry={linkDialog.retry}
-      />
-    </>
+    <OAuthProvidersView
+      providers={summaries}
+      onLinkProvider={handleLinkProvider}
+    />
   );
 }

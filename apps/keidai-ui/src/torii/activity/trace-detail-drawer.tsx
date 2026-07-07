@@ -10,8 +10,6 @@ import {
   SheetTitle,
   cn,
 } from "@keidai/ui";
-import type { PublicServerConfig } from "@keidai/shared/dto";
-import type { TraceListItem } from "@keidai/shared";
 import {
   Ban,
   Check,
@@ -21,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { useActivityTracesPage } from "./context/use-activity-traces.js";
 import { buildLinkingResolutionKey } from "../linking/format-linking-required-prompt.js";
 import { deriveOwnerInitials } from "../../shell/utils/derive-owner-initials.js";
 import { OwnerAvatar } from "../agents/owner-avatar.js";
@@ -73,21 +72,15 @@ function SectionLabel({
   );
 }
 
-export function TraceDetailDrawer({
-  trace,
-  server,
-  open,
-  onOpenChange,
-  onLinkProvider,
-  linkingResolvedKeys,
-}: {
-  trace: TraceListItem | null;
-  server?: PublicServerConfig;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onLinkProvider?: (providerId: string, ownerId: string) => void;
-  linkingResolvedKeys?: ReadonlySet<string>;
-}) {
+export function TraceDetailDrawer() {
+  const {
+    selectedTrace: trace,
+    selectedTraceServer: server,
+    drawerOpen: open,
+    onDrawerOpenChange: onOpenChange,
+    linkProvider,
+    linkingResolvedKeys,
+  } = useActivityTracesPage();
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -121,13 +114,9 @@ export function TraceDetailDrawer({
   const linkingResolved =
     ownerId &&
     linkProviderId &&
-    linkingResolvedKeys?.has(buildLinkingResolutionKey(ownerId, linkProviderId));
+    linkingResolvedKeys.has(buildLinkingResolutionKey(ownerId, linkProviderId));
   const showLinkingCta =
-    linkingReason &&
-    linkProviderId &&
-    ownerId &&
-    onLinkProvider &&
-    !linkingResolved;
+    linkingReason && linkProviderId && ownerId && !linkingResolved;
   const agentId = trace.principal?.agentId;
   const policyDenied = policy.variant === "denied";
 
@@ -356,7 +345,7 @@ export function TraceDetailDrawer({
                   type="button"
                   size="sm"
                   className="shrink-0 gap-1.5"
-                  onClick={() => onLinkProvider(linkProviderId, ownerId)}
+                  onClick={() => linkProvider(linkProviderId, ownerId)}
                 >
                   <Link2 className="size-3.5" aria-hidden />
                   Link
