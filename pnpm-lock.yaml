@@ -45,6 +45,9 @@ importers:
 
   apps/gateway:
     dependencies:
+      '@fastify/static':
+        specifier: ^9.1.3
+        version: 9.1.3
       '@keidai/shared':
         specifier: workspace:*
         version: link:../../packages/shared

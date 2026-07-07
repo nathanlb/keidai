@@ -12,6 +12,7 @@ import type {
   GatewayHttpServerOptions,
 } from "./types/gateway-http-server.js";
 import { registerGatewayRoutes } from "./utils/register-gateway-routes.js";
+import { registerUiStatic } from "./utils/register-ui-static.js";
 
 const requestStartTime = Symbol("requestStartTime");
 
@@ -38,7 +39,7 @@ export class GatewayHttpServer {
     private readonly logger: Logger,
   ) {}
 
-  createApp(): FastifyInstance {
+  async createApp(): Promise<FastifyInstance> {
     const app = Fastify({ logger: false });
 
     app.addHook("onRequest", async (request) => {
@@ -67,6 +68,12 @@ export class GatewayHttpServer {
       tracesApi: this.tracesApi,
       mcpServer: this.mcpServer,
     });
+
+    const uiClientRoot = process.env.TORII_UI_CLIENT_ROOT;
+    if (uiClientRoot) {
+      await registerUiStatic(app, uiClientRoot);
+    }
+
     return app;
   }
 
@@ -74,7 +81,7 @@ export class GatewayHttpServer {
     options: GatewayHttpServerOptions = {},
   ): Promise<GatewayHttpServerHandle> {
     const host = options.host ?? "127.0.0.1";
-    const app = this.createApp();
+    const app = await this.createApp();
     this.app = app;
 
     const port = options.port ?? 0;

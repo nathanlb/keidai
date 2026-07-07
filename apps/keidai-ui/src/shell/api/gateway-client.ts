@@ -37,6 +37,15 @@ export function getGatewayDisplayAddress(): string {
 }
 
 export function getGatewayOrigin(): string {
+  const configured = import.meta.env.VITE_GATEWAY_URL;
+  if (configured) {
+    return new URL(configured).origin;
+  }
+
+  if (typeof window !== "undefined") {
+    return window.location.origin;
+  }
+
   return new URL(gatewayDisplayUrl).origin;
 }
 
