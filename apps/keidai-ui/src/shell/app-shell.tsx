@@ -1,4 +1,4 @@
-import { useCallback, useEffect, type ReactNode } from "react";
+import { Suspense, useCallback, useEffect, type ReactNode } from "react";
 import { Outlet } from "react-router-dom";
 import { useSWRConfig } from "swr";
 import { cn } from "@keidai/ui";
@@ -74,7 +74,9 @@ export function AppShell({
               {pageHeader ? (
                 <PageHeader page={pageHeader} onRefresh={refresh} />
               ) : null}
-              <Outlet />
+              <Suspense fallback={null}>
+                <Outlet />
+              </Suspense>
             </div>
           </div>
         </div>
