@@ -70,6 +70,7 @@ pnpm --filter @keidai/gateway start
 | `TORII_CONFIG_PATH` | `./torii.yaml` | Gateway config file |
 | `TORII_PORT` | `3100` (falls back to `PORT`) | HTTP listen port |
 | `TORII_HOST` | `127.0.0.1` | HTTP bind address |
+| `TORII_UI_CLIENT_ROOT` | — | Path to built keidai-ui client (`dist/client`); when set, Torii serves the UI on the same origin as `/api` and `/mcp` |
 | `TORII_DB_PATH` | `./data/torii.db` | SQLite path for gateway persistent storage (OAuth tokens, provider clients, call traces) |
 | `TORII_GATEWAY_BASE_URL` | — | Stable public base URL for OAuth callbacks (overrides per-request Host derivation) |
 | `TORII_K8S_SA_OIDC_ISSUER` | — | K8s SA OIDC issuer (optional; enables JWT identity when set with audience + JWKS) |
@@ -138,6 +139,20 @@ See **[docs/demo.md](../../docs/demo.md)** for the full open-torii demo walkthro
 pnpm demo:gateway   # from repo root
 pnpm demo
 ```
+
+## Docker
+
+Build from the monorepo root (serves keidai-ui and the gateway on one port):
+
+```bash
+docker build -f apps/gateway/Dockerfile -t torii .
+docker run --rm -p 3100:3100 \
+  -e GITHUB_CLIENT_ID=... -e GITHUB_CLIENT_SECRET=... \
+  -v torii-data:/app/data \
+  torii
+```
+
+Open [http://localhost:3100](http://localhost:3100) for the UI. Mount a custom config with `-v ./torii.yaml:/app/torii.yaml:ro` and set `TORII_GATEWAY_BASE_URL` to your public URL for OAuth callbacks.
 
 ## License
 
