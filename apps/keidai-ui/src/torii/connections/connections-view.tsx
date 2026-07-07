@@ -12,8 +12,11 @@ import {
   TableRow,
 } from "@keidai/ui";
 import { Cable, RefreshCw, Shield } from "lucide-react";
+import type { PublicServerConfig } from "@keidai/shared/dto";
+import type { TraceListItem } from "@keidai/shared";
 import { ConnectionServerRow } from "./connection-server-row.js";
 import { ConnectionsSummaryTiles } from "./connections-summary-tiles.js";
+import { LinkingRequiredBanner } from "./linking-required-banner.js";
 import type {
   ConnectionSummaryCounts,
   ServerConnectionSummary,
@@ -53,9 +56,12 @@ export interface ConnectionsViewProps {
   counts: ConnectionSummaryCounts;
   reconnectingServers: ReadonlySet<string>;
   isReconnectingAll: boolean;
+  linkingRequiredTrace?: TraceListItem | null;
+  linkingRequiredServer?: PublicServerConfig;
   onReconnect: (serverName: string) => void;
   onReconnectAll: () => void;
   onLink: (providerId: string) => void;
+  onLinkFromBanner?: (providerId: string, ownerId: string) => void;
 }
 
 export function ConnectionsView({
@@ -63,9 +69,12 @@ export function ConnectionsView({
   counts,
   reconnectingServers,
   isReconnectingAll,
+  linkingRequiredTrace,
+  linkingRequiredServer,
   onReconnect,
   onReconnectAll,
   onLink,
+  onLinkFromBanner,
 }: ConnectionsViewProps) {
   const isEmpty = summaries.length === 0;
 
@@ -75,6 +84,13 @@ export function ConnectionsView({
         <ConnectionsEmptyState />
       ) : (
         <div className="space-y-4">
+          {linkingRequiredTrace && onLinkFromBanner ? (
+            <LinkingRequiredBanner
+              trace={linkingRequiredTrace}
+              server={linkingRequiredServer}
+              onLink={onLinkFromBanner}
+            />
+          ) : null}
           <ConnectionsSummaryTiles counts={counts} />
 
           <Card className="overflow-hidden shadow-none">

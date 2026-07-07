@@ -5,6 +5,7 @@ import {
   reconnectConnection,
 } from "../../shell/api/gateway-client.js";
 import { useActingOwner } from "../../shell/hooks/use-acting-owner.js";
+import { useFetchLinkingRequiredTrace } from "../../shell/hooks/use-fetch-linking-required-trace.js";
 import { useFetchOAuthConnections } from "../../shell/hooks/use-fetch-oauth-connections.js";
 import { useFetchOAuthProviders } from "../../shell/hooks/use-fetch-oauth-providers.js";
 import { useFetchServers } from "../../shell/hooks/use-fetch-servers.js";
@@ -18,6 +19,9 @@ import {
   buildServerSummaries,
   summarizeConnectionCounts,
 } from "../connections/utils/build-server-summaries.js";
+import {
+  isLinkingStillRequired,
+} from "../linking/format-linking-required-prompt.js";
 
 export function ConnectionsPage() {
   const {
@@ -53,16 +57,50 @@ export function ConnectionsPage() {
   );
   const [isReconnectingAll, setIsReconnectingAll] = useState(false);
 
+  const {
+    trace: linkingRequiredTrace,
+    refresh: refreshLinkingRequiredTrace,
+  } = useFetchLinkingRequiredTrace(owner.ownerId);
+
+  const oauthConnections = connectionsByOwner?.get(owner.ownerId) ?? [];
+
   const handleLinkCompleted = useCallback(
     async (ownerId: string, connections: OAuthConnectionStatus[]) => {
       await patchOwnerConnections(ownerId, connections);
+      await refreshLinkingRequiredTrace();
     },
-    [patchOwnerConnections],
+    [patchOwnerConnections, refreshLinkingRequiredTrace],
   );
 
   const linkDialog = useOAuthLinkDialog(handleLinkCompleted);
 
-  const oauthConnections = connectionsByOwner?.get(owner.ownerId) ?? [];
+  const serversByName = useMemo(() => {
+    return new Map(
+      (serversData?.servers ?? []).map((server) => [server.name, server]),
+    );
+  }, [serversData?.servers]);
+
+  const linkingRequiredServer = useMemo(() => {
+    if (!linkingRequiredTrace) {
+      return undefined;
+    }
+    return serversByName.get(linkingRequiredTrace.server);
+  }, [linkingRequiredTrace, serversByName]);
+
+  const visibleLinkingRequiredTrace = useMemo(() => {
+    if (!linkingRequiredTrace) {
+      return null;
+    }
+
+    return isLinkingStillRequired(
+      linkingRequiredTrace,
+      linkingRequiredServer,
+      oauthConnections,
+      new Set(),
+    )
+      ? linkingRequiredTrace
+      : null;
+  }, [linkingRequiredServer, linkingRequiredTrace, oauthConnections]);
 
   const summaries = useMemo(
     () =>
@@ -107,8 +145,8 @@ export function ConnectionsPage() {
     }
   }, []);
 
-  const handleLink = useCallback(
-    (providerId: string) => {
+  const openLinkDialog = useCallback(
+    (providerId: string, ownerId: string) => {
       const providerConfig = providersData?.providers[providerId];
       if (!providerConfig) {
         return;
@@ -117,12 +155,26 @@ export function ConnectionsPage() {
       linkDialog.openLink({
         providerId,
         providerLabel: formatProviderLabel(providerId),
-        ownerId: owner.ownerId,
+        ownerId,
         scopes: providerConfig.scopes,
         redirectUri: buildGatewayOAuthCallbackUrl(providerId),
       });
     },
-    [linkDialog, owner.ownerId, providersData?.providers],
+    [linkDialog, providersData?.providers],
+  );
+
+  const handleLink = useCallback(
+    (providerId: string) => {
+      openLinkDialog(providerId, owner.ownerId);
+    },
+    [openLinkDialog, owner.ownerId],
+  );
+
+  const handleLinkFromBanner = useCallback(
+    (providerId: string, ownerId: string) => {
+      openLinkDialog(providerId, ownerId);
+    },
+    [openLinkDialog],
   );
 
   const isLoading =
@@ -158,9 +210,12 @@ export function ConnectionsPage() {
         counts={counts}
         reconnectingServers={reconnectingServers}
         isReconnectingAll={isReconnectingAll}
+        linkingRequiredTrace={visibleLinkingRequiredTrace}
+        linkingRequiredServer={linkingRequiredServer}
         onReconnect={handleReconnect}
         onReconnectAll={handleReconnectAll}
         onLink={handleLink}
+        onLinkFromBanner={handleLinkFromBanner}
       />
       <OAuthLinkDialog
         open={linkDialog.open}

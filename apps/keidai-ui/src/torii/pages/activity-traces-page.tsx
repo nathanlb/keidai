@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { OAuthConnectionStatus } from "@keidai/shared";
 import type { TraceListItem } from "@keidai/shared";
 import { useActivityTraces } from "../../shell/hooks/use-activity-traces.js";
 import { useFetchOAuthProviders } from "../../shell/hooks/use-fetch-oauth-providers.js";
@@ -12,10 +13,22 @@ import {
   type TraceFilters,
 } from "../activity/utils/filter-traces.js";
 import type { OutcomeFilter } from "../activity/utils/format-trace-outcome.js";
+import { buildLinkingResolutionKey } from "../linking/format-linking-required-prompt.js";
 import { OAuthLinkDialog } from "../oauth/oauth-link-dialog.js";
 import { useOAuthLinkDialog } from "../oauth/hooks/use-oauth-link-dialog.js";
 import { buildGatewayOAuthCallbackUrl } from "../oauth/utils/build-gateway-oauth-callback-url.js";
 import { formatProviderLabel } from "../oauth/utils/oauth-provider-config.js";
+
+function collectResolvedLinkingKeys(
+  ownerId: string,
+  connections: OAuthConnectionStatus[],
+): string[] {
+  return connections
+    .filter((connection) => connection.status === "linked")
+    .map((connection) =>
+      buildLinkingResolutionKey(ownerId, connection.provider),
+    );
+}
 
 export function ActivityTracesPage() {
   const [isLive, setIsLive] = useState(true);
@@ -25,6 +38,9 @@ export function ActivityTracesPage() {
     null,
   );
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [linkingResolvedKeys, setLinkingResolvedKeys] = useState<
+    Set<string>
+  >(new Set());
 
   const {
     data: statsData,
@@ -51,7 +67,20 @@ export function ActivityTracesPage() {
     isLoading: tracesLoading,
   } = useActivityTraces(isLive);
 
-  const linkDialog = useOAuthLinkDialog();
+  const handleLinkCompleted = useCallback(
+    (ownerId: string, connections: OAuthConnectionStatus[]) => {
+      setLinkingResolvedKeys((current) => {
+        const next = new Set(current);
+        for (const key of collectResolvedLinkingKeys(ownerId, connections)) {
+          next.add(key);
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
+  const linkDialog = useOAuthLinkDialog(handleLinkCompleted);
 
   const serversByName = useMemo(() => {
     const map = new Map(
@@ -166,6 +195,7 @@ export function ActivityTracesPage() {
         onOpenTrace={handleOpenTrace}
         onDrawerOpenChange={setDrawerOpen}
         onLinkProvider={handleLinkProvider}
+        linkingResolvedKeys={linkingResolvedKeys}
       />
       <OAuthLinkDialog
         open={linkDialog.open}

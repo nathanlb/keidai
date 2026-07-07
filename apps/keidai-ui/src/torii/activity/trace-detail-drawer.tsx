@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { buildLinkingResolutionKey } from "../linking/format-linking-required-prompt.js";
 import { deriveOwnerInitials } from "../../shell/utils/derive-owner-initials.js";
 import { OwnerAvatar } from "../agents/owner-avatar.js";
 import { buildTraceSpans } from "./utils/build-trace-spans.js";
@@ -28,9 +29,11 @@ import {
   formatCredentialProvider,
   formatCredentialRef,
   formatCredentialStrategy,
+} from "./utils/format-trace-credential.js";
+import {
   formatLinkingReason,
   resolveLinkProviderId,
-} from "./utils/format-trace-credential.js";
+} from "../linking/format-linking-required-prompt.js";
 import { TRACE_OUTCOME_META } from "./utils/format-trace-outcome.js";
 import { formatTracePolicyDetail } from "./utils/format-trace-policy-detail.js";
 import {
@@ -76,12 +79,14 @@ export function TraceDetailDrawer({
   open,
   onOpenChange,
   onLinkProvider,
+  linkingResolvedKeys,
 }: {
   trace: TraceListItem | null;
   server?: PublicServerConfig;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onLinkProvider?: (providerId: string, ownerId: string) => void;
+  linkingResolvedKeys?: ReadonlySet<string>;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -113,6 +118,16 @@ export function TraceDetailDrawer({
   const linkingReason = formatLinkingReason(trace, server);
   const linkProviderId = resolveLinkProviderId(trace, server);
   const ownerId = trace.principal?.ownerId;
+  const linkingResolved =
+    ownerId &&
+    linkProviderId &&
+    linkingResolvedKeys?.has(buildLinkingResolutionKey(ownerId, linkProviderId));
+  const showLinkingCta =
+    linkingReason &&
+    linkProviderId &&
+    ownerId &&
+    onLinkProvider &&
+    !linkingResolved;
   const agentId = trace.principal?.agentId;
   const policyDenied = policy.variant === "denied";
 
@@ -332,7 +347,7 @@ export function TraceDetailDrawer({
                 </span>
               </div>
             </div>
-            {linkingReason && linkProviderId && ownerId && onLinkProvider ? (
+            {showLinkingCta ? (
               <div className="mt-2.5 flex items-center gap-3 rounded-lg border border-warning/40 bg-warning/8 p-3">
                 <p className="flex-1 text-[12.5px] leading-snug text-foreground">
                   {linkingReason}
@@ -347,7 +362,7 @@ export function TraceDetailDrawer({
                   Link
                 </Button>
               </div>
-            ) : linkingReason ? (
+            ) : linkingReason && !linkingResolved ? (
               <p className="mt-2.5 rounded-lg border border-warning/40 bg-warning/8 p-3 text-[12.5px] leading-snug text-foreground">
                 {linkingReason}
               </p>

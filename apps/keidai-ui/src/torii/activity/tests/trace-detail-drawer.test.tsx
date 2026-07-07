@@ -69,6 +69,23 @@ describe("TraceDetailDrawer", () => {
     expect(onLinkProvider).toHaveBeenCalledWith("github", "nathanlb");
   });
 
+  it("hides the link CTA after linking is resolved in-session", () => {
+    render(
+      <TraceDetailDrawer
+        trace={linkingTrace}
+        server={githubServer}
+        open
+        onOpenChange={() => {}}
+        onLinkProvider={() => {}}
+        linkingResolvedKeys={new Set(["nathanlb:github"])}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "Link" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("renders nothing when trace is null", () => {
     const { container } = render(
       <TraceDetailDrawer trace={null} open onOpenChange={() => {}} />,

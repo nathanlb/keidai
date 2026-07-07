@@ -115,6 +115,7 @@ export interface ActivityTracesViewProps {
   onOpenTrace: (trace: TraceListItem) => void;
   onDrawerOpenChange: (open: boolean) => void;
   onLinkProvider?: (providerId: string, ownerId: string) => void;
+  linkingResolvedKeys?: ReadonlySet<string>;
 }
 
 export function ActivityTracesView({
@@ -138,6 +139,7 @@ export function ActivityTracesView({
   onOpenTrace,
   onDrawerOpenChange,
   onLinkProvider,
+  linkingResolvedKeys,
 }: ActivityTracesViewProps) {
   const isIdle = traces.length === 0;
   const hasMatches = filteredTraces.length > 0;
@@ -279,6 +281,7 @@ export function ActivityTracesView({
         open={drawerOpen}
         onOpenChange={onDrawerOpenChange}
         onLinkProvider={onLinkProvider}
+        linkingResolvedKeys={linkingResolvedKeys}
       />
     </div>
   );
