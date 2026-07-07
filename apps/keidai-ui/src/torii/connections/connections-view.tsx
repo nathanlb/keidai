@@ -12,12 +12,10 @@ import {
   TableRow,
 } from "@keidai/ui";
 import { Cable, RefreshCw, Shield } from "lucide-react";
+import { useConnectionsPage } from "./context/use-connections-page.js";
 import { ConnectionServerRow } from "./connection-server-row.js";
 import { ConnectionsSummaryTiles } from "./connections-summary-tiles.js";
-import type {
-  ConnectionSummaryCounts,
-  ServerConnectionSummary,
-} from "./utils/build-server-summaries.js";
+import { LinkingRequiredBanner } from "./linking-required-banner.js";
 
 function PrivacyBanner() {
   return (
@@ -48,25 +46,17 @@ function ConnectionsEmptyState() {
   );
 }
 
-export interface ConnectionsViewProps {
-  summaries: ServerConnectionSummary[];
-  counts: ConnectionSummaryCounts;
-  reconnectingServers: ReadonlySet<string>;
-  isReconnectingAll: boolean;
-  onReconnect: (serverName: string) => void;
-  onReconnectAll: () => void;
-  onLink: (providerId: string) => void;
-}
+export function ConnectionsView() {
+  const {
+    summaries,
+    counts,
+    isReconnectingAll,
+    linkingRequiredTrace,
+    linkingRequiredServer,
+    onReconnectAll,
+    onLinkFromBanner,
+  } = useConnectionsPage();
 
-export function ConnectionsView({
-  summaries,
-  counts,
-  reconnectingServers,
-  isReconnectingAll,
-  onReconnect,
-  onReconnectAll,
-  onLink,
-}: ConnectionsViewProps) {
   const isEmpty = summaries.length === 0;
 
   return (
@@ -75,6 +65,13 @@ export function ConnectionsView({
         <ConnectionsEmptyState />
       ) : (
         <div className="space-y-4">
+          {linkingRequiredTrace ? (
+            <LinkingRequiredBanner
+              trace={linkingRequiredTrace}
+              server={linkingRequiredServer}
+              onLink={onLinkFromBanner}
+            />
+          ) : null}
           <ConnectionsSummaryTiles counts={counts} />
 
           <Card className="overflow-hidden shadow-none">
@@ -130,16 +127,7 @@ export function ConnectionsView({
                 </TableHeader>
                 <TableBody>
                   {summaries.map((summary) => (
-                    <ConnectionServerRow
-                      key={summary.name}
-                      summary={summary}
-                      onReconnect={onReconnect}
-                      onLink={onLink}
-                      isReconnecting={
-                        reconnectingServers.has(summary.name) ||
-                        isReconnectingAll
-                      }
-                    />
+                    <ConnectionServerRow key={summary.name} summary={summary} />
                   ))}
                 </TableBody>
               </Table>

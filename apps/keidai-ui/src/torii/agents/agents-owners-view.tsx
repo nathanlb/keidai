@@ -15,6 +15,8 @@ import {
   TableRow,
 } from "@keidai/ui";
 import { Bot, Lock, Users } from "lucide-react";
+import { useMemo } from "react";
+import { useFetchServers } from "../../shell/hooks/use-fetch-servers.js";
 import { deriveOwnerInitials } from "../../shell/utils/derive-owner-initials.js";
 import { formatAgentSubject } from "./utils/format-agent-subject.js";
 import type { OwnerAgentGroup } from "./utils/group-agents-by-owner.js";
@@ -118,15 +120,25 @@ function AgentRow({
   );
 }
 
+function useServerNames(): readonly string[] {
+  const { data: serversData } = useFetchServers();
+  return useMemo(
+    () =>
+      (serversData?.servers ?? [])
+        .map((server) => server.name)
+        .sort((left, right) => left.localeCompare(right)),
+    [serversData?.servers],
+  );
+}
+
 function OwnerAgentGroupCard({
   group,
-  serverNames,
   showFooterNote = false,
 }: {
   group: OwnerAgentGroup;
-  serverNames: readonly string[];
   showFooterNote?: boolean;
 }) {
+  const serverNames = useServerNames();
   const initials = deriveOwnerInitials(group.ownerId);
 
   return (
@@ -193,10 +205,9 @@ function MultiOwnerFooterNote() {
 
 export interface AgentsOwnersViewProps {
   groups: OwnerAgentGroup[];
-  serverNames: readonly string[];
 }
 
-export function AgentsOwnersView({ groups, serverNames }: AgentsOwnersViewProps) {
+export function AgentsOwnersView({ groups }: AgentsOwnersViewProps) {
   const isEmpty = groups.length === 0;
 
   return (
@@ -211,7 +222,6 @@ export function AgentsOwnersView({ groups, serverNames }: AgentsOwnersViewProps)
             <OwnerAgentGroupCard
               key={group.ownerId}
               group={group}
-              serverNames={serverNames}
               showFooterNote={index === groups.length - 1}
             />
           ))}

@@ -14,6 +14,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useConnectionsPage } from "./context/use-connections-page.js";
 import { CredentialStrategyBadge } from "./connections-summary-tiles.js";
 import type { ServerConnectionSummary } from "./utils/build-server-summaries.js";
 
@@ -54,13 +55,8 @@ function ConnectionStatusBadge({ state }: { state: ConnectionState }) {
   );
 }
 
-function RowOverflowMenu({
-  serverName,
-  onReconnect,
-}: {
-  serverName: string;
-  onReconnect: (serverName: string) => void;
-}) {
+function RowOverflowMenu({ serverName }: { serverName: string }) {
+  const { onReconnect } = useConnectionsPage();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -117,17 +113,9 @@ function RowOverflowMenu({
   );
 }
 
-function RowActions({
-  summary,
-  onReconnect,
-  onLink,
-  isReconnecting,
-}: {
-  summary: ServerConnectionSummary;
-  onReconnect: (serverName: string) => void;
-  onLink: (providerId: string) => void;
-  isReconnecting: boolean;
-}) {
+function RowActions({ summary }: { summary: ServerConnectionSummary }) {
+  const { onReconnect, onLink, isServerReconnecting } = useConnectionsPage();
+  const isReconnecting = isServerReconnecting(summary.name);
   if (summary.rowAction === "reconnect") {
     return (
       <Button
@@ -161,7 +149,7 @@ function RowActions({
   }
 
   return (
-    <RowOverflowMenu serverName={summary.name} onReconnect={onReconnect} />
+    <RowOverflowMenu serverName={summary.name} />
   );
 }
 
@@ -186,14 +174,8 @@ function CredentialSubStatus({
 
 export function ConnectionServerRow({
   summary,
-  onReconnect,
-  onLink,
-  isReconnecting,
 }: {
   summary: ServerConnectionSummary;
-  onReconnect: (serverName: string) => void;
-  onLink: (providerId: string) => void;
-  isReconnecting: boolean;
 }) {
   return (
     <TableRow className="border-border hover:bg-muted/30">
@@ -231,12 +213,7 @@ export function ConnectionServerRow({
       </TableCell>
       <TableCell className="py-3 pr-[18px] text-right">
         <div className="flex justify-end">
-          <RowActions
-            summary={summary}
-            onReconnect={onReconnect}
-            onLink={onLink}
-            isReconnecting={isReconnecting}
-          />
+          <RowActions summary={summary} />
         </div>
       </TableCell>
     </TableRow>

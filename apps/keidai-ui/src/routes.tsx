@@ -1,9 +1,5 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import { ActivityTracesPage } from "./torii/pages/activity-traces-page.js";
-import { AgentsOwnersPage } from "./torii/pages/agents-owners-page.js";
-import { ConnectionsPage } from "./torii/pages/connections-page.js";
 import { ToriiLayout } from "./torii/layout.js";
-import { OAuthProvidersPage } from "./torii/pages/oauth-providers-page.js";
 
 export const router = createBrowserRouter([
   {
@@ -16,19 +12,39 @@ export const router = createBrowserRouter([
       },
       {
         path: "connections",
-        element: <ConnectionsPage />,
+        lazy: async () => {
+          const { ConnectionsPage } = await import(
+            "./torii/pages/connections-page.js"
+          );
+          return { Component: ConnectionsPage };
+        },
       },
       {
         path: "oauth-providers",
-        element: <OAuthProvidersPage />,
+        lazy: async () => {
+          const { OAuthProvidersPage } = await import(
+            "./torii/pages/oauth-providers-page.js"
+          );
+          return { Component: OAuthProvidersPage };
+        },
       },
       {
         path: "agents",
-        element: <AgentsOwnersPage />,
+        lazy: async () => {
+          const { AgentsOwnersPage } = await import(
+            "./torii/pages/agents-owners-page.js"
+          );
+          return { Component: AgentsOwnersPage };
+        },
       },
       {
         path: "activity",
-        element: <ActivityTracesPage />,
+        lazy: async () => {
+          const { ActivityTracesPage } = await import(
+            "./torii/pages/activity-traces-page.js"
+          );
+          return { Component: ActivityTracesPage };
+        },
       },
     ],
   },

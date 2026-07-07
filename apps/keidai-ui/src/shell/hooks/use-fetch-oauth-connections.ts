@@ -52,7 +52,7 @@ export function useFetchOAuthConnections(ownerIds: readonly string[]) {
           next.set(ownerId, connections);
           return next;
         },
-        { revalidate: true },
+        { revalidate: false },
       );
     },
     [mutate],
