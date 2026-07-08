@@ -15,7 +15,7 @@ import { ToolDispatchService } from "../dispatch/tool-dispatch.service.js";
 import { runWithAgentPrincipal } from "../identity/agent-principal-context.js";
 import { InboundIdentityService } from "../identity/inbound-identity.service.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
-import type { Logger } from "../logging/types/logger.js";
+import type { Logger } from "@keidai/shared";
 import { IdentityDeniedError } from "../identity/types/identity-denied.js";
 import { IdentityResolutionError } from "../identity/types/identity-resolution-error.js";
 import {

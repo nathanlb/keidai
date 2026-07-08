@@ -3,7 +3,7 @@ import type { OAuthInitiateResponse } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
 import { ToriiConfigService } from "../config/torii-config.service.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
-import type { Logger } from "../logging/types/logger.js";
+import type { Logger } from "@keidai/shared";
 import {
   OAUTH_CLIENT_REPOSITORY,
   type OAuthClientRepository,

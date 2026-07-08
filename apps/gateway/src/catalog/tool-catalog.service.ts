@@ -5,7 +5,7 @@ import { CredentialResolverService } from "../credentials/credential-resolver.se
 import { CredentialResolutionError, LinkingRequiredError } from "../credentials/types/credential-resolution.js";
 import { getAgentPrincipal } from "../identity/agent-principal-context.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
-import type { Logger } from "../logging/types/logger.js";
+import type { Logger } from "@keidai/shared";
 import { PolicyEnforcementService } from "../policy/policy-enforcement.service.js";
 import type { AgentTool, CatalogTool } from "./types/catalog-tool.js";
 import { namespaceTool } from "./utils/namespacing.js";

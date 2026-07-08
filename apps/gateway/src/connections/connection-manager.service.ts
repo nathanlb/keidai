@@ -4,7 +4,7 @@ import { ToriiConfigService } from "../config/torii-config.service.js";
 import { runWithAgentPrincipal } from "../identity/agent-principal-context.js";
 import { resolveBootAgentPrincipal } from "../identity/stub-agent-principal.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
-import type { Logger } from "../logging/types/logger.js";
+import type { Logger } from "@keidai/shared";
 import { DefaultMcpClientConnector } from "./mcp-client-connector.service.js";
 import type { BackendConnection } from "./types/backend-connection.js";
 import type { McpClientConnector } from "./types/mcp-client-connector.js";

@@ -19,7 +19,19 @@ Gated tools are declared per agent in Torii (`gated_tools` in `torii.yaml`). Whe
 **Domain boundaries:**
 - **Torii** owns agent identity/registration (`agent_id`, `inbound_token`) — see `apps/gateway/torii.demo.yaml`
 - **Shaiden** owns task definition and harness runtime
-- **Shared** (`@keidai/shared`) owns cross-app Task/Run types and schemas
+- **Shared** (`@keidai/shared`) owns cross-app Task/Run types, schemas, and structured logging
+
+## Log streams
+
+During normal harness operation Shaiden emits structured operational logs to **stderr**, using the same `StructuredLogger` from `@keidai/shared` as Torii:
+
+| Stream | Content | Schema |
+|--------|---------|--------|
+| **stderr** | Structured operational logs (boot, run lifecycle, tool dispatch, approvals) | JSON with `recordType: "log"`, `level`, and `event` |
+
+Events follow a `domain.action` naming convention (`boot.*`, `run.*`). Tool call audit records (`CallTrace`) are emitted by Torii on stdout when Shaiden dispatches through MCP — Shaiden does not duplicate them.
+
+Local `pnpm shaiden:dev` output is JSON lines on stderr, not human-readable prose.
 
 ## Local development
 

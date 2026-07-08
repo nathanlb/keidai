@@ -2,7 +2,7 @@ import { PolicyDecision, type AgentPrincipal, type ServerConfig } from "@keidai/
 import { inject, injectable } from "tsyringe";
 import { ToriiConfigService } from "../config/torii-config.service.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
-import type { Logger } from "../logging/types/logger.js";
+import type { Logger } from "@keidai/shared";
 import type { PolicyEvaluator } from "./types/policy-evaluator.js";
 import { evaluatePolicy } from "./utils/evaluate-policy.js";
 

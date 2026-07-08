@@ -3,9 +3,11 @@ import {
   TORII_APPROVAL_ID_ARG,
   TORII_RUN_ID_ARG,
   resolveTaskLimits,
+  type Logger,
   type Task,
 } from "@keidai/shared";
 import type { RuntimeConfig } from "../config/runtime-config.js";
+import { defaultLogger } from "../logging/logger.js";
 import { createOpenRouterModel } from "../model/openrouter.js";
 import { connectToriiSession } from "../mcp/torii-client.js";
 import {
@@ -26,10 +28,16 @@ function previewOf(value: string, maxLength = 200): string {
     : flattened;
 }
 
+export interface HarnessRunOptions {
+  logger?: Logger;
+}
+
 export async function startHarnessRun(
   task: Task,
   config: RuntimeConfig,
+  options: HarnessRunOptions = {},
 ): Promise<HarnessRunResult> {
+  const logger = options.logger ?? defaultLogger;
   const limits = resolveTaskLimits(task);
   const runDraft = createRun(randomUUID(), {
     ...task,
@@ -43,12 +51,12 @@ export async function startHarnessRun(
   );
 
   try {
-    console.log(
-      `Discovered ${session.tools.length} Torii tool(s) for agent ${config.agentId}.`,
-    );
-    for (const tool of session.tools) {
-      console.log(`  - ${tool.name}`);
-    }
+    logger.info("run.tools_discovered", {
+      runId: runDraft.id,
+      agentId: config.agentId,
+      toolCount: session.tools.length,
+      tools: session.tools.map((tool) => tool.name),
+    });
 
     const availableToolNames = new Set(session.tools.map((tool) => tool.name));
     const dispatchToolCall = async (
@@ -67,11 +75,22 @@ export async function startHarnessRun(
           : {}),
       };
 
-      console.log(`→ ${call.toolName}(${previewOf(JSON.stringify(call.input))})`);
+      logger.info("run.tool_dispatch", {
+        runId: runDraft.id,
+        toolName: call.toolName,
+        inputPreview: previewOf(JSON.stringify(call.input)),
+      });
       const result = await session.callTool(call.toolName, args);
-      console.log(
-        `← ${call.toolName}: ${result.isError ? "error" : result.approvalRequired ? "approval_required" : "ok"} (${result.text.length} chars)`,
-      );
+      logger.info("run.tool_result", {
+        runId: runDraft.id,
+        toolName: call.toolName,
+        status: result.isError
+          ? "error"
+          : result.approvalRequired
+            ? "approval_required"
+            : "ok",
+        charCount: result.text.length,
+      });
       return result;
     };
 
@@ -82,13 +101,20 @@ export async function startHarnessRun(
     );
 
     const waitForApproval = async (approvalId: string) => {
-      console.log(
-        `Run ${runDraft.id} waiting for approval ${approvalId} (poll ${toriiBaseUrl}/api/approvals/${approvalId}).`,
-      );
+      const pollUrl = `${toriiBaseUrl}/api/approvals/${approvalId}`;
+      logger.info("run.approval_waiting", {
+        runId: runDraft.id,
+        approvalId,
+        pollUrl,
+      });
       return pollApprovalDecision(toriiBaseUrl, approvalId);
     };
 
-    console.log(`Run ${runDraft.id} started (model: ${config.modelId}).`);
+    logger.info("run.started", {
+      runId: runDraft.id,
+      modelId: config.modelId,
+      assignee: task.assignee,
+    });
     const { outcome, iterations, history } = await runTaskLoop(
       taskGoalPrompt(task.goal),
       limits,
@@ -102,15 +128,20 @@ export async function startHarnessRun(
     if (outcome.status === "goal_met") {
       const finalEntry = history.at(-1);
       if (finalEntry?.role === "assistant" && finalEntry.text) {
-        console.log(`\n--- Final response ---\n${finalEntry.text}\n--- End final response ---\n`);
+        logger.info("run.goal_met", {
+          runId: runDraft.id,
+          responseLength: finalEntry.text.length,
+          response: finalEntry.text,
+        });
       }
     }
 
     const run = completeRun(runDraft, outcome);
-    console.log(
-      `Run ${run.id} completed after ${iterations} iteration(s) with outcome: ${run.outcome.status}` +
-        (run.outcome.status === "failed" ? ` — ${run.outcome.reason}` : ""),
-    );
+    logger.info("run.completed", {
+      runId: run.id,
+      iterations,
+      outcome,
+    });
 
     return { run, discoveredTools: session.tools, iterations };
   } finally {

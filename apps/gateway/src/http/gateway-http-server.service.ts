@@ -7,7 +7,7 @@ import { GatewayMcpServer } from "../mcp/gateway-mcp-server.service.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
 import { TracesApiController } from "../trace/traces-api.controller.js";
 import { ApprovalsApiController } from "../policy/approvals-api.controller.js";
-import type { Logger } from "../logging/types/logger.js";
+import type { Logger } from "@keidai/shared";
 import type {
   GatewayHttpServerHandle,
   GatewayHttpServerOptions,
