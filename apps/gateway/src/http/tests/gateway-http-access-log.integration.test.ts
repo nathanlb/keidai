@@ -12,6 +12,7 @@ import { GatewayMcpServer } from "../../mcp/gateway-mcp-server.service.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import { createCapturingLogger } from "../../logging/tests/test-helpers.js";
 import { createOAuthApiController, createStubToolCatalog, createTracesApiController } from "./test-helpers.js";
+import { createApprovalServices } from "../../policy/tests/test-helpers.js";
 
 describe("Gateway HTTP access logging", () => {
   it("emits structured access logs without secrets", async () => {
@@ -30,6 +31,7 @@ describe("Gateway HTTP access logging", () => {
       },
       logger,
     );
+    const { approvalsApi } = createApprovalServices(configService);
     const gatewayHttpServer = new GatewayHttpServer(
       new ConfigApiController(new ConfigReadService(configService)),
       new ConnectionsApiController(
@@ -38,6 +40,7 @@ describe("Gateway HTTP access logging", () => {
       ),
       createOAuthApiController(configService),
       createTracesApiController(),
+      approvalsApi,
       new GatewayMcpServer(
         {} as never,
         {} as never,

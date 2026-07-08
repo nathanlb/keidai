@@ -5,15 +5,21 @@ alwaysApply: true
 
 # Keidai project context
 
-Keidai is the agent platform monorepo. **Torii** (`apps/gateway`) is the MCP gateway — the only component actively built in v0.
+Keidai is the agent ecosystem monorepo.
+Ecosystem components:
+
+- **Torii — MCP Gateway** is the gateway and control plane. It exposes servers and tools to agents, enforces tool-level access policy, and brokers downstream credentials so they never reach the agent. The only component built in v0, and tracked as its own project.
+- **Fuda — Agent Identity Provider (AIdP)** is the identity provider and registry for agents. It catalogs agents, who owns them, and how they prove who they are. May be co-located inside Torii in v0; still a distinct responsibility.
+- **Shaiden — Agent Runtime** is the execution infrastructure: where agents run, sandboxing, lifecycle. Lightly sketched.
 
 ## Implementation tasks (Linear)
 
-Stories and acceptance criteria live in the **open-torii** Linear project (gateway work; rename pending):
+Stories and acceptance criteria live in the following Linear projects:
+- **[Ttorii](https://linear.app/nathanlb/project/torii-c257f2b8953d/issues)**
+- **[Shaiden](https://linear.app/nathanlb/project/shaiden-7568ee5d79af/issues)**
+- **[Fuda](https://linear.app/nathanlb/project/fuda-d1656834a613/issues)**
 
-https://linear.app/nathanlb/project/open-torii-c257f2b8953d/overview
-
-Issue IDs use team prefix **`NAT-`** (e.g. `NAT-11` = Story 4b, `NAT-12` = Story 4c). Cross-reference the domain map in `gateway-architecture.mdc` for story → folder mapping.
+Issue IDs use team prefix **`NAT-`** (e.g. `NAT-11` = Story 4b, `NAT-12` = Story 4c).
 
 ### Implementing a Linear issue
 
@@ -36,3 +42,7 @@ https://app.notion.com/p/Keidai-Agent-Platform-38307ec181ff815b8276d59d005fd612
 Torii gateway architecture, credential resolution, policy, and other design notes:
 
 https://app.notion.com/p/Torii-MCP-Gateway-36c07ec181ff813d8f34f9b0e617de34
+
+Shaiden agent runtime:
+
+https://app.notion.com/p/Shaiden-Agent-Runtime-38307ec181ff81d8833cf4e05f6b8437

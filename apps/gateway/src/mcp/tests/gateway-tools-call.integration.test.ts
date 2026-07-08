@@ -13,7 +13,7 @@ import { connectAgentToGateway } from "../../identity/tests/test-helpers.js";
 import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
 import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
-import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
+import { createPolicyEnforcement, createApprovalServices } from "../../policy/tests/test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 
 function userOAuthServer(
@@ -116,6 +116,7 @@ describe("Gateway MCP tools/call", () => {
       credentialResolver,
       new CapturingTraceEmitter(),
       createPolicyEnforcement(configService),
+      createApprovalServices(configService).approvalGate,
     );
     const gatewayHttpServer = createTestGatewayHttpServer(toolCatalog, toolDispatch);
 
@@ -188,6 +189,7 @@ describe("Gateway MCP tools/call", () => {
       credentialResolver,
       new CapturingTraceEmitter(),
       createPolicyEnforcement(configService),
+      createApprovalServices(configService).approvalGate,
     );
     const gatewayHttpServer = createTestGatewayHttpServer(toolCatalog, toolDispatch);
 
@@ -249,6 +251,7 @@ describe("Gateway MCP tools/call", () => {
       credentialResolver,
       new CapturingTraceEmitter(),
       createPolicyEnforcement(configService),
+      createApprovalServices(configService).approvalGate,
     );
     const gatewayHttpServer = createTestGatewayHttpServer(toolCatalog, toolDispatch);
 

@@ -22,7 +22,7 @@ import {
   TEST_AGENT_BEARER,
 } from "../../identity/tests/test-helpers.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
-import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
+import { createPolicyEnforcement, createApprovalServices } from "../../policy/tests/test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 
 const ISSUER = "https://kubernetes.default.svc.cluster.local";
@@ -151,6 +151,7 @@ describe("Gateway inbound identity", () => {
       credentialResolver,
       traceEmitter,
       createPolicyEnforcement(configService),
+      createApprovalServices(configService).approvalGate,
     );
     const gatewayHttpServer = createTestGatewayHttpServer(
       toolCatalog,
@@ -212,6 +213,7 @@ describe("Gateway inbound identity", () => {
       credentialResolver,
       traceEmitter,
       createPolicyEnforcement(configService),
+      createApprovalServices(configService).approvalGate,
     );
     const gatewayHttpServer = createTestGatewayHttpServer(
       toolCatalog,

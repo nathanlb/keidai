@@ -1,5 +1,6 @@
 import { Client } from "@modelcontextprotocol/sdk/client";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { enrichToolCallResult } from "./parse-tool-result.js";
 import type { DiscoveredTool, ToolCallResult, ToriiSession } from "./types/index.js";
 
 function toDiscoveredTool(tool: {
@@ -66,10 +67,10 @@ export async function connectToriiSession(
     args: Record<string, unknown>,
   ): Promise<ToolCallResult> => {
     const response = await client.callTool({ name, arguments: args });
-    return {
-      isError: response.isError === true,
-      text: flattenToolContent(response.content),
-    };
+    return enrichToolCallResult(
+      response.isError === true,
+      flattenToolContent(response.content),
+    );
   };
 
   return {

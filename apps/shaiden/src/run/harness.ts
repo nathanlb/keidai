@@ -1,12 +1,21 @@
 import { randomUUID } from "node:crypto";
-import { resolveTaskLimits, type Task } from "@keidai/shared";
+import {
+  TORII_APPROVAL_ID_ARG,
+  TORII_RUN_ID_ARG,
+  resolveTaskLimits,
+  type Task,
+} from "@keidai/shared";
 import type { RuntimeConfig } from "../config/runtime-config.js";
 import { createOpenRouterModel } from "../model/openrouter.js";
 import { connectToriiSession } from "../mcp/torii-client.js";
+import {
+  pollApprovalDecision,
+  toriiBaseUrlFromMcpUrl,
+} from "../mcp/torii-approval-client.js";
 import { buildToolSet, createModelStepCaller } from "./model-step.js";
 import { taskGoalPrompt, taskSystemPrompt } from "./prompts.js";
 import { completeRun, createRun } from "./run-lifecycle.js";
-import { ModelToolCall } from "./types/task-loop.js";
+import { ModelToolCall, ToolDispatchOptions } from "./types/task-loop.js";
 import { HarnessRunResult } from "./types/harness.js";
 import { runTaskLoop } from "./task-loop.js";
 
@@ -26,6 +35,7 @@ export async function startHarnessRun(
     ...task,
     limits,
   });
+  const toriiBaseUrl = toriiBaseUrlFromMcpUrl(config.toriiMcpUrl);
 
   const session = await connectToriiSession(
     config.toriiMcpUrl,
@@ -41,14 +51,26 @@ export async function startHarnessRun(
     }
 
     const availableToolNames = new Set(session.tools.map((tool) => tool.name));
-    const dispatchToolCall = async (call: ModelToolCall) => {
+    const dispatchToolCall = async (
+      call: ModelToolCall,
+      options?: ToolDispatchOptions,
+    ) => {
       if (!availableToolNames.has(call.toolName)) {
         throw new Error("tool is not available from Torii");
       }
+
+      const args = {
+        ...call.input,
+        [TORII_RUN_ID_ARG]: options?.runId ?? runDraft.id,
+        ...(options?.approvalId
+          ? { [TORII_APPROVAL_ID_ARG]: options.approvalId }
+          : {}),
+      };
+
       console.log(`→ ${call.toolName}(${previewOf(JSON.stringify(call.input))})`);
-      const result = await session.callTool(call.toolName, call.input);
+      const result = await session.callTool(call.toolName, args);
       console.log(
-        `← ${call.toolName}: ${result.isError ? "error" : "ok"} (${result.text.length} chars)`,
+        `← ${call.toolName}: ${result.isError ? "error" : result.approvalRequired ? "approval_required" : "ok"} (${result.text.length} chars)`,
       );
       return result;
     };
@@ -59,11 +81,22 @@ export async function startHarnessRun(
       buildToolSet(session.tools),
     );
 
+    const waitForApproval = async (approvalId: string) => {
+      console.log(
+        `Run ${runDraft.id} waiting for approval ${approvalId} (poll ${toriiBaseUrl}/api/approvals/${approvalId}).`,
+      );
+      return pollApprovalDecision(toriiBaseUrl, approvalId);
+    };
+
     console.log(`Run ${runDraft.id} started (model: ${config.modelId}).`);
     const { outcome, iterations, history } = await runTaskLoop(
       taskGoalPrompt(task.goal),
       limits,
-      { callModel, dispatchToolCall },
+      {
+        callModel,
+        dispatchToolCall,
+        waitForApproval,
+      },
     );
 
     if (outcome.status === "goal_met") {

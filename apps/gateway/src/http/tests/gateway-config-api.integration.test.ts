@@ -18,7 +18,7 @@ import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
 import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import { createCredentialServices } from "../../credentials/tests/test-helpers.js";
-import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
+import { createPolicyEnforcement, createApprovalServices } from "../../policy/tests/test-helpers.js";
 import { GatewayHttpServer } from "../gateway-http-server.service.js";
 import { GatewayMcpServer } from "../../mcp/gateway-mcp-server.service.js";
 import { createOAuthApiController, createStubToolCatalog, createTestGatewayHttpServer, createTracesApiController } from "./test-helpers.js";
@@ -66,8 +66,9 @@ function createGateway(): GatewayHttpServer {
     connectionManager,
     credentialResolver,
     new CapturingTraceEmitter(),
-    createPolicyEnforcement(configService),
-  );
+      createPolicyEnforcement(configService),
+      createApprovalServices(configService).approvalGate,
+    );
 
   return createTestGatewayHttpServer(toolCatalog, toolDispatch, {
     configService,
@@ -148,6 +149,7 @@ describe("Gateway /api/config endpoints", () => {
       createNoopLogger(),
     );
     const toolCatalog = createStubToolCatalog();
+    const { approvalsApi } = createApprovalServices(configService);
     const gatewayHttpServer = new GatewayHttpServer(
       new ConfigApiController(new ConfigReadService(configService)),
       new ConnectionsApiController(
@@ -156,6 +158,7 @@ describe("Gateway /api/config endpoints", () => {
       ),
       createOAuthApiController(configService),
       createTracesApiController({ traceEmitter: new CapturingTraceEmitter() }),
+      approvalsApi,
       new GatewayMcpServer(
         {} as ToolCatalogService,
         {} as ToolDispatchService,
