@@ -6,7 +6,7 @@ function requiredEnv(name: string): string {
   return value;
 }
 
-const DEFAULT_MODEL_ID = "cohere/north-mini-code:free";
+const DEFAULT_MODEL_ID = "google/gemini-2.5-flash";
 
 export interface DemoConfig {
   toriiMcpUrl: string;

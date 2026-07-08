@@ -7,11 +7,14 @@ function requiredEnv(name: string): string {
 }
 
 const DEFAULT_AGENT_ID = "shaiden-newsletter-01";
+const DEFAULT_MODEL_ID = "google/gemini-2.5-flash";
 
 export interface RuntimeConfig {
   agentId: string;
   toriiMcpUrl: string;
   bearerToken: string;
+  openRouterApiKey: string;
+  modelId: string;
 }
 
 export function loadRuntimeConfig(): RuntimeConfig {
@@ -20,5 +23,7 @@ export function loadRuntimeConfig(): RuntimeConfig {
     toriiMcpUrl:
       process.env.TORII_MCP_URL?.trim() ?? "http://127.0.0.1:3100/mcp",
     bearerToken: requiredEnv("SHAIDEN_BEARER"),
+    openRouterApiKey: requiredEnv("OPEN_ROUTER_API_KEY"),
+    modelId: process.env.SHAIDEN_MODEL_ID?.trim() ?? DEFAULT_MODEL_ID,
   };
 }
