@@ -10,6 +10,7 @@ import {
   OAuthTokenRefreshError,
   type OAuthFetch,
 } from "../utils/oauth-token-refresh.js";
+import { withMockFetch } from "./test-helpers.js";
 
 const oauthProviders: ToriiConfig["oauth_providers"] = {
   github: {
@@ -22,7 +23,6 @@ const oauthProviders: ToriiConfig["oauth_providers"] = {
 
 function createLifecycle(
   repository = new InMemoryTokenRepository(),
-  fetchFn?: OAuthFetch,
   providers: ToriiConfig["oauth_providers"] = oauthProviders,
 ): OAuthTokenLifecycleService {
   const configService = new ToriiConfigService({
@@ -33,7 +33,6 @@ function createLifecycle(
     repository,
     new InMemoryOAuthClientRepository(),
     configService,
-    fetchFn,
   );
 }
 
@@ -85,12 +84,12 @@ describe("OAuthTokenLifecycleService", () => {
     });
 
     let refreshCalls = 0;
-    const lifecycle = createLifecycle(
-      repository,
-      mockRefreshFetch({ onCall: () => { refreshCalls += 1; } }),
-    );
+    const lifecycle = createLifecycle(repository);
 
-    const token = await lifecycle.getValidToken("user-1", "github");
+    const token = await withMockFetch(
+      mockRefreshFetch({ onCall: () => { refreshCalls += 1; } }),
+      () => lifecycle.getValidToken("user-1", "github"),
+    );
 
     assert.equal(token?.accessToken, "gho_valid");
     assert.equal(refreshCalls, 0);
@@ -103,12 +102,12 @@ describe("OAuthTokenLifecycleService", () => {
     });
 
     let refreshCalls = 0;
-    const lifecycle = createLifecycle(
-      repository,
-      mockRefreshFetch({ onCall: () => { refreshCalls += 1; } }),
-    );
+    const lifecycle = createLifecycle(repository);
 
-    const token = await lifecycle.getValidToken("user-1", "github");
+    const token = await withMockFetch(
+      mockRefreshFetch({ onCall: () => { refreshCalls += 1; } }),
+      () => lifecycle.getValidToken("user-1", "github"),
+    );
 
     assert.equal(token?.accessToken, "gho_no_expiry");
     assert.equal(refreshCalls, 0);
@@ -134,17 +133,17 @@ describe("OAuthTokenLifecycleService", () => {
       refreshToken: "ghr_stale",
       expiresAt: new Date(Date.now() - 60_000),
     });
-    const lifecycle = createLifecycle(
-      repository,
+    const lifecycle = createLifecycle(repository);
+
+    const token = await withMockFetch(
       mockRefreshFetch({
         response: {
           access_token: "gho_refreshed",
           expires_in: 3600,
         },
       }),
+      () => lifecycle.getValidToken("user-1", "github"),
     );
-
-    const token = await lifecycle.getValidToken("user-1", "github");
 
     assert.equal(token?.accessToken, "gho_refreshed");
     const stored = await repository.get("user-1", "github");
@@ -159,8 +158,9 @@ describe("OAuthTokenLifecycleService", () => {
       refreshToken: "ghr_old",
       expiresAt: new Date(Date.now() - 60_000),
     });
-    const lifecycle = createLifecycle(
-      repository,
+    const lifecycle = createLifecycle(repository);
+
+    await withMockFetch(
       mockRefreshFetch({
         response: {
           access_token: "gho_refreshed",
@@ -168,9 +168,8 @@ describe("OAuthTokenLifecycleService", () => {
           expires_in: 3600,
         },
       }),
+      () => lifecycle.getValidToken("user-1", "github"),
     );
-
-    await lifecycle.getValidToken("user-1", "github");
 
     const stored = await repository.get("user-1", "github");
     assert.equal(stored?.refreshToken, "ghr_rotated");
@@ -183,16 +182,16 @@ describe("OAuthTokenLifecycleService", () => {
       refreshToken: "ghr_stale",
       expiresAt: new Date(Date.now() - 60_000),
     });
-    const lifecycle = createLifecycle(
-      repository,
+    const lifecycle = createLifecycle(repository);
+
+    const token = await withMockFetch(
       mockRefreshFetch({
         contentType: "application/x-www-form-urlencoded",
         response:
           "access_token=gho_form&refresh_token=ghr_form&expires_in=3600&token_type=bearer",
       }),
+      () => lifecycle.getValidToken("user-1", "github"),
     );
-
-    const token = await lifecycle.getValidToken("user-1", "github");
 
     assert.equal(token?.accessToken, "gho_form");
     assert.equal((await repository.get("user-1", "github"))?.refreshToken, "ghr_form");
@@ -207,8 +206,9 @@ describe("OAuthTokenLifecycleService", () => {
     });
 
     let refreshCalls = 0;
-    const lifecycle = createLifecycle(
-      repository,
+    const lifecycle = createLifecycle(repository);
+
+    const [first, second] = await withMockFetch(
       mockRefreshFetch({
         delayMs: 50,
         onCall: () => { refreshCalls += 1; },
@@ -217,12 +217,12 @@ describe("OAuthTokenLifecycleService", () => {
           expires_in: 3600,
         },
       }),
+      () =>
+        Promise.all([
+          lifecycle.getValidToken("user-1", "github"),
+          lifecycle.getValidToken("user-1", "github"),
+        ]),
     );
-
-    const [first, second] = await Promise.all([
-      lifecycle.getValidToken("user-1", "github"),
-      lifecycle.getValidToken("user-1", "github"),
-    ]);
 
     assert.equal(refreshCalls, 1);
     assert.equal(first?.accessToken, "gho_refreshed");
@@ -240,8 +240,9 @@ describe("OAuthTokenLifecycleService", () => {
     await repository.set("user-2", "github", staleToken);
 
     let refreshCalls = 0;
-    const lifecycle = createLifecycle(
-      repository,
+    const lifecycle = createLifecycle(repository);
+
+    await withMockFetch(
       mockRefreshFetch({
         onCall: () => { refreshCalls += 1; },
         response: {
@@ -249,12 +250,12 @@ describe("OAuthTokenLifecycleService", () => {
           expires_in: 3600,
         },
       }),
+      () =>
+        Promise.all([
+          lifecycle.getValidToken("user-1", "github"),
+          lifecycle.getValidToken("user-2", "github"),
+        ]),
     );
-
-    await Promise.all([
-      lifecycle.getValidToken("user-1", "github"),
-      lifecycle.getValidToken("user-2", "github"),
-    ]);
 
     assert.equal(refreshCalls, 2);
   });
@@ -268,8 +269,9 @@ describe("OAuthTokenLifecycleService", () => {
     });
 
     let refreshCalls = 0;
-    const lifecycle = createLifecycle(
-      repository,
+    const lifecycle = createLifecycle(repository);
+
+    await withMockFetch(
       mockRefreshFetch({
         onCall: () => { refreshCalls += 1; },
         response: {
@@ -277,10 +279,11 @@ describe("OAuthTokenLifecycleService", () => {
           expires_in: -120,
         },
       }),
+      async () => {
+        await lifecycle.getValidToken("user-1", "github");
+        await lifecycle.getValidToken("user-1", "github");
+      },
     );
-
-    await lifecycle.getValidToken("user-1", "github");
-    await lifecycle.getValidToken("user-1", "github");
 
     assert.equal(refreshCalls, 2);
   });
@@ -292,8 +295,9 @@ describe("OAuthTokenLifecycleService", () => {
       refreshToken: "ghr_revoked",
       expiresAt: new Date(Date.now() - 60_000),
     });
-    const lifecycle = createLifecycle(
-      repository,
+    const lifecycle = createLifecycle(repository);
+
+    await withMockFetch(
       mockRefreshFetch({
         status: 400,
         response: {
@@ -301,15 +305,15 @@ describe("OAuthTokenLifecycleService", () => {
           error_description: "The refresh token is invalid or expired",
         },
       }),
-    );
-
-    await assert.rejects(
-      () => lifecycle.getValidToken("user-1", "github"),
-      (error: unknown) => {
-        assert.ok(error instanceof OAuthTokenRefreshError);
-        assert.equal(error.terminal, true);
-        return true;
-      },
+      () =>
+        assert.rejects(
+          () => lifecycle.getValidToken("user-1", "github"),
+          (error: unknown) => {
+            assert.ok(error instanceof OAuthTokenRefreshError);
+            assert.equal(error.terminal, true);
+            return true;
+          },
+        ),
     );
   });
 
@@ -320,18 +324,19 @@ describe("OAuthTokenLifecycleService", () => {
       refreshToken: "ghr_stale",
       expiresAt: new Date(Date.now() - 60_000),
     });
-    const lifecycle = createLifecycle(
-      repository,
-      mockRefreshFetch({ rejectWith: new Error("network down") }),
-    );
+    const lifecycle = createLifecycle(repository);
 
-    await assert.rejects(
-      () => lifecycle.getValidToken("user-1", "github"),
-      (error: unknown) => {
-        assert.ok(error instanceof OAuthTokenRefreshError);
-        assert.equal(error.terminal, false);
-        return true;
-      },
+    await withMockFetch(
+      mockRefreshFetch({ rejectWith: new Error("network down") }),
+      () =>
+        assert.rejects(
+          () => lifecycle.getValidToken("user-1", "github"),
+          (error: unknown) => {
+            assert.ok(error instanceof OAuthTokenRefreshError);
+            assert.equal(error.terminal, false);
+            return true;
+          },
+        ),
     );
   });
 
@@ -342,7 +347,7 @@ describe("OAuthTokenLifecycleService", () => {
       refreshToken: "ghr_stale",
       expiresAt: new Date(Date.now() - 60_000),
     });
-    const lifecycle = createLifecycle(repository, undefined, {});
+    const lifecycle = createLifecycle(repository, {});
 
     await assert.rejects(
       () => lifecycle.getValidToken("user-1", "unknown"),

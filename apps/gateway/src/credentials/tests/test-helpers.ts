@@ -10,11 +10,25 @@ import { UserOAuthCredentialResolver } from "../resolvers/user_oauth_credential-
 import { ServiceKeyCredentialResolver } from "../resolvers/service-key-credential-resolver.service.js";
 import { runWithAgentPrincipal } from "../../identity/agent-principal-context.js";
 import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
+import type { OAuthFetch } from "../utils/oauth-token-refresh.js";
 
 export function withStubAgentPrincipal<T>(fn: () => T): T;
 export function withStubAgentPrincipal<T>(fn: () => Promise<T>): Promise<T>;
 export function withStubAgentPrincipal<T>(fn: () => T | Promise<T>): T | Promise<T> {
   return runWithAgentPrincipal(STUB_AGENT_PRINCIPAL, fn);
+}
+
+export async function withMockFetch<T>(
+  mockFetch: OAuthFetch,
+  fn: () => T | Promise<T>,
+): Promise<T> {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = mockFetch as typeof fetch;
+  try {
+    return await fn();
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 }
 
 export async function bootBackends(

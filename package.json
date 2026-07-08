@@ -12,7 +12,9 @@
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "demo": "pnpm --filter @keidai/demo-agent start",
-    "demo:gateway": "pnpm --filter @keidai/gateway dev"
+    "demo:gateway": "pnpm --filter @keidai/gateway dev",
+    "shaiden": "pnpm --filter @keidai/shaiden start",
+    "shaiden:dev": "pnpm --filter @keidai/shaiden dev"
   },
   "devDependencies": {
     "turbo": "^2.10.2",
