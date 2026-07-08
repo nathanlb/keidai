@@ -14,7 +14,7 @@ import {
 import type { OAuthFetch } from "../../utils/oauth-token-refresh.js";
 import { runWithAgentPrincipal } from "../../../identity/agent-principal-context.js";
 import { STUB_AGENT_PRINCIPAL } from "../../../identity/stub-agent-principal.js";
-import { withStubAgentPrincipal } from "../../tests/test-helpers.js";
+import { withMockFetch, withStubAgentPrincipal } from "../../tests/test-helpers.js";
 
 const oauthProviders: ToriiConfig["oauth_providers"] = {
   github: {
@@ -41,7 +41,6 @@ function userOAuthServer(
 
 function createResolver(
   repository = new InMemoryTokenRepository(),
-  fetchFn?: OAuthFetch,
 ): UserOAuthCredentialResolver {
   const configService = new ToriiConfigService({
     oauth_providers: oauthProviders,
@@ -51,7 +50,6 @@ function createResolver(
     repository,
     new InMemoryOAuthClientRepository(),
     configService,
-    fetchFn,
   );
   return new UserOAuthCredentialResolver(tokenLifecycle, configService);
 }
@@ -159,18 +157,17 @@ describe("DelegatedConnectionCredentialResolver", () => {
       refreshToken: "ghr_stale",
       expiresAt: new Date(Date.now() - 60_000),
     });
-    const resolver = createResolver(
-      repository,
+    const resolver = createResolver(repository);
+
+    const resolved = await withMockFetch(
       mockRefreshFetch({
         response: {
           access_token: "gho_refreshed",
           expires_in: 3600,
         },
       }),
-    );
-
-    const resolved = await withStubAgentPrincipal(() =>
-      resolver.resolve(userOAuthServer()),
+      () =>
+        withStubAgentPrincipal(() => resolver.resolve(userOAuthServer())),
     );
 
     assert.equal(
@@ -190,8 +187,9 @@ describe("DelegatedConnectionCredentialResolver", () => {
       refreshToken: "ghr_old",
       expiresAt: new Date(Date.now() - 60_000),
     });
-    const resolver = createResolver(
-      repository,
+    const resolver = createResolver(repository);
+
+    await withMockFetch(
       mockRefreshFetch({
         response: {
           access_token: "gho_refreshed",
@@ -199,9 +197,8 @@ describe("DelegatedConnectionCredentialResolver", () => {
           expires_in: 3600,
         },
       }),
+      () => withStubAgentPrincipal(() => resolver.resolve(userOAuthServer())),
     );
-
-    await withStubAgentPrincipal(() => resolver.resolve(userOAuthServer()));
 
     const stored = await repository.get(STUB_AGENT_PRINCIPAL.ownerId, "github");
     assert.equal(stored?.refreshToken, "ghr_rotated");
@@ -216,8 +213,9 @@ describe("DelegatedConnectionCredentialResolver", () => {
     });
 
     let refreshCalls = 0;
-    const resolver = createResolver(
-      repository,
+    const resolver = createResolver(repository);
+
+    const [first, second] = await withMockFetch(
       mockRefreshFetch({
         delayMs: 50,
         onCall: () => {
@@ -229,13 +227,13 @@ describe("DelegatedConnectionCredentialResolver", () => {
           expires_in: 3600,
         },
       }),
-    );
-
-    const [first, second] = await withStubAgentPrincipal(() =>
-      Promise.all([
-        resolver.resolve(userOAuthServer()),
-        resolver.resolve(userOAuthServer()),
-      ]),
+      () =>
+        withStubAgentPrincipal(() =>
+          Promise.all([
+            resolver.resolve(userOAuthServer()),
+            resolver.resolve(userOAuthServer()),
+          ]),
+        ),
     );
 
     assert.equal(refreshCalls, 1);
@@ -256,8 +254,9 @@ describe("DelegatedConnectionCredentialResolver", () => {
       refreshToken: "ghr_revoked",
       expiresAt: new Date(Date.now() - 60_000),
     });
-    const resolver = createResolver(
-      repository,
+    const resolver = createResolver(repository);
+
+    await withMockFetch(
       mockRefreshFetch({
         status: 400,
         response: {
@@ -265,17 +264,17 @@ describe("DelegatedConnectionCredentialResolver", () => {
           error_description: "The refresh token is invalid or expired",
         },
       }),
-    );
-
-    await assert.rejects(
       () =>
-        withStubAgentPrincipal(() => resolver.resolve(userOAuthServer())),
-      (error: unknown) => {
-        assert.ok(error instanceof LinkingRequiredError);
-        assert.equal(error.payload.code, LINKING_REQUIRED_CODE);
-        assert.doesNotMatch(error.message, /ghr_revoked/);
-        return true;
-      },
+        assert.rejects(
+          () =>
+            withStubAgentPrincipal(() => resolver.resolve(userOAuthServer())),
+          (error: unknown) => {
+            assert.ok(error instanceof LinkingRequiredError);
+            assert.equal(error.payload.code, LINKING_REQUIRED_CODE);
+            assert.doesNotMatch(error.message, /ghr_revoked/);
+            return true;
+          },
+        ),
     );
   });
 

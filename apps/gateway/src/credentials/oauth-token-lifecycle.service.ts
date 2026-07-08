@@ -4,7 +4,6 @@ import { ToriiConfigService } from "../config/torii-config.service.js";
 import {
   OAuthTokenRefreshError,
   refreshOAuthToken,
-  type OAuthFetch,
 } from "./utils/oauth-token-refresh.js";
 import {
   TOKEN_REPOSITORY,
@@ -36,7 +35,6 @@ export class OAuthTokenLifecycleService {
     private readonly clientRepository: OAuthClientRepository,
     @inject(ToriiConfigService)
     private readonly configService: ToriiConfigService,
-    private readonly fetchFn: OAuthFetch = fetch,
   ) {}
 
   async getValidToken(
@@ -101,7 +99,6 @@ export class OAuthTokenLifecycleService {
     const refreshedToken = await refreshOAuthToken(
       providerConfig,
       refreshToken,
-      this.fetchFn,
     );
 
     await this.tokenRepository.set(ownerId, provider, refreshedToken);

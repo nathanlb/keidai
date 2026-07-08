@@ -1,0 +1,35 @@
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: apps/gateway/Dockerfile
+    environment:
+      SHAIDEN_BEARER: ${SHAIDEN_BEARER:?SHAIDEN_BEARER is required}
+      TORII_CONFIG_PATH: /app/torii.demo.yaml
+    volumes:
+      - ./apps/gateway/torii.demo.yaml:/app/torii.demo.yaml:ro
+    ports:
+      - "3100:3100"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:' + (process.env.TORII_PORT || 3100) + '/api/config/servers').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
+  shaiden:
+    build:
+      context: .
+      dockerfile: apps/shaiden/Dockerfile
+    depends_on:
+      gateway:
+        condition: service_healthy
+    environment:
+      SHAIDEN_BEARER: ${SHAIDEN_BEARER:?SHAIDEN_BEARER is required}
+      TORII_MCP_URL: http://gateway:3100/mcp

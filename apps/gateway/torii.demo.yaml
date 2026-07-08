@@ -89,3 +89,12 @@ agents:
     owner_id: demo-owner
     groups: [agents]
     inbound_token: ${env:DEMO_AGENT_BEARER}
+
+  - subject:
+      kind: k8s_service_account
+      namespace: torii-agents
+      service_account: shaiden
+    agent_id: shaiden-newsletter-01
+    owner_id: demo-owner
+    groups: [agents]
+    inbound_token: ${env:SHAIDEN_BEARER}
