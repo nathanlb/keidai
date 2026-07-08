@@ -51,7 +51,7 @@ Optional: `TORII_PORT`, `TORII_HOST`, `TORII_DB_PATH` (defaults: `3100`, `127.0.
 | `OPEN_ROUTER_API_KEY` | yes | [OpenRouter](https://openrouter.ai/) API key |
 | `DEMO_OWNER_EMAIL` | yes | Digest draft recipient |
 | `TORII_MCP_URL` | no | Default `http://127.0.0.1:3100/mcp` |
-| `DEMO_MODEL_ID` | no | Default `cohere/north-mini-code:free` |
+| `DEMO_MODEL_ID` | no | Default `google/gemini-2.5-flash` |
 | `DEMO_AGENT_BEARER` | no* | Only if not set in root `.env` |
 
 \*Must match `agents[].inbound_token` in `apps/gateway/torii.demo.yaml`. Set in repo root `.env` or here as `DEMO_AGENT_BEARER`.

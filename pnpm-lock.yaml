@@ -197,12 +197,18 @@ importers:
 
   apps/shaiden:
     dependencies:
+      '@ai-sdk/openai':
+        specifier: ^2.0.109
+        version: 2.0.109(zod@3.25.76)
       '@keidai/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(zod@3.25.76)
+      ai:
+        specifier: ^5.0.205
+        version: 5.0.205(zod@3.25.76)
       zod:
         specifier: ^3.25.76
         version: 3.25.76

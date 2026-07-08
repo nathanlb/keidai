@@ -1,6 +1,19 @@
 # Shaiden
 
-Agent harness for the Keidai platform. Connects to Torii over MCP with an opaque bearer token, discovers tools dynamically, and starts a run against the configured task.
+Agent harness for the Keidai platform. Connects to Torii over MCP with an opaque bearer token, discovers tools dynamically, and drives the configured task to a typed termination outcome.
+
+## Task loop
+
+The loop is deliberately thin: call the model (OpenRouter via the AI SDK) with Torii-discovered tools, dispatch tool calls back to Torii over the same MCP session, feed results in, repeat. Conversation state is held in memory for a single run. Every run records exactly one outcome:
+
+| Outcome | Meaning |
+|---------|---------|
+| `goal_met` | Agent responded with final text (no tool calls), self-assessed against the goal |
+| `iteration_exhausted` | Iteration cap reached (default 25) |
+| `timeout` | Wall-clock timeout reached (default 600s) |
+| `failed(reason)` | Unavailable/unsatisfiable tool call, or a model/dispatch error — fails fast |
+
+`human_reject` (review gate) is added in NAT-95.
 
 **Domain boundaries:**
 - **Torii** owns agent identity/registration (`agent_id`, `inbound_token`) — see `apps/gateway/torii.demo.yaml`
@@ -38,3 +51,5 @@ Starts Torii with `torii.demo.yaml` and runs the Shaiden harness once tool disco
 | `SHAIDEN_BEARER` | Opaque mock workload identity token (passed through to Torii unchanged) |
 | `SHAIDEN_AGENT_ID` | Agent id matching Torii registration (default: `shaiden-newsletter-01`) |
 | `TORII_MCP_URL` | Torii MCP endpoint (default: `http://127.0.0.1:3100/mcp`) |
+| `OPEN_ROUTER_API_KEY` | OpenRouter API key for the task-loop model |
+| `SHAIDEN_MODEL_ID` | OpenRouter model id (default: `google/gemini-2.5-flash`) |
