@@ -12,7 +12,7 @@ import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter
 import { createCredentialServices } from "../../credentials/tests/test-helpers.js";
 import { createTestGatewayHttpServer } from "../../http/tests/test-helpers.js";
 import { connectAgentToGateway } from "../../identity/tests/test-helpers.js";
-import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
+import { createPolicyEnforcement, createApprovalServices } from "../../policy/tests/test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 
 function serverConfig(
@@ -60,6 +60,7 @@ describe("Gateway MCP tools/list", () => {
       credentialResolver,
       new CapturingTraceEmitter(),
       createPolicyEnforcement(configService),
+      createApprovalServices(configService).approvalGate,
     );
     const gatewayHttpServer = createTestGatewayHttpServer(toolCatalog, toolDispatch);
 

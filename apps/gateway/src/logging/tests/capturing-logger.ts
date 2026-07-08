@@ -1,4 +1,4 @@
-import type { LogFields, LogLevel, Logger } from "../types/logger.js";
+import type { LogFields, LogLevel, Logger } from "@keidai/shared";
 
 export interface CapturedLog {
   level: LogLevel;

@@ -1,9 +1,8 @@
-import "reflect-metadata";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { StructuredLoggerService } from "../structured-logger.service.js";
+import { StructuredLogger } from "../structured-logger.js";
 
-describe("StructuredLoggerService", () => {
+describe("StructuredLogger", () => {
   it("emits valid JSON on stderr with required fields", () => {
     const lines: string[] = [];
     const originalWrite = process.stderr.write.bind(process.stderr);
@@ -13,7 +12,7 @@ describe("StructuredLoggerService", () => {
     }) as typeof process.stderr.write;
 
     try {
-      const logger = new StructuredLoggerService();
+      const logger = new StructuredLogger();
       logger.info("boot.config_loaded", { serverCount: 2 });
       logger.error("connection.failed", {
         server: "github",

@@ -14,7 +14,7 @@ import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import type { CapturingTraceEmitter as CapturingTraceEmitterType } from "../../trace/tests/capturing-trace-emitter.js";
 import { PolicyDeniedError } from "../../policy/types/policy-denied.js";
-import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
+import { createPolicyEnforcement, createApprovalServices } from "../../policy/tests/test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 import { ToolDispatchService } from "../tool-dispatch.service.js";
 import {
@@ -101,12 +101,14 @@ async function createDispatchStack(
   const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
   const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
   const traceEmitter = new CapturingTraceEmitter();
+  const { approvalGate } = createApprovalServices(configService);
   const toolDispatch = new ToolDispatchService(
     toolCatalog,
     connectionManager,
     credentialResolver,
     traceEmitter,
     createPolicyEnforcement(configService),
+    approvalGate,
   );
 
   return {
@@ -297,12 +299,14 @@ describe("ToolDispatchService", () => {
     const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
     const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
     const traceEmitter = new CapturingTraceEmitter();
+    const { approvalGate } = createApprovalServices(configService);
     const toolDispatch = new ToolDispatchService(
       toolCatalog,
       connectionManager,
       credentialResolver,
       traceEmitter,
       createPolicyEnforcement(configService),
+      approvalGate,
     );
 
     try {

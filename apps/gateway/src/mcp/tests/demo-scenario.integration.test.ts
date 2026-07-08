@@ -16,7 +16,7 @@ import {
   FixedIdentityResolver,
 } from "../../identity/tests/test-helpers.js";
 import { createTestGatewayHttpServer } from "../../http/tests/test-helpers.js";
-import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
+import { createPolicyEnforcement, createApprovalServices } from "../../policy/tests/test-helpers.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 
@@ -168,6 +168,7 @@ describe("Demo scenario — open-torii status digest", () => {
       credentialResolver,
       traceEmitter,
       createPolicyEnforcement(configService),
+      createApprovalServices(configService).approvalGate,
     );
     const gatewayHttpServer = createTestGatewayHttpServer(
       toolCatalog,

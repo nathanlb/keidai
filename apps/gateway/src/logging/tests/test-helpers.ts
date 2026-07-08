@@ -1,4 +1,4 @@
-import type { Logger } from "../types/logger.js";
+import type { Logger } from "@keidai/shared";
 import { CapturingLogger } from "./capturing-logger.js";
 
 export function createNoopLogger(): Logger {

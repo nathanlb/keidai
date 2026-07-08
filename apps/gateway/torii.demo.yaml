@@ -98,3 +98,5 @@ agents:
     owner_id: demo-owner
     groups: [agents]
     inbound_token: ${env:SHAIDEN_BEARER}
+    gated_tools:
+      - gmail.create_draft

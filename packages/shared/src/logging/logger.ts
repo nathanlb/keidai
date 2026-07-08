@@ -8,5 +8,3 @@ export interface Logger {
   warn(event: string, fields?: LogFields): void;
   error(event: string, fields?: LogFields): void;
 }
-
-export const LOGGER = Symbol("LOGGER");

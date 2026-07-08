@@ -12,13 +12,26 @@ The loop is deliberately thin: call the model (OpenRouter via the AI SDK) with T
 | `iteration_exhausted` | Iteration cap reached (default 25) |
 | `timeout` | Wall-clock timeout reached (default 600s) |
 | `failed(reason)` | Unavailable/unsatisfiable tool call, or a model/dispatch error — fails fast |
+| `human_reject` | Agent concluded the goal is unreachable after a human denial (final text prefixed with `HUMAN_REJECT:`) |
 
-`human_reject` (review gate) is added in NAT-95.
+Gated tools are declared per agent in Torii (`gated_tools` in `torii.yaml`). When the model calls a gated tool, Torii returns an `approval_required` sentinel. Shaiden parks the loop (wall-clock frozen), polls Torii's `/api/approvals/:id` for a decision, and replays the call with `approval_id` on approve. Rejections are returned to the model as a normal tool result; the agent decides whether to adapt (`goal_met`) or self-assess `human_reject`.
 
 **Domain boundaries:**
 - **Torii** owns agent identity/registration (`agent_id`, `inbound_token`) — see `apps/gateway/torii.demo.yaml`
 - **Shaiden** owns task definition and harness runtime
-- **Shared** (`@keidai/shared`) owns cross-app Task/Run types and schemas
+- **Shared** (`@keidai/shared`) owns cross-app Task/Run types, schemas, and structured logging
+
+## Log streams
+
+During normal harness operation Shaiden emits structured operational logs to **stderr**, using the same `StructuredLogger` from `@keidai/shared` as Torii:
+
+| Stream | Content | Schema |
+|--------|---------|--------|
+| **stderr** | Structured operational logs (boot, run lifecycle, tool dispatch, approvals) | JSON with `recordType: "log"`, `level`, and `event` |
+
+Events follow a `domain.action` naming convention (`boot.*`, `run.*`). Tool call audit records (`CallTrace`) are emitted by Torii on stdout when Shaiden dispatches through MCP — Shaiden does not duplicate them.
+
+Local `pnpm shaiden:dev` output is JSON lines on stderr, not human-readable prose.
 
 ## Local development
 

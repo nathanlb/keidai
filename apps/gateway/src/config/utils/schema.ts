@@ -81,6 +81,7 @@ const agentRegistrationSchema = z
     owner_id: z.string().min(1, "owner_id is required"),
     groups: z.array(z.string()),
     inbound_token: z.string().min(1).optional(),
+    gated_tools: z.array(z.string().min(1)).optional(),
   })
   .strict();
 

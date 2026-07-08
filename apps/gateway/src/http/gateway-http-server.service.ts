@@ -6,7 +6,8 @@ import { OAuthApiController } from "../credentials/oauth-api.controller.js";
 import { GatewayMcpServer } from "../mcp/gateway-mcp-server.service.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
 import { TracesApiController } from "../trace/traces-api.controller.js";
-import type { Logger } from "../logging/types/logger.js";
+import { ApprovalsApiController } from "../policy/approvals-api.controller.js";
+import type { Logger } from "@keidai/shared";
 import type {
   GatewayHttpServerHandle,
   GatewayHttpServerOptions,
@@ -33,6 +34,8 @@ export class GatewayHttpServer {
     private readonly oauthApi: OAuthApiController,
     @inject(TracesApiController)
     private readonly tracesApi: TracesApiController,
+    @inject(ApprovalsApiController)
+    private readonly approvalsApi: ApprovalsApiController,
     @inject(GatewayMcpServer)
     private readonly mcpServer: GatewayMcpServer,
     @inject(StructuredLoggerService)
@@ -66,6 +69,7 @@ export class GatewayHttpServer {
       connectionsApi: this.connectionsApi,
       oauthApi: this.oauthApi,
       tracesApi: this.tracesApi,
+      approvalsApi: this.approvalsApi,
       mcpServer: this.mcpServer,
     });
 

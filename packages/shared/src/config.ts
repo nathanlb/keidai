@@ -63,6 +63,8 @@ export interface AgentRegistrationConfig {
    * FOR DEMO USE.
    */
   inbound_token?: string;
+  /** Namespaced tools that require human approval before Torii proxies upstream. */
+  gated_tools?: string[];
 }
 
 /** Root torii.yaml shape — env refs are resolved before this type is populated. */

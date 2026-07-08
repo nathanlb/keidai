@@ -8,6 +8,8 @@ export interface DiscoveredTool {
   export interface ToolCallResult {
     isError: boolean;
     text: string;
+    approvalRequired?: { approvalId: string };
+    approvalDenied?: boolean;
   }
   
   export interface ToriiSession {
