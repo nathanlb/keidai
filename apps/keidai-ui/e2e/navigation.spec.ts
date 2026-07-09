@@ -26,4 +26,18 @@ test.describe("Torii navigation", () => {
     await expect(page).toHaveURL(/\/activity$/);
     await expect(page.getByText("No activity yet")).toBeVisible();
   });
+
+  test("shows the Shaiden runs section in the sidebar", async ({ page }) => {
+    await page.goto("/connections");
+
+    await expect(page.getByText("Shaiden", { exact: true })).toBeVisible();
+    await page.getByRole("link", { name: "Runs" }).click();
+    await expect(page).toHaveURL(/\/shaiden\/runs$/);
+    await expect(
+      page.getByText(
+        "Step sequence, tool calls, and termination outcome for each harness run.",
+      ),
+    ).toBeVisible();
+    await expect(page.getByText("No runs yet")).toBeVisible();
+  });
 });

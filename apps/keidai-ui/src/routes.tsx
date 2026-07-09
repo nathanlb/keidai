@@ -1,10 +1,10 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import { ToriiLayout } from "./torii/layout.js";
+import { KeidaiLayout } from "./shell/keidai-layout.js";
 
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <ToriiLayout />,
+    element: <KeidaiLayout />,
     children: [
       {
         index: true,
@@ -44,6 +44,13 @@ export const router = createBrowserRouter([
             "./torii/pages/activity-traces-page.js"
           );
           return { Component: ActivityTracesPage };
+        },
+      },
+      {
+        path: "shaiden/runs",
+        lazy: async () => {
+          const { RunsPage } = await import("./shaiden/pages/runs-page.js");
+          return { Component: RunsPage };
         },
       },
     ],

@@ -52,6 +52,7 @@ export class ApprovalGateService {
     toolName: string;
     upstreamArgs: Record<string, unknown>;
     runId?: string;
+    stepId?: string;
     now?: number;
   }) {
     const paramsHash = hashToolParams(input.upstreamArgs);
@@ -72,6 +73,7 @@ export class ApprovalGateService {
       params: input.upstreamArgs,
       paramsHash,
       runId: input.runId,
+      stepId: input.stepId,
       now: input.now,
     });
 

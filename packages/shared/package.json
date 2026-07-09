@@ -12,6 +12,10 @@
     "./dto": {
       "types": "./dist/dto/index.d.ts",
       "import": "./dist/dto/index.js"
+    },
+    "./load-env": {
+      "types": "./dist/load-env.d.ts",
+      "import": "./dist/load-env.js"
     }
   },
   "main": "./dist/index.js",

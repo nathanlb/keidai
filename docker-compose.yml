@@ -33,3 +33,7 @@ services:
     environment:
       SHAIDEN_BEARER: ${SHAIDEN_BEARER:?SHAIDEN_BEARER is required}
       TORII_MCP_URL: http://gateway:3100/mcp
+      SHAIDEN_HOST: 0.0.0.0
+      SHAIDEN_PORT: "3200"
+    ports:
+      - "3200:3200"

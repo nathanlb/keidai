@@ -55,6 +55,7 @@ export async function runTaskLoop(
       const pauseStart = now();
       const decision = await deps.waitForApproval(
         result.approvalRequired.approvalId,
+        { stepId: result.approvalRequired.stepId },
       );
       deadline += now() - pauseStart;
 
@@ -71,6 +72,7 @@ export async function runTaskLoop(
       result = await deps.dispatchToolCall(call, {
         ...options,
         approvalId: result.approvalRequired.approvalId,
+        stepId: result.approvalRequired.stepId,
       });
     }
 

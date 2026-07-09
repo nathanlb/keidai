@@ -1,4 +1,4 @@
-import { loadEnvForPackage } from "@keidai/shared";
+import { loadEnvForPackage } from "@keidai/shared/load-env";
 
 loadEnvForPackage(import.meta.url);
 

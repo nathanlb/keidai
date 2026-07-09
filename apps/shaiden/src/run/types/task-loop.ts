@@ -17,18 +17,23 @@ export interface ModelToolCall {
   export interface ToolDispatchResult {
     isError: boolean;
     text: string;
-    approvalRequired?: { approvalId: string };
+    approvalRequired?: { approvalId: string; stepId?: string };
     approvalDenied?: boolean;
   }
 
   export interface ToolDispatchOptions {
     approvalId?: string;
     runId?: string;
+    stepId?: string;
   }
 
   export interface ApprovalDecision {
     status: "approved" | "rejected";
     reason?: string;
+  }
+
+  export interface ApprovalWaitContext {
+    stepId?: string;
   }
   
   /**
@@ -47,7 +52,10 @@ export interface ModelToolCall {
       options?: ToolDispatchOptions,
     ) => Promise<ToolDispatchResult>;
     /** Blocks while Torii holds a pending approval; wall-clock pause is handled here. */
-    waitForApproval?: (approvalId: string) => Promise<ApprovalDecision>;
+    waitForApproval?: (
+      approvalId: string,
+      context?: ApprovalWaitContext,
+    ) => Promise<ApprovalDecision>;
     /** Injectable clock for tests; defaults to Date.now. */
     now?: () => number;
   }

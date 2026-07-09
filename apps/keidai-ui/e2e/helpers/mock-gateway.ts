@@ -6,11 +6,13 @@ import type {
   ConnectionsResponse,
   OAuthConnectionsResponse,
   OAuthInitiateResponse,
+  RunReport,
+  RunsResponse,
   TraceListItem,
   TraceStatsResponse,
   TracesResponse,
 } from "@keidai/shared";
-import { CONNECTION_SSE_EVENT, TRACE_SSE_EVENT } from "@keidai/shared/dto";
+import { CONNECTION_SSE_EVENT, RUN_SSE_EVENT, TRACE_SSE_EVENT } from "@keidai/shared/dto";
 
 export interface MockGatewayConfig {
   agents?: ConfigAgentsResponse;
@@ -24,6 +26,8 @@ export interface MockGatewayConfig {
   >;
   traces?: TracesResponse;
   traceStats?: TraceStatsResponse;
+  runs?: RunsResponse;
+  runDetails?: Record<string, RunReport>;
   healthy?: boolean;
 }
 
@@ -46,6 +50,8 @@ export async function mockGatewayConfig(
       deniedCount: 0,
       linkingRequiredCount: 0,
     },
+    runs = { runs: [] },
+    runDetails = {},
     healthy = true,
   }: MockGatewayConfig = {},
 ): Promise<void> {
@@ -212,5 +218,51 @@ export async function mockGatewayConfig(
     }
 
     await route.fulfill({ status: 404, json: { error: "trace not found" } });
+  });
+
+  await page.route(/\/api\/runs(\?|$)/, async (route) => {
+    if (!healthy) {
+      await route.fulfill({ status: 503, body: "Gateway unavailable" });
+      return;
+    }
+
+    await route.fulfill({ json: runs });
+  });
+
+  await page.route(/\/api\/runs\/[^/?]+/, async (route) => {
+    if (!healthy) {
+      await route.fulfill({ status: 503, body: "Gateway unavailable" });
+      return;
+    }
+
+    const url = new URL(route.request().url());
+    const segments = url.pathname.split("/");
+    const resource = segments.at(-1);
+
+    if (resource === "events") {
+      const events = Object.values(runDetails)
+        .map(
+          (run) =>
+            `event: ${RUN_SSE_EVENT.runUpdated}\ndata: ${JSON.stringify(run)}\n\n`,
+        )
+        .join("");
+
+      await route.fulfill({
+        status: 200,
+        headers: {
+          "content-type": "text/event-stream",
+        },
+        body: events,
+      });
+      return;
+    }
+
+    const match = runDetails[resource ?? ""];
+    if (match) {
+      await route.fulfill({ json: match });
+      return;
+    }
+
+    await route.fulfill({ status: 404, json: { error: "run not found" } });
   });
 }
