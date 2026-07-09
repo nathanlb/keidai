@@ -1,13 +1,6 @@
 import {
   Badge,
   Button,
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
   cn,
 } from "@keidai/ui";
 import {
@@ -16,9 +9,9 @@ import {
   Copy,
   Link2,
   ShieldCheck,
-  X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { DetailDrawer, DetailDrawerSectionLabel } from "../../shell/components/detail-drawer/detail-drawer.js";
 import { useActivityTracesPage } from "./context/use-activity-traces.js";
 import { buildLinkingResolutionKey } from "../linking/format-linking-required-prompt.js";
 import { deriveOwnerInitials } from "../../shell/utils/derive-owner-initials.js";
@@ -61,14 +54,9 @@ function SectionLabel({
   hint?: string;
 }) {
   return (
-    <div className="mb-2.5 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+    <DetailDrawerSectionLabel hint={hint}>
       {children}
-      {hint ? (
-        <span className="ml-1 font-medium tracking-normal text-muted-foreground normal-case">
-          · {hint}
-        </span>
-      ) : null}
-    </div>
+    </DetailDrawerSectionLabel>
   );
 }
 
@@ -121,36 +109,41 @@ export function TraceDetailDrawer() {
   const policyDenied = policy.variant === "denied";
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="flex h-full w-full max-w-[560px] flex-col gap-0 p-0 sm:max-w-[560px]"
-      >
-        <SheetHeader className="space-y-0 border-b border-border px-5 py-[18px] text-left">
-          <div className="flex items-start gap-3 pr-8">
-            <Badge
-              variant="outline"
-              className={cn("mt-0.5 gap-1 font-normal", meta.badgeClass)}
-            >
-              {meta.label}
-            </Badge>
-            <div className="min-w-0 flex-1">
-              <SheetTitle className="font-mono text-base">
-                {trace.tool}
-              </SheetTitle>
-              <SheetDescription className="font-mono text-xs">
-                {trace.server} · {formatTraceClock(trace.timestamp)} ·{" "}
-                {formatTraceRelative(trace.timestamp)}
-              </SheetDescription>
-            </div>
-            <SheetClose className="absolute top-4 right-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none">
-              <X className="size-4" />
-              <span className="sr-only">Close</span>
-            </SheetClose>
-          </div>
-        </SheetHeader>
-
-        <div className="flex-1 space-y-[22px] overflow-y-auto px-5 py-[18px]">
+    <DetailDrawer
+      open={open}
+      onOpenChange={onOpenChange}
+      headerBadge={
+        <Badge
+          variant="outline"
+          className={cn("mt-0.5 gap-1 font-normal", meta.badgeClass)}
+        >
+          {meta.label}
+        </Badge>
+      }
+      title={<span className="font-mono">{trace.tool}</span>}
+      description={
+        <span className="font-mono">
+          {trace.server} · {formatTraceClock(trace.timestamp)} ·{" "}
+          {formatTraceRelative(trace.timestamp)}
+        </span>
+      }
+      bodyClassName="space-y-[22px]"
+      footerLeading={
+        <Button
+          type="button"
+          variant="outline"
+          className="gap-1.5"
+          onClick={() => void copyTraceId()}
+        >
+          {copied ? (
+            <Check className="size-3.5" aria-hidden />
+          ) : (
+            <Copy className="size-3.5" aria-hidden />
+          )}
+          Copy trace id
+        </Button>
+      }
+    >
           <div className="flex items-center gap-2.5 rounded-lg border border-border bg-muted/30 px-2.5 py-2 pl-3.5">
             <span className="shrink-0 text-[10.5px] font-semibold tracking-wider text-muted-foreground uppercase">
               trace id
@@ -366,27 +359,6 @@ export function TraceDetailDrawer() {
               </pre>
             </div>
           ) : null}
-        </div>
-
-        <SheetFooter className="flex-row justify-between border-t border-border px-5 py-3.5 sm:justify-between">
-          <Button
-            type="button"
-            variant="outline"
-            className="gap-1.5"
-            onClick={() => void copyTraceId()}
-          >
-            {copied ? (
-              <Check className="size-3.5" aria-hidden />
-            ) : (
-              <Copy className="size-3.5" aria-hidden />
-            )}
-            Copy trace id
-          </Button>
-          <SheetClose asChild>
-            <Button type="button">Close</Button>
-          </SheetClose>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+    </DetailDrawer>
   );
 }

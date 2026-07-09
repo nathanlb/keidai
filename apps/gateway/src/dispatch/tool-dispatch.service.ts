@@ -166,6 +166,7 @@ export class ToolDispatchService {
       toolName: ctx.namespacedName,
       upstreamArgs: ctx.parsedArgs.upstreamArgs,
       runId: ctx.parsedArgs.runId,
+      stepId: ctx.parsedArgs.stepId,
     });
 
     ctx.emit({

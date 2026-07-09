@@ -22,6 +22,7 @@ export class ApprovalReadService {
       toolName: record.toolName,
       params: record.params,
       runId: record.runId,
+      stepId: record.stepId,
       status: record.status,
       rejectionReason: record.rejectionReason,
       createdAt: new Date(record.createdAt).toISOString(),

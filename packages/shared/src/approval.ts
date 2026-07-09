@@ -3,6 +3,7 @@ export const APPROVAL_DENIED_STATUS = "approval_denied" as const;
 
 export const TORII_APPROVAL_ID_ARG = "approval_id" as const;
 export const TORII_RUN_ID_ARG = "_torii_run_id" as const;
+export const TORII_STEP_ID_ARG = "_torii_step_id" as const;
 
 export interface ApprovalRequiredPayload {
   status: typeof APPROVAL_REQUIRED_STATUS;
@@ -22,7 +23,10 @@ export interface ApprovalRecordView {
   ownerId: string;
   toolName: string;
   params: Record<string, unknown>;
+  /** Opaque correlation ref — Torii stores and echoes only. */
   runId?: string;
+  /** Opaque correlation ref — Torii stores and echoes only. */
+  stepId?: string;
   status: ApprovalRecordStatus;
   rejectionReason?: string;
   createdAt: string;

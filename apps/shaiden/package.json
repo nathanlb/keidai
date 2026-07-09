@@ -16,6 +16,7 @@
     "@keidai/shared": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "ai": "^5.0.205",
+    "fastify": "^5.8.5",
     "zod": "^3.25.76"
   },
   "devDependencies": {

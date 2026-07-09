@@ -14,13 +14,15 @@ The loop is deliberately thin: call the model (OpenRouter via the AI SDK) with T
 | `failed(reason)` | Unavailable/unsatisfiable tool call, or a model/dispatch error — fails fast |
 | `human_reject` | Agent concluded the goal is unreachable after a human denial (final text prefixed with `HUMAN_REJECT:`) |
 
-Gated tools are declared per agent in Torii (`gated_tools` in `torii.yaml`). When the model calls a gated tool, Torii returns an `approval_required` sentinel. Shaiden parks the loop (wall-clock frozen), polls Torii's `/api/approvals/:id` for a decision, and replays the call with `approval_id` on approve. Rejections are returned to the model as a normal tool result; the agent decides whether to adapt (`goal_met`) or self-assess `human_reject`.
+## Domain boundaries
 
-**Domain boundaries:**
-- **Torii** owns agent identity/registration (`agent_id`, `inbound_token`) — see `apps/gateway/torii.demo.yaml`
-- **Shaiden** owns task definition and harness runtime
+- **Torii** owns agent identity/registration (`agent_id`, `inbound_token`), tool catalog/dispatch, and the **approval ledger** — see `apps/gateway/torii.demo.yaml`
+- **Shaiden** owns task definition, harness runtime, and **run visibility** (`GET /api/runs`, SSE `/api/runs/events`)
 - **Shared** (`@keidai/shared`) owns cross-app Task/Run types, schemas, and structured logging
 
+Gated tools are declared per agent in Torii (`gated_tools` in `torii.yaml`). When the model calls a gated tool, Torii returns an `approval_required` sentinel. Shaiden parks the loop (wall-clock frozen), polls Torii's `/api/approvals/:id` for a decision via a narrow `ApprovalResumeSignal` interface, and replays the call with `approval_id` on approve. Rejections are returned to the model as a normal tool result; the agent decides whether to adapt (`goal_met`) or self-assess `human_reject`.
+
+Opaque correlation refs (`_torii_run_id`, `_torii_step_id`) are attached to gated calls so Torii can echo them on the ledger without interpreting run/step semantics.
 ## Log streams
 
 During normal harness operation Shaiden emits structured operational logs to **stderr**, using the same `StructuredLogger` from `@keidai/shared` as Torii:
@@ -66,3 +68,5 @@ Starts Torii with `torii.demo.yaml` and runs the Shaiden harness once tool disco
 | `TORII_MCP_URL` | Torii MCP endpoint (default: `http://127.0.0.1:3100/mcp`) |
 | `OPEN_ROUTER_API_KEY` | OpenRouter API key for the task-loop model |
 | `SHAIDEN_MODEL_ID` | OpenRouter model id (default: `google/gemini-2.5-flash`) |
+| `SHAIDEN_HOST` | HTTP bind host for the runs API (default: `127.0.0.1`) |
+| `SHAIDEN_PORT` | HTTP bind port for the runs API (default: `3200`) |

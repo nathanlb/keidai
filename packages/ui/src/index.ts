@@ -11,6 +11,11 @@ export {
   SelectTrigger,
   SelectValue,
 } from "./components/ui/select.js";
+export {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "./components/ui/alert.js";
 export { Badge, badgeVariants, type BadgeProps } from "./components/ui/badge.js";
 export { Button, buttonVariants, type ButtonProps } from "./components/ui/button.js";
 export {

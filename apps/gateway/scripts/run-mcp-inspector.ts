@@ -1,5 +1,5 @@
 #!/usr/bin/env tsx
-import { loadEnvForPackage } from "@keidai/shared";
+import { loadEnvForPackage } from "@keidai/shared/load-env";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { request as httpRequest } from "node:http";
 import { writeFileSync } from "node:fs";

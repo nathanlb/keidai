@@ -4,6 +4,8 @@ import { defineConfig } from "vite";
 
 const gatewayUrl =
   process.env.VITE_GATEWAY_URL ?? "http://127.0.0.1:3100";
+const shaidenUrl =
+  process.env.VITE_SHAIDEN_URL ?? "http://127.0.0.1:3200";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -12,6 +14,11 @@ export default defineConfig({
     port: 3000,
     strictPort: true,
     proxy: {
+      // Shaiden owns run visibility; Torii owns the rest of /api.
+      "/api/runs": {
+        target: shaidenUrl,
+        changeOrigin: true,
+      },
       "/api": {
         target: gatewayUrl,
         changeOrigin: true,

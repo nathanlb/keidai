@@ -14,7 +14,8 @@ COPY apps/keidai-ui apps/keidai-ui
 
 RUN pnpm install --frozen-lockfile
 
-# UI is served from Torii — API calls use same-origin /api paths.
+# UI is served from Torii; run reads go to Shaiden (browser-reachable URL).
+ENV VITE_SHAIDEN_URL=http://127.0.0.1:3200
 RUN pnpm --filter @keidai/keidai-ui build
 RUN pnpm --filter @keidai/gateway build
 RUN pnpm --filter @keidai/gateway deploy --prod --legacy /out

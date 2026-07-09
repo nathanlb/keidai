@@ -4,3 +4,7 @@ packages:
 allowBuilds:
   esbuild: true
   protobufjs: true
+# thread-stream@4.2.0 ships package/.claude/settings.local.json which Cursor's
+# agent sandbox blocks during pnpm install (EPERM on .claude paths).
+overrides:
+  thread-stream: 4.1.0

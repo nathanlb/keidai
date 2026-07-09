@@ -16,7 +16,10 @@ interface ApprovalRecord {
   toolName: string;
   params: Record<string, unknown>;
   paramsHash: string;
+  /** Opaque correlation ref — Torii stores and echoes only. */
   runId?: string;
+  /** Opaque correlation ref — Torii stores and echoes only. */
+  stepId?: string;
   status: ApprovalRecordStatus;
   rejectionReason?: string;
   createdAt: number;
@@ -44,6 +47,7 @@ export class ApprovalStoreService {
     params: Record<string, unknown>;
     paramsHash: string;
     runId?: string;
+    stepId?: string;
     now?: number;
     ttlMs?: number;
   }): ApprovalRecord {
@@ -56,6 +60,7 @@ export class ApprovalStoreService {
       params: input.params,
       paramsHash: input.paramsHash,
       runId: input.runId,
+      stepId: input.stepId,
       status: "pending",
       createdAt: now,
       expiresAt: now + (input.ttlMs ?? DEFAULT_APPROVAL_TTL_MS),
@@ -157,6 +162,7 @@ function toApprovalView(record: ApprovalRecord): ApprovalRecordView {
     toolName: record.toolName,
     params: record.params,
     runId: record.runId,
+    stepId: record.stepId,
     status: record.status,
     rejectionReason: record.rejectionReason,
     createdAt: new Date(record.createdAt).toISOString(),
