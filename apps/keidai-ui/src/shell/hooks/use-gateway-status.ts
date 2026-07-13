@@ -1,29 +1,23 @@
 import useSWR from "swr";
+import { fetchToriiHealth } from "../../torii/api/gateway-client.js";
 import {
-  fetchGatewayStatus,
-  type GatewayStatus,
-} from "../../torii/api/gateway-client.js";
+  initialToriiHealth,
+  pollIntervalMs,
+  TORII_STATUS_KEY,
+} from "./backend-health.js";
 
-export const GATEWAY_STATUS_KEY = "gateway-status";
-
-const pollIntervalMs = 30_000;
-
-const initialStatus: GatewayStatus = {
-  healthy: false,
-  label: "Checking gateway…",
-  displayAddress: "",
-  version: "",
-};
+/** @deprecated Use TORII_STATUS_KEY */
+export const GATEWAY_STATUS_KEY = TORII_STATUS_KEY;
 
 export function useGatewayStatus() {
   const { data, mutate, isLoading } = useSWR(
-    GATEWAY_STATUS_KEY,
-    fetchGatewayStatus,
+    TORII_STATUS_KEY,
+    fetchToriiHealth,
     { refreshInterval: pollIntervalMs },
   );
 
   return {
-    status: data ?? initialStatus,
+    status: data ?? initialToriiHealth,
     refresh: mutate,
     isLoading,
   };

@@ -34,6 +34,9 @@ export interface MockGatewayConfig {
   taskRuntime?: { agentId: string };
   approvals?: ApprovalRecordView[];
   healthy?: boolean;
+  shaidenHealthy?: boolean;
+  toriiVersion?: string;
+  shaidenVersion?: string;
 }
 
 export async function mockGatewayConfig(
@@ -61,9 +64,37 @@ export async function mockGatewayConfig(
     taskRuntime = { agentId: "shaiden-newsletter-01" },
     approvals = [],
     healthy = true,
+    shaidenHealthy = healthy,
+    toriiVersion = "0.0.0",
+    shaidenVersion = "0.0.0",
   }: MockGatewayConfig = {},
 ): Promise<void> {
   const approvalState = [...approvals];
+
+  await page.route("**/api/health", async (route) => {
+    if (!healthy) {
+      await route.fulfill({ status: 503, body: "Gateway unavailable" });
+      return;
+    }
+
+    await route.fulfill({ json: { ok: true, version: toriiVersion } });
+  });
+
+  await page.route("**/api/shaiden/health", async (route) => {
+    if (!shaidenHealthy) {
+      await route.fulfill({ status: 503, body: "Shaiden unavailable" });
+      return;
+    }
+
+    await route.fulfill({
+      json: {
+        ok: true,
+        version: shaidenVersion,
+        agentId: taskRuntime.agentId,
+      },
+    });
+  });
+
   await page.route("**/api/config/agents", async (route) => {
     if (!healthy) {
       await route.fulfill({ status: 503, body: "Gateway unavailable" });

@@ -4,7 +4,7 @@ import { AGENTS_KEY } from "../use-fetch-agents.js";
 import { OAUTH_CONNECTIONS_KEY_PREFIX } from "../use-fetch-oauth-connections.js";
 import { OAUTH_PROVIDERS_KEY } from "../use-fetch-oauth-providers.js";
 import { SERVERS_KEY } from "../use-fetch-servers.js";
-import { GATEWAY_STATUS_KEY } from "../use-gateway-status.js";
+import { TORII_STATUS_KEY, SHAIDEN_STATUS_KEY } from "../backend-health.js";
 
 describe("refreshGatewayConfig", () => {
   it("revalidates config and oauth connection caches", () => {
@@ -13,7 +13,12 @@ describe("refreshGatewayConfig", () => {
     refreshGatewayConfig(mutate);
 
     expect(mutate).toHaveBeenCalledWith(
-      GATEWAY_STATUS_KEY,
+      TORII_STATUS_KEY,
+      undefined,
+      { revalidate: true },
+    );
+    expect(mutate).toHaveBeenCalledWith(
+      SHAIDEN_STATUS_KEY,
       undefined,
       { revalidate: true },
     );

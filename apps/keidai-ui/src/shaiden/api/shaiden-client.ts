@@ -1,3 +1,4 @@
+import type { ServiceHealth } from "../../shell/types/service-health.js";
 import type {
   RunReport,
   RunsResponse,
@@ -11,8 +12,38 @@ const shaidenOrigin = (
   import.meta.env.VITE_SHAIDEN_URL as string | undefined
 )?.replace(/\/$/, "") ?? "";
 
+const shaidenDisplayUrl =
+  shaidenOrigin || import.meta.env.VITE_SHAIDEN_URL || "http://127.0.0.1:3200";
+
+export interface ShaidenHealthResponse {
+  ok: boolean;
+  version: string;
+  agentId: string;
+}
+
 function shaidenApiPath(path: string): string {
   return `${shaidenOrigin}${path}`;
+}
+
+function shaidenHealthPath(): string {
+  if (shaidenOrigin) {
+    return `${shaidenOrigin}/api/health`;
+  }
+
+  return "/api/shaiden/health";
+}
+
+function parseDisplayAddress(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.hostname}:${parsed.port || (parsed.protocol === "https:" ? "443" : "80")}`;
+  } catch {
+    return url;
+  }
+}
+
+export function getShaidenDisplayAddress(): string {
+  return parseDisplayAddress(shaidenDisplayUrl);
 }
 
 async function fetchJson<T>(path: string): Promise<T> {
@@ -67,4 +98,30 @@ export async function startTaskRun(
   }
 
   return (await response.json()) as StartTaskRunResponse;
+}
+
+export async function fetchShaidenHealth(): Promise<ServiceHealth> {
+  const displayAddress = getShaidenDisplayAddress();
+
+  try {
+    const response = await fetch(shaidenHealthPath());
+    if (!response.ok) {
+      throw new Error(`Shaiden health request failed: ${response.status}`);
+    }
+
+    const health = (await response.json()) as ShaidenHealthResponse;
+    return {
+      healthy: health.ok,
+      label: health.ok ? "Healthy" : "Degraded",
+      displayAddress,
+      version: health.version,
+    };
+  } catch {
+    return {
+      healthy: false,
+      label: "Unreachable",
+      displayAddress,
+      version: "",
+    };
+  }
 }

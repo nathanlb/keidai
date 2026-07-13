@@ -13,6 +13,7 @@ import type {
   GatewayHttpServerOptions,
 } from "./types/gateway-http-server.js";
 import { registerGatewayRoutes } from "./utils/register-gateway-routes.js";
+import { readPackageVersion } from "./utils/read-package-version.js";
 import { registerUiStatic } from "./utils/register-ui-static.js";
 
 const requestStartTime = Symbol("requestStartTime");
@@ -62,6 +63,10 @@ export class GatewayHttpServer {
         statusCode: reply.statusCode,
         durationMs: Date.now() - startedAt,
       });
+    });
+
+    app.get("/api/health", async (_request, reply) => {
+      reply.send({ ok: true, version: readPackageVersion() });
     });
 
     registerGatewayRoutes(app, {

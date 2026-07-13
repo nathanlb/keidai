@@ -18,7 +18,7 @@ export function ShaidenSidebarNav() {
         <span
           className={cn(
             "inline-block size-1.5 rounded-full",
-            status.available ? "bg-chart-1" : "bg-muted-foreground",
+            status.healthy ? "bg-success" : "bg-destructive",
           )}
           aria-hidden
         />
