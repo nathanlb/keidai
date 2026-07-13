@@ -5,7 +5,7 @@ import { OAuthLinkProvider } from "../context/oauth-link-provider.js";
 import { useOAuthLink } from "../context/use-oauth-link.js";
 import * as gatewayClient from "../../api/gateway-client.js";
 
-vi.mock("../../../shell/api/gateway-client.js", () => ({
+vi.mock("../../api/gateway-client.js", () => ({
   fetchOAuthConnections: vi.fn(),
   initiateOAuthLink: vi.fn(),
   getGatewayOrigin: vi.fn(() => "http://127.0.0.1:3100"),
