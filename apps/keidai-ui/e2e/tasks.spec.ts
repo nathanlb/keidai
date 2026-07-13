@@ -33,7 +33,7 @@ test.describe("Shaiden tasks", () => {
     await page.goto("/shaiden/tasks");
 
     await expect(page).toHaveURL(/\/shaiden\/runs\?new_task=1$/);
-    const dialog = page.getByRole("dialog");
+    const dialog = page.getByRole("dialog", {name: "New task"});
     await expect(dialog).toBeVisible();
 
     await dialog
