@@ -3,8 +3,8 @@ import { resolveAppNav, resolveAppSection } from "../resolve-app-nav.js";
 
 describe("resolveAppNav", () => {
   it("resolves Shaiden routes before Torii", () => {
-    const nav = resolveAppNav("/shaiden/runs");
-    expect(nav?.label).toBe("Runs");
+    expect(resolveAppNav("/shaiden/tasks")?.label).toBe("Tasks");
+    expect(resolveAppNav("/shaiden/runs")?.label).toBe("Runs");
     expect(resolveAppSection("/shaiden/runs")).toBe("Shaiden");
   });
 

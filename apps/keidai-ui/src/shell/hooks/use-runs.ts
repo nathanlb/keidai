@@ -5,7 +5,7 @@ import {
 } from "@keidai/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import useSWR, { mutate as globalMutate } from "swr";
-import { fetchRuns, getRunsEventsUrl } from "../api/gateway-client.js";
+import { fetchRuns, getRunsEventsUrl } from "../../shaiden/api/shaiden-client.js";
 import { isRunSuspended } from "../../shaiden/runs/utils/derive-run-display-status.js";
 import { RUN_KEY } from "./use-fetch-run.js";
 

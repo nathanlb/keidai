@@ -47,6 +47,13 @@ export const router = createBrowserRouter([
         },
       },
       {
+        path: "shaiden/tasks",
+        lazy: async () => {
+          const { TasksPage } = await import("./shaiden/pages/tasks-page.js");
+          return { Component: TasksPage };
+        },
+      },
+      {
         path: "shaiden/runs",
         lazy: async () => {
           const { RunsPage } = await import("./shaiden/pages/runs-page.js");

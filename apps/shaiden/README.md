@@ -9,7 +9,7 @@ The loop is deliberately thin: call the model (OpenRouter via the AI SDK) with T
 | Outcome | Meaning |
 |---------|---------|
 | `goal_met` | Agent responded with final text (no tool calls), self-assessed against the goal |
-| `iteration_exhausted` | Iteration cap reached (default 25) |
+| `iteration_exhausted` | Iteration cap reached (default 12) |
 | `timeout` | Wall-clock timeout reached (default 600s) |
 | `failed(reason)` | Unavailable/unsatisfiable tool call, or a model/dispatch error — fails fast |
 | `human_reject` | Agent concluded the goal is unreachable after a human denial (final text prefixed with `HUMAN_REJECT:`) |
@@ -17,7 +17,7 @@ The loop is deliberately thin: call the model (OpenRouter via the AI SDK) with T
 ## Domain boundaries
 
 - **Torii** owns agent identity/registration (`agent_id`, `inbound_token`), tool catalog/dispatch, and the **approval ledger** — see `apps/gateway/torii.demo.yaml`
-- **Shaiden** owns task definition, harness runtime, and **run visibility** (`GET /api/runs`, SSE `/api/runs/events`)
+- **Shaiden** owns task execution, harness runtime, and **run visibility** (`POST /api/tasks/run`, `GET /api/runs`, SSE `/api/runs/events`)
 - **Shared** (`@keidai/shared`) owns cross-app Task/Run types, schemas, and structured logging
 
 Gated tools are declared per agent in Torii (`gated_tools` in `torii.yaml`). When the model calls a gated tool, Torii returns an `approval_required` sentinel. Shaiden parks the loop (wall-clock frozen), polls Torii's `/api/approvals/:id` for a decision via a narrow `ApprovalResumeSignal` interface, and replays the call with `approval_id` on approve. Rejections are returned to the model as a normal tool result; the agent decides whether to adapt (`goal_met`) or self-assess `human_reject`.
@@ -46,9 +46,11 @@ pnpm shaiden:dev
 
 Set `SHAIDEN_BEARER` in the repo root `.env` (or `apps/shaiden/.env`). Torii must register the same token under `agents[].inbound_token` in `torii.demo.yaml`.
 
-## Task config (interim)
+## Task config (v0)
 
-The boot task lives in [`src/config/boot-task.ts`](src/config/boot-task.ts) and is validated with `taskSchema` at startup. This will move to a SQLite-backed task store later.
+Author a Task in keidai-ui (`/shaiden/tasks`) and submit it with `POST /api/tasks/run`. The body is validated with `taskSchema` (`goal`, `trigger: { type: "now" }`, `assignee`, optional `limits`). Shaiden accepts the run asynchronously (`202` + `{ runId }`) and streams progress over `GET /api/runs/events`.
+
+A sample Task shape still lives in [`src/config/boot-task.ts`](src/config/boot-task.ts) for reference; the process no longer auto-runs it at boot.
 
 ## Docker Compose
 
@@ -57,7 +59,7 @@ The boot task lives in [`src/config/boot-task.ts`](src/config/boot-task.ts) and 
 docker compose up --build
 ```
 
-Starts Torii with `torii.demo.yaml` and runs the Shaiden harness once tool discovery completes.
+Starts Torii with `torii.demo.yaml` and the Shaiden HTTP server (awaiting task submissions from keidai-ui).
 
 ## Environment
 
