@@ -2,7 +2,7 @@ import { ChevronsUpDown } from "lucide-react";
 import type { MouseEvent, ReactNode } from "react";
 import { KeidaiLogo } from "../logo/keidai-logo.js";
 import { ApprovalsPendingFooter } from "./approvals-pending-footer.js";
-import { GatewayHealthFooter } from "./gateway-health-footer.js";
+import { BackendHealthFooter } from "./backend-health-footer.js";
 
 export interface SidebarPanelProps {
   subtitle?: string;
@@ -28,6 +28,7 @@ export function SidebarPanel({
       </div>
 
       <div
+        data-testid="sidebar-nav"
         className="flex flex-1 flex-col gap-px overflow-y-auto p-2 pt-2.5"
         onClick={onNavInteract}
       >
@@ -35,7 +36,7 @@ export function SidebarPanel({
       </div>
 
       <ApprovalsPendingFooter />
-      <GatewayHealthFooter />
+      <BackendHealthFooter />
     </>
   );
 }

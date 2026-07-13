@@ -14,15 +14,13 @@ import type {
   TracesResponse,
 } from "@keidai/shared";
 
-const gatewayDisplayUrl =
+import type { ServiceHealth } from "../../shell/types/service-health.js";
+
+const toriiDisplayUrl =
   import.meta.env.VITE_GATEWAY_URL ?? "http://127.0.0.1:3100";
 
-const gatewayVersion = import.meta.env.VITE_GATEWAY_VERSION ?? "0.0.0";
-
-export interface GatewayStatus {
-  healthy: boolean;
-  label: string;
-  displayAddress: string;
+export interface ToriiHealthResponse {
+  ok: boolean;
   version: string;
 }
 
@@ -35,8 +33,8 @@ function parseDisplayAddress(url: string): string {
   }
 }
 
-export function getGatewayDisplayAddress(): string {
-  return parseDisplayAddress(gatewayDisplayUrl);
+export function getToriiDisplayAddress(): string {
+  return parseDisplayAddress(toriiDisplayUrl);
 }
 
 export function getGatewayOrigin(): string {
@@ -49,11 +47,7 @@ export function getGatewayOrigin(): string {
     return window.location.origin;
   }
 
-  return new URL(gatewayDisplayUrl).origin;
-}
-
-export function getGatewayVersion(): string {
-  return gatewayVersion;
+  return new URL(toriiDisplayUrl).origin;
 }
 
 async function fetchJson<T>(path: string): Promise<T> {
@@ -64,27 +58,29 @@ async function fetchJson<T>(path: string): Promise<T> {
   return (await response.json()) as T;
 }
 
-export async function fetchGatewayStatus(): Promise<GatewayStatus> {
-  const displayAddress = getGatewayDisplayAddress();
-  const version = getGatewayVersion();
+export async function fetchToriiHealth(): Promise<ServiceHealth> {
+  const displayAddress = getToriiDisplayAddress();
 
   try {
-    await fetchJson<ConfigServersResponse>("/api/config/servers");
+    const health = await fetchJson<ToriiHealthResponse>("/api/health");
     return {
-      healthy: true,
-      label: "Gateway healthy",
+      healthy: health.ok,
+      label: health.ok ? "Healthy" : "Degraded",
       displayAddress,
-      version,
+      version: health.version,
     };
   } catch {
     return {
       healthy: false,
-      label: "Gateway unreachable",
+      label: "Unreachable",
       displayAddress,
-      version,
+      version: "",
     };
   }
 }
+
+/** @deprecated Use fetchToriiHealth */
+export const fetchGatewayStatus = fetchToriiHealth;
 
 export async function fetchAgents(): Promise<ConfigAgentsResponse> {
   return fetchJson<ConfigAgentsResponse>("/api/config/agents");

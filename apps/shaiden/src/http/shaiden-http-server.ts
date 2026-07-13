@@ -9,6 +9,7 @@ import type {
   ShaidenHttpServerOptions,
 } from "./types/shaiden-http-server.js";
 import { registerShaidenRoutes } from "./utils/register-shaiden-routes.js";
+import { readPackageVersion } from "./utils/read-package-version.js";
 
 const requestStartTime = Symbol("requestStartTime");
 
@@ -72,7 +73,11 @@ export class ShaidenHttpServer {
     });
 
     app.get("/api/health", async (_request, reply) => {
-      reply.send({ ok: true, agentId: this.agentId });
+      reply.send({
+        ok: true,
+        version: readPackageVersion(),
+        agentId: this.agentId,
+      });
     });
 
     registerShaidenRoutes(app, {

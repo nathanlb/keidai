@@ -15,6 +15,11 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       // Shaiden owns task runs + run visibility; Torii owns the rest of /api.
+      "/api/shaiden/health": {
+        target: shaidenUrl,
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/shaiden/, "/api"),
+      },
       "/api/tasks": {
         target: shaidenUrl,
         changeOrigin: true,

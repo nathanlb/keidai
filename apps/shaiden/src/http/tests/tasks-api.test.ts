@@ -164,6 +164,7 @@ describe("tasks API", () => {
       assert.equal(health.status, 200);
       assert.deepEqual(await health.json(), {
         ok: true,
+        version: "0.0.0",
         agentId: "shaiden-newsletter-01",
       });
 
