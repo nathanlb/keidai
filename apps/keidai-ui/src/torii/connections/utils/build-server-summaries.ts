@@ -7,8 +7,9 @@ import type {
 } from "@keidai/shared";
 import { formatCredentialSubStatus } from "./format-credential-substatus.js";
 import { formatPolicySummary } from "./format-policy-summary.js";
+import { formatPolicyTooltip } from "./format-policy-tooltip.js";
 
-export type ServerRowAction = "reconnect" | "link" | "overflow";
+export type ServerRowAction = "link" | "none";
 
 export interface ConnectionSummaryCounts {
   total: number;
@@ -23,6 +24,7 @@ export interface ServerConnectionSummary {
   credentialStrategy: PublicServerConfig["credential"]["strategy"];
   credentialSubStatus: { label: string; warning: boolean };
   policySummary: string;
+  policyAllowTooltip?: string;
   toolCount: number | null;
   state: ConnectionState;
   error?: string;
@@ -32,13 +34,9 @@ export interface ServerConnectionSummary {
 
 function deriveRowAction(
   server: PublicServerConfig,
-  state: ConnectionState,
+  _state: ConnectionState,
   oauthConnection: OAuthConnectionStatus | undefined,
 ): Pick<ServerConnectionSummary, "rowAction" | "linkProviderId"> {
-  if (state === "failed") {
-    return { rowAction: "reconnect" };
-  }
-
   if (server.credential.strategy === "user_oauth") {
     const needsLink =
       !oauthConnection ||
@@ -52,7 +50,7 @@ function deriveRowAction(
     }
   }
 
-  return { rowAction: "overflow" };
+  return { rowAction: "none" };
 }
 
 export function summarizeConnectionCounts(
@@ -115,6 +113,7 @@ export function buildServerSummaries(
           oauthConnection,
         }),
         policySummary: formatPolicySummary(server.policy),
+        policyAllowTooltip: formatPolicyTooltip(server.policy),
         toolCount:
           state === "connected" && connection?.toolCount !== undefined
             ? connection.toolCount

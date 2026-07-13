@@ -14,6 +14,18 @@ export interface ConnectionsResponse {
   connections: ConnectionStatus[];
 }
 
+/** One backend tool surfaced in the connections detail drawer. */
+export interface ServerToolView {
+  name: string;
+  description?: string;
+  allowed: boolean;
+}
+
+/** Response body for `GET /api/connections/:name/tools`. */
+export interface ServerToolsResponse {
+  tools: ServerToolView[];
+}
+
 /** SSE `event:` names on `GET /api/connections/events`. */
 export const CONNECTION_SSE_EVENT = {
   stateChanged: "connection_state_changed",

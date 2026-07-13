@@ -1,14 +1,9 @@
 import type { OAuthConnectionStatus } from "@keidai/shared";
-import {
-  useCallback,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import {
   reconnectAllConnections,
   reconnectConnection,
-} from "../../../shell/api/gateway-client.js";
+} from "../../api/gateway-client.js";
 import { useActingOwner } from "../../../shell/hooks/use-acting-owner.js";
 import { useFetchLinkingRequiredTrace } from "../../../shell/hooks/use-fetch-linking-required-trace.js";
 import { useFetchOAuthConnections } from "../../../shell/hooks/use-fetch-oauth-connections.js";
@@ -68,11 +63,13 @@ export function ConnectionsPageProvider({
     new Set(),
   );
   const [isReconnectingAll, setIsReconnectingAll] = useState(false);
+  const [selectedServerName, setSelectedServerName] = useState<string | null>(
+    null,
+  );
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const {
-    trace: linkingRequiredTrace,
-    refresh: refreshLinkingRequiredTrace,
-  } = useFetchLinkingRequiredTrace(owner.ownerId);
+  const { trace: linkingRequiredTrace, refresh: refreshLinkingRequiredTrace } =
+    useFetchLinkingRequiredTrace(owner.ownerId);
 
   const oauthConnections = connectionsByOwner?.get(owner.ownerId) ?? [];
   const linkDialog = useOAuthLink();
@@ -198,6 +195,28 @@ export function ConnectionsPageProvider({
     [isReconnectingAll, reconnectingServers],
   );
 
+  const selectedSummary = useMemo(
+    () =>
+      summaries.find((summary) => summary.name === selectedServerName) ?? null,
+    [selectedServerName, summaries],
+  );
+
+  const selectedServer = selectedServerName
+    ? serversByName.get(selectedServerName)
+    : undefined;
+
+  const onOpenServer = useCallback((serverName: string) => {
+    setSelectedServerName(serverName);
+    setDrawerOpen(true);
+  }, []);
+
+  const onDrawerOpenChange = useCallback((open: boolean) => {
+    setDrawerOpen(open);
+    if (!open) {
+      setSelectedServerName(null);
+    }
+  }, []);
+
   const isLoading =
     serversLoading ||
     providersLoading ||
@@ -218,11 +237,16 @@ export function ConnectionsPageProvider({
       isReconnectingAll,
       linkingRequiredTrace: visibleLinkingRequiredTrace,
       linkingRequiredServer,
+      selectedSummary,
+      selectedServer,
+      drawerOpen,
       onReconnect,
       onReconnectAll,
       onLink,
       onLinkFromBanner,
       isServerReconnecting,
+      onOpenServer,
+      onDrawerOpenChange,
     };
   }, [
     summaries,
@@ -231,11 +255,16 @@ export function ConnectionsPageProvider({
     isReconnectingAll,
     visibleLinkingRequiredTrace,
     linkingRequiredServer,
+    selectedSummary,
+    selectedServer,
+    drawerOpen,
     onReconnect,
     onReconnectAll,
     onLink,
     onLinkFromBanner,
     isServerReconnecting,
+    onOpenServer,
+    onDrawerOpenChange,
   ]);
 
   if (isLoading && !serversData) {

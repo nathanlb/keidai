@@ -7,6 +7,7 @@ import type {
   ConnectionsResponse,
   OAuthConnectionsResponse,
   OAuthInitiateResponse,
+  ServerToolsResponse,
   TraceListItem,
   TraceListQuery,
   TraceStatsResponse,
@@ -95,6 +96,14 @@ export async function fetchServers(): Promise<ConfigServersResponse> {
 
 export async function fetchConnections(): Promise<ConnectionsResponse> {
   return fetchJson<ConnectionsResponse>("/api/connections");
+}
+
+export async function fetchServerTools(
+  serverName: string,
+): Promise<ServerToolsResponse> {
+  return fetchJson(
+    `/api/connections/${encodeURIComponent(serverName)}/tools`,
+  );
 }
 
 export async function reconnectAllConnections(): Promise<void> {

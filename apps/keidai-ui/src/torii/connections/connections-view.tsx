@@ -13,6 +13,7 @@ import {
 } from "@keidai/ui";
 import { Cable, RefreshCw, Shield } from "lucide-react";
 import { useConnectionsPage } from "./context/use-connections-page.js";
+import { ConnectionDetailDrawer } from "./connection-detail-drawer.js";
 import { ConnectionServerRow } from "./connection-server-row.js";
 import { ConnectionsSummaryTiles } from "./connections-summary-tiles.js";
 import { LinkingRequiredBanner } from "./linking-required-banner.js";
@@ -124,12 +125,16 @@ export function ConnectionsView() {
                     <TableHead className="h-auto py-2.5 text-xs font-medium">
                       Status
                     </TableHead>
-                    <TableHead className="h-auto w-[108px] py-2.5 pr-[18px]" />
+                    <TableHead className="h-auto w-0 whitespace-nowrap py-2.5 pr-[18px]" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {summaries.map((summary) => (
-                    <ConnectionServerRow key={summary.name} summary={summary} />
+                    <ConnectionServerRow
+                      key={summary.name}
+                      summary={summary}
+                      policyTooltip={summary.policyAllowTooltip}
+                    />
                   ))}
                 </TableBody>
               </Table>
@@ -137,6 +142,7 @@ export function ConnectionsView() {
           </Card>
         </div>
       )}
+      <ConnectionDetailDrawer />
     </>
   );
 }

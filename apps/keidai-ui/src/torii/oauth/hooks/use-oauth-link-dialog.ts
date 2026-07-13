@@ -4,7 +4,7 @@ import {
   fetchOAuthConnections,
   getGatewayOrigin,
   initiateOAuthLink,
-} from "../../../shell/api/gateway-client.js";
+} from "../../api/gateway-client.js";
 import { openOAuthPopup } from "../utils/open-oauth-popup.js";
 import {
   connectionStatusForProvider,

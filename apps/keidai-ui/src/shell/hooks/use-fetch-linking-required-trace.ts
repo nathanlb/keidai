@@ -1,6 +1,6 @@
 import type { TraceListItem } from "@keidai/shared";
 import useSWR from "swr";
-import { fetchTraces } from "../api/gateway-client.js";
+import { fetchTraces } from "../../torii/api/gateway-client.js";
 
 export const LINKING_REQUIRED_TRACE_KEY = "linking-required-trace";
 

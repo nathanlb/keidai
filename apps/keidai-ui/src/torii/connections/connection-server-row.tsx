@@ -1,22 +1,22 @@
 import {
   Badge,
   Button,
+  cn,
   TableCell,
   TableRow,
 } from "@keidai/ui";
 import type { ConnectionState } from "@keidai/shared";
 import {
+  ChevronRight,
   CircleAlert,
   Link2,
   Loader2,
-  MoreHorizontal,
-  RefreshCw,
   TriangleAlert,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
 import { useConnectionsPage } from "./context/use-connections-page.js";
 import { CredentialStrategyBadge } from "./connections-summary-tiles.js";
 import type { ServerConnectionSummary } from "./utils/build-server-summaries.js";
+import { formatPolicyTooltip } from "./utils/format-policy-tooltip.js";
 
 const connectionStateMeta: Record<
   ConnectionState,
@@ -55,84 +55,8 @@ function ConnectionStatusBadge({ state }: { state: ConnectionState }) {
   );
 }
 
-function RowOverflowMenu({ serverName }: { serverName: string }) {
-  const { onReconnect } = useConnectionsPage();
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const handlePointerDown = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-    };
-  }, [open]);
-
-  return (
-    <div ref={rootRef} className="relative">
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className="size-8 text-muted-foreground"
-        aria-label={`More actions for ${serverName}`}
-        aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
-      >
-        <MoreHorizontal className="size-4" aria-hidden />
-      </Button>
-      {open ? (
-        <div
-          role="menu"
-          className="absolute top-[calc(100%+4px)] right-0 z-10 min-w-[140px] rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
-        >
-          <button
-            type="button"
-            role="menuitem"
-            className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
-            onClick={() => {
-              setOpen(false);
-              onReconnect(serverName);
-            }}
-          >
-            <RefreshCw className="size-3.5" aria-hidden />
-            Reconnect
-          </button>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 function RowActions({ summary }: { summary: ServerConnectionSummary }) {
-  const { onReconnect, onLink, isServerReconnecting } = useConnectionsPage();
-  const isReconnecting = isServerReconnecting(summary.name);
-  if (summary.rowAction === "reconnect") {
-    return (
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        disabled={isReconnecting}
-        onClick={() => onReconnect(summary.name)}
-      >
-        <RefreshCw
-          className={`size-3.5 ${isReconnecting ? "animate-spin" : ""}`}
-          aria-hidden
-        />
-        Reconnect
-      </Button>
-    );
-  }
+  const { onLink } = useConnectionsPage();
 
   if (summary.rowAction === "link" && summary.linkProviderId) {
     return (
@@ -140,7 +64,10 @@ function RowActions({ summary }: { summary: ServerConnectionSummary }) {
         type="button"
         variant="default"
         size="sm"
-        onClick={() => onLink(summary.linkProviderId!)}
+        onClick={(event) => {
+          event.stopPropagation();
+          onLink(summary.linkProviderId!);
+        }}
       >
         <Link2 className="size-3.5" aria-hidden />
         Link
@@ -148,9 +75,7 @@ function RowActions({ summary }: { summary: ServerConnectionSummary }) {
     );
   }
 
-  return (
-    <RowOverflowMenu serverName={summary.name} />
-  );
+  return null;
 }
 
 function CredentialSubStatus({
@@ -174,11 +99,18 @@ function CredentialSubStatus({
 
 export function ConnectionServerRow({
   summary,
+  policyTooltip,
 }: {
   summary: ServerConnectionSummary;
+  policyTooltip?: string;
 }) {
+  const { onOpenServer } = useConnectionsPage();
+
   return (
-    <TableRow className="border-border hover:bg-muted/30">
+    <TableRow
+      className="cursor-pointer border-border hover:bg-muted/30"
+      onClick={() => onOpenServer(summary.name)}
+    >
       <TableCell className="py-3 pl-[18px] font-semibold">
         {summary.name}
       </TableCell>
@@ -202,7 +134,10 @@ export function ConnectionServerRow({
           />
         </div>
       </TableCell>
-      <TableCell className="py-3 font-mono text-xs text-muted-foreground">
+      <TableCell
+        className="py-3 font-mono text-xs text-muted-foreground"
+        title={policyTooltip}
+      >
         {summary.policySummary}
       </TableCell>
       <TableCell className="py-3 font-mono text-xs text-muted-foreground text-right">
@@ -211,9 +146,16 @@ export function ConnectionServerRow({
       <TableCell className="py-3">
         <ConnectionStatusBadge state={summary.state} />
       </TableCell>
-      <TableCell className="py-3 pr-[18px] text-right">
-        <div className="flex justify-end">
+      <TableCell className="w-0 whitespace-nowrap py-3 pl-2 pr-[18px] text-right">
+        <div className="flex items-center justify-end gap-2">
           <RowActions summary={summary} />
+          <ChevronRight
+            className={cn(
+              "size-3.5 shrink-0 text-muted-foreground",
+              summary.rowAction === "link" ? "" : "ml-0",
+            )}
+            aria-hidden
+          />
         </div>
       </TableCell>
     </TableRow>

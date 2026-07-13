@@ -102,14 +102,14 @@ describe("buildServerSummaries", () => {
       name: "github",
       policySummary: "deny · 2 allowed",
       toolCount: 4,
-      rowAction: "overflow",
+      rowAction: "none",
       credentialSubStatus: { label: "→ GitHub", warning: false },
     });
     expect(summaries[1]).toMatchObject({
       name: "linear",
       policySummary: "allow",
       toolCount: null,
-      rowAction: "reconnect",
+      rowAction: "none",
       error: "connection refused",
     });
   });
@@ -143,7 +143,7 @@ describe("summarizeConnectionCounts", () => {
         policySummary: "allow",
         toolCount: 1,
         state: "connected",
-        rowAction: "overflow",
+        rowAction: "none",
       },
       {
         name: "b",
@@ -153,7 +153,7 @@ describe("summarizeConnectionCounts", () => {
         policySummary: "allow",
         toolCount: null,
         state: "connecting",
-        rowAction: "overflow",
+        rowAction: "none",
       },
       {
         name: "c",
@@ -163,7 +163,7 @@ describe("summarizeConnectionCounts", () => {
         policySummary: "allow",
         toolCount: null,
         state: "failed",
-        rowAction: "reconnect",
+        rowAction: "none",
       },
     ]);
 

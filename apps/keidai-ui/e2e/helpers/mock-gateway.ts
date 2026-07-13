@@ -7,6 +7,7 @@ import type {
   ConnectionsResponse,
   OAuthConnectionsResponse,
   OAuthInitiateResponse,
+  ServerToolsResponse,
   RunReport,
   RunsResponse,
   TraceListItem,
@@ -19,6 +20,7 @@ export interface MockGatewayConfig {
   agents?: ConfigAgentsResponse;
   servers?: ConfigServersResponse;
   connections?: ConnectionsResponse;
+  serverTools?: Record<string, ServerToolsResponse>;
   oauthProviders?: ConfigOAuthProvidersResponse;
   oauthConnections?: Record<string, OAuthConnectionsResponse>;
   oauthInitiate?: Record<
@@ -40,6 +42,7 @@ export async function mockGatewayConfig(
     agents = { agents: [] },
     servers = { servers: [] },
     connections = { connections: [] },
+    serverTools = {},
     oauthProviders = { providers: {} },
     oauthConnections = {},
     oauthInitiate = {},
@@ -101,6 +104,16 @@ export async function mockGatewayConfig(
 
     if (route.request().method() === "POST") {
       await route.fulfill({ json: { ok: true } });
+      return;
+    }
+
+    const url = new URL(route.request().url());
+    const toolsMatch = url.pathname.match(/\/api\/connections\/([^/]+)\/tools$/);
+    if (toolsMatch) {
+      const serverName = decodeURIComponent(toolsMatch[1]!);
+      await route.fulfill({
+        json: serverTools[serverName] ?? { tools: [] },
+      });
       return;
     }
 

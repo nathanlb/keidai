@@ -123,6 +123,21 @@ describe("ToolCatalogService", () => {
       );
 
       assert.deepEqual(tools.map((tool) => tool.name), ["github.search_issues"]);
+
+      const serverTools = catalogService.getServerTools("github");
+      assert.equal(serverTools.length, 2);
+      assert.deepEqual(
+        [...serverTools]
+          .map((tool) => ({
+            name: tool.name,
+            allowed: tool.allowed,
+          }))
+          .sort((left, right) => left.name.localeCompare(right.name)),
+        [
+          { name: "merge_pull_request", allowed: false },
+          { name: "search_issues", allowed: true },
+        ],
+      );
     } finally {
       await closeManagerConnections(connectionManager);
       await mockServer.close();

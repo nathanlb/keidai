@@ -3,9 +3,9 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { OAuthLinkProvider } from "../context/oauth-link-provider.js";
 import { useOAuthLink } from "../context/use-oauth-link.js";
-import * as gatewayClient from "../../../shell/api/gateway-client.js";
+import * as gatewayClient from "../../api/gateway-client.js";
 
-vi.mock("../../../shell/api/gateway-client.js", () => ({
+vi.mock("../../api/gateway-client.js", () => ({
   fetchOAuthConnections: vi.fn(),
   initiateOAuthLink: vi.fn(),
   getGatewayOrigin: vi.fn(() => "http://127.0.0.1:3100"),
@@ -70,11 +70,7 @@ describe("OAuthLinkProvider", () => {
       async () => {
         pollCount += 1;
         const status =
-          pollCount >= 4
-            ? "linked"
-            : pollCount >= 3
-              ? "pending"
-              : "not_linked";
+          pollCount >= 4 ? "linked" : pollCount >= 3 ? "pending" : "not_linked";
         return {
           connections: [
             {
@@ -95,7 +91,9 @@ describe("OAuthLinkProvider", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Open link" }));
-    await user.click(screen.getByRole("button", { name: "Open authorization" }));
+    await user.click(
+      screen.getByRole("button", { name: "Open authorization" }),
+    );
 
     await vi.advanceTimersByTimeAsync(2_500);
 

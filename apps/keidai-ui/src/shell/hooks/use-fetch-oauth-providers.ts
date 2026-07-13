@@ -1,5 +1,5 @@
 import useSWR from "swr";
-import { fetchOAuthProviders } from "../api/gateway-client.js";
+import { fetchOAuthProviders } from "../../torii/api/gateway-client.js";
 
 export const OAUTH_PROVIDERS_KEY = "oauth-providers";
 

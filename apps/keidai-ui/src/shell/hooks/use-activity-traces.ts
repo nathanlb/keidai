@@ -1,6 +1,6 @@
 import { TRACE_SSE_EVENT, type TraceListItem } from "@keidai/shared/dto";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fetchTraces } from "../api/gateway-client.js";
+import { fetchTraces } from "../../torii/api/gateway-client.js";
 
 const BUFFER_LIMIT = 200;
 

@@ -1,6 +1,6 @@
 import type { ApprovalRecordView } from "@keidai/shared";
 import useSWR from "swr";
-import { fetchApprovals } from "../api/gateway-client.js";
+import { fetchApprovals } from "../../torii/api/gateway-client.js";
 
 export const APPROVALS_KEY = "approvals";
 

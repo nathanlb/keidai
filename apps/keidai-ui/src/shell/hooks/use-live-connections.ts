@@ -3,7 +3,7 @@ import {
   type ConnectionStatus,
 } from "@keidai/shared/dto";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fetchConnections } from "../api/gateway-client.js";
+import { fetchConnections } from "../../torii/api/gateway-client.js";
 
 function toConnectionMap(
   connections: readonly ConnectionStatus[],
