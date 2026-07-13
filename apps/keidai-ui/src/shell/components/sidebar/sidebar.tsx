@@ -1,6 +1,7 @@
 import { ChevronsUpDown } from "lucide-react";
 import type { MouseEvent, ReactNode } from "react";
 import { KeidaiLogo } from "../logo/keidai-logo.js";
+import { ApprovalsPendingFooter } from "./approvals-pending-footer.js";
 import { GatewayHealthFooter } from "./gateway-health-footer.js";
 
 export interface SidebarPanelProps {
@@ -33,6 +34,7 @@ export function SidebarPanel({
         {children}
       </div>
 
+      <ApprovalsPendingFooter />
       <GatewayHealthFooter />
     </>
   );

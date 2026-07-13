@@ -3,6 +3,7 @@ import {
   Activity,
   Cable,
   KeyRound,
+  ShieldCheck,
   UsersRound,
 } from "lucide-react";
 
@@ -36,6 +37,14 @@ export const toriiNavItems: ToriiNavItem[] = [
     title: "Agents & owners",
     description: "Registered agents and the owner each one acts as.",
     icon: UsersRound,
+  },
+  {
+    path: "/approvals",
+    label: "Approvals",
+    title: "Approvals",
+    description:
+      "Gated tool calls parked for your decision, sourced from Torii. They stay here until you act — no auto-expiry.",
+    icon: ShieldCheck,
   },
   {
     path: "/activity",

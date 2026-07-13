@@ -38,6 +38,15 @@ export const router = createBrowserRouter([
         },
       },
       {
+        path: "approvals",
+        lazy: async () => {
+          const { ApprovalsPage } = await import(
+            "./torii/pages/approvals-page.js"
+          );
+          return { Component: ApprovalsPage };
+        },
+      },
+      {
         path: "activity",
         lazy: async () => {
           const { ActivityTracesPage } = await import(

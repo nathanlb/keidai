@@ -1,15 +1,18 @@
 import { cn } from "@keidai/ui";
 import { NavLink } from "react-router-dom";
 import { useGatewayStatus } from "../shell/hooks/use-gateway-status.js";
+import { usePendingApprovalsCount } from "../shell/hooks/use-approvals.js";
 import {
   NavIcon,
   NavLabel,
   navItemClassName,
 } from "../shell/components/sidebar/nav-primitives.js";
+import { NavPendingBadge } from "../shell/components/sidebar/approvals-pending-footer.js";
 import { toriiNavItems } from "./navigation.js";
 
 export function ToriiSidebarNav() {
   const { status } = useGatewayStatus();
+  const pendingCount = usePendingApprovalsCount();
 
   return (
     <>
@@ -39,7 +42,12 @@ export function ToriiSidebarNav() {
           <NavIcon>
             <item.icon className="size-4" />
           </NavIcon>
-          {item.label}
+          <span className="flex min-w-0 flex-1 items-center gap-2">
+            {item.label}
+            {item.path === "/approvals" ? (
+              <NavPendingBadge count={pendingCount} />
+            ) : null}
+          </span>
         </NavLink>
       ))}
     </>

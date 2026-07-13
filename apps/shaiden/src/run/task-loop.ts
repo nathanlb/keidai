@@ -68,6 +68,9 @@ export async function runTaskLoop(
           approvalDenied: true,
         };
       }
+      if (decision.status === "cancelled") {
+        throw new Error("cancelled by operator");
+      }
 
       result = await deps.dispatchToolCall(call, {
         ...options,

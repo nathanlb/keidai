@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import type {
+  ApprovalRecordView,
   ConfigAgentsResponse,
   ConfigOAuthProvidersResponse,
   ConfigServersResponse,
@@ -29,6 +30,7 @@ export interface MockGatewayConfig {
   runs?: RunsResponse;
   runDetails?: Record<string, RunReport>;
   taskRuntime?: { agentId: string };
+  approvals?: ApprovalRecordView[];
   healthy?: boolean;
 }
 
@@ -54,9 +56,11 @@ export async function mockGatewayConfig(
     runs = { runs: [] },
     runDetails = {},
     taskRuntime = { agentId: "shaiden-newsletter-01" },
+    approvals = [],
     healthy = true,
   }: MockGatewayConfig = {},
 ): Promise<void> {
+  const approvalState = [...approvals];
   await page.route("**/api/config/agents", async (route) => {
     if (!healthy) {
       await route.fulfill({ status: 503, body: "Gateway unavailable" });
@@ -287,5 +291,65 @@ export async function mockGatewayConfig(
     }
 
     await route.fulfill({ status: 404, json: { error: "run not found" } });
+  });
+
+  await page.route(/\/api\/approvals(\?|$)/, async (route) => {
+    if (!healthy) {
+      await route.fulfill({ status: 503, body: "Gateway unavailable" });
+      return;
+    }
+
+    const url = new URL(route.request().url());
+    const status = url.searchParams.get("status");
+    const filtered = status
+      ? approvalState.filter((record) => record.status === status)
+      : approvalState;
+    await route.fulfill({ json: filtered });
+  });
+
+  await page.route(/\/api\/approvals\/[^/?]+\/(approve|reject|cancel)$/, async (route) => {
+    if (!healthy) {
+      await route.fulfill({ status: 503, body: "Gateway unavailable" });
+      return;
+    }
+
+    const url = new URL(route.request().url());
+    const segments = url.pathname.split("/");
+    const action = segments.at(-1);
+    const id = segments.at(-2) ?? "";
+    const index = approvalState.findIndex((record) => record.id === id);
+    if (index === -1) {
+      await route.fulfill({
+        status: 404,
+        json: { error: "approval not found or not pending" },
+      });
+      return;
+    }
+
+    const current = approvalState[index]!;
+    if (current.status !== "pending") {
+      await route.fulfill({
+        status: 404,
+        json: { error: "approval not found or not pending" },
+      });
+      return;
+    }
+
+    const decidedAt = new Date().toISOString();
+    if (action === "approve") {
+      approvalState[index] = { ...current, status: "approved", decidedAt };
+    } else if (action === "reject") {
+      const body = route.request().postDataJSON() as { reason?: string } | null;
+      approvalState[index] = {
+        ...current,
+        status: "rejected",
+        decidedAt,
+        rejectionReason: body?.reason,
+      };
+    } else if (action === "cancel") {
+      approvalState[index] = { ...current, status: "cancelled", decidedAt };
+    }
+
+    await route.fulfill({ json: approvalState[index] });
   });
 }

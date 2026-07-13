@@ -136,6 +136,33 @@ describe("approval ledger", () => {
     );
   });
 
+  it("cancels a pending approval without adding rejection suppression", () => {
+    const { gate, store } = createGate(gatedAgent);
+    const params = { subject: "Hello" };
+
+    const pending = store.createPendingApproval({
+      principal: STUB_AGENT_PRINCIPAL,
+      toolName: "gmail.create_draft",
+      params,
+      paramsHash: hashToolParams(params),
+    });
+
+    const cancelled = store.cancel(pending.id);
+    assert.equal(cancelled?.status, "cancelled");
+
+    const repeat = gate.interceptGatedCall({
+      principal: STUB_AGENT_PRINCIPAL,
+      toolName: "gmail.create_draft",
+      upstreamArgs: params,
+    });
+
+    const textPart = repeat.content?.find((part) => part.type === "text");
+    const payload = JSON.parse(
+      textPart && "text" in textPart ? textPart.text : "{}",
+    );
+    assert.equal(payload.status, "approval_required");
+  });
+
   it("validates params hash and single-use consumption on replay", () => {
     const { gate, store } = createGate(gatedAgent);
     const params = { subject: "Hello" };

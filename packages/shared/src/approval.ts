@@ -15,7 +15,11 @@ export interface ApprovalDeniedPayload {
   reason?: string;
 }
 
-export type ApprovalRecordStatus = "pending" | "approved" | "rejected";
+export type ApprovalRecordStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "cancelled";
 
 export interface ApprovalRecordView {
   id: string;
