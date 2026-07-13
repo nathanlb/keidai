@@ -30,7 +30,7 @@ export interface ToolDispatchOptions {
 }
 
 export interface ApprovalDecision {
-  status: "approved" | "rejected";
+  status: "approved" | "rejected" | "cancelled";
   reason?: string;
 }
 

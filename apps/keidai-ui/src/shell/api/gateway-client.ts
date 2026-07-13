@@ -1,4 +1,6 @@
 import type {
+  ApprovalRecordStatus,
+  ApprovalRecordView,
   ConfigAgentsResponse,
   ConfigOAuthProvidersResponse,
   ConfigServersResponse,
@@ -164,6 +166,13 @@ export async function fetchTrace(traceId: string): Promise<TraceListItem> {
   );
 }
 
+export async function fetchApprovals(
+  status?: ApprovalRecordStatus,
+): Promise<ApprovalRecordView[]> {
+  const query = status ? `?status=${encodeURIComponent(status)}` : "";
+  return fetchJson<ApprovalRecordView[]>(`/api/approvals${query}`);
+}
+
 export async function approveApproval(approvalId: string): Promise<void> {
   const response = await fetch(
     `/api/approvals/${encodeURIComponent(approvalId)}/approve`,
@@ -188,6 +197,16 @@ export async function rejectApproval(
   );
   if (!response.ok) {
     throw new Error(`Rejection failed: ${response.status}`);
+  }
+}
+
+export async function cancelApproval(approvalId: string): Promise<void> {
+  const response = await fetch(
+    `/api/approvals/${encodeURIComponent(approvalId)}/cancel`,
+    { method: "POST" },
+  );
+  if (!response.ok) {
+    throw new Error(`Cancel failed: ${response.status}`);
   }
 }
 

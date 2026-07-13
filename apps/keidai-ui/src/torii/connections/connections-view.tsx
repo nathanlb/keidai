@@ -36,7 +36,9 @@ function ConnectionsEmptyState() {
         <span className="flex size-[52px] items-center justify-center rounded-[14px] bg-muted/55 text-muted-foreground">
           <Cable className="size-[30px]" aria-hidden />
         </span>
-        <div className="mt-4 text-base font-semibold">No servers configured</div>
+        <div className="mt-4 text-base font-semibold">
+          No servers configured
+        </div>
         <p className="mt-1.5 max-w-[380px] text-[13px] leading-normal text-muted-foreground">
           Add MCP backends to <span className="font-mono">torii.yaml</span> to
           expose namespaced tools through the gateway.
@@ -74,7 +76,7 @@ export function ConnectionsView() {
           ) : null}
           <ConnectionsSummaryTiles counts={counts} />
 
-          <Card className="overflow-hidden shadow-none">
+          <Card className="shadow-none">
             <CardHeader className="flex flex-row items-start justify-between space-y-0 px-[18px] py-4">
               <div className="space-y-1">
                 <CardTitle className="text-base font-semibold">

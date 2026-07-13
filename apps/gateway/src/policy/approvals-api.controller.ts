@@ -9,7 +9,12 @@ function parseStatus(
 ): ApprovalRecordStatus | undefined {
   const query = request.query as Record<string, string | undefined>;
   const status = query.status;
-  if (status === "pending" || status === "approved" || status === "rejected") {
+  if (
+    status === "pending" ||
+    status === "approved" ||
+    status === "rejected" ||
+    status === "cancelled"
+  ) {
     return status;
   }
   return undefined;
@@ -56,6 +61,16 @@ export class ApprovalsApiController {
         id,
         typeof body.reason === "string" ? body.reason : undefined,
       );
+      if (!approval) {
+        reply.code(404).send({ error: "approval not found or not pending" });
+        return;
+      }
+      reply.send(this.approvalRead.getApproval(id));
+    });
+
+    app.post("/api/approvals/:id/cancel", async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const approval = this.approvalStore.cancel(id);
       if (!approval) {
         reply.code(404).send({ error: "approval not found or not pending" });
         return;

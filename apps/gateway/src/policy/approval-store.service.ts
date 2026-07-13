@@ -117,6 +117,17 @@ export class ApprovalStoreService {
     return record;
   }
 
+  cancel(id: string, now = Date.now()): ApprovalRecord | undefined {
+    const record = this.approvals.get(id);
+    if (!record || record.status !== "pending" || record.expiresAt <= now) {
+      return undefined;
+    }
+
+    record.status = "cancelled";
+    record.decidedAt = now;
+    return record;
+  }
+
   markUsed(id: string, now = Date.now()): ApprovalRecord | undefined {
     const record = this.approvals.get(id);
     if (!record) {

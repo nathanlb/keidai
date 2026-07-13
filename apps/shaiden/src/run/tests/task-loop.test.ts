@@ -171,6 +171,28 @@ describe("task loop", () => {
     assert.deepEqual(result.outcome, { status: "human_reject" });
   });
 
+  it("terminates as failed when approval is cancelled by operator", async () => {
+    const approval = deferredApprovalDecision();
+
+    const loop = runTaskLoop("goal", limits, {
+      callModel: scriptedModel([
+        { text: "", toolCalls: [toolCall("gmail.create_draft")] },
+        { text: "never reached", toolCalls: [] },
+      ]),
+      dispatchToolCall: approvalRequiredDispatch(),
+      waitForApproval: approval.waitForApproval,
+    });
+
+    await approval.whenPending;
+    approval.resolve({ status: "cancelled" });
+    const result = await loop;
+
+    assert.equal(result.outcome.status, "failed");
+    if (result.outcome.status === "failed") {
+      assert.match(result.outcome.reason, /cancelled by operator/);
+    }
+  });
+
   it("does not count approval wait time against the wall-clock timeout", async () => {
     let clock = 0;
     const approval = deferredApprovalDecision();

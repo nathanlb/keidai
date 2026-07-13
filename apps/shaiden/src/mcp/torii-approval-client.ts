@@ -1,7 +1,7 @@
 import type { ApprovalRecordView } from "@keidai/shared";
 
 export interface ApprovalDecision {
-  status: "approved" | "rejected";
+  status: "approved" | "rejected" | "cancelled";
   reason?: string;
 }
 
@@ -50,6 +50,9 @@ export async function pollApprovalDecision(
         status: "rejected",
         reason: approval.rejectionReason,
       };
+    }
+    if (approval.status === "cancelled") {
+      return { status: "cancelled" };
     }
 
     await sleep(intervalMs);
