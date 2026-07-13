@@ -1,7 +1,20 @@
 import { Client } from "@modelcontextprotocol/sdk/client";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { TORII_CALL_META_KEY, type ToriiCallMeta } from "@keidai/shared";
 import { enrichToolCallResult } from "./parse-tool-result.js";
 import type { DiscoveredTool, ToolCallResult, ToriiSession } from "./types/index.js";
+
+function extractToriiCallMeta(meta: unknown): ToriiCallMeta | undefined {
+  if (!meta || typeof meta !== "object") {
+    return undefined;
+  }
+  const toriiMeta = (meta as Record<string, unknown>)[TORII_CALL_META_KEY];
+  if (!toriiMeta || typeof toriiMeta !== "object") {
+    return undefined;
+  }
+  const traceId = (toriiMeta as Record<string, unknown>).traceId;
+  return typeof traceId === "string" ? { traceId } : undefined;
+}
 
 function toDiscoveredTool(tool: {
   name: string;
@@ -67,10 +80,12 @@ export async function connectToriiSession(
     args: Record<string, unknown>,
   ): Promise<ToolCallResult> => {
     const response = await client.callTool({ name, arguments: args });
-    return enrichToolCallResult(
+    const result = enrichToolCallResult(
       response.isError === true,
       flattenToolContent(response.content),
     );
+    const meta = extractToriiCallMeta(response._meta);
+    return meta ? { ...result, meta } : result;
   };
 
   return {

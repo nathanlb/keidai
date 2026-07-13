@@ -94,6 +94,25 @@ describe("SqliteTraceRepository", () => {
     );
   });
 
+  it("persists run and step correlation fields", () => {
+    const databasePath = path.join(
+      mkdtempSync(path.join(tmpdir(), "torii-trace-store-")),
+      "tokens.db",
+    );
+    const repository = createRepository(databasePath);
+
+    repository.append(
+      sampleTrace("trace-correlated", "2026-06-20T12:00:00.000Z", {
+        runId: "run-123",
+        stepId: "step-456",
+      }),
+    );
+
+    const trace = repository.get("trace-correlated");
+    assert.equal(trace?.runId, "run-123");
+    assert.equal(trace?.stepId, "step-456");
+  });
+
   it("filters by outcome, server, and free text", () => {
     const databasePath = path.join(
       mkdtempSync(path.join(tmpdir(), "torii-trace-store-")),

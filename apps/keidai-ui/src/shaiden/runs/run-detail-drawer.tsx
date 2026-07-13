@@ -252,10 +252,9 @@ export function RunDetailDrawer({
               <p className="mt-1 pl-[22px] text-[12.5px] leading-normal text-muted-foreground">
                 {formatRunStepDescription(step)}
               </p>
-              {step.toolCallId &&
-              (step.kind === "tool_dispatch" || step.kind === "tool_result") ? (
+              {step.traceId && step.kind === "tool_result" ? (
                 <Link
-                  to="/activity"
+                  to={`/activity?trace_id=${encodeURIComponent(step.traceId)}`}
                   className="mt-1 inline-flex items-center gap-1 pl-[22px] text-[11px] text-primary hover:underline"
                 >
                   <ExternalLink className="size-3" aria-hidden />

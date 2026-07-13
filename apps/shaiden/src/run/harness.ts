@@ -92,6 +92,7 @@ export async function startHarnessRun(
         inputPreview: previewOf(JSON.stringify(call.input)),
       });
       reporter.recordStep({
+        id: correlationStepId,
         kind: "tool_dispatch",
         toolName: call.toolName,
         toolCallId: call.toolCallId,
@@ -109,6 +110,7 @@ export async function startHarnessRun(
         charCount: result.text.length,
       });
       reporter.recordStep({
+        id: correlationStepId,
         kind: "tool_result",
         toolName: call.toolName,
         toolCallId: call.toolCallId,
@@ -118,6 +120,7 @@ export async function startHarnessRun(
             ? "approval_required"
             : "ok",
         charCount: result.text.length,
+        ...(result.meta?.traceId ? { traceId: result.meta.traceId } : {}),
       });
 
       if (result.approvalRequired) {

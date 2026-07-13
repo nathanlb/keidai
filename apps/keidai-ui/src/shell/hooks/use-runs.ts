@@ -4,9 +4,10 @@ import {
   type RunReport,
 } from "@keidai/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
-import useSWR from "swr";
-import { fetchRun, fetchRuns, getRunsEventsUrl } from "../api/gateway-client.js";
+import useSWR, { mutate as globalMutate } from "swr";
+import { fetchRuns, getRunsEventsUrl } from "../api/gateway-client.js";
 import { isRunSuspended } from "../../shaiden/runs/utils/derive-run-display-status.js";
+import { RUN_KEY } from "./use-fetch-run.js";
 
 export const RUNS_KEY = "runs-list";
 
@@ -64,6 +65,14 @@ function suspendedIdsFromList(
   return ids;
 }
 
+function cacheRunReport(
+  fullRuns: Map<string, RunReport>,
+  run: RunReport,
+): void {
+  fullRuns.set(run.id, run);
+  void globalMutate([RUN_KEY, run.id], run, { revalidate: false });
+}
+
 export function useRuns(isLive: boolean) {
   const [runs, setRuns] = useState<RunListItem[]>([]);
   const [suspendedRunIds, setSuspendedRunIds] = useState<Set<string>>(
@@ -101,7 +110,7 @@ export function useRuns(isLive: boolean) {
 
     const handleRunUpdated = (event: MessageEvent<string>) => {
       const run = JSON.parse(event.data) as RunReport;
-      fullRunsRef.current.set(run.id, run);
+      cacheRunReport(fullRunsRef.current, run);
       setRuns((current) => mergeRun(current, toListItem(run)));
       setSuspendedRunIds(deriveSuspendedRunIds([...fullRunsRef.current.values()]));
     };
@@ -118,13 +127,6 @@ export function useRuns(isLive: boolean) {
     };
   }, [isLive]);
 
-  const loadRun = useCallback(async (runId: string): Promise<RunReport> => {
-    const run = await fetchRun(runId);
-    fullRunsRef.current.set(run.id, run);
-    setSuspendedRunIds(deriveSuspendedRunIds([...fullRunsRef.current.values()]));
-    return run;
-  }, []);
-
   const refresh = useCallback(async () => {
     const response = await mutate();
     if (response) {
@@ -140,7 +142,6 @@ export function useRuns(isLive: boolean) {
     error,
     isLoading,
     suspendedRunIds,
-    loadRun,
     refresh,
   };
 }

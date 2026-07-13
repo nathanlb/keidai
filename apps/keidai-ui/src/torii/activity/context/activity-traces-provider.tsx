@@ -7,9 +7,11 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useActivityTraces } from "../../../shell/hooks/use-activity-traces.js";
 import { useFetchOAuthProviders } from "../../../shell/hooks/use-fetch-oauth-providers.js";
 import { useFetchServers } from "../../../shell/hooks/use-fetch-servers.js";
+import { useFetchTrace } from "../../../shell/hooks/use-fetch-trace.js";
 import { useFetchTraceStats } from "../../../shell/hooks/use-fetch-trace-stats.js";
 import { buildLinkingResolutionKey } from "../../linking/format-linking-required-prompt.js";
 import { useOAuthLink } from "../../oauth/context/use-oauth-link.js";
@@ -27,6 +29,8 @@ import {
   type ActivityTracesContextValue,
 } from "./activity-traces-context.js";
 
+const TRACE_ID_PARAM = "trace_id";
+
 function collectResolvedLinkingKeys(
   ownerId: string,
   connections: OAuthConnectionStatus[],
@@ -42,17 +46,17 @@ interface ActivityTracesProviderProps {
   children: ReactNode;
 }
 
-export function ActivityTracesProvider({ children }: ActivityTracesProviderProps) {
+export function ActivityTracesProvider({
+  children,
+}: ActivityTracesProviderProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTraceId = searchParams.get(TRACE_ID_PARAM);
   const [isLive, setIsLive] = useState(true);
   const [filters, setFilters] = useState<TraceFilters>(EMPTY_TRACE_FILTERS);
   const [pageIndex, setPageIndex] = useState(0);
-  const [selectedTrace, setSelectedTrace] = useState<TraceListItem | null>(
-    null,
+  const [linkingResolvedKeys, setLinkingResolvedKeys] = useState<Set<string>>(
+    new Set(),
   );
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [linkingResolvedKeys, setLinkingResolvedKeys] = useState<
-    Set<string>
-  >(new Set());
 
   const {
     data: statsData,
@@ -79,6 +83,11 @@ export function ActivityTracesProvider({ children }: ActivityTracesProviderProps
     isLoading: tracesLoading,
   } = useActivityTraces(isLive);
 
+  const {
+    data: fetchedTrace,
+    error: deepLinkError,
+  } = useFetchTrace(requestedTraceId);
+
   const linkDialog = useOAuthLink();
 
   const handleLinkCompleted = useCallback(
@@ -93,6 +102,20 @@ export function ActivityTracesProvider({ children }: ActivityTracesProviderProps
     },
     [],
   );
+
+  const selectedTrace = useMemo((): TraceListItem | null => {
+    if (!requestedTraceId) {
+      return null;
+    }
+    if (fetchedTrace?.traceId === requestedTraceId) {
+      return fetchedTrace;
+    }
+    return (
+      traces.find((trace) => trace.traceId === requestedTraceId) ?? null
+    );
+  }, [fetchedTrace, requestedTraceId, traces]);
+
+  const drawerOpen = Boolean(requestedTraceId && selectedTrace);
 
   const serversByName = useMemo(() => {
     return new Map(
@@ -129,6 +152,20 @@ export function ActivityTracesProvider({ children }: ActivityTracesProviderProps
     setPageIndex(0);
   }, [filters]);
 
+  useEffect(() => {
+    if (!requestedTraceId || !deepLinkError) {
+      return;
+    }
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete(TRACE_ID_PARAM);
+        return next;
+      },
+      { replace: true },
+    );
+  }, [deepLinkError, requestedTraceId, setSearchParams]);
+
   const onOutcomeChange = useCallback((outcome: OutcomeFilter) => {
     setFilters((current) => ({ ...current, outcome }));
   }, []);
@@ -141,10 +178,36 @@ export function ActivityTracesProvider({ children }: ActivityTracesProviderProps
     setIsLive((current) => !current);
   }, []);
 
-  const onOpenTrace = useCallback((trace: TraceListItem) => {
-    setSelectedTrace(trace);
-    setDrawerOpen(true);
-  }, []);
+  const onOpenTrace = useCallback(
+    (trace: TraceListItem) => {
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          next.set(TRACE_ID_PARAM, trace.traceId);
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
+  const onDrawerOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) {
+        return;
+      }
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          next.delete(TRACE_ID_PARAM);
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
 
   const linkProvider = useCallback(
     (providerId: string, ownerId: string) => {
@@ -173,8 +236,7 @@ export function ActivityTracesProvider({ children }: ActivityTracesProviderProps
     (serversLoading && !serversData) ||
     (providersLoading && !providersData);
 
-  const error =
-    statsError ?? tracesError ?? serversError ?? providersError;
+  const error = statsError ?? tracesError ?? serversError ?? providersError;
 
   const value = useMemo((): ActivityTracesContextValue | null => {
     if (!statsData) {
@@ -201,7 +263,7 @@ export function ActivityTracesProvider({ children }: ActivityTracesProviderProps
       onToggleLive,
       onPageChange: setPageIndex,
       onOpenTrace,
-      onDrawerOpenChange: setDrawerOpen,
+      onDrawerOpenChange,
       linkProvider,
     };
   }, [
@@ -222,13 +284,12 @@ export function ActivityTracesProvider({ children }: ActivityTracesProviderProps
     onClearFilters,
     onToggleLive,
     onOpenTrace,
+    onDrawerOpenChange,
     linkProvider,
   ]);
 
   if (isLoading) {
-    return (
-      <p className="text-sm text-muted-foreground">Loading activity…</p>
-    );
+    return <p className="text-sm text-muted-foreground">Loading activity…</p>;
   }
 
   if (error || !value) {

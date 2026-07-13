@@ -43,6 +43,7 @@ import {
   ToolNotFoundError,
 } from "./types/tool-dispatch.js";
 import { formatBackendToolError } from "./utils/format-backend-tool-error.js";
+import { withToriiTraceMeta } from "./utils/with-torii-trace-meta.js";
 
 type TraceFields = Omit<
   Parameters<typeof finalizeCallTrace>[0],
@@ -56,6 +57,7 @@ interface DispatchCallContext {
   agentPrincipal: AgentPrincipal | undefined;
   principal: CallTracePrincipal | undefined;
   startedAt: number;
+  traceId: string;
   emit: (fields: TraceFields) => void;
 }
 
@@ -92,11 +94,12 @@ export class ToolDispatchService {
 
     const gatedResult = this.tryHandleApprovalGate(ctx);
     if (gatedResult) {
-      return gatedResult;
+      return withToriiTraceMeta(gatedResult, ctx.traceId);
     }
 
     const target = this.resolveConnectedBackend(ctx);
-    return this.proxyCallToBackend(ctx, target);
+    const result = await this.proxyCallToBackend(ctx, target);
+    return withToriiTraceMeta(result, ctx.traceId);
   }
 
   private createCallContext(
@@ -106,17 +109,26 @@ export class ToolDispatchService {
     const traceId = createTraceId();
     const timestamp = createTraceTimestamp();
     const agentPrincipal = getAgentPrincipal();
+    const parsedArgs = parseToolArguments(args);
 
     return {
       namespacedName,
-      parsedArgs: parseToolArguments(args),
+      parsedArgs,
       parsed: parseNamespacedToolName(namespacedName),
       agentPrincipal,
       principal: toTracePrincipal(agentPrincipal),
       startedAt: Date.now(),
+      traceId,
       emit: (fields) => {
         this.traceEmitter.emit(
-          finalizeCallTrace(fields, { traceId, timestamp }),
+          finalizeCallTrace(
+            {
+              ...fields,
+              ...(parsedArgs.runId ? { runId: parsedArgs.runId } : {}),
+              ...(parsedArgs.stepId ? { stepId: parsedArgs.stepId } : {}),
+            },
+            { traceId, timestamp },
+          ),
         );
       },
     };
