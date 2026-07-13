@@ -13,11 +13,16 @@ export interface ConnectionsPageContextValue {
   isReconnectingAll: boolean;
   linkingRequiredTrace: TraceListItem | null;
   linkingRequiredServer?: PublicServerConfig;
+  selectedSummary: ServerConnectionSummary | null;
+  selectedServer?: PublicServerConfig;
+  drawerOpen: boolean;
   onReconnect: (serverName: string) => void;
   onReconnectAll: () => void;
   onLink: (providerId: string) => void;
   onLinkFromBanner: (providerId: string, ownerId: string) => void;
   isServerReconnecting: (serverName: string) => boolean;
+  onOpenServer: (serverName: string) => void;
+  onDrawerOpenChange: (open: boolean) => void;
 }
 
 export const ConnectionsPageContext =

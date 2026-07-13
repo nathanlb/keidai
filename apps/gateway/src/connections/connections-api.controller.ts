@@ -18,6 +18,11 @@ export class ConnectionsApiController {
       reply.send(this.connectionRead.listConnections());
     });
 
+    app.get("/api/connections/:name/tools", async (request, reply) => {
+      const { name } = request.params as { name: string };
+      reply.send(this.connectionRead.getServerTools(name));
+    });
+
     app.post("/api/connections/reconnect", async (_request, reply) => {
       await this.connectionManager.reconnectAll();
       reply.send({ ok: true });

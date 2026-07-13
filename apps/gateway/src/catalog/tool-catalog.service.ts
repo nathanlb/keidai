@@ -1,4 +1,4 @@
-import { PolicyDecision } from "@keidai/shared";
+import { PolicyDecision, type ServerToolView } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
 import { ConnectionManager } from "../connections/connection-manager.service.js";
 import { CredentialResolverService } from "../credentials/credential-resolver.service.js";
@@ -13,6 +13,7 @@ import { namespaceTool } from "./utils/namespacing.js";
 @injectable()
 export class ToolCatalogService {
   private catalog: CatalogTool[] = [];
+  private serverTools = new Map<string, ServerToolView[]>();
 
   constructor(
     @inject(ConnectionManager)
@@ -30,6 +31,11 @@ export class ToolCatalogService {
     return this.catalog;
   }
 
+  /** Backend tools for a server from the last catalog refresh (includes blocked tools). */
+  getServerTools(serverName: string): readonly ServerToolView[] {
+    return this.serverTools.get(serverName) ?? [];
+  }
+
   findTool(namespacedName: string): CatalogTool | undefined {
     return this.catalog.find((entry) => entry.namespacedName === namespacedName);
   }
@@ -40,6 +46,7 @@ export class ToolCatalogService {
    */
   async refresh(): Promise<CatalogTool[]> {
     const catalog: CatalogTool[] = [];
+    const serverTools = new Map<string, ServerToolView[]>();
     const connected = this.connectionManager
       .list()
       .filter((connection) => connection.state === "connected");
@@ -61,14 +68,23 @@ export class ToolCatalogService {
             backendToolNames,
           );
 
+          const toolsForServer: ServerToolView[] = [];
+
           for (const tool of result.tools) {
-            if (
+            const allowed =
               this.policyEnforcement.evaluate(
                 principal,
                 connection.config.name,
                 tool.name,
-              ) === PolicyDecision.Denied
-            ) {
+              ) !== PolicyDecision.Denied;
+
+            toolsForServer.push({
+              name: tool.name,
+              description: tool.description,
+              allowed,
+            });
+
+            if (!allowed) {
               continue;
             }
 
@@ -83,6 +99,8 @@ export class ToolCatalogService {
               tool: { ...tool, name: namespacedName },
             });
           }
+
+          serverTools.set(connection.config.name, toolsForServer);
         } catch (error) {
           if (error instanceof LinkingRequiredError) {
             this.logger.warn("catalog.linking_required", {
@@ -106,6 +124,7 @@ export class ToolCatalogService {
     );
 
     this.catalog = catalog;
+    this.serverTools = serverTools;
     return catalog;
   }
 

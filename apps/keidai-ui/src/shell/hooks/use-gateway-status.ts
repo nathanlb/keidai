@@ -2,7 +2,7 @@ import useSWR from "swr";
 import {
   fetchGatewayStatus,
   type GatewayStatus,
-} from "../api/gateway-client.js";
+} from "../../torii/api/gateway-client.js";
 
 export const GATEWAY_STATUS_KEY = "gateway-status";
 

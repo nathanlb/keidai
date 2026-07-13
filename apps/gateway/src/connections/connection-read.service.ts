@@ -2,6 +2,7 @@ import {
   CONNECTION_SSE_EVENT,
   type ConnectionSseEvent,
   type ConnectionsResponse,
+  type ServerToolsResponse,
 } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
 import { ToolCatalogService } from "../catalog/tool-catalog.service.js";
@@ -23,6 +24,12 @@ export class ConnectionReadService {
       connections: this.connectionManager
         .list()
         .map((connection) => this.projectConnection(connection)),
+    };
+  }
+
+  getServerTools(serverName: string): ServerToolsResponse {
+    return {
+      tools: [...this.toolCatalog.getServerTools(serverName)],
     };
   }
 

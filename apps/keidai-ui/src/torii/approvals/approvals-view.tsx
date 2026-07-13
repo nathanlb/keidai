@@ -4,7 +4,7 @@ import {
   approveApproval,
   cancelApproval,
   rejectApproval,
-} from "../../shell/api/gateway-client.js";
+} from "../api/gateway-client.js";
 import { useApprovals } from "../../shell/hooks/use-approvals.js";
 import { ApprovalCard } from "./approval-card.js";
 import { ApprovalsEmptyState } from "./approvals-empty-state.js";

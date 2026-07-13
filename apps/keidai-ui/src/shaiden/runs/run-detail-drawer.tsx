@@ -24,7 +24,7 @@ import { useCallback, useState } from "react";
 import {
   approveApproval,
   rejectApproval,
-} from "../../shell/api/gateway-client.js";
+} from "../../torii/api/gateway-client.js";
 import { DetailDrawer } from "../../shell/components/detail-drawer/detail-drawer.js";
 import {
   deriveRunDisplayStatus,

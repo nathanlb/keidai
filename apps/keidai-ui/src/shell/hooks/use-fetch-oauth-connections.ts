@@ -1,7 +1,7 @@
 import type { OAuthConnectionStatus } from "@keidai/shared";
 import { useCallback } from "react";
 import useSWR from "swr";
-import { fetchOAuthConnections } from "../api/gateway-client.js";
+import { fetchOAuthConnections } from "../../torii/api/gateway-client.js";
 
 export const OAUTH_CONNECTIONS_KEY_PREFIX = "oauth-connections";
 

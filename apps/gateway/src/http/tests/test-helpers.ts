@@ -37,9 +37,11 @@ import {
 
 export function createStubToolCatalog(
   catalog: readonly CatalogTool[] = [],
+  serverTools: Record<string, readonly { name: string; description?: string; allowed: boolean }[]> = {},
 ): ToolCatalogService {
   return {
     getCatalog: () => catalog,
+    getServerTools: (serverName: string) => serverTools[serverName] ?? [],
     findTool: () => undefined,
     refresh: async () => [...catalog],
     listToolsForAgent: async () => [],
