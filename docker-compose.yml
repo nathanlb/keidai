@@ -1,13 +1,13 @@
 services:
-  gateway:
+  torii:
     build:
       context: .
-      dockerfile: apps/gateway/Dockerfile
+      dockerfile: apps/torii/Dockerfile
     environment:
       SHAIDEN_BEARER: ${SHAIDEN_BEARER:?SHAIDEN_BEARER is required}
       TORII_CONFIG_PATH: /app/torii.demo.yaml
     volumes:
-      - ./apps/gateway/torii.demo.yaml:/app/torii.demo.yaml:ro
+      - ./apps/torii/torii.demo.yaml:/app/torii.demo.yaml:ro
     ports:
       - "3100:3100"
     healthcheck:
@@ -28,11 +28,11 @@ services:
       context: .
       dockerfile: apps/shaiden/Dockerfile
     depends_on:
-      gateway:
+      torii:
         condition: service_healthy
     environment:
       SHAIDEN_BEARER: ${SHAIDEN_BEARER:?SHAIDEN_BEARER is required}
-      TORII_MCP_URL: http://gateway:3100/mcp
+      TORII_MCP_URL: http://torii:3100/mcp
       SHAIDEN_HOST: 0.0.0.0
       SHAIDEN_PORT: "3200"
     ports:

@@ -1,6 +1,6 @@
 # Demo gateway config — open-torii status digest scenario (NAT-16).
 #
-# Loaded via TORII_CONFIG_PATH=./torii.demo.yaml in apps/gateway/.env
+# Loaded via TORII_CONFIG_PATH=./torii.demo.yaml in apps/torii/.env
 #
 # Link OAuth providers via the keidai-ui OAuth providers screen before running
 # the demo. For GitHub and Google, register the gateway callback URL in each

@@ -5,11 +5,11 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 describe("torii run ownership boundary", () => {
-  it("does not keep a runs domain under apps/gateway/src", () => {
-    const gatewaySrc = path.resolve(
+  it("does not keep a runs domain under apps/torii/src", () => {
+    const toriiSrc = path.resolve(
       path.dirname(fileURLToPath(import.meta.url)),
       "..",
     );
-    assert.equal(existsSync(path.join(gatewaySrc, "runs")), false);
+    assert.equal(existsSync(path.join(toriiSrc, "runs")), false);
   });
 });

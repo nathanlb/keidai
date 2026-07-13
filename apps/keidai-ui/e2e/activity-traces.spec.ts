@@ -1,7 +1,7 @@
 import { PolicyDecision } from "@keidai/shared";
 import type { TraceListItem } from "@keidai/shared";
 import { expect, test } from "@playwright/test";
-import { mockGatewayConfig } from "./helpers/mock-gateway.js";
+import { mockToriiConfig } from "./helpers/mock-torii.js";
 
 const sampleTraces: TraceListItem[] = [
   {
@@ -30,7 +30,7 @@ test.describe("Activity & traces", () => {
   test("renders metrics, filters, and opens the trace drawer", async ({
     page,
   }) => {
-    await mockGatewayConfig(page, {
+    await mockToriiConfig(page, {
       traces: { traces: sampleTraces },
       traceStats: {
         windowMs: 900_000,
@@ -74,7 +74,7 @@ test.describe("Activity & traces", () => {
   });
 
   test("opens the trace drawer from a trace_id query param", async ({ page }) => {
-    await mockGatewayConfig(page, {
+    await mockToriiConfig(page, {
       traces: { traces: sampleTraces },
       traceStats: {
         windowMs: 900_000,
@@ -101,7 +101,7 @@ test.describe("Activity & traces", () => {
   });
 
   test("shows idle and no-match empty states", async ({ page }) => {
-    await mockGatewayConfig(page, {
+    await mockToriiConfig(page, {
       traces: { traces: sampleTraces },
       traceStats: {
         windowMs: 900_000,
@@ -125,7 +125,7 @@ test.describe("Activity & traces", () => {
   });
 
   test("shows idle state when the buffer is empty", async ({ page }) => {
-    await mockGatewayConfig(page);
+    await mockToriiConfig(page);
     await page.goto("/activity");
     await expect(page.getByText("No activity yet")).toBeVisible();
   });

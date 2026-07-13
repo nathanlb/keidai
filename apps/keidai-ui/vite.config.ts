@@ -2,8 +2,8 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
-const gatewayUrl =
-  process.env.VITE_GATEWAY_URL ?? "http://127.0.0.1:3100";
+const toriiUrl =
+  process.env.VITE_TORII_URL ?? "http://127.0.0.1:3100";
 const shaidenUrl =
   process.env.VITE_SHAIDEN_URL ?? "http://127.0.0.1:3200";
 
@@ -29,7 +29,7 @@ export default defineConfig({
         changeOrigin: true,
       },
       "/api": {
-        target: gatewayUrl,
+        target: toriiUrl,
         changeOrigin: true,
       },
     },

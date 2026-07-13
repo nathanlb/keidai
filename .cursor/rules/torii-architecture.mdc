@@ -1,10 +1,10 @@
 ---
-description: Gateway app layout — domain folders, service boundaries, and where new stories belong
-globs: apps/gateway/**
+description: Torii app layout — domain folders, service boundaries, and where new stories belong
+globs: apps/torii/**
 alwaysApply: false
 ---
 
-# Gateway architecture (`apps/gateway`)
+# Torii architecture (`apps/torii`)
 
 Organize by **domain capability**, not horizontal layers (`plumbing/`, `core/`, `features/`). Each folder owns one concern: one or two `@injectable()` services, helpers, and a colocated `tests/` directory.
 

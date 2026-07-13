@@ -24,7 +24,7 @@ RUN addgroup -g 1001 shaiden \
   && chown -R shaiden:shaiden /app
 
 ENV NODE_ENV=production \
-    TORII_MCP_URL=http://gateway:3100/mcp
+    TORII_MCP_URL=http://torii:3100/mcp
 
 COPY --from=build --chown=shaiden:shaiden /out/dist ./dist
 COPY --from=build --chown=shaiden:shaiden /out/node_modules ./node_modules

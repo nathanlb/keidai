@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { mockGatewayConfig } from "./helpers/mock-gateway.js";
+import { mockToriiConfig } from "./helpers/mock-torii.js";
 
 const k8sSubject = {
   kind: "k8s_service_account" as const,
@@ -9,7 +9,7 @@ const k8sSubject = {
 
 test.describe("Agents & owners page", () => {
   test("shows the empty state when no agents are registered", async ({ page }) => {
-    await mockGatewayConfig(page, {
+    await mockToriiConfig(page, {
       agents: { agents: [] },
       servers: { servers: [] },
     });
@@ -23,7 +23,7 @@ test.describe("Agents & owners page", () => {
   });
 
   test("groups agents by owner and lists server usage", async ({ page }) => {
-    await mockGatewayConfig(page, {
+    await mockToriiConfig(page, {
       agents: {
         agents: [
           {

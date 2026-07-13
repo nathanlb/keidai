@@ -15,7 +15,7 @@ import { useFetchTrace } from "../../../shell/hooks/use-fetch-trace.js";
 import { useFetchTraceStats } from "../../../shell/hooks/use-fetch-trace-stats.js";
 import { buildLinkingResolutionKey } from "../../linking/format-linking-required-prompt.js";
 import { useOAuthLink } from "../../oauth/context/use-oauth-link.js";
-import { buildGatewayOAuthCallbackUrl } from "../../oauth/utils/build-gateway-oauth-callback-url.js";
+import { buildToriiOAuthCallbackUrl } from "../../oauth/utils/build-torii-oauth-callback-url.js";
 import { formatProviderLabel } from "../../oauth/utils/oauth-provider-config.js";
 import { countTraceOutcomes } from "../utils/count-trace-outcomes.js";
 import {
@@ -222,7 +222,7 @@ export function ActivityTracesProvider({
           providerLabel: formatProviderLabel(providerId),
           ownerId,
           scopes: providerConfig.scopes,
-          redirectUri: buildGatewayOAuthCallbackUrl(providerId),
+          redirectUri: buildToriiOAuthCallbackUrl(providerId),
         },
         { onLinked: handleLinkCompleted },
       );

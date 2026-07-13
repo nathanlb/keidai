@@ -4,7 +4,7 @@ import {
   approveApproval,
   cancelApproval,
   rejectApproval,
-} from "../api/gateway-client.js";
+} from "../api/torii-client.js";
 import { useApprovals } from "../../shell/hooks/use-approvals.js";
 import { ApprovalCard } from "./approval-card.js";
 import { ApprovalsEmptyState } from "./approvals-empty-state.js";

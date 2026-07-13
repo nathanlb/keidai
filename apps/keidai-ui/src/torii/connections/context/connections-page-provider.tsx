@@ -3,7 +3,7 @@ import { useCallback, useMemo, useState, type ReactNode } from "react";
 import {
   reconnectAllConnections,
   reconnectConnection,
-} from "../../api/gateway-client.js";
+} from "../../api/torii-client.js";
 import { useActingOwner } from "../../../shell/hooks/use-acting-owner.js";
 import { useFetchLinkingRequiredTrace } from "../../../shell/hooks/use-fetch-linking-required-trace.js";
 import { useFetchOAuthConnections } from "../../../shell/hooks/use-fetch-oauth-connections.js";
@@ -12,7 +12,7 @@ import { useFetchServers } from "../../../shell/hooks/use-fetch-servers.js";
 import { useLiveConnections } from "../../../shell/hooks/use-live-connections.js";
 import { isLinkingStillRequired } from "../../linking/format-linking-required-prompt.js";
 import { useOAuthLink } from "../../oauth/context/use-oauth-link.js";
-import { buildGatewayOAuthCallbackUrl } from "../../oauth/utils/build-gateway-oauth-callback-url.js";
+import { buildToriiOAuthCallbackUrl } from "../../oauth/utils/build-torii-oauth-callback-url.js";
 import { formatProviderLabel } from "../../oauth/utils/oauth-provider-config.js";
 import {
   buildServerSummaries,
@@ -167,7 +167,7 @@ export function ConnectionsPageProvider({
           providerLabel: formatProviderLabel(providerId),
           ownerId,
           scopes: providerConfig.scopes,
-          redirectUri: buildGatewayOAuthCallbackUrl(providerId),
+          redirectUri: buildToriiOAuthCallbackUrl(providerId),
         },
         { onLinked: handleLinkCompleted },
       );

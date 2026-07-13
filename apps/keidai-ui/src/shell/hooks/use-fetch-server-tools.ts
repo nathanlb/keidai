@@ -1,6 +1,6 @@
 import type { ServerToolView, ServerToolsResponse } from "@keidai/shared";
 import useSWR from "swr";
-import { fetchServerTools } from "../../torii/api/gateway-client.js";
+import { fetchServerTools } from "../../torii/api/torii-client.js";
 
 export const SERVER_TOOLS_KEY = "server-tools";
 

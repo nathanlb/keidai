@@ -23,7 +23,7 @@ Copy the examples and fill in values:
 
 ```bash
 cp .env.example .env
-cp apps/gateway/.env.example apps/gateway/.env
+cp apps/torii/.env.example apps/torii/.env
 cp apps/demo-agent/.env.example apps/demo-agent/.env
 ```
 
@@ -33,7 +33,7 @@ cp apps/demo-agent/.env.example apps/demo-agent/.env
 |----------|---------|
 | `DEMO_AGENT_BEARER` | Static bearer for demo agent identity (gateway + demo-agent) |
 
-### `apps/gateway/.env`
+### `apps/torii/.env`
 
 | Variable | Required for demo | Purpose |
 |----------|-------------------|---------|
@@ -54,7 +54,7 @@ Optional: `TORII_PORT`, `TORII_HOST`, `TORII_DB_PATH` (defaults: `3100`, `127.0.
 | `DEMO_MODEL_ID` | no | Default `google/gemini-2.5-flash` |
 | `DEMO_AGENT_BEARER` | no* | Only if not set in root `.env` |
 
-\*Must match `agents[].inbound_token` in `apps/gateway/torii.demo.yaml`. Set in repo root `.env` or here as `DEMO_AGENT_BEARER`.
+\*Must match `agents[].inbound_token` in `apps/torii/torii.demo.yaml`. Set in repo root `.env` or here as `DEMO_AGENT_BEARER`.
 
 Inference uses [OpenRouter](https://openrouter.ai/) via the AI SDK OpenAI-compatible client. Override the model with `DEMO_MODEL_ID` (e.g. `openai/gpt-4o-mini`).
 
@@ -66,17 +66,17 @@ Mocked integration tests — no API keys or OAuth:
 pnpm test
 ```
 
-Key test: `apps/gateway/src/mcp/tests/demo-scenario.integration.test.ts`
+Key test: `apps/torii/src/mcp/tests/demo-scenario.integration.test.ts`
 
 ## One-time: OAuth linking
 
-Link tokens for owner **`demo-owner`** via the **keidai-ui OAuth providers screen** (stored in `apps/gateway/data/torii.db` by default):
+Link tokens for owner **`demo-owner`** via the **keidai-ui OAuth providers screen** (stored in `apps/torii/data/torii.db` by default):
 
 ```bash
 pnpm install
 
 # Terminal A — gateway
-pnpm demo:gateway
+pnpm demo:torii
 
 # Terminal B — UI (from repo root)
 pnpm --filter @keidai/keidai-ui dev
@@ -90,18 +90,18 @@ If you previously linked via the old CLI loopback flow (`127.0.0.1:8765/callback
 
 ```bash
 # Default SQLite path (override with TORII_DB_PATH if set)
-sqlite3 apps/gateway/data/torii.db \
+sqlite3 apps/torii/data/torii.db \
   "DELETE FROM oauth_provider_clients; DELETE FROM oauth_tokens;"
 ```
 
-Or delete the file entirely: `rm apps/gateway/data/torii.db` (recreated on next gateway boot).
+Or delete the file entirely: `rm apps/torii/data/torii.db` (recreated on next gateway boot).
 
 ## Run the demo
 
 ### Terminal A — Torii gateway
 
 ```bash
-pnpm demo:gateway
+pnpm demo:torii
 ```
 
 Expect backend connection logs and `Gateway MCP endpoint: http://127.0.0.1:3100/mcp`. JSON traces print on stdout for each tool call. Gmail uses Google's managed MCP at `https://gmailmcp.googleapis.com/mcp/v1` — no local sidecar.
@@ -153,9 +153,9 @@ Notion write tools (`notion-create-pages`, `notion-update-page`, etc.) should be
 | Gmail trace shows generic backend error | Gateway stdout now surfaces the MCP error text (e.g. permission denied); re-run the call and check the trace `error` field |
 | OAuth `Invalid redirect_uri` (Notion) | Stale dynamic client registered with old loopback redirect — clear `oauth_provider_clients` (see reset above) and re-link via UI |
 | OAuth redirect mismatch (GitHub/Google) | Provider console must list `http://127.0.0.1:3100/oauth/callback/{provider}` |
-| Linear tools missing | `LINEAR_API_KEY` unset or invalid in `apps/gateway/.env` |
+| Linear tools missing | `LINEAR_API_KEY` unset or invalid in `apps/torii/.env` |
 | Notion search denied or tool errors | Per-step summaries are always logged; set `DEMO_AGENT_VERBOSE=1` for full tool inputs/outputs |
-| Config file not found | `TORII_CONFIG_PATH` should be `./torii.demo.yaml` relative to `apps/gateway/` |
+| Config file not found | `TORII_CONFIG_PATH` should be `./torii.demo.yaml` relative to `apps/torii/` |
 
 ## Architecture notes
 

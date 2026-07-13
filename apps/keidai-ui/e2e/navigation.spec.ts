@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { mockGatewayConfig } from "./helpers/mock-gateway.js";
+import { mockToriiConfig } from "./helpers/mock-torii.js";
 import { sidebarNavLink, sidebarNavSection } from "./helpers/sidebar.js";
 
 test.describe("Torii navigation", () => {
   test.beforeEach(async ({ page }) => {
-    await mockGatewayConfig(page);
+    await mockToriiConfig(page);
   });
 
   test("redirects the home route to Connections", async ({ page }) => {
@@ -12,7 +12,7 @@ test.describe("Torii navigation", () => {
 
     await expect(page).toHaveURL(/\/connections$/);
     await expect(
-      page.getByText("Backend connection health for the gateway."),
+      page.getByText("Backend connection health for Torii."),
     ).toBeVisible();
   });
 

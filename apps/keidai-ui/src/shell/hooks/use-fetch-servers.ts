@@ -1,5 +1,5 @@
 import useSWR from "swr";
-import { fetchServers } from "../../torii/api/gateway-client.js";
+import { fetchServers } from "../../torii/api/torii-client.js";
 
 export const SERVERS_KEY = "config-servers";
 

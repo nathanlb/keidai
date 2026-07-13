@@ -18,7 +18,7 @@ Keep the pyramid healthy: many fast unit tests at the base, a small set of brows
 
 ## File layout and naming
 
-Tests live in a `tests/` folder beside the module under test — the same layout used in `apps/gateway` and other monorepo packages.
+Tests live in a `tests/` folder beside the module under test — the same layout used in `apps/torii` and other monorepo packages.
 
 ```
 src/shell/utils/

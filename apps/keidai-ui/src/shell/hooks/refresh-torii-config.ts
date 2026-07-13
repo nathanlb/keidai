@@ -11,7 +11,7 @@ type SwrMutate = ReturnType<typeof useSWRConfig>["mutate"];
 
 const revalidate = { revalidate: true } as const;
 
-export function refreshGatewayConfig(mutate: SwrMutate): void {
+export function refreshToriiConfig(mutate: SwrMutate): void {
   void mutate(TORII_STATUS_KEY, undefined, revalidate);
   void mutate(SHAIDEN_STATUS_KEY, undefined, revalidate);
   void mutate(AGENTS_KEY, undefined, revalidate);

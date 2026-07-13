@@ -20,7 +20,7 @@ export const toriiNavItems: ToriiNavItem[] = [
     path: "/connections",
     label: "Connections",
     title: "Connections",
-    description: "Backend connection health for the gateway.",
+    description: "Backend connection health for Torii.",
     icon: Cable,
   },
   {

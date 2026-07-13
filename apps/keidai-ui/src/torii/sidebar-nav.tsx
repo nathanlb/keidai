@@ -1,6 +1,6 @@
 import { cn } from "@keidai/ui";
 import { NavLink } from "react-router-dom";
-import { useGatewayStatus } from "../shell/hooks/use-gateway-status.js";
+import { useToriiStatus } from "../shell/hooks/use-torii-status.js";
 import { usePendingApprovalsCount } from "../shell/hooks/use-approvals.js";
 import {
   NavIcon,
@@ -12,7 +12,7 @@ import { NavPendingBadge } from "../shell/components/sidebar/approvals-pending-f
 import { toriiNavItems } from "./navigation.js";
 
 export function ToriiSidebarNav() {
-  const { status } = useGatewayStatus();
+  const { status } = useToriiStatus();
   const pendingCount = usePendingApprovalsCount();
 
   return (

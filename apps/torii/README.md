@@ -38,12 +38,12 @@ From the monorepo root:
 ```bash
 pnpm install
 pnpm build
-cp apps/gateway/.env.example apps/gateway/.env   # edit as needed
+cp apps/torii/.env.example apps/torii/.env   # edit as needed
 cp torii.example.yaml torii.yaml                 # or use torii.demo.yaml for the demo
-pnpm --filter @keidai/gateway dev
+pnpm --filter @keidai/torii dev
 ```
 
-Environment variables load from the repo root `.env` (shared) then `apps/gateway/.env` (overrides). See [`.env.example`](.env.example) and the repo root [`.env.example`](../../.env.example).
+Environment variables load from the repo root `.env` (shared) then `apps/torii/.env` (overrides). See [`.env.example`](.env.example) and the repo root [`.env.example`](../../.env.example).
 
 ## Log streams
 
@@ -59,7 +59,7 @@ Human-readable config validation errors may still use prose on the terminal; the
 Or run the built CLI:
 
 ```bash
-pnpm --filter @keidai/gateway start
+pnpm --filter @keidai/torii start
 # equivalent: torii (bin name)
 ```
 
@@ -121,10 +121,10 @@ sqlite3 ./data/torii.db \
 
 Browse Torii's tools, resources, and prompts in the browser during development.
 
-**Prerequisite:** Torii must be running (e.g. `pnpm --filter @keidai/gateway dev` or `pnpm demo:gateway` from the repo root).
+**Prerequisite:** Torii must be running (e.g. `pnpm --filter @keidai/torii dev` or `pnpm demo:torii` from the repo root).
 
 ```bash
-pnpm --filter @keidai/gateway dev:inspect
+pnpm --filter @keidai/torii dev:inspect
 ```
 
 This launches [@modelcontextprotocol/inspector](https://github.com/modelcontextprotocol/inspector) via a local auth shim that injects `Authorization: Bearer <DEMO_AGENT_BEARER>` on every request to Torii. Use the same bearer value as `agents[].inbound_token` in your `torii.yaml` (demo: `DEMO_AGENT_BEARER` in the repo root `.env`). Without it, Torii returns `401` and the Inspector incorrectly attempts MCP OAuth — you will see **OAuth Authentication Failed**.
@@ -136,7 +136,7 @@ The Inspector UI opens automatically at `http://localhost:6274` (or prints the U
 See **[docs/demo.md](../../docs/demo.md)** for the full open-torii demo walkthrough.
 
 ```bash
-pnpm demo:gateway   # from repo root
+pnpm demo:torii   # from repo root
 pnpm demo
 ```
 
@@ -145,7 +145,7 @@ pnpm demo
 Build from the monorepo root (serves keidai-ui and the gateway on one port):
 
 ```bash
-docker build -f apps/gateway/Dockerfile -t torii .
+docker build -f apps/torii/Dockerfile -t torii .
 docker run --rm -p 3100:3100 \
   -e GITHUB_CLIENT_ID=... -e GITHUB_CLIENT_SECRET=... \
   -v torii-data:/app/data \

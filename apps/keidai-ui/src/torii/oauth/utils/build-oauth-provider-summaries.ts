@@ -4,7 +4,7 @@ import type {
   PublicOAuthProviderConfig,
 } from "@keidai/shared";
 import { deriveOwnerInitials } from "../../../shell/utils/derive-owner-initials.js";
-import { buildGatewayOAuthCallbackUrl } from "./build-gateway-oauth-callback-url.js";
+import { buildToriiOAuthCallbackUrl } from "./build-torii-oauth-callback-url.js";
 import { deriveProviderInitials } from "./derive-provider-initials.js";
 import { formatOAuthUrlDisplay } from "./format-oauth-url.js";
 import {
@@ -148,7 +148,7 @@ export function buildOAuthProviderSummaries(
         pkceLabel: formatPkceLabel(config),
         authorizeDisplay: formatOAuthUrlDisplay(config.authorize_url),
         tokenDisplay: formatOAuthUrlDisplay(config.token_url),
-        redirectDisplay: buildGatewayOAuthCallbackUrl(id),
+        redirectDisplay: buildToriiOAuthCallbackUrl(id),
         ...primary,
       };
     });
