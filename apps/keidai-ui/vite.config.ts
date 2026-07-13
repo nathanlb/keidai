@@ -14,7 +14,11 @@ export default defineConfig({
     port: 3000,
     strictPort: true,
     proxy: {
-      // Shaiden owns run visibility; Torii owns the rest of /api.
+      // Shaiden owns task runs + run visibility; Torii owns the rest of /api.
+      "/api/tasks": {
+        target: shaidenUrl,
+        changeOrigin: true,
+      },
       "/api/runs": {
         target: shaidenUrl,
         changeOrigin: true,

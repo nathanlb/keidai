@@ -5,8 +5,6 @@ import type {
   ConnectionsResponse,
   OAuthConnectionsResponse,
   OAuthInitiateResponse,
-  RunReport,
-  RunsResponse,
   TraceListItem,
   TraceListQuery,
   TraceStatsResponse,
@@ -17,15 +15,6 @@ const gatewayDisplayUrl =
   import.meta.env.VITE_GATEWAY_URL ?? "http://127.0.0.1:3100";
 
 const gatewayVersion = import.meta.env.VITE_GATEWAY_VERSION ?? "0.0.0";
-
-/** Shaiden run API origin. Empty = same-origin (vite proxy or reverse proxy). */
-const shaidenOrigin = (
-  import.meta.env.VITE_SHAIDEN_URL as string | undefined
-)?.replace(/\/$/, "") ?? "";
-
-function shaidenApiPath(path: string): string {
-  return `${shaidenOrigin}${path}`;
-}
 
 export interface GatewayStatus {
   healthy: boolean;
@@ -173,29 +162,6 @@ export async function fetchTrace(traceId: string): Promise<TraceListItem> {
   return fetchJson<TraceListItem>(
     `/api/traces/${encodeURIComponent(traceId)}`,
   );
-}
-
-export async function fetchRuns(
-  query: { limit?: number } = {},
-): Promise<RunsResponse> {
-  const params = new URLSearchParams();
-  if (query.limit !== undefined) {
-    params.set("limit", String(query.limit));
-  }
-  const serialized = params.toString();
-  return fetchJson<RunsResponse>(
-    shaidenApiPath(`/api/runs${serialized ? `?${serialized}` : ""}`),
-  );
-}
-
-export async function fetchRun(runId: string): Promise<RunReport> {
-  return fetchJson<RunReport>(
-    shaidenApiPath(`/api/runs/${encodeURIComponent(runId)}`),
-  );
-}
-
-export function getRunsEventsUrl(): string {
-  return shaidenApiPath("/api/runs/events");
 }
 
 export async function approveApproval(approvalId: string): Promise<void> {

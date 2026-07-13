@@ -53,7 +53,7 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
 | `KEIDAI_UI_HOST` | `127.0.0.1` | Prod Fastify bind address |
 | `KEIDAI_UI_PORT` | `3000` | Prod Fastify listen port |
 | `VITE_GATEWAY_URL` | `http://127.0.0.1:3100` | Torii gateway origin for the dev `/api` proxy and health footer display |
-| `VITE_SHAIDEN_URL` | `http://127.0.0.1:3200` (dev proxy) / unset (same-origin) | Shaiden origin for run APIs; Vite proxies `/api/runs` in dev when unset client-side |
+| `VITE_SHAIDEN_URL` | `http://127.0.0.1:3200` (dev proxy) / unset (same-origin) | Shaiden origin for task/run APIs; Vite proxies `/api/tasks` and `/api/runs` in dev when unset client-side |
 | `VITE_GATEWAY_VERSION` | `0.0.0` | Version shown in the gateway health footer |
 
 The dev server (Vite) binds to `127.0.0.1:3000` — see `vite.config.ts`.
@@ -62,10 +62,10 @@ The dev server (Vite) binds to `127.0.0.1:3000` — see `vite.config.ts`.
 
 **Development** (`pnpm dev` → `vite`):
 
-Vite serves the client with HMR on `127.0.0.1:3000`, proxies `/api/runs` to
-`VITE_SHAIDEN_URL`, and proxies other `/api` paths to `VITE_GATEWAY_URL`
-(see `vite.config.ts`). Client-side routes fall back to `index.html`
-automatically. There is no separate server process to manage.
+Vite serves the client with HMR on `127.0.0.1:3000`, proxies `/api/tasks` and
+`/api/runs` to `VITE_SHAIDEN_URL`, and proxies other `/api` paths to
+`VITE_GATEWAY_URL` (see `vite.config.ts`). Client-side routes fall back to
+`index.html` automatically. There is no separate server process to manage.
 
 **Production** (`pnpm start` → `dist/server/index.js`):
 
@@ -75,7 +75,7 @@ extensionless `GET` routes so React Router routes survive a refresh.
 `server/index.ts` is a thin standalone preview server that registers it.
 
 ```
-dev   Browser → Vite (:3000) ── /api/runs ──▶ shaiden (:3200)
+dev   Browser → Vite (:3000) ── /api/tasks,/api/runs ──▶ shaiden (:3200)
                          └── /api/* ──▶ gateway (:3100)
 prod  Browser → Torii static UI; run fetches → Shaiden (`VITE_SHAIDEN_URL`)
 ```

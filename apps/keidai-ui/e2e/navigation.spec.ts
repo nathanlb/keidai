@@ -27,10 +27,26 @@ test.describe("Torii navigation", () => {
     await expect(page.getByText("No activity yet")).toBeVisible();
   });
 
-  test("shows the Shaiden runs section in the sidebar", async ({ page }) => {
+  test("shows the Shaiden tasks and runs sections in the sidebar", async ({
+    page,
+  }) => {
     await page.goto("/connections");
 
     await expect(page.getByText("Shaiden", { exact: true })).toBeVisible();
+    await page.getByRole("link", { name: "Tasks" }).click();
+    await expect(page).toHaveURL(/\/shaiden\/runs\?new_task=1$/);
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "New task" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Create & run" }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Close" }).click();
+    await expect(page.getByRole("dialog")).toBeHidden();
+    await expect(page).toHaveURL(/\/shaiden\/runs$/);
+
     await page.getByRole("link", { name: "Runs" }).click();
     await expect(page).toHaveURL(/\/shaiden\/runs$/);
     await expect(

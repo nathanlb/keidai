@@ -1,5 +1,5 @@
 import useSWR from "swr";
-import { fetchRun } from "../api/gateway-client.js";
+import { fetchRun } from "../../shaiden/api/shaiden-client.js";
 
 export const RUN_KEY = "run";
 

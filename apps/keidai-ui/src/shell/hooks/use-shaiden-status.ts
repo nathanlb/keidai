@@ -1,5 +1,5 @@
 import useSWR from "swr";
-import { fetchRuns } from "../api/gateway-client.js";
+import { fetchRuns } from "../../shaiden/api/shaiden-client.js";
 
 export const SHAIDEN_STATUS_KEY = "shaiden-status";
 

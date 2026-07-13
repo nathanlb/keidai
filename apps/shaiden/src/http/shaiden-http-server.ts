@@ -1,7 +1,9 @@
 import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
-import type { Logger } from "@keidai/shared";
+import type { Logger, Task } from "@keidai/shared";
 import { RunsApiController } from "./runs-api.controller.js";
+import { TasksApiController } from "./tasks-api.controller.js";
 import type { RunStore } from "../runs/run-store.js";
+import type { LaunchedHarnessRun } from "../run/harness.js";
 import type {
   ShaidenHttpServerHandle,
   ShaidenHttpServerOptions,
@@ -14,15 +16,28 @@ function readRequestPath(request: FastifyRequest): string {
   return request.url.split("?")[0] ?? request.url;
 }
 
+export interface ShaidenHttpServerDeps {
+  runStore: RunStore;
+  logger: Logger;
+  agentId: string;
+  startTaskRun: (task: Task) => LaunchedHarnessRun;
+}
+
 export class ShaidenHttpServer {
   private app: FastifyInstance | null = null;
   private readonly runsApi: RunsApiController;
+  private readonly tasksApi: TasksApiController;
+  private readonly agentId: string;
 
-  constructor(
-    runStore: RunStore,
-    private readonly logger: Logger,
-  ) {
-    this.runsApi = new RunsApiController(runStore);
+  constructor(private readonly deps: ShaidenHttpServerDeps) {
+    this.agentId = deps.agentId;
+    this.runsApi = new RunsApiController(deps.runStore);
+    this.tasksApi = new TasksApiController({
+      agentId: deps.agentId,
+      runStore: deps.runStore,
+      startTaskRun: deps.startTaskRun,
+      logger: deps.logger,
+    });
   }
 
   async createApp(): Promise<FastifyInstance> {
@@ -35,7 +50,7 @@ export class ShaidenHttpServer {
       // Browser clients may call Shaiden cross-origin when the UI is served
       // from Torii (or another origin) rather than the Vite proxy.
       reply.header("Access-Control-Allow-Origin", "*");
-      reply.header("Access-Control-Allow-Methods", "GET, OPTIONS");
+      reply.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
       reply.header("Access-Control-Allow-Headers", "Content-Type");
     });
 
@@ -48,7 +63,7 @@ export class ShaidenHttpServer {
         (request as FastifyRequest & { [requestStartTime]?: number })[
           requestStartTime
         ] ?? Date.now();
-      this.logger.info("http.request", {
+      this.deps.logger.info("http.request", {
         method: request.method,
         url: readRequestPath(request),
         statusCode: reply.statusCode,
@@ -57,11 +72,12 @@ export class ShaidenHttpServer {
     });
 
     app.get("/api/health", async (_request, reply) => {
-      reply.send({ ok: true });
+      reply.send({ ok: true, agentId: this.agentId });
     });
 
     registerShaidenRoutes(app, {
       runsApi: this.runsApi,
+      tasksApi: this.tasksApi,
     });
 
     return app;

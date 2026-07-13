@@ -28,6 +28,7 @@ export interface MockGatewayConfig {
   traceStats?: TraceStatsResponse;
   runs?: RunsResponse;
   runDetails?: Record<string, RunReport>;
+  taskRuntime?: { agentId: string };
   healthy?: boolean;
 }
 
@@ -52,6 +53,7 @@ export async function mockGatewayConfig(
     },
     runs = { runs: [] },
     runDetails = {},
+    taskRuntime = { agentId: "shaiden-newsletter-01" },
     healthy = true,
   }: MockGatewayConfig = {},
 ): Promise<void> {
@@ -227,6 +229,27 @@ export async function mockGatewayConfig(
     }
 
     await route.fulfill({ json: runs });
+  });
+
+  await page.route(/\/api\/tasks\/runtime$/, async (route) => {
+    if (!healthy) {
+      await route.fulfill({ status: 503, body: "Gateway unavailable" });
+      return;
+    }
+
+    await route.fulfill({ json: taskRuntime });
+  });
+
+  await page.route(/\/api\/tasks\/run$/, async (route) => {
+    if (!healthy) {
+      await route.fulfill({ status: 503, body: "Gateway unavailable" });
+      return;
+    }
+
+    await route.fulfill({
+      status: 202,
+      json: { runId: "run-from-task" },
+    });
   });
 
   await page.route(/\/api\/runs\/[^/?]+/, async (route) => {

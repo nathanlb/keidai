@@ -1,4 +1,5 @@
 export { Input } from "./components/ui/input.js";
+export { Textarea } from "./components/ui/textarea.js";
 export {
   Select,
   SelectContent,
