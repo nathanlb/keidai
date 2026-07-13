@@ -16,7 +16,7 @@ The loop is deliberately thin: call the model (OpenRouter via the AI SDK) with T
 
 ## Domain boundaries
 
-- **Torii** owns agent identity/registration (`agent_id`, `inbound_token`), tool catalog/dispatch, and the **approval ledger** — see `apps/gateway/torii.demo.yaml`
+- **Torii** owns agent identity/registration (`agent_id`, `inbound_token`), tool catalog/dispatch, and the **approval ledger** — see `apps/torii/torii.demo.yaml`
 - **Shaiden** owns task execution, harness runtime, and **run visibility** (`POST /api/tasks/run`, `GET /api/runs`, SSE `/api/runs/events`)
 - **Shared** (`@keidai/shared`) owns cross-app Task/Run types, schemas, and structured logging
 
@@ -38,7 +38,7 @@ Local `pnpm shaiden:dev` output is JSON lines on stderr, not human-readable pros
 ## Local development
 
 ```bash
-# From repo root — requires Torii running (pnpm demo:gateway) and SHAIDEN_BEARER set.
+# From repo root — requires Torii running (pnpm demo:torii) and SHAIDEN_BEARER set.
 cp apps/shaiden/.env.example apps/shaiden/.env
 pnpm install
 pnpm shaiden:dev

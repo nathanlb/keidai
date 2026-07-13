@@ -1,5 +1,5 @@
 import useSWR from "swr";
-import { fetchTrace } from "../../torii/api/gateway-client.js";
+import { fetchTrace } from "../../torii/api/torii-client.js";
 
 export const TRACE_KEY = "trace";
 

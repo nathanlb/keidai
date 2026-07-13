@@ -16,6 +16,7 @@ describe("findRepoRoot", () => {
 
     assert.ok(repoRoot);
     assert.ok(existsSync(path.join(repoRoot!, "pnpm-workspace.yaml")));
-    assert.ok(existsSync(path.join(repoRoot!, "apps", "gateway")));
+    assert.ok(existsSync(path.join(repoRoot!, "apps", "torii")));
+    assert.ok(existsSync(path.join(repoRoot!, "apps", "shaiden")));
   });
 });

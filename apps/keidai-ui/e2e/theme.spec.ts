@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { mockGatewayConfig } from "./helpers/mock-gateway.js";
+import { mockToriiConfig } from "./helpers/mock-torii.js";
 
 test.describe("Theme toggle", () => {
   test.beforeEach(async ({ page }) => {
-    await mockGatewayConfig(page);
+    await mockToriiConfig(page);
   });
 
   test("switches between light and dark themes", async ({ page }) => {

@@ -1,15 +1,12 @@
 import useSWR from "swr";
-import { fetchToriiHealth } from "../../torii/api/gateway-client.js";
+import { fetchToriiHealth } from "../../torii/api/torii-client.js";
 import {
   initialToriiHealth,
   pollIntervalMs,
   TORII_STATUS_KEY,
 } from "./backend-health.js";
 
-/** @deprecated Use TORII_STATUS_KEY */
-export const GATEWAY_STATUS_KEY = TORII_STATUS_KEY;
-
-export function useGatewayStatus() {
+export function useToriiStatus() {
   const { data, mutate, isLoading } = useSWR(
     TORII_STATUS_KEY,
     fetchToriiHealth,

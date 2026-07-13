@@ -5,7 +5,7 @@ import { useFetchAgents } from "../../shell/hooks/use-fetch-agents.js";
 import { useFetchOAuthConnections } from "../../shell/hooks/use-fetch-oauth-connections.js";
 import { useFetchOAuthProviders } from "../../shell/hooks/use-fetch-oauth-providers.js";
 import { buildOAuthProviderSummaries } from "../oauth/utils/build-oauth-provider-summaries.js";
-import { buildGatewayOAuthCallbackUrl } from "../oauth/utils/build-gateway-oauth-callback-url.js";
+import { buildToriiOAuthCallbackUrl } from "../oauth/utils/build-torii-oauth-callback-url.js";
 import { useOAuthLink } from "../oauth/context/use-oauth-link.js";
 import { OAuthProvidersView } from "../oauth/oauth-providers-view.js";
 
@@ -79,7 +79,7 @@ export function OAuthProvidersPage() {
           providerLabel: summary.label,
           ownerId: owner.ownerId,
           scopes: summary.config.scopes,
-          redirectUri: buildGatewayOAuthCallbackUrl(providerId),
+          redirectUri: buildToriiOAuthCallbackUrl(providerId),
         },
         { onLinked: handleLinkCompleted },
       );

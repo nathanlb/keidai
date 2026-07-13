@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { ApprovalRecordView } from "@keidai/shared";
-import { mockGatewayConfig } from "./helpers/mock-gateway.js";
+import { mockToriiConfig } from "./helpers/mock-torii.js";
 
 const pendingApproval: ApprovalRecordView = {
   id: "approval-1",
@@ -21,7 +21,7 @@ const pendingApproval: ApprovalRecordView = {
 
 test.describe("Approvals panel", () => {
   test("shows empty state when no pending approvals", async ({ page }) => {
-    await mockGatewayConfig(page, { approvals: [] });
+    await mockToriiConfig(page, { approvals: [] });
     await page.goto("/approvals");
 
     await expect(page.getByText("You're all caught up")).toBeVisible();
@@ -29,7 +29,7 @@ test.describe("Approvals panel", () => {
   });
 
   test("lists pending approvals with params and quick approve", async ({ page }) => {
-    await mockGatewayConfig(page, { approvals: [pendingApproval] });
+    await mockToriiConfig(page, { approvals: [pendingApproval] });
     await page.goto("/approvals");
 
     await expect(page.getByText("1 pending")).toBeVisible();
@@ -42,7 +42,7 @@ test.describe("Approvals panel", () => {
   });
 
   test("expands a card to show captured call params", async ({ page }) => {
-    await mockGatewayConfig(page, { approvals: [pendingApproval] });
+    await mockToriiConfig(page, { approvals: [pendingApproval] });
     await page.goto("/approvals");
 
     await page.getByRole("button", { name: /send_email/i }).click();
@@ -52,7 +52,7 @@ test.describe("Approvals panel", () => {
   });
 
   test("records a rejection with optional reason", async ({ page }) => {
-    await mockGatewayConfig(page, { approvals: [pendingApproval] });
+    await mockToriiConfig(page, { approvals: [pendingApproval] });
     await page.goto("/approvals");
 
     await page.getByRole("button", { name: /send_email/i }).click();
@@ -66,7 +66,7 @@ test.describe("Approvals panel", () => {
   });
 
   test("cancels a parked task from the panel", async ({ page }) => {
-    await mockGatewayConfig(page, { approvals: [pendingApproval] });
+    await mockToriiConfig(page, { approvals: [pendingApproval] });
     await page.goto("/approvals");
 
     await page.getByRole("button", { name: /send_email/i }).click();
@@ -78,7 +78,7 @@ test.describe("Approvals panel", () => {
   });
 
   test("shows pending count badge in sidebar nav", async ({ page }) => {
-    await mockGatewayConfig(page, { approvals: [pendingApproval] });
+    await mockToriiConfig(page, { approvals: [pendingApproval] });
     await page.goto("/connections");
 
     const approvalsLink = page.getByRole("link", { name: "Approvals" });

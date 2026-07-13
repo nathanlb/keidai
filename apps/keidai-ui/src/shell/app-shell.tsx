@@ -2,7 +2,7 @@ import { Suspense, useCallback, useEffect, type ReactNode } from "react";
 import { Outlet } from "react-router-dom";
 import { useSWRConfig } from "swr";
 import { cn } from "@keidai/ui";
-import { refreshGatewayConfig } from "./hooks/refresh-gateway-config.js";
+import { refreshToriiConfig } from "./hooks/refresh-torii-config.js";
 import { useShellDesktop } from "./hooks/use-media-query.js";
 import { useShellUi } from "./hooks/use-shell-ui.js";
 import { useTheme } from "./hooks/use-theme.js";
@@ -39,7 +39,7 @@ export function AppShell({
   }, [isDesktop, setNavOpen]);
 
   const refresh = useCallback(() => {
-    refreshGatewayConfig(mutate);
+    refreshToriiConfig(mutate);
     onRefresh?.();
   }, [mutate, onRefresh]);
 

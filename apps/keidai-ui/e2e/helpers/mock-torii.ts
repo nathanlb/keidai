@@ -16,7 +16,7 @@ import type {
 } from "@keidai/shared";
 import { CONNECTION_SSE_EVENT, RUN_SSE_EVENT, TRACE_SSE_EVENT } from "@keidai/shared/dto";
 
-export interface MockGatewayConfig {
+export interface MockToriiConfig {
   agents?: ConfigAgentsResponse;
   servers?: ConfigServersResponse;
   connections?: ConnectionsResponse;
@@ -39,7 +39,7 @@ export interface MockGatewayConfig {
   shaidenVersion?: string;
 }
 
-export async function mockGatewayConfig(
+export async function mockToriiConfig(
   page: Page,
   {
     agents = { agents: [] },
@@ -67,7 +67,7 @@ export async function mockGatewayConfig(
     shaidenHealthy = healthy,
     toriiVersion = "0.0.0",
     shaidenVersion = "0.0.0",
-  }: MockGatewayConfig = {},
+  }: MockToriiConfig = {},
 ): Promise<void> {
   const approvalState = [...approvals];
 

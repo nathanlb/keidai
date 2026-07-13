@@ -4,13 +4,13 @@ import {
   linkedGitHubProvidersConfig,
   notLinkedGitHubProvidersConfig,
 } from "./fixtures/oauth-providers.js";
-import { mockGatewayConfig } from "./helpers/mock-gateway.js";
+import { mockToriiConfig } from "./helpers/mock-torii.js";
 
 test.describe("OAuth providers page", () => {
   test("shows the empty state when no providers are configured", async ({
     page,
   }) => {
-    await mockGatewayConfig(page, emptyOAuthProvidersConfig);
+    await mockToriiConfig(page, emptyOAuthProvidersConfig);
 
     await page.goto("/oauth-providers");
 
@@ -21,7 +21,7 @@ test.describe("OAuth providers page", () => {
   });
 
   test("lists provider config and linked owner grants", async ({ page }) => {
-    await mockGatewayConfig(page, linkedGitHubProvidersConfig);
+    await mockToriiConfig(page, linkedGitHubProvidersConfig);
 
     await page.goto("/oauth-providers");
 
@@ -39,7 +39,7 @@ test.describe("OAuth providers page", () => {
   }) => {
     let pollCount = 0;
 
-    await mockGatewayConfig(page, notLinkedGitHubProvidersConfig);
+    await mockToriiConfig(page, notLinkedGitHubProvidersConfig);
 
     await page.route("**/api/oauth/connections**", async (route) => {
       pollCount += 1;

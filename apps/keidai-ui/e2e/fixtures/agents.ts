@@ -1,5 +1,5 @@
 import type { ConfigAgentsResponse } from "@keidai/shared";
-import type { MockGatewayConfig } from "../helpers/mock-gateway.js";
+import type { MockToriiConfig } from "../helpers/mock-torii.js";
 
 const alphaK8sSubject = {
   kind: "k8s_service_account" as const,
@@ -14,6 +14,6 @@ export const alphaAgent: ConfigAgentsResponse["agents"][number] = {
   groups: [],
 };
 
-export const singleAlphaAgentConfig: Pick<MockGatewayConfig, "agents"> = {
+export const singleAlphaAgentConfig: Pick<MockToriiConfig, "agents"> = {
   agents: { agents: [alphaAgent] },
 };

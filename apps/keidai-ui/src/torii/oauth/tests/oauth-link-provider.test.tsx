@@ -3,12 +3,12 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { OAuthLinkProvider } from "../context/oauth-link-provider.js";
 import { useOAuthLink } from "../context/use-oauth-link.js";
-import * as gatewayClient from "../../api/gateway-client.js";
+import * as toriiClient from "../../api/torii-client.js";
 
-vi.mock("../../api/gateway-client.js", () => ({
+vi.mock("../../api/torii-client.js", () => ({
   fetchOAuthConnections: vi.fn(),
   initiateOAuthLink: vi.fn(),
-  getGatewayOrigin: vi.fn(() => "http://127.0.0.1:3100"),
+  getToriiOrigin: vi.fn(() => "http://127.0.0.1:3100"),
 }));
 
 vi.mock("../utils/open-oauth-popup.js", () => ({
@@ -49,7 +49,7 @@ function TestOpener({
 describe("OAuthLinkProvider", () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    vi.mocked(gatewayClient.initiateOAuthLink).mockResolvedValue({
+    vi.mocked(toriiClient.initiateOAuthLink).mockResolvedValue({
       authorizationUrl: "https://github.com/login/oauth/authorize",
       linkId: "link-1",
       redirectUri: "http://127.0.0.1:3100/oauth/callback/github",
@@ -66,7 +66,7 @@ describe("OAuthLinkProvider", () => {
     const onLinked = vi.fn();
     let pollCount = 0;
 
-    vi.mocked(gatewayClient.fetchOAuthConnections).mockImplementation(
+    vi.mocked(toriiClient.fetchOAuthConnections).mockImplementation(
       async () => {
         pollCount += 1;
         const status =

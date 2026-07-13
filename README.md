@@ -11,14 +11,14 @@ Keidai (境内) is a self-hostable ecosystem for securely configuring, running, 
 
 - **Runtime:** Node.js 24 (LTS)
 - **Monorepo:** pnpm workspaces + Turborepo
-- **Gateway (Torii):** TypeScript, Fastify, tsyringe, official MCP SDK — see [`apps/gateway/README.md`](apps/gateway/README.md)
+- **Gateway (Torii):** TypeScript, Fastify, tsyringe, official MCP SDK — see [`apps/torii/README.md`](apps/torii/README.md)
 - **Config:** `torii.yaml` at boot — no database
 
 ## Layout
 
 ```
 apps/
-  gateway/          # Torii — MCP gateway (see apps/gateway/README.md)
+  torii/            # Torii — MCP gateway (see apps/torii/README.md)
   demo-agent/       # NAT-16 demo harness (see docs/demo.md)
 packages/
   shared/           # @keidai/shared — Torii config, catalog, trace types, loadEnv
@@ -33,7 +33,7 @@ torii.example.yaml  # example server list + policy
 pnpm install
 pnpm build
 cp torii.example.yaml torii.yaml   # edit backends as needed
-pnpm --filter @keidai/gateway dev
+pnpm --filter @keidai/torii dev
 ```
 
 ## Demo
@@ -41,7 +41,7 @@ pnpm --filter @keidai/gateway dev
 Full walkthrough (env setup, OAuth linking, three-terminal run): **[docs/demo.md](docs/demo.md)**
 
 ```bash
-pnpm demo:gateway   # terminal 1 (+ Gmail MCP — see docs)
+pnpm demo:torii   # terminal 1 (+ Gmail MCP — see docs)
 pnpm demo           # terminal 2
 ```
 

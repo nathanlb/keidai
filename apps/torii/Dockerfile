@@ -9,7 +9,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json turbo.json torii.example.yaml ./
 COPY packages/shared packages/shared
 COPY packages/ui packages/ui
-COPY apps/gateway apps/gateway
+COPY apps/torii apps/torii
 COPY apps/keidai-ui apps/keidai-ui
 
 RUN pnpm install --frozen-lockfile
@@ -17,8 +17,8 @@ RUN pnpm install --frozen-lockfile
 # UI is served from Torii; run reads go to Shaiden (browser-reachable URL).
 ENV VITE_SHAIDEN_URL=http://127.0.0.1:3200
 RUN pnpm --filter @keidai/keidai-ui build
-RUN pnpm --filter @keidai/gateway build
-RUN pnpm --filter @keidai/gateway deploy --prod --legacy /out
+RUN pnpm --filter @keidai/torii build
+RUN pnpm --filter @keidai/torii deploy --prod --legacy /out
 
 FROM node:24-alpine AS runtime
 

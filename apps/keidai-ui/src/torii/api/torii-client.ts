@@ -17,7 +17,7 @@ import type {
 import type { ServiceHealth } from "../../shell/types/service-health.js";
 
 const toriiDisplayUrl =
-  import.meta.env.VITE_GATEWAY_URL ?? "http://127.0.0.1:3100";
+  import.meta.env.VITE_TORII_URL ?? "http://127.0.0.1:3100";
 
 export interface ToriiHealthResponse {
   ok: boolean;
@@ -37,8 +37,8 @@ export function getToriiDisplayAddress(): string {
   return parseDisplayAddress(toriiDisplayUrl);
 }
 
-export function getGatewayOrigin(): string {
-  const configured = import.meta.env.VITE_GATEWAY_URL;
+export function getToriiOrigin(): string {
+  const configured = import.meta.env.VITE_TORII_URL;
   if (configured) {
     return new URL(configured).origin;
   }

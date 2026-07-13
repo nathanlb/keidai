@@ -2,9 +2,9 @@ import type { OAuthConnectionStatus, OAuthLinkStatus } from "@keidai/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   fetchOAuthConnections,
-  getGatewayOrigin,
+  getToriiOrigin,
   initiateOAuthLink,
-} from "../../api/gateway-client.js";
+} from "../../api/torii-client.js";
 import { openOAuthPopup } from "../utils/open-oauth-popup.js";
 import {
   connectionStatusForProvider,
@@ -249,10 +249,10 @@ export function useOAuthLinkDialog() {
       return;
     }
 
-    const gatewayOrigin = getGatewayOrigin();
+    const toriiOrigin = getToriiOrigin();
 
     const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== gatewayOrigin || !isToriiOAuthLinkMessage(event.data)) {
+      if (event.origin !== toriiOrigin || !isToriiOAuthLinkMessage(event.data)) {
         return;
       }
 

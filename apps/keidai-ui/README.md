@@ -52,7 +52,7 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
 |----------|---------|---------|
 | `KEIDAI_UI_HOST` | `127.0.0.1` | Prod Fastify bind address |
 | `KEIDAI_UI_PORT` | `3000` | Prod Fastify listen port |
-| `VITE_GATEWAY_URL` | `http://127.0.0.1:3100` | Torii gateway origin for the dev `/api` proxy and health footer display |
+| `VITE_TORII_URL` | `http://127.0.0.1:3100` | Torii gateway origin for the dev `/api` proxy and health footer display |
 | `VITE_SHAIDEN_URL` | `http://127.0.0.1:3200` (dev proxy) / unset (same-origin) | Shaiden origin for task/run APIs; Vite proxies `/api/tasks`, `/api/runs`, and `/api/shaiden/health` in dev when unset client-side |
 
 The dev server (Vite) binds to `127.0.0.1:3000` — see `vite.config.ts`.
@@ -63,7 +63,7 @@ The dev server (Vite) binds to `127.0.0.1:3000` — see `vite.config.ts`.
 
 Vite serves the client with HMR on `127.0.0.1:3000`, proxies `/api/tasks`,
 `/api/runs`, and `/api/shaiden/health` to `VITE_SHAIDEN_URL`, and proxies other
-`/api` paths to `VITE_GATEWAY_URL` (see `vite.config.ts`). Client-side routes
+`/api` paths to `VITE_TORII_URL` (see `vite.config.ts`). Client-side routes
 fall back to `index.html` automatically. There is no separate server process to
 manage.
 
@@ -90,5 +90,5 @@ await registerUiStatic(app, { clientRoot: "<keidai-ui>/dist/client" });
 ```
 
 One origin then serves `/mcp`, `/api/*`, and the SPA. At that point
-`registerUiStatic` moves into a shared server package so `apps/gateway` imports
+`registerUiStatic` moves into a shared server package so `apps/torii` imports
 it directly rather than reaching across apps. No dev-only proxy code is involved.

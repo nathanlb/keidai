@@ -1,6 +1,6 @@
 import { cn } from "@keidai/ui";
 import type { ServiceHealth } from "../../types/service-health.js";
-import { useGatewayStatus } from "../../hooks/use-gateway-status.js";
+import { useToriiStatus } from "../../hooks/use-torii-status.js";
 import { useShaidenStatus } from "../../hooks/use-shaiden-status.js";
 
 function formatServiceMeta(status: ServiceHealth): string {
@@ -46,7 +46,7 @@ function ServiceHealthRow({ name, status, testId }: ServiceHealthRowProps) {
 }
 
 export function BackendHealthFooter() {
-  const { status: torii } = useGatewayStatus();
+  const { status: torii } = useToriiStatus();
   const { status: shaiden } = useShaidenStatus();
 
   return (
@@ -56,6 +56,3 @@ export function BackendHealthFooter() {
     </div>
   );
 }
-
-/** @deprecated Use BackendHealthFooter */
-export const GatewayHealthFooter = BackendHealthFooter;

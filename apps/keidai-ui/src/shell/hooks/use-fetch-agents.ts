@@ -1,5 +1,5 @@
 import useSWR from "swr";
-import { fetchAgents } from "../../torii/api/gateway-client.js";
+import { fetchAgents } from "../../torii/api/torii-client.js";
 
 export const AGENTS_KEY = "agents";
 

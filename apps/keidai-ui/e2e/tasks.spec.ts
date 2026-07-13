@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { PublicAgentConfig, RunReport } from "@keidai/shared";
-import { mockGatewayConfig } from "./helpers/mock-gateway.js";
+import { mockToriiConfig } from "./helpers/mock-torii.js";
 
 const shaidenAgent: PublicAgentConfig = {
   agent_id: "shaiden-newsletter-01",
@@ -25,7 +25,7 @@ const runFromTask: RunReport = {
 
 test.describe("Shaiden tasks", () => {
   test("authors a task and navigates to the new run", async ({ page }) => {
-    await mockGatewayConfig(page, {
+    await mockToriiConfig(page, {
       agents: { agents: [shaidenAgent] },
       runDetails: { "run-from-task": runFromTask },
     });
@@ -55,7 +55,7 @@ test.describe("Shaiden tasks", () => {
   test("opens the authoring dialog from the runs deep link", async ({
     page,
   }) => {
-    await mockGatewayConfig(page, {
+    await mockToriiConfig(page, {
       agents: { agents: [shaidenAgent] },
     });
 

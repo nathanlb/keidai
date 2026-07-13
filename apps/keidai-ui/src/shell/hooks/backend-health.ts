@@ -2,7 +2,7 @@ import type { ServiceHealth } from "../types/service-health.js";
 import {
   fetchToriiHealth,
   getToriiDisplayAddress,
-} from "../../torii/api/gateway-client.js";
+} from "../../torii/api/torii-client.js";
 import {
   fetchShaidenHealth,
   getShaidenDisplayAddress,

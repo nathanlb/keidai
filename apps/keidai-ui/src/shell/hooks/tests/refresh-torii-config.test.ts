@@ -1,16 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
-import { refreshGatewayConfig } from "../refresh-gateway-config.js";
+import { refreshToriiConfig } from "../refresh-torii-config.js";
 import { AGENTS_KEY } from "../use-fetch-agents.js";
 import { OAUTH_CONNECTIONS_KEY_PREFIX } from "../use-fetch-oauth-connections.js";
 import { OAUTH_PROVIDERS_KEY } from "../use-fetch-oauth-providers.js";
 import { SERVERS_KEY } from "../use-fetch-servers.js";
 import { TORII_STATUS_KEY, SHAIDEN_STATUS_KEY } from "../backend-health.js";
 
-describe("refreshGatewayConfig", () => {
+describe("refreshToriiConfig", () => {
   it("revalidates config and oauth connection caches", () => {
     const mutate = vi.fn().mockResolvedValue(undefined);
 
-    refreshGatewayConfig(mutate);
+    refreshToriiConfig(mutate);
 
     expect(mutate).toHaveBeenCalledWith(
       TORII_STATUS_KEY,

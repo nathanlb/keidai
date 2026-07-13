@@ -1,4 +1,4 @@
-import type { MockGatewayConfig } from "../helpers/mock-gateway.js";
+import type { MockToriiConfig } from "../helpers/mock-torii.js";
 import { singleAlphaAgentConfig } from "./agents.js";
 
 export const githubOAuthProvider = {
@@ -9,11 +9,11 @@ export const githubOAuthProvider = {
   pkce: true,
 };
 
-export const emptyOAuthProvidersConfig: MockGatewayConfig = {
+export const emptyOAuthProvidersConfig: MockToriiConfig = {
   oauthProviders: { providers: {} },
 };
 
-export const linkedGitHubProvidersConfig: MockGatewayConfig = {
+export const linkedGitHubProvidersConfig: MockToriiConfig = {
   ...singleAlphaAgentConfig,
   oauthProviders: {
     providers: {
@@ -34,7 +34,7 @@ export const linkedGitHubProvidersConfig: MockGatewayConfig = {
   },
 };
 
-export const notLinkedGitHubProvidersConfig: MockGatewayConfig = {
+export const notLinkedGitHubProvidersConfig: MockToriiConfig = {
   ...singleAlphaAgentConfig,
   oauthProviders: {
     providers: {
