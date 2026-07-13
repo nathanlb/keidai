@@ -9,8 +9,8 @@ import {
   TableRow,
 } from "@keidai/ui";
 import { Search, Workflow } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { RunReport } from "@keidai/shared";
+import { useCallback, useMemo, useState } from "react";
+import { useFetchRun } from "../../shell/hooks/use-fetch-run.js";
 import { useRuns } from "../../shell/hooks/use-runs.js";
 import { RunDetailDrawer } from "./run-detail-drawer.js";
 import { RunsSearchBar } from "./runs-search-bar.js";
@@ -34,7 +34,7 @@ function RunsEmptyState() {
         </span>
         <div className="mt-4 text-base font-semibold">No runs yet</div>
         <p className="mt-1.5 max-w-[380px] text-[13px] leading-normal text-muted-foreground">
-          Start the Shaiden harness to observe step sequence, tool calls, and
+          Start the Shaiden runtime to observe step sequence, tool calls, and
           termination outcome here.
         </p>
       </CardContent>
@@ -51,7 +51,9 @@ function RunsNoMatchEmptyState({
     <Card className="shadow-none">
       <CardContent className="flex flex-col items-center px-6 py-12 text-center">
         <Search className="size-[18px] text-muted-foreground" aria-hidden />
-        <div className="mt-3 text-sm font-semibold">No runs match these filters</div>
+        <div className="mt-3 text-sm font-semibold">
+          No runs match these filters
+        </div>
         <p className="mt-1 text-[12.5px] text-muted-foreground">
           Try a different status or search term.
         </p>
@@ -72,35 +74,19 @@ function RunsNoMatchEmptyState({
 export function RunVisibilityView() {
   const [filters, setFilters] = useState<RunFilters>(EMPTY_RUN_FILTERS);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
-  const [selectedRun, setSelectedRun] = useState<RunReport | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { runs, error, isLoading, suspendedRunIds, loadRun, refresh } =
-    useRuns(true);
+  const { runs, error, isLoading, suspendedRunIds, refresh } = useRuns(true);
+  const { data: fetchedRun, refresh: refreshRun } = useFetchRun(selectedRunId);
 
-  useEffect(() => {
+  const selectedRun = useMemo(() => {
     if (!selectedRunId) {
-      setSelectedRun(null);
-      return;
+      return null;
     }
-
-    let cancelled = false;
-    void (async () => {
-      try {
-        const run = await loadRun(selectedRunId);
-        if (!cancelled) {
-          setSelectedRun(run);
-        }
-      } catch {
-        if (!cancelled) {
-          setSelectedRun(null);
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [loadRun, selectedRunId, runs]);
+    if (fetchedRun?.id === selectedRunId) {
+      return fetchedRun;
+    }
+    return null;
+  }, [fetchedRun, selectedRunId]);
 
   const stats = useMemo(
     () => summarizeRunStats(runs, suspendedRunIds),
@@ -136,17 +122,9 @@ export function RunVisibilityView() {
     if (!selectedRunId) {
       return;
     }
-
-    void (async () => {
-      try {
-        const run = await loadRun(selectedRunId);
-        setSelectedRun(run);
-        await refresh();
-      } catch {
-        setSelectedRun(null);
-      }
-    })();
-  }, [loadRun, refresh, selectedRunId]);
+    void refreshRun();
+    void refresh();
+  }, [refresh, refreshRun, selectedRunId]);
 
   if (isLoading && runs.length === 0) {
     return <p className="text-sm text-muted-foreground">Loading runs…</p>;
@@ -155,7 +133,7 @@ export function RunVisibilityView() {
   if (error) {
     return (
       <p className="text-sm text-destructive">
-        Could not load runs from the gateway.
+        Could not load runs from the service.
       </p>
     );
   }
@@ -177,7 +155,9 @@ export function RunVisibilityView() {
 
       <RunsSearchBar
         query={filters.query}
-        onQueryChange={(query) => setFilters((current) => ({ ...current, query }))}
+        onQueryChange={(query) =>
+          setFilters((current) => ({ ...current, query }))
+        }
       />
 
       <RunsStatusChips

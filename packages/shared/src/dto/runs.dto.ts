@@ -19,6 +19,8 @@ export interface RunStep {
   status?: "ok" | "error" | "approval_required";
   approvalId?: string;
   charCount?: number;
+  /** Torii `CallTrace.traceId` for this tool call, when available. */
+  traceId?: string;
 }
 
 export interface RunListItem {

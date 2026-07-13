@@ -26,7 +26,9 @@ CREATE TABLE IF NOT EXISTS call_traces (
   credential_ref TEXT,
   policy_decision TEXT NOT NULL,
   duration_ms INTEGER,
-  error TEXT
+  error TEXT,
+  run_id TEXT,
+  step_id TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_call_traces_timestamp
@@ -44,10 +46,24 @@ function ensureOAuthClientRedirectUriColumn(db: DatabaseSync): void {
   }
 }
 
+function ensureCallTraceCorrelationColumns(db: DatabaseSync): void {
+  const columns = db
+    .prepare("PRAGMA table_info(call_traces)")
+    .all() as Array<{ name: string }>;
+  const columnNames = new Set(columns.map((column) => column.name));
+  if (!columnNames.has("run_id")) {
+    db.exec("ALTER TABLE call_traces ADD COLUMN run_id TEXT");
+  }
+  if (!columnNames.has("step_id")) {
+    db.exec("ALTER TABLE call_traces ADD COLUMN step_id TEXT");
+  }
+}
+
 export function openGatewayDatabase(databasePath: string): DatabaseSync {
   const db = new DatabaseSync(databasePath);
   db.exec("PRAGMA journal_mode = WAL");
   db.exec(SCHEMA_SQL);
   ensureOAuthClientRedirectUriColumn(db);
+  ensureCallTraceCorrelationColumns(db);
   return db;
 }

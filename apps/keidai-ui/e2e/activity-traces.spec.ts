@@ -73,6 +73,33 @@ test.describe("Activity & traces", () => {
     await expect(drawer.getByText("Credential resolution")).toBeVisible();
   });
 
+  test("opens the trace drawer from a trace_id query param", async ({ page }) => {
+    await mockGatewayConfig(page, {
+      traces: { traces: sampleTraces },
+      traceStats: {
+        windowMs: 900_000,
+        callsPerMinute: 8,
+        successRate: 0.5,
+        p50DurationMs: 210,
+        p95DurationMs: 840,
+        deniedCount: 1,
+        linkingRequiredCount: 0,
+      },
+    });
+
+    await page.goto("/activity?trace_id=trace-denied");
+
+    const drawer = page.getByRole("dialog");
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByText("trace-denied")).toBeVisible();
+    await expect(page).toHaveURL(/trace_id=trace-denied/);
+
+    await page.getByRole("button", { name: "Close" }).click();
+    await expect(drawer).not.toBeVisible();
+    await expect(page).toHaveURL(/\/activity(?:\?.*)?$/);
+    await expect(page.url()).not.toContain("trace_id=");
+  });
+
   test("shows idle and no-match empty states", async ({ page }) => {
     await mockGatewayConfig(page, {
       traces: { traces: sampleTraces },

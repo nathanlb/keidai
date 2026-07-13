@@ -21,4 +21,8 @@ export interface CallTrace {
   /** Omitted when the backend was never reached (e.g. policy denied). */
   durationMs?: number;
   error?: string;
+  /** Opaque correlation ref — stored/echoed only. */
+  runId?: string;
+  /** Opaque correlation ref — stored/echoed only. */
+  stepId?: string;
 }

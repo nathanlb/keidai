@@ -2,7 +2,7 @@ import "reflect-metadata";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ToriiConfig } from "@keidai/shared";
-import { PolicyDecision } from "@keidai/shared";
+import { PolicyDecision, TORII_RUN_ID_ARG, TORII_STEP_ID_ARG, TORII_CALL_META_KEY } from "@keidai/shared";
 import { ConnectionManager } from "../../connections/connection-manager.service.js";
 import { DefaultMcpClientConnector } from "../../connections/mcp-client-connector.service.js";
 import { startMockMcpServer } from "../../connections/tests/mock-mcp-server.js";
@@ -359,6 +359,72 @@ describe("ToolDispatchService", () => {
       );
 
       assert.notEqual(result.isError, true);
+    } finally {
+      await stack.close();
+      await mockServer.close();
+    }
+  });
+
+  it("returns traceId in MCP _meta and persists run/step correlation", async () => {
+    const mockServer = await startMockMcpServer({
+      tools: [{ name: "read_wiki_structure", description: "Read wiki" }],
+    });
+    const stack = await createDispatchStack([
+      noneServer("deepwiki", mockServer.url),
+    ]);
+
+    try {
+      await withStubAgentPrincipal(async () => {
+        await stack.connectionManager.connectAll();
+        await stack.toolCatalog.refresh();
+
+        const result = await stack.toolDispatch.callTool(
+          "deepwiki.read_wiki_structure",
+          {
+            [TORII_RUN_ID_ARG]: "run-123",
+            [TORII_STEP_ID_ARG]: "step-456",
+          },
+        );
+
+        assert.equal(stack.traceEmitter.traces.length, 1);
+        const trace = stack.traceEmitter.traces[0]!;
+        assert.equal(trace.runId, "run-123");
+        assert.equal(trace.stepId, "step-456");
+        assert.deepEqual(result._meta?.[TORII_CALL_META_KEY], {
+          traceId: trace.traceId,
+        });
+      });
+    } finally {
+      await stack.close();
+      await mockServer.close();
+    }
+  });
+
+  it("omits run/step correlation when meta args are absent", async () => {
+    const mockServer = await startMockMcpServer({
+      tools: [{ name: "read_wiki_structure", description: "Read wiki" }],
+    });
+    const stack = await createDispatchStack([
+      noneServer("deepwiki", mockServer.url),
+    ]);
+
+    try {
+      await withStubAgentPrincipal(async () => {
+        await stack.connectionManager.connectAll();
+        await stack.toolCatalog.refresh();
+
+        const result = await stack.toolDispatch.callTool(
+          "deepwiki.read_wiki_structure",
+          {},
+        );
+
+        const trace = stack.traceEmitter.traces[0]!;
+        assert.equal(trace.runId, undefined);
+        assert.equal(trace.stepId, undefined);
+        assert.deepEqual(result._meta?.[TORII_CALL_META_KEY], {
+          traceId: trace.traceId,
+        });
+      });
     } finally {
       await stack.close();
       await mockServer.close();

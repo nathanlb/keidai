@@ -18,6 +18,7 @@ export interface RunReporter {
     status?: "ok" | "error" | "approval_required";
     approvalId?: string;
     charCount?: number;
+    traceId?: string;
   }): void;
   complete(outcome: TerminationOutcome): void;
 }
