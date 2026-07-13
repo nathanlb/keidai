@@ -94,7 +94,7 @@ test.describe("Activity & traces", () => {
     await expect(drawer.getByText("trace-denied")).toBeVisible();
     await expect(page).toHaveURL(/trace_id=trace-denied/);
 
-    await page.getByRole("button", { name: "Close" }).click();
+    await drawer.getByRole("button", { name: "Close" }).last().click();
     await expect(drawer).not.toBeVisible();
     await expect(page).toHaveURL(/\/activity(?:\?.*)?$/);
     await expect(page.url()).not.toContain("trace_id=");
