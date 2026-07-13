@@ -6,6 +6,7 @@ import {
   NavIcon,
   NavLabel,
   navItemClassName,
+  sidebarNavLinkTestId,
 } from "../shell/components/sidebar/nav-primitives.js";
 import { NavPendingBadge } from "../shell/components/sidebar/approvals-pending-footer.js";
 import { toriiNavItems } from "./navigation.js";
@@ -16,7 +17,7 @@ export function ToriiSidebarNav() {
 
   return (
     <>
-      <NavLabel spaced>
+      <NavLabel spaced section="torii">
         Torii
         <span
           className={cn(
@@ -31,6 +32,7 @@ export function ToriiSidebarNav() {
         <NavLink
           key={item.path}
           to={item.path}
+          data-testid={sidebarNavLinkTestId(item.path)}
           className={({ isActive }) =>
             cn(
               navItemClassName,

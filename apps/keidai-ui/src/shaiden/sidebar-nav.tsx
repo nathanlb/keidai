@@ -5,6 +5,7 @@ import {
   NavIcon,
   NavLabel,
   navItemClassName,
+  sidebarNavLinkTestId,
 } from "../shell/components/sidebar/nav-primitives.js";
 import { shaidenNavItems } from "./navigation.js";
 
@@ -13,7 +14,7 @@ export function ShaidenSidebarNav() {
 
   return (
     <>
-      <NavLabel spaced>
+      <NavLabel spaced section="shaiden">
         Shaiden
         <span
           className={cn(
@@ -28,6 +29,7 @@ export function ShaidenSidebarNav() {
         <NavLink
           key={item.path}
           to={item.path}
+          data-testid={sidebarNavLinkTestId(item.path)}
           className={({ isActive }) =>
             cn(
               navItemClassName,

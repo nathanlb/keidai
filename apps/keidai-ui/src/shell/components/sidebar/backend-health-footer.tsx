@@ -15,11 +15,12 @@ function formatServiceMeta(status: ServiceHealth): string {
 interface ServiceHealthRowProps {
   name: string;
   status: ServiceHealth;
+  testId: string;
 }
 
-function ServiceHealthRow({ name, status }: ServiceHealthRowProps) {
+function ServiceHealthRow({ name, status, testId }: ServiceHealthRowProps) {
   return (
-    <div className="flex items-start gap-2">
+    <div className="flex items-start gap-2" data-testid={testId}>
       <span
         className={cn(
           "mt-1.5 size-2 shrink-0 rounded-full",
@@ -50,8 +51,8 @@ export function BackendHealthFooter() {
 
   return (
     <div className="m-2 flex flex-col gap-2.5 border-t border-sidebar-border p-2.5">
-      <ServiceHealthRow name="Torii" status={torii} />
-      <ServiceHealthRow name="Shaiden" status={shaiden} />
+      <ServiceHealthRow name="Torii" status={torii} testId="backend-health-torii" />
+      <ServiceHealthRow name="Shaiden" status={shaiden} testId="backend-health-shaiden" />
     </div>
   );
 }

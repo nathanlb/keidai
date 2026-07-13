@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { mockGatewayConfig } from "./helpers/mock-gateway.js";
+import { sidebarNavLink, sidebarNavSection } from "./helpers/sidebar.js";
 
 test.describe("Torii navigation", () => {
   test.beforeEach(async ({ page }) => {
@@ -32,8 +33,8 @@ test.describe("Torii navigation", () => {
   }) => {
     await page.goto("/connections");
 
-    await expect(page.getByText("Shaiden", { exact: true })).toBeVisible();
-    await page.getByRole("link", { name: "Tasks" }).click();
+    await expect(sidebarNavSection(page, "shaiden")).toBeVisible();
+    await sidebarNavLink(page, "/shaiden/tasks").click();
     await expect(page).toHaveURL(/\/shaiden\/runs\?new_task=1$/);
     await expect(page.getByRole("dialog")).toBeVisible();
     await expect(
@@ -47,7 +48,7 @@ test.describe("Torii navigation", () => {
     await expect(page.getByRole("dialog")).toBeHidden();
     await expect(page).toHaveURL(/\/shaiden\/runs$/);
 
-    await page.getByRole("link", { name: "Runs" }).click();
+    await sidebarNavLink(page, "/shaiden/runs").click();
     await expect(page).toHaveURL(/\/shaiden\/runs$/);
     await expect(
       page.getByText(

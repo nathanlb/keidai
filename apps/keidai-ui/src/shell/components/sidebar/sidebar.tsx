@@ -28,6 +28,7 @@ export function SidebarPanel({
       </div>
 
       <div
+        data-testid="sidebar-nav"
         className="flex flex-1 flex-col gap-px overflow-y-auto p-2 pt-2.5"
         onClick={onNavInteract}
       >
