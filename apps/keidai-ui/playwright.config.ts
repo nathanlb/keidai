@@ -6,12 +6,12 @@ export default defineConfig({
   testDir: "e2e",
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
-  retries: process.env.CI ? 2 : 0,
+  retries: 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: "list",
   use: {
     baseURL,
-    trace: "on-first-retry",
+    trace: process.env.CI ? "retain-on-failure" : "on-first-retry",
   },
   webServer: {
     command: "pnpm exec vite",

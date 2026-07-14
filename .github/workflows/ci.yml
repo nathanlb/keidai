@@ -8,29 +8,42 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-test:
+  packages:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm turbo run build test --filter=@keidai/shared
+      - run: pnpm turbo run build typecheck --filter=@keidai/ui
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+  torii:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/setup
+      - run: pnpm turbo run build test --filter=@keidai/torii...
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+  shaiden:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/setup
+      - run: pnpm turbo run build test --filter=@keidai/shaiden...
+
+  keidai-ui-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/setup
+      - run: pnpm turbo run build --filter=@keidai/keidai-ui...
+      - run: pnpm --filter @keidai/keidai-ui exec vitest run --project unit
+      - run: pnpm --filter @keidai/keidai-ui run test:server
+
+  keidai-ui-browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/setup
+      - uses: actions/cache@v4
         with:
-          node-version-file: package.json
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Install Playwright browsers
-        run: pnpm --filter @keidai/keidai-ui exec playwright install chromium
-
-      - name: Build
-        run: pnpm build
-
-      - name: Test
-        run: pnpm test
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm --filter @keidai/keidai-ui exec playwright install chromium
+      - run: pnpm turbo run build --filter=@keidai/keidai-ui...
+      - run: pnpm --filter @keidai/keidai-ui exec vitest run --project browser
+      - run: pnpm --filter @keidai/keidai-ui run test:e2e
