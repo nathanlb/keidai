@@ -10,6 +10,7 @@ import type {
   ServerToolsResponse,
   RunReport,
   RunsResponse,
+  SavedTask,
   TasksResponse,
   TraceListItem,
   TraceStatsResponse,
@@ -73,6 +74,7 @@ export async function mockToriiConfig(
   }: MockToriiConfig = {},
 ): Promise<void> {
   const approvalState = [...approvals];
+  const taskState: SavedTask[] = [...tasks.tasks];
 
   await page.route("**/api/health", async (route) => {
     if (!healthy) {
@@ -298,7 +300,56 @@ export async function mockToriiConfig(
     }
 
     if (route.request().method() === "GET") {
-      await route.fulfill({ json: tasks });
+      await route.fulfill({ json: { tasks: taskState } });
+      return;
+    }
+
+    await route.continue();
+  });
+
+  await page.route(/\/api\/tasks\/([^/?]+)$/, async (route) => {
+    if (!healthy) {
+      await route.fulfill({ status: 503, body: "Gateway unavailable" });
+      return;
+    }
+
+    const url = new URL(route.request().url());
+    const taskId = decodeURIComponent(url.pathname.split("/").at(-1) ?? "");
+
+    if (taskId === "runtime" || taskId === "run") {
+      await route.continue();
+      return;
+    }
+
+    const index = taskState.findIndex((task) => task.id === taskId);
+
+    if (route.request().method() === "GET") {
+      if (index === -1) {
+        await route.fulfill({ status: 404, json: { error: "task not found" } });
+        return;
+      }
+
+      await route.fulfill({ json: { task: taskState[index] } });
+      return;
+    }
+
+    if (route.request().method() === "PATCH") {
+      if (index === -1) {
+        await route.fulfill({ status: 404, json: { error: "task not found" } });
+        return;
+      }
+
+      const body = route.request().postDataJSON() as Partial<SavedTask>;
+      const current = taskState[index]!;
+      const updated: SavedTask = {
+        ...current,
+        ...body,
+        id: current.id,
+        createdAt: current.createdAt,
+        updatedAt: new Date().toISOString(),
+      };
+      taskState[index] = updated;
+      await route.fulfill({ json: { task: updated } });
       return;
     }
 

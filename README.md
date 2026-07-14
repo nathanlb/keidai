@@ -47,7 +47,7 @@ pnpm demo           # terminal 2
 
 ## Docs
 
-- [Keidai — Agent Platform](https://app.notion.com/p/Keidai-Agent-Platform-38307ec181ff815b8276d59d005fd612) — ecosystem vision, component boundaries, v0 vs vX
+- [Keidai — Agent Ecosystem](https://app.notion.com/p/Keidai-Agent-Platform-38307ec181ff815b8276d59d005fd612) — ecosystem vision, component boundaries, v0 vs vX
 - [Torii — MCP Gateway](https://app.notion.com/p/Torii-MCP-Gateway-36c07ec181ff813d8f34f9b0e617de34) — gateway contracts and implementation
 
 ## License

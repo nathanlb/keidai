@@ -23,6 +23,7 @@ import {
   Lock,
   Play,
   Repeat,
+  Save,
   SlidersHorizontal,
   Target,
   Timer,
@@ -37,7 +38,7 @@ import {
   type ReactNode,
 } from "react";
 import { useNavigate } from "react-router-dom";
-import { startTaskRun } from "../api/shaiden-client.js";
+import { fetchTask, startTaskRun, updateTask } from "../api/shaiden-client.js";
 import { useFetchTaskRuntime } from "../hooks/use-fetch-task-runtime.js";
 import { useActingOwner } from "../../shell/hooks/use-acting-owner.js";
 import { useFetchAgents } from "../../shell/hooks/use-fetch-agents.js";
@@ -162,14 +163,19 @@ function AssigneeTriggerContent({
 }
 
 interface TaskAuthoringViewProps {
+  taskId?: string;
   onCancel?: () => void;
-  onTaskCreated?: () => void;
+  onTaskSaved?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 export function TaskAuthoringView({
+  taskId,
   onCancel,
-  onTaskCreated,
+  onTaskSaved,
+  onDirtyChange,
 }: TaskAuthoringViewProps) {
+  const isEditMode = Boolean(taskId);
   const navigate = useNavigate();
   const goalId = useId();
 
@@ -203,9 +209,68 @@ export function TaskAuthoringView({
   const [assignee, setAssignee] = useState("");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingTask, setIsLoadingTask] = useState(isEditMode);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [savedSnapshot, setSavedSnapshot] = useState<{
+    goal: string;
+    assignee: string;
+  } | null>(null);
+
+  const isDirty =
+    isEditMode &&
+    savedSnapshot !== null &&
+    (goal.trim() !== savedSnapshot.goal.trim() ||
+      assignee !== savedSnapshot.assignee);
 
   useEffect(() => {
-    if (assignee || !runtimeAgentId) {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    if (!taskId) {
+      setGoal("");
+      setAssignee("");
+      setLoadError(null);
+      setIsLoadingTask(false);
+      setSavedSnapshot(null);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoadingTask(true);
+    setLoadError(null);
+    setSavedSnapshot(null);
+
+    void fetchTask(taskId)
+      .then(({ task }) => {
+        if (cancelled) {
+          return;
+        }
+        setGoal(task.goal);
+        setAssignee(task.assignee);
+        setSavedSnapshot({ goal: task.goal, assignee: task.assignee });
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+        setLoadError(
+          error instanceof Error ? error.message : "Failed to load task",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingTask(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [taskId]);
+
+  useEffect(() => {
+    if (isEditMode || assignee || !runtimeAgentId) {
       return;
     }
     const connected = options.find(
@@ -214,7 +279,7 @@ export function TaskAuthoringView({
     if (connected) {
       setAssignee(connected.agentId);
     }
-  }, [assignee, options, runtimeAgentId]);
+  }, [assignee, isEditMode, options, runtimeAgentId]);
 
   const selectedOption =
     options.find((option) => option.agentId === assignee) ?? null;
@@ -223,7 +288,10 @@ export function TaskAuthoringView({
     goal.trim().length > 0 &&
     Boolean(runtimeAgentId) &&
     assignee === runtimeAgentId &&
+    (!isEditMode || isDirty) &&
     !isSubmitting &&
+    !isLoadingTask &&
+    !loadError &&
     !agentsLoading &&
     !runtimeLoading &&
     !agentsError &&
@@ -243,12 +311,22 @@ export function TaskAuthoringView({
 
     setIsSubmitting(true);
     try {
+      if (taskId) {
+        await updateTask(taskId, task);
+        onTaskSaved?.();
+        return;
+      }
+
       const { runId } = await startTaskRun(task);
-      onTaskCreated?.();
+      onTaskSaved?.();
       void navigate(`/shaiden/runs?run=${encodeURIComponent(runId)}`);
     } catch (error) {
       setSubmitError(
-        error instanceof Error ? error.message : "Failed to start task",
+        error instanceof Error
+          ? error.message
+          : taskId
+            ? "Failed to save task"
+            : "Failed to start task",
       );
     } finally {
       setIsSubmitting(false);
@@ -269,6 +347,17 @@ export function TaskAuthoringView({
       onSubmit={onSubmit}
     >
       <div className="min-h-0 flex-1 overflow-y-auto px-6">
+        {isLoadingTask ? (
+          <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+            Loading task…
+          </div>
+        ) : null}
+
+        {loadError ? (
+          <p className="py-8 text-sm text-destructive">{loadError}</p>
+        ) : isLoadingTask ? null : (
+          <>
         <section className="border-b border-border py-5">
           <FieldHeader
             icon={<Target className="size-4" aria-hidden />}
@@ -446,6 +535,8 @@ export function TaskAuthoringView({
         {submitError ? (
           <p className="pb-5 text-sm text-destructive">{submitError}</p>
         ) : null}
+          </>
+        )}
       </div>
 
       <div className="flex shrink-0 flex-col gap-3 border-t border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -467,10 +558,12 @@ export function TaskAuthoringView({
           >
             {isSubmitting ? (
               <Loader2 className="size-4 animate-spin" aria-hidden />
+            ) : isEditMode ? (
+              <Save className="size-4" aria-hidden />
             ) : (
               <Play className="size-4" aria-hidden />
             )}
-            Create & run
+            {isEditMode ? "Save changes" : "Create & run"}
           </Button>
         </div>
       </div>
