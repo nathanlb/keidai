@@ -18,10 +18,12 @@ Keidai (境内) is a self-hostable ecosystem for securely configuring, running, 
 
 ```
 apps/
-  torii/            # Torii — MCP gateway (see apps/torii/README.md)
-  demo-agent/       # NAT-16 demo harness (see docs/demo.md)
+  keidai-ui/        # Web UI for managing and controling the Keidai ecosystem
+  shaiden/          # Shaiden - Agent runtime for the ecosystem
+  torii/            # Torii - MCP gateway (see apps/torii/README.md)
 packages/
-  shared/           # @keidai/shared — Torii config, catalog, trace types, loadEnv
+  shared/           # @keidai/shared - Torii config, catalog, trace types, loadEnv
+  ui/               # @keidai/ui - Shared shadcn-based UI component library
 docs/
   demo.md           # how to run the open-torii demo end-to-end
 torii.example.yaml  # example server list + policy

@@ -11,8 +11,7 @@
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
-    "demo": "pnpm --filter @keidai/demo-agent start",
-    "demo:torii": "pnpm --filter @keidai/torii dev",
+    "torii:dev": "pnpm --filter @keidai/torii dev",
     "shaiden": "pnpm --filter @keidai/shaiden start",
     "shaiden:dev": "pnpm --filter @keidai/shaiden dev"
   },

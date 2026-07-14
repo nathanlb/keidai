@@ -18,34 +18,6 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
-  apps/demo-agent:
-    dependencies:
-      '@ai-sdk/mcp':
-        specifier: ^0.0.11
-        version: 0.0.11(zod@3.25.76)
-      '@ai-sdk/openai':
-        specifier: ^2.0.109
-        version: 2.0.109(zod@3.25.76)
-      '@keidai/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
-      '@modelcontextprotocol/sdk':
-        specifier: ^1.29.0
-        version: 1.29.0(zod@3.25.76)
-      ai:
-        specifier: ^5.0.205
-        version: 5.0.205(zod@3.25.76)
-    devDependencies:
-      '@types/node':
-        specifier: ^22.20.0
-        version: 22.20.0
-      tsx:
-        specifier: ^4.22.4
-        version: 4.22.4
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
-
   apps/keidai-ui:
     dependencies:
       '@fastify/static':
@@ -308,20 +280,8 @@ packages:
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
-  '@ai-sdk/mcp@0.0.11':
-    resolution: {integrity: sha512-n0oZsxhPdMaXhAn6LrpMpxABufmeSatfhR3epbrCjJcLEHPOucKwQciwE8CTgIGgwBxHNy1FFLZmcFI77JmJfg==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.25.76 || ^4.1.8
-
   '@ai-sdk/openai@2.0.109':
     resolution: {integrity: sha512-i2no65RS/08qjB+m3zmAej5AqO4JtTTxdfpWusgA9p73K6TYn7t15h76MZPQVT8tYv5hDR1nHRELuAWaXZyb9g==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.25.76 || ^4.1.8
-
-  '@ai-sdk/provider-utils@3.0.18':
-    resolution: {integrity: sha512-ypv1xXMsgGcNKUP+hglKqtdDuMg68nWHucPPAhIENrbFAI+xCHiqPVN8Zllxyv1TNZwGWUghPxJXU+Mqps0YRQ==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -331,10 +291,6 @@ packages:
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
-
-  '@ai-sdk/provider@2.0.0':
-    resolution: {integrity: sha512-6o7Y2SeO9vFKB8lArHXehNuusnpddKPk7xqL7T2/b+OvXMRIXUO1rR4wcv1hAFUAT9avGZshty3Wlua/XA7TvA==}
-    engines: {node: '>=18'}
 
   '@ai-sdk/provider@2.0.3':
     resolution: {integrity: sha512-h88OPkavHTiN9tMn2l5awAznGB0lXzjcLhgR1/rvjB2zlLprsNxbM2tt6OJsHUxduLC3klq0/eqaSf6fX5XVww==}
@@ -3557,24 +3513,10 @@ snapshots:
       '@vercel/oidc': 3.1.0
       zod: 3.25.76
 
-  '@ai-sdk/mcp@0.0.11(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.18(zod@3.25.76)
-      pkce-challenge: 5.0.1
-      zod: 3.25.76
-
   '@ai-sdk/openai@2.0.109(zod@3.25.76)':
     dependencies:
       '@ai-sdk/provider': 2.0.3
       '@ai-sdk/provider-utils': 3.0.27(zod@3.25.76)
-      zod: 3.25.76
-
-  '@ai-sdk/provider-utils@3.0.18(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.0
-      '@standard-schema/spec': 1.1.0
-      eventsource-parser: 3.1.0
       zod: 3.25.76
 
   '@ai-sdk/provider-utils@3.0.27(zod@3.25.76)':
@@ -3583,10 +3525,6 @@ snapshots:
       '@standard-schema/spec': 1.1.0
       eventsource-parser: 3.1.0
       zod: 3.25.76
-
-  '@ai-sdk/provider@2.0.0':
-    dependencies:
-      json-schema: 0.4.0
 
   '@ai-sdk/provider@2.0.3':
     dependencies:
