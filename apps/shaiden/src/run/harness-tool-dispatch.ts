@@ -46,7 +46,7 @@ export function createHarnessToolDispatcher({
         isError: true,
         text: errorMessage,
       });
-      throw new Error(errorMessage);
+      return { isError: true, text: errorMessage };
     }
 
     const args = {
@@ -76,11 +76,9 @@ export function createHarnessToolDispatcher({
         status: "error",
         error: errorMessage,
       });
-      recordToolResult(reporter, call, {
-        isError: true,
-        text: errorMessage,
-      });
-      throw error;
+      const errorResult = { isError: true as const, text: errorMessage };
+      recordToolResult(reporter, call, errorResult);
+      return errorResult;
     }
 
     logger?.info("run.tool_result", {

@@ -45,7 +45,13 @@ export interface ApprovalWaitContext {
 export type ConversationEntry =
   | { role: "user"; text: string }
   | { role: "assistant"; text: string; toolCalls: ModelToolCall[] }
-  | { role: "tool"; toolCallId: string; toolName: string; output: string };
+  | {
+      role: "tool";
+      toolCallId: string;
+      toolName: string;
+      output: string;
+      isError?: boolean;
+    };
 
 export interface TaskLoopDeps {
   callModel: (history: ConversationEntry[]) => Promise<ModelStep>;

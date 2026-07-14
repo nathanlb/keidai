@@ -22,8 +22,8 @@ function describeError(error: unknown): string {
  * - final text prefixed HUMAN_REJECT: -> human_reject (goal unreachable after denial)
  * - iteration cap reached             -> iteration_exhausted
  * - wall-clock deadline passed        -> timeout
- * - unavailable/unsatisfiable tool,
- *   or model/dispatch error           -> failed(reason), fail fast
+ * - model or harness-level error      -> failed(reason)
+ *   (per-call tool errors are fed back as tool results; the model decides)
  */
 export async function runTaskLoop(
   goalPrompt: string,
@@ -127,21 +127,12 @@ export async function runTaskLoop(
         );
       }
 
-      if (result.isError) {
-        return terminate(
-          {
-            status: "failed",
-            reason: `tool call "${call.toolName}" returned an error: ${result.text}`,
-          },
-          iteration,
-        );
-      }
-
       history.push({
         role: "tool",
         toolCallId: call.toolCallId,
         toolName: call.toolName,
         output: result.text,
+        ...(result.isError ? { isError: true } : {}),
       });
     }
   }
