@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   CircleX,
   ExternalLink,
+  Loader2,
   MessageSquare,
   Pause,
   Play,
@@ -286,6 +287,15 @@ export function RunDetailDrawer({
               ) : null}
             </div>
           ))}
+          {status === "running" ? (
+            <div
+              className="flex items-center gap-2.5 px-4 py-3 text-[13px] text-muted-foreground"
+              aria-live="polite"
+            >
+              <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
+              Running…
+            </div>
+          ) : null}
         </div>
       </div>
     </DetailDrawer>
