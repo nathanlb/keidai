@@ -30,6 +30,8 @@ export class InMemoryRunRepository implements RunRepository {
   create(input: CreateRunRequest): RunReport {
     const run: RunReport = {
       id: input.id,
+      taskId: input.taskId,
+      task: input.task,
       startedAt: input.startedAt ?? new Date().toISOString(),
       assignee: input.assignee,
       goalPreview: formatGoalPreview(input.goal),
@@ -82,6 +84,7 @@ export class InMemoryRunRepository implements RunRepository {
       .slice(0, limit)
       .map((run) => ({
         id: run.id,
+        taskId: run.taskId,
         startedAt: run.startedAt,
         assignee: run.assignee,
         goalPreview: run.goalPreview,
@@ -94,12 +97,14 @@ export class InMemoryRunRepository implements RunRepository {
   }
 
   private trim(): void {
-    if (this.runs.size <= this.retentionCount) {
+    const completed = [...this.runs.values()]
+      .filter((run) => run.status === "completed")
+      .sort(compareRuns);
+    if (completed.length <= this.retentionCount) {
       return;
     }
 
-    const sorted = [...this.runs.values()].sort(compareRuns);
-    for (const run of sorted.slice(this.retentionCount)) {
+    for (const run of completed.slice(this.retentionCount)) {
       this.runs.delete(run.id);
     }
   }

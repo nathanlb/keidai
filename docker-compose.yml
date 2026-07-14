@@ -35,5 +35,11 @@ services:
       TORII_MCP_URL: http://torii:3100/mcp
       SHAIDEN_HOST: 0.0.0.0
       SHAIDEN_PORT: "3200"
+      SHAIDEN_DB_PATH: /app/data/shaiden.db
+    volumes:
+      - shaiden-data:/app/data
     ports:
       - "3200:3200"
+
+volumes:
+  shaiden-data:

@@ -6,6 +6,7 @@ import { filterRuns } from "../filter-runs.js";
 function sampleRun(overrides: Partial<RunListItem> = {}): RunListItem {
   return {
     id: "run-1",
+    taskId: "task-1",
     startedAt: "2026-07-08T12:00:00.000Z",
     assignee: "demo-agent",
     goalPreview: "Newsletter draft",

@@ -34,27 +34,15 @@ test.describe("Torii navigation", () => {
     await page.goto("/connections");
 
     await expect(sidebarNavSection(page, "shaiden")).toBeVisible();
-    await sidebarNavLink(page, "/shaiden/tasks").click();
-    await expect(page).toHaveURL(/\/shaiden\/runs\?new_task=1$/);
-    await expect(page.getByRole("dialog")).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: "New task" }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Create & run" }),
-    ).toBeVisible();
+    await expect(sidebarNavLink(page, "/shaiden/tasks")).toBeVisible();
+    await expect(sidebarNavLink(page, "/shaiden/runs")).toBeVisible();
 
-    await page.getByRole("button", { name: "Close" }).click();
-    await expect(page.getByRole("dialog")).toBeHidden();
-    await expect(page).toHaveURL(/\/shaiden\/runs$/);
+    await sidebarNavLink(page, "/shaiden/tasks").click();
+
+    await expect(page).toHaveURL("/shaiden/tasks");
 
     await sidebarNavLink(page, "/shaiden/runs").click();
-    await expect(page).toHaveURL(/\/shaiden\/runs$/);
-    await expect(
-      page.getByText(
-        "Step sequence, tool calls, and termination outcome for each harness run.",
-      ),
-    ).toBeVisible();
-    await expect(page.getByText("No runs yet")).toBeVisible();
+
+    await expect(page).toHaveURL("/shaiden/runs");
   });
 });

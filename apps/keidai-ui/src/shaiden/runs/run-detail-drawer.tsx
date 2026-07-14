@@ -173,7 +173,13 @@ export function RunDetailDrawer({
       title={run.goalPreview}
       description={
         <span className="font-mono">
-          {run.id} · {run.assignee}
+          {run.id} · {run.assignee} ·{" "}
+          <Link
+            to={`/shaiden/tasks?task=${encodeURIComponent(run.taskId)}`}
+            className="text-primary hover:underline"
+          >
+            task {run.taskId}
+          </Link>
         </span>
       }
       bodyClassName="space-y-4"

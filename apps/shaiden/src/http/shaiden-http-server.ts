@@ -4,6 +4,7 @@ import { RunsApiController } from "./runs-api.controller.js";
 import { TasksApiController } from "./tasks-api.controller.js";
 import type { RunStore } from "../runs/run-store.js";
 import type { LaunchedHarnessRun } from "../run/harness.js";
+import type { TaskRepository } from "../tasks/types/task-repository.js";
 import type {
   ShaidenHttpServerHandle,
   ShaidenHttpServerOptions,
@@ -19,9 +20,13 @@ function readRequestPath(request: FastifyRequest): string {
 
 export interface ShaidenHttpServerDeps {
   runStore: RunStore;
+  taskRepository: TaskRepository;
   logger: Logger;
   agentId: string;
-  startTaskRun: (task: Task) => LaunchedHarnessRun;
+  startTaskRun: (input: {
+    task: Task;
+    taskId: string;
+  }) => LaunchedHarnessRun;
 }
 
 export class ShaidenHttpServer {
@@ -36,6 +41,7 @@ export class ShaidenHttpServer {
     this.tasksApi = new TasksApiController({
       agentId: deps.agentId,
       runStore: deps.runStore,
+      taskRepository: deps.taskRepository,
       startTaskRun: deps.startTaskRun,
       logger: deps.logger,
     });
@@ -51,7 +57,7 @@ export class ShaidenHttpServer {
       // Browser clients may call Shaiden cross-origin when the UI is served
       // from Torii (or another origin) rather than the Vite proxy.
       reply.header("Access-Control-Allow-Origin", "*");
-      reply.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      reply.header("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
       reply.header("Access-Control-Allow-Headers", "Content-Type");
     });
 

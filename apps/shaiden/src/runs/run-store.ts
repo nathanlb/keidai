@@ -71,6 +71,3 @@ export class RunStore {
     }
   }
 }
-
-/** Process-wide store so the HTTP API and harness share one map. */
-export const runStore = new RunStore();
