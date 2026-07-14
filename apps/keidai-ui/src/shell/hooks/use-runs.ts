@@ -7,28 +7,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import useSWR, { mutate as globalMutate } from "swr";
 import { fetchRuns, getRunsEventsUrl } from "../../shaiden/api/shaiden-client.js";
 import { isRunSuspended } from "../../shaiden/runs/utils/derive-run-display-status.js";
+import { mergeRunListItem } from "../../shaiden/runs/utils/merge-run-list.js";
+import { LIST_BUFFER_LIMIT } from "../constants/list-limits.js";
 import { RUN_KEY } from "./use-fetch-run.js";
 
 export const RUNS_KEY = "runs-list";
-
-const BUFFER_LIMIT = 50;
-
-function mergeRun(current: RunListItem[], run: RunListItem): RunListItem[] {
-  const without = current.filter((item) => item.id !== run.id);
-  return [
-    {
-      id: run.id,
-      taskId: run.taskId,
-      startedAt: run.startedAt,
-      assignee: run.assignee,
-      goalPreview: run.goalPreview,
-      status: run.status,
-      outcome: run.outcome,
-      stepCount: run.stepCount,
-    },
-    ...without,
-  ].slice(0, BUFFER_LIMIT);
-}
 
 function toListItem(run: RunReport): RunListItem {
   return {
@@ -85,7 +68,7 @@ export function useRuns(isLive: boolean) {
 
   const { data, error, isLoading, mutate } = useSWR(
     RUNS_KEY,
-    async () => fetchRuns({ limit: BUFFER_LIMIT }),
+    async () => fetchRuns({ limit: LIST_BUFFER_LIMIT }),
     { revalidateOnFocus: false },
   );
 
@@ -113,7 +96,7 @@ export function useRuns(isLive: boolean) {
     const handleRunUpdated = (event: MessageEvent<string>) => {
       const run = JSON.parse(event.data) as RunReport;
       cacheRunReport(fullRunsRef.current, run);
-      setRuns((current) => mergeRun(current, toListItem(run)));
+      setRuns((current) => mergeRunListItem(current, toListItem(run)));
       setSuspendedRunIds(deriveSuspendedRunIds([...fullRunsRef.current.values()]));
     };
 

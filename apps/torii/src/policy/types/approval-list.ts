@@ -1,0 +1,2 @@
+export const DEFAULT_APPROVAL_LIST_LIMIT = 200;
+export const MAX_APPROVAL_LIST_LIMIT = 200;

@@ -77,7 +77,7 @@ export function ConnectionsView() {
           ) : null}
           <ConnectionsSummaryTiles counts={counts} />
 
-          <Card className="shadow-none">
+          <Card className="overflow-hidden shadow-none">
             <CardHeader className="flex flex-row items-start justify-between space-y-0 px-[18px] py-4">
               <div className="space-y-1">
                 <CardTitle className="text-base font-semibold">

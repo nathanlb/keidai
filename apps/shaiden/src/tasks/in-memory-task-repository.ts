@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { taskSchema, type SavedTask, type Task, type UpdateTaskRequest } from "@keidai/shared";
 import type { CreateTaskInput, TaskRepository } from "./types/task-repository.js";
+import { DEFAULT_TASK_LIST_LIMIT } from "./types/task-repository.js";
 
 function compareTasks(left: SavedTask, right: SavedTask): number {
   const byTime = right.updatedAt.localeCompare(left.updatedAt);
@@ -30,8 +31,8 @@ export class InMemoryTaskRepository implements TaskRepository {
     return this.tasks.get(taskId) ?? null;
   }
 
-  list() {
-    const tasks = [...this.tasks.values()].sort(compareTasks);
+  list(limit = DEFAULT_TASK_LIST_LIMIT) {
+    const tasks = [...this.tasks.values()].sort(compareTasks).slice(0, limit);
     return { tasks };
   }
 

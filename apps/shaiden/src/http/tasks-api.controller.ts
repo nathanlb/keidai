@@ -4,10 +4,22 @@ import {
   type StartTaskRunResponse,
   type Task,
 } from "@keidai/shared";
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { RunStore } from "../runs/run-store.js";
 import type { LaunchedHarnessRun } from "../run/harness.js";
 import type { TaskRepository } from "../tasks/types/task-repository.js";
+import {
+  DEFAULT_TASK_LIST_LIMIT,
+  MAX_TASK_LIST_LIMIT,
+} from "../tasks/types/task-repository.js";
+
+function parseTaskListLimit(request: FastifyRequest): number {
+  const query = request.query as Record<string, string | undefined>;
+  const parsedLimit = Number(query.limit ?? DEFAULT_TASK_LIST_LIMIT);
+  return Number.isFinite(parsedLimit)
+    ? Math.min(Math.max(1, parsedLimit), MAX_TASK_LIST_LIMIT)
+    : DEFAULT_TASK_LIST_LIMIT;
+}
 
 export type StartTaskRun = (input: {
   task: Task;
@@ -42,8 +54,8 @@ export class TasksApiController {
       reply.send({ agentId: this.agentId });
     });
 
-    app.get("/api/tasks", async (_request, reply) => {
-      reply.send(this.taskRepository.list());
+    app.get("/api/tasks", async (request, reply) => {
+      reply.send(this.taskRepository.list(parseTaskListLimit(request)));
     });
 
     app.post("/api/tasks", async (request, reply) => {

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import { taskSchema, type SavedTask, type UpdateTaskRequest } from "@keidai/shared";
 import type { CreateTaskInput, TaskRepository } from "./types/task-repository.js";
+import { DEFAULT_TASK_LIST_LIMIT } from "./types/task-repository.js";
 
 interface TaskRow {
   id: string;
@@ -53,6 +54,7 @@ export class SqliteTaskRepository implements TaskRepository {
       SELECT id, goal, trigger_json, assignee, limits_json, created_at, updated_at
       FROM tasks
       ORDER BY updated_at DESC, id DESC
+      LIMIT ?
     `);
     this.updateStatement = db.prepare(`
       UPDATE tasks
@@ -94,8 +96,8 @@ export class SqliteTaskRepository implements TaskRepository {
     return row ? rowToSavedTask(row) : null;
   }
 
-  list() {
-    const rows = this.listStatement.all() as unknown as TaskRow[];
+  list(limit = DEFAULT_TASK_LIST_LIMIT) {
+    const rows = this.listStatement.all(limit) as unknown as TaskRow[];
     return { tasks: rows.map(rowToSavedTask) };
   }
 

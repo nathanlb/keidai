@@ -20,6 +20,7 @@ import {
   formatRunIterations,
   formatRunRelative,
 } from "./utils/format-run-time.js";
+import { runsTableColumns } from "./runs-table-columns.js";
 
 function agentInitials(agentId: string): string {
   const parts = agentId.split(/[-_]/).filter(Boolean);
@@ -73,7 +74,7 @@ export function RunsTableRow({
       className="cursor-pointer border-border hover:bg-muted/30"
       onClick={() => onOpen(run.id)}
     >
-      <TableCell className="max-w-0 py-3">
+      <TableCell className={runsTableColumns.cellClassName("run")}>
         <div
           className="truncate text-[13px] font-semibold"
           title={run.goalPreview}
@@ -95,30 +96,30 @@ export function RunsTableRow({
           task {run.taskId}
         </Link>
       </TableCell>
-      <TableCell className="py-3 whitespace-nowrap">
-        <div className="font-mono text-[12.5px] text-foreground">
+      <TableCell className={runsTableColumns.cellClassName("started")}>
+        <div className="truncate font-mono text-[12.5px] text-foreground">
           {formatRunClock(run.startedAt)}
         </div>
-        <div className="text-[11px] text-muted-foreground">
+        <div className="truncate text-[11px] text-muted-foreground">
           {formatRunRelative(run.startedAt)}
         </div>
       </TableCell>
-      <TableCell className="py-3 font-mono text-xs">
+      <TableCell className={runsTableColumns.cellClassName("iterations")}>
         {formatRunIterations(run)}
       </TableCell>
-      <TableCell className="py-3 text-right font-mono text-xs text-muted-foreground">
+      <TableCell className={runsTableColumns.cellClassName("duration")}>
         {formatRunDuration(run)}
       </TableCell>
-      <TableCell className="py-3">
+      <TableCell className={runsTableColumns.cellClassName("status")}>
         <Badge
           variant="outline"
-          className={cn("gap-1 font-normal", meta.badgeClass)}
+          className={cn("max-w-full gap-1 truncate font-normal", meta.badgeClass)}
         >
           <StatusIcon status={status} />
-          {meta.label}
+          <span className="truncate">{meta.label}</span>
         </Badge>
       </TableCell>
-      <TableCell className="max-w-0 py-3">
+      <TableCell className={runsTableColumns.cellClassName("agent")}>
         <div className="flex min-w-0 items-center gap-2">
           <OwnerAvatar
             initials={agentInitials(run.assignee)}
@@ -129,13 +130,11 @@ export function RunsTableRow({
           </span>
         </div>
       </TableCell>
-      <TableCell className="w-0 whitespace-nowrap py-3 pl-2 pr-[18px] text-right">
-        <div className="flex items-center justify-end">
-          <ChevronRight
-            className="size-3.5 shrink-0 text-muted-foreground"
-            aria-hidden
-          />
-        </div>
+      <TableCell className={runsTableColumns.cellClassName("chevron")}>
+        <ChevronRight
+          className="ml-auto size-3.5 shrink-0 text-muted-foreground"
+          aria-hidden
+        />
       </TableCell>
     </TableRow>
   );

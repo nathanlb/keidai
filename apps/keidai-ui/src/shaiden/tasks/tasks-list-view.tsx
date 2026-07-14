@@ -11,11 +11,15 @@ import {
 import { ListChecks, Loader2, Plus } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { TablePaginationFooter } from "../../shell/components/table-pagination/table-pagination-footer.js";
+import { paginateItems } from "../../shell/components/table-pagination/paginate-items.js";
+import { useTablePageIndex } from "../../shell/components/table-pagination/use-table-page-index.js";
 import { runSavedTask } from "../api/shaiden-client.js";
 import { useFetchTasks } from "../hooks/use-fetch-tasks.js";
 import { TASK_PARAM } from "../navigation.js";
 import { TaskAuthoringDialog } from "./task-authoring-dialog.js";
 import { TasksTableRow } from "./tasks-table-row.js";
+import { tasksTableColumns } from "./tasks-table-columns.js";
 
 function TasksEmptyState({ onNewTask }: { onNewTask: () => void }) {
   return (
@@ -26,8 +30,8 @@ function TasksEmptyState({ onNewTask }: { onNewTask: () => void }) {
         </span>
         <div className="mt-4 text-base font-semibold">No saved tasks yet</div>
         <p className="mt-1.5 max-w-[380px] text-[13px] leading-normal text-muted-foreground">
-          Author a goal, assign an agent, and run it. Saved tasks can be
-          re-run without re-entering the configuration.
+          Author a goal, assign an agent, and run it. Saved tasks can be re-run
+          without re-entering the configuration.
         </p>
         <Button type="button" className="mt-4" onClick={onNewTask}>
           <Plus className="size-4" aria-hidden />
@@ -49,6 +53,13 @@ export function TasksListView() {
 
   const tasks = data?.tasks ?? [];
   const authoringOpen = newTaskOpen || Boolean(editTaskId);
+  const { pageIndex, onPageChange } = useTablePageIndex([tasks.length]);
+  const {
+    pageItems: pageTasks,
+    shownCount,
+    canGoNewer,
+    canGoOlder,
+  } = paginateItems(tasks, pageIndex);
 
   const syncTaskParam = useCallback(
     (taskId: string | null) => {
@@ -92,7 +103,9 @@ export function TasksListView() {
         const { runId } = await runSavedTask(taskId);
         void navigate(`/shaiden/runs?run=${encodeURIComponent(runId)}`);
       } catch (err) {
-        setRunError(err instanceof Error ? err.message : "Failed to start task");
+        setRunError(
+          err instanceof Error ? err.message : "Failed to start task",
+        );
       } finally {
         setRunningTaskId(null);
       }
@@ -137,19 +150,33 @@ export function TasksListView() {
             <p className="text-sm text-destructive">{runError}</p>
           ) : null}
 
-          <Card className="shadow-none">
+          <Card className="overflow-hidden shadow-none">
             <CardContent className="px-0 py-0">
-              <Table>
+              <Table className={tasksTableColumns.tableClassName}>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="pl-[18px]">Goal</TableHead>
-                    <TableHead>Assignee</TableHead>
-                    <TableHead>Updated</TableHead>
-                    <TableHead className="pr-[18px] text-right">Actions</TableHead>
+                    <TableHead className={tasksTableColumns.headClassName("goal")}>
+                      Goal
+                    </TableHead>
+                    <TableHead
+                      className={tasksTableColumns.headClassName("assignee")}
+                    >
+                      Assignee
+                    </TableHead>
+                    <TableHead
+                      className={tasksTableColumns.headClassName("updated")}
+                    >
+                      Updated
+                    </TableHead>
+                    <TableHead
+                      className={tasksTableColumns.headClassName("actions")}
+                    >
+                      Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {tasks.map((task) => (
+                  {pageTasks.map((task) => (
                     <TasksTableRow
                       key={task.id}
                       task={task}
@@ -160,6 +187,15 @@ export function TasksListView() {
                   ))}
                 </TableBody>
               </Table>
+              <TablePaginationFooter
+                shownCount={shownCount}
+                totalCount={tasks.length}
+                totalLabel="saved tasks"
+                canGoNewer={canGoNewer}
+                canGoOlder={canGoOlder}
+                onPageChange={onPageChange}
+                pageIndex={pageIndex}
+              />
             </CardContent>
           </Card>
         </div>

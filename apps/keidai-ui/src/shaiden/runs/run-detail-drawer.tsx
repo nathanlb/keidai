@@ -251,7 +251,7 @@ export function RunDetailDrawer({
         </div>
         <div className="divide-y divide-border rounded-lg border border-border">
           {run.steps.map((step) => (
-            <div key={step.id} className="px-4 py-3">
+            <div key={step.id} className="min-w-0 px-4 py-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-2.5">
                   <StepIcon step={step} />
@@ -267,7 +267,7 @@ export function RunDetailDrawer({
               </div>
               <p
                 className={cn(
-                  "mt-1 pl-[22px] text-[12.5px] leading-normal",
+                  "mt-1 pl-[22px] text-[12.5px] leading-normal wrap-break-word",
                   step.kind === "tool_result" && step.status === "error"
                     ? "text-destructive"
                     : "text-muted-foreground",

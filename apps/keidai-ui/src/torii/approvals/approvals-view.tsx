@@ -1,5 +1,8 @@
 import { Badge } from "@keidai/ui";
 import { useCallback, useState } from "react";
+import { TablePaginationFooter } from "../../shell/components/table-pagination/table-pagination-footer.js";
+import { paginateItems } from "../../shell/components/table-pagination/paginate-items.js";
+import { useTablePageIndex } from "../../shell/components/table-pagination/use-table-page-index.js";
 import {
   approveApproval,
   cancelApproval,
@@ -11,9 +14,16 @@ import { ApprovalsEmptyState } from "./approvals-empty-state.js";
 import { RecentlyActioned } from "./recently-actioned.js";
 
 export function ApprovalsView() {
-  const { pending, recentlyActioned, pendingCount, isLoading, refresh } =
+  const { pending, recentlyActioned, bufferCount, pendingCount, isLoading, refresh } =
     useApprovals();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const { pageIndex, onPageChange } = useTablePageIndex([pending.length]);
+  const {
+    pageItems: pagePending,
+    shownCount,
+    canGoNewer,
+    canGoOlder,
+  } = paginateItems(pending, pageIndex);
 
   const handleApprove = useCallback(
     async (id: string) => {
@@ -65,26 +75,38 @@ export function ApprovalsView() {
       {!isLoading && pending.length === 0 ? <ApprovalsEmptyState /> : null}
 
       {pending.length > 0 ? (
-        <div className="flex flex-col gap-3">
-          {pending.map((approval) => (
-            <ApprovalCard
-              key={approval.id}
-              approval={approval}
-              expanded={expandedId === approval.id}
-              onToggle={() =>
-                setExpandedId((current) =>
-                  current === approval.id ? null : approval.id,
-                )
-              }
-              onApprove={handleApprove}
-              onReject={handleReject}
-              onCancel={handleCancel}
-            />
-          ))}
+        <div className="space-y-3">
+          <div className="flex flex-col gap-3">
+            {pagePending.map((approval) => (
+              <ApprovalCard
+                key={approval.id}
+                approval={approval}
+                expanded={expandedId === approval.id}
+                onToggle={() =>
+                  setExpandedId((current) =>
+                    current === approval.id ? null : approval.id,
+                  )
+                }
+                onApprove={handleApprove}
+                onReject={handleReject}
+                onCancel={handleCancel}
+              />
+            ))}
+          </div>
+          <TablePaginationFooter
+            shownCount={shownCount}
+            totalCount={bufferCount}
+            totalLabel="approvals in buffer"
+            canGoNewer={canGoNewer}
+            canGoOlder={canGoOlder}
+            onPageChange={onPageChange}
+            pageIndex={pageIndex}
+            className="flex items-center justify-between rounded-lg border border-border px-4 py-2.5 text-xs text-muted-foreground"
+          />
         </div>
       ) : null}
 
-      <RecentlyActioned items={recentlyActioned} />
+      <RecentlyActioned items={recentlyActioned} bufferCount={bufferCount} />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { Loader2, Pencil, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 import { OwnerAvatar } from "../../torii/agents/owner-avatar.js";
 import { taskEditHref } from "../navigation.js";
+import { tasksTableColumns } from "./tasks-table-columns.js";
 
 function agentInitials(agentId: string): string {
   const parts = agentId.split(/[-_]/).filter(Boolean);
@@ -39,7 +40,7 @@ export function TasksTableRow({
 }) {
   return (
     <TableRow className="border-border hover:bg-muted/30">
-      <TableCell className="max-w-0 py-3 pl-[18px]">
+      <TableCell className={tasksTableColumns.cellClassName("goal")}>
         <div className="truncate text-[13px] font-semibold" title={task.goal}>
           {task.goal}
         </div>
@@ -51,7 +52,7 @@ export function TasksTableRow({
           {task.id}
         </Link>
       </TableCell>
-      <TableCell className="max-w-0 py-3">
+      <TableCell className={tasksTableColumns.cellClassName("assignee")}>
         <div className="flex min-w-0 items-center gap-2">
           <OwnerAvatar
             initials={agentInitials(task.assignee)}
@@ -62,10 +63,10 @@ export function TasksTableRow({
           </span>
         </div>
       </TableCell>
-      <TableCell className="py-3 whitespace-nowrap font-mono text-[12.5px] text-muted-foreground">
+      <TableCell className={tasksTableColumns.cellClassName("updated")}>
         {formatUpdatedAt(task.updatedAt)}
       </TableCell>
-      <TableCell className="py-3 pr-[18px] text-right">
+      <TableCell className={tasksTableColumns.cellClassName("actions")}>
         <div className="flex justify-end gap-2">
           <Button type="button" size="sm" variant="ghost" onClick={onEdit}>
             <Pencil className="size-3.5" aria-hidden />

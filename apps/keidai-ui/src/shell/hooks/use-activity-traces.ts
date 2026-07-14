@@ -1,15 +1,14 @@
 import { TRACE_SSE_EVENT, type TraceListItem } from "@keidai/shared/dto";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchTraces } from "../../torii/api/torii-client.js";
-
-const BUFFER_LIMIT = 200;
+import { LIST_BUFFER_LIMIT } from "../constants/list-limits.js";
 
 function mergeTrace(
   current: TraceListItem[],
   trace: TraceListItem,
 ): TraceListItem[] {
   const without = current.filter((item) => item.traceId !== trace.traceId);
-  return [trace, ...without].slice(0, BUFFER_LIMIT);
+  return [trace, ...without].slice(0, LIST_BUFFER_LIMIT);
 }
 
 export function useActivityTraces(isLive: boolean) {
@@ -27,7 +26,7 @@ export function useActivityTraces(isLive: boolean) {
 
     void (async () => {
       try {
-        const response = await fetchTraces({ limit: BUFFER_LIMIT });
+        const response = await fetchTraces({ limit: LIST_BUFFER_LIMIT });
         if (!cancelled) {
           applySnapshot(response.traces);
           setError(undefined);

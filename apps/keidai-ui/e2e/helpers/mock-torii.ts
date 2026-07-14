@@ -293,7 +293,7 @@ export async function mockToriiConfig(
     await route.fulfill({ json: taskRuntime });
   });
 
-  await page.route(/\/api\/tasks$/, async (route) => {
+  await page.route(/\/api\/tasks(\?|$)/, async (route) => {
     if (!healthy) {
       await route.fulfill({ status: 503, body: "Gateway unavailable" });
       return;

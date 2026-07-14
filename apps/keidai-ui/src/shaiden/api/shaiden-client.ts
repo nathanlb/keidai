@@ -100,8 +100,17 @@ export async function fetchTaskRuntime(): Promise<TaskRuntimeResponse> {
   return fetchJson<TaskRuntimeResponse>(shaidenApiPath("/api/tasks/runtime"));
 }
 
-export async function fetchTasks(): Promise<TasksResponse> {
-  return fetchJson<TasksResponse>(shaidenApiPath("/api/tasks"));
+export async function fetchTasks(
+  query: { limit?: number } = {},
+): Promise<TasksResponse> {
+  const params = new URLSearchParams();
+  if (query.limit !== undefined) {
+    params.set("limit", String(query.limit));
+  }
+  const serialized = params.toString();
+  return fetchJson<TasksResponse>(
+    shaidenApiPath(`/api/tasks${serialized ? `?${serialized}` : ""}`),
+  );
 }
 
 export async function fetchTask(taskId: string): Promise<TaskResponse> {
