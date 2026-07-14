@@ -11,6 +11,7 @@ jobs:
   packages:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - run: pnpm turbo run build test --filter=@keidai/shared
       - run: pnpm turbo run build typecheck --filter=@keidai/ui
@@ -18,18 +19,21 @@ jobs:
   torii:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - run: pnpm turbo run build test --filter=@keidai/torii...
 
   shaiden:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - run: pnpm turbo run build test --filter=@keidai/shaiden...
 
   keidai-ui-unit:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - run: pnpm turbo run build --filter=@keidai/keidai-ui...
       - run: pnpm --filter @keidai/keidai-ui exec vitest run --project unit
@@ -38,8 +42,9 @@ jobs:
   keidai-ui-browser:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}

@@ -1,17 +1,14 @@
 name: Setup
-description: Checkout, install pnpm and Node.js, and install dependencies
+description: Install pnpm and Node.js, and install dependencies
 
 runs:
   using: composite
   steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
     - name: Install pnpm
-      uses: pnpm/action-setup@v4
+      uses: pnpm/action-setup@v6
 
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v7
       with:
         node-version-file: package.json
         cache: pnpm
