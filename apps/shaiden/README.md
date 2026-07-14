@@ -1,6 +1,6 @@
 # Shaiden
 
-Agent harness for the Keidai platform. Connects to Torii over MCP with an opaque bearer token, discovers tools dynamically, and drives the configured task to a typed termination outcome.
+Agent runtime for the Keidai ecosystem. Connects to Torii over MCP with an opaque bearer token, discovers tools dynamically, and drives the configured task to a typed termination outcome.
 
 ## Task loop
 

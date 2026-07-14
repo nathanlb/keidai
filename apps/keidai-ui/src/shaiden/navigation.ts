@@ -4,8 +4,13 @@ import type { AppShellBreadcrumbSegment } from "../shell/types/index.js";
 
 export const TASKS_PATH = "/shaiden/tasks";
 export const NEW_TASK_PARAM = "new_task";
+export const TASK_PARAM = "task";
 /** Opens the task authoring dialog over Runs. */
 export const NEW_TASK_HREF = `/shaiden/runs?${NEW_TASK_PARAM}=1`;
+
+export function taskEditHref(taskId: string): string {
+  return `${TASKS_PATH}?${TASK_PARAM}=${encodeURIComponent(taskId)}`;
+}
 
 export interface ShaidenNavItem {
   path: string;

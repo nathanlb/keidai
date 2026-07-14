@@ -8,11 +8,12 @@ import {
   TableHeader,
   TableRow,
 } from "@keidai/ui";
-import { ListChecks, Loader2, Play, Plus } from "lucide-react";
+import { ListChecks, Loader2, Plus } from "lucide-react";
 import { useCallback, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { runSavedTask } from "../api/shaiden-client.js";
 import { useFetchTasks } from "../hooks/use-fetch-tasks.js";
+import { TASK_PARAM } from "../navigation.js";
 import { TaskAuthoringDialog } from "./task-authoring-dialog.js";
 import { TasksTableRow } from "./tasks-table-row.js";
 
@@ -39,12 +40,49 @@ function TasksEmptyState({ onNewTask }: { onNewTask: () => void }) {
 
 export function TasksListView() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editTaskId = searchParams.get(TASK_PARAM);
   const { data, error, isLoading, refresh } = useFetchTasks();
   const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [runningTaskId, setRunningTaskId] = useState<string | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
 
   const tasks = data?.tasks ?? [];
+  const authoringOpen = newTaskOpen || Boolean(editTaskId);
+
+  const syncTaskParam = useCallback(
+    (taskId: string | null) => {
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          if (taskId) {
+            next.set(TASK_PARAM, taskId);
+          } else {
+            next.delete(TASK_PARAM);
+          }
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
+  const openNewTask = useCallback(() => {
+    syncTaskParam(null);
+    setNewTaskOpen(true);
+  }, [syncTaskParam]);
+
+  const onAuthoringOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) {
+        return;
+      }
+      setNewTaskOpen(false);
+      syncTaskParam(null);
+    },
+    [syncTaskParam],
+  );
 
   const handleRunTask = useCallback(
     async (taskId: string) => {
@@ -82,14 +120,14 @@ export function TasksListView() {
   return (
     <>
       {tasks.length === 0 ? (
-        <TasksEmptyState onNewTask={() => setNewTaskOpen(true)} />
+        <TasksEmptyState onNewTask={openNewTask} />
       ) : (
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3">
             <p className="text-[13px] text-muted-foreground">
               {tasks.length} saved task{tasks.length === 1 ? "" : "s"}
             </p>
-            <Button type="button" size="sm" onClick={() => setNewTaskOpen(true)}>
+            <Button type="button" size="sm" onClick={openNewTask}>
               <Plus className="size-3.5" aria-hidden />
               New task
             </Button>
@@ -107,7 +145,7 @@ export function TasksListView() {
                     <TableHead className="pl-[18px]">Goal</TableHead>
                     <TableHead>Assignee</TableHead>
                     <TableHead>Updated</TableHead>
-                    <TableHead className="pr-[18px] text-right">Run</TableHead>
+                    <TableHead className="pr-[18px] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -116,6 +154,7 @@ export function TasksListView() {
                       key={task.id}
                       task={task}
                       isRunning={runningTaskId === task.id}
+                      onEdit={() => syncTaskParam(task.id)}
                       onRun={() => void handleRunTask(task.id)}
                     />
                   ))}
@@ -127,9 +166,10 @@ export function TasksListView() {
       )}
 
       <TaskAuthoringDialog
-        open={newTaskOpen}
-        onOpenChange={setNewTaskOpen}
-        onTaskCreated={() => void refresh()}
+        open={authoringOpen}
+        onOpenChange={onAuthoringOpenChange}
+        taskId={newTaskOpen ? undefined : (editTaskId ?? undefined)}
+        onTaskSaved={() => void refresh()}
       />
     </>
   );

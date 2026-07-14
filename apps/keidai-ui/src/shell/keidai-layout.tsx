@@ -44,15 +44,14 @@ export function KeidaiLayout() {
               ? {
                   title: current.title,
                   description: current.description,
-                  configChip:
-                    section === "Torii" ? "torii.yaml" : undefined,
+                  configChip: section === "Torii" ? "torii.yaml" : undefined,
                   showRefresh:
                     "showRefresh" in current ? current.showRefresh : undefined,
                 }
               : undefined
           }
           sidebarNav={<PlatformSidebarNav />}
-          sidebarSubtitle="Agent platform"
+          sidebarSubtitle="Agent ecosystem"
         />
       </OAuthLinkProvider>
     </AppProvider>
