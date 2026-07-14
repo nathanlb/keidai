@@ -1,9 +1,11 @@
-import type { RunStepKind, TerminationOutcome } from "@keidai/shared";
+import type { RunStepKind, Task, TerminationOutcome } from "@keidai/shared";
 import type { RunStore } from "../runs/run-store.js";
 
 export interface RunReporter {
   startRun(input: {
     id: string;
+    taskId: string;
+    task: Task;
     assignee: string;
     goal: string;
     startedAt: string;

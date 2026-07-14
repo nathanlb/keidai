@@ -13,11 +13,13 @@ import { TaskAuthoringView } from "./task-authoring-view.js";
 interface TaskAuthoringDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onTaskCreated?: () => void;
 }
 
 export function TaskAuthoringDialog({
   open,
   onOpenChange,
+  onTaskCreated,
 }: TaskAuthoringDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -42,7 +44,10 @@ export function TaskAuthoringDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <TaskAuthoringView onCancel={() => onOpenChange(false)} />
+        <TaskAuthoringView
+          onCancel={() => onOpenChange(false)}
+          onTaskCreated={onTaskCreated}
+        />
       </DialogContent>
     </Dialog>
   );

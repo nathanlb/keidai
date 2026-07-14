@@ -163,9 +163,13 @@ function AssigneeTriggerContent({
 
 interface TaskAuthoringViewProps {
   onCancel?: () => void;
+  onTaskCreated?: () => void;
 }
 
-export function TaskAuthoringView({ onCancel }: TaskAuthoringViewProps) {
+export function TaskAuthoringView({
+  onCancel,
+  onTaskCreated,
+}: TaskAuthoringViewProps) {
   const navigate = useNavigate();
   const goalId = useId();
 
@@ -240,6 +244,7 @@ export function TaskAuthoringView({ onCancel }: TaskAuthoringViewProps) {
     setIsSubmitting(true);
     try {
       const { runId } = await startTaskRun(task);
+      onTaskCreated?.();
       void navigate(`/shaiden/runs?run=${encodeURIComponent(runId)}`);
     } catch (error) {
       setSubmitError(

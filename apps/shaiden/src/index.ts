@@ -2,11 +2,11 @@ import { loadEnvForPackage } from "@keidai/shared/load-env";
 
 loadEnvForPackage(import.meta.url);
 
+import { getShaidenPersistence } from "./boot/persistence.js";
 import { loadRuntimeConfig } from "./config/runtime-config.js";
 import { ShaidenHttpServer } from "./http/shaiden-http-server.js";
 import { defaultLogger } from "./logging/logger.js";
 import { launchHarnessRun } from "./run/harness.js";
-import { runStore } from "./runs/run-store.js";
 
 function waitForShutdown(): Promise<void> {
   return new Promise((resolve) => {
@@ -18,12 +18,15 @@ function waitForShutdown(): Promise<void> {
 
 async function main(): Promise<void> {
   const config = loadRuntimeConfig();
+  const { runStore, taskRepository } = getShaidenPersistence();
 
   const httpServer = new ShaidenHttpServer({
     runStore,
+    taskRepository,
     logger: defaultLogger,
     agentId: config.agentId,
-    startTaskRun: (task) => launchHarnessRun(task, config),
+    startTaskRun: ({ task, taskId }) =>
+      launchHarnessRun({ task, taskId, config, runStore }),
   });
   const http = await httpServer.start({
     host: config.httpHost,

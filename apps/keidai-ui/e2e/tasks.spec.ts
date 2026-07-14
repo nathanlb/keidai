@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import type { PublicAgentConfig, RunReport } from "@keidai/shared";
+import type { PublicAgentConfig, RunReport, SavedTask } from "@keidai/shared";
 import { mockToriiConfig } from "./helpers/mock-torii.js";
 
 const shaidenAgent: PublicAgentConfig = {
@@ -13,8 +13,23 @@ const shaidenAgent: PublicAgentConfig = {
   groups: [],
 };
 
+const savedTask: SavedTask = {
+  id: "task-saved-1",
+  goal: "Compose weekly status report",
+  trigger: { type: "now" },
+  assignee: shaidenAgent.agent_id,
+  createdAt: "2026-07-13T12:00:00.000Z",
+  updatedAt: "2026-07-13T12:00:00.000Z",
+};
+
 const runFromTask: RunReport = {
   id: "run-from-task",
+  taskId: "task-from-dialog",
+  task: {
+    goal: "Compose weekly status report",
+    trigger: { type: "now" },
+    assignee: shaidenAgent.agent_id,
+  },
   startedAt: "2026-07-13T12:00:00.000Z",
   assignee: shaidenAgent.agent_id,
   goalPreview: "Compose weekly status report",
@@ -24,16 +39,17 @@ const runFromTask: RunReport = {
 };
 
 test.describe("Shaiden tasks", () => {
-  test("authors a task and navigates to the new run", async ({ page }) => {
+  test("authors a task from runs and navigates to the new run", async ({
+    page,
+  }) => {
     await mockToriiConfig(page, {
       agents: { agents: [shaidenAgent] },
       runDetails: { "run-from-task": runFromTask },
     });
 
-    await page.goto("/shaiden/tasks");
+    await page.goto("/shaiden/runs?new_task=1");
 
-    await expect(page).toHaveURL(/\/shaiden\/runs\?new_task=1$/);
-    const dialog = page.getByRole("dialog", {name: "New task"});
+    const dialog = page.getByRole("dialog", { name: "New task" });
     await expect(dialog).toBeVisible();
 
     await dialog
@@ -50,6 +66,24 @@ test.describe("Shaiden tasks", () => {
     await expect(
       page.getByRole("heading", { name: "Compose weekly status report" }),
     ).toBeVisible();
+  });
+
+  test("lists saved tasks and re-runs one", async ({ page }) => {
+    await mockToriiConfig(page, {
+      agents: { agents: [shaidenAgent] },
+      tasks: { tasks: [savedTask] },
+      runDetails: { "run-from-task": runFromTask },
+    });
+
+    await page.goto("/shaiden/tasks");
+
+    await expect(
+      page.getByRole("cell", { name: "Compose weekly status report" }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Run" }).click();
+
+    await expect(page).toHaveURL(/\/shaiden\/runs\?run=run-from-task$/);
   });
 
   test("opens the authoring dialog from the runs deep link", async ({

@@ -18,6 +18,7 @@ function mergeRun(current: RunListItem[], run: RunListItem): RunListItem[] {
   return [
     {
       id: run.id,
+      taskId: run.taskId,
       startedAt: run.startedAt,
       assignee: run.assignee,
       goalPreview: run.goalPreview,
@@ -32,6 +33,7 @@ function mergeRun(current: RunListItem[], run: RunListItem): RunListItem[] {
 function toListItem(run: RunReport): RunListItem {
   return {
     id: run.id,
+    taskId: run.taskId,
     startedAt: run.startedAt,
     assignee: run.assignee,
     goalPreview: run.goalPreview,

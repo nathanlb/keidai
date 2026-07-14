@@ -21,11 +21,11 @@ export const shaidenNavItems: ShaidenNavItem[] = [
   {
     path: TASKS_PATH,
     label: "Tasks",
-    title: "New task",
+    title: "Tasks",
     description:
-      "Define a goal, pick an agent, and run it. Tasks are authored here and execute on the assigned agent.",
+      "Saved task definitions. Re-run a goal or author a new one for the assigned agent.",
     icon: ListChecks,
-    showRefresh: false,
+    showRefresh: true,
   },
   {
     path: "/shaiden/runs",

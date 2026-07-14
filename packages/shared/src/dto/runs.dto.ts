@@ -1,4 +1,5 @@
 import type { TerminationOutcome } from "../run.js";
+import type { Task } from "../task.js";
 
 export type RunStatus = "running" | "completed";
 
@@ -25,6 +26,7 @@ export interface RunStep {
 
 export interface RunListItem {
   id: string;
+  taskId: string;
   startedAt: string;
   assignee: string;
   goalPreview: string;
@@ -34,6 +36,7 @@ export interface RunListItem {
 }
 
 export interface RunReport extends RunListItem {
+  task: Task;
   steps: RunStep[];
 }
 
@@ -43,6 +46,8 @@ export interface RunsResponse {
 
 export interface CreateRunRequest {
   id: string;
+  taskId: string;
+  task: Task;
   assignee: string;
   goal: string;
   startedAt?: string;

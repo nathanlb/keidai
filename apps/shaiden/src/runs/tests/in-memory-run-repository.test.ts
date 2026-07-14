@@ -2,11 +2,19 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { InMemoryRunRepository } from "../in-memory-run-repository.js";
 
+const sampleTask = {
+  goal: "Ship the newsletter",
+  trigger: { type: "now" as const },
+  assignee: "agent-1",
+};
+
 describe("InMemoryRunRepository", () => {
   it("appends steps and completes a run", () => {
     const repository = new InMemoryRunRepository();
     const created = repository.create({
       id: "run-1",
+      taskId: "task-1",
+      task: sampleTask,
       assignee: "agent-1",
       goal: "Ship the newsletter",
       startedAt: "2026-07-08T12:00:00.000Z",

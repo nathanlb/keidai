@@ -20,7 +20,7 @@ import { completeRun, createRun } from "./run-lifecycle.js";
 import { ModelToolCall, ToolDispatchOptions } from "./types/task-loop.js";
 import { HarnessRunResult } from "./types/harness.js";
 import { runTaskLoop } from "./task-loop.js";
-import { runStore } from "../runs/run-store.js";
+import type { RunStore } from "../runs/run-store.js";
 
 function previewOf(value: string, maxLength = 200): string {
   const flattened = value.replace(/\s+/g, " ").trim();
@@ -31,6 +31,15 @@ function previewOf(value: string, maxLength = 200): string {
 
 export interface HarnessRunOptions {
   logger?: Logger;
+  runStore?: RunStore;
+}
+
+export interface LaunchHarnessRunInput {
+  task: Task;
+  taskId: string;
+  config: RuntimeConfig;
+  runStore: RunStore;
+  options?: HarnessRunOptions;
 }
 
 export interface LaunchedHarnessRun {
@@ -42,11 +51,13 @@ export interface LaunchedHarnessRun {
  * Registers a run in the store synchronously, then drives the harness in the
  * background. Use this from HTTP so the client can observe the run immediately.
  */
-export function launchHarnessRun(
-  task: Task,
-  config: RuntimeConfig,
-  options: HarnessRunOptions = {},
-): LaunchedHarnessRun {
+export function launchHarnessRun({
+  task,
+  taskId,
+  config,
+  runStore,
+  options = {},
+}: LaunchHarnessRunInput): LaunchedHarnessRun {
   const logger = options.logger ?? defaultLogger;
   const limits = resolveTaskLimits(task);
   const runDraft = createRun(randomUUID(), {
@@ -56,21 +67,25 @@ export function launchHarnessRun(
   const reporter = createLocalRunReporter(runStore, runDraft.id);
   reporter.startRun({
     id: runDraft.id,
+    taskId,
+    task,
     assignee: task.assignee,
     goal: task.goal,
     startedAt: runDraft.startedAt,
   });
 
-  const done = driveHarnessRun(runDraft, task, config, reporter, logger);
+  const done = driveHarnessRun(runDraft, task, config, reporter, logger, runStore);
   return { runId: runDraft.id, done };
 }
 
 export async function startHarnessRun(
   task: Task,
+  taskId: string,
   config: RuntimeConfig,
+  runStore: RunStore,
   options: HarnessRunOptions = {},
 ): Promise<HarnessRunResult> {
-  const { done } = launchHarnessRun(task, config, options);
+  const { done } = launchHarnessRun({ task, taskId, config, runStore, options });
   return done;
 }
 
@@ -80,6 +95,7 @@ async function driveHarnessRun(
   config: RuntimeConfig,
   reporter: ReturnType<typeof createLocalRunReporter>,
   logger: Logger,
+  runStore: RunStore,
 ): Promise<HarnessRunResult> {
   const limits = resolveTaskLimits(task);
   const toriiBaseUrl = toriiBaseUrlFromMcpUrl(config.toriiMcpUrl);

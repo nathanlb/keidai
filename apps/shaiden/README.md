@@ -48,7 +48,9 @@ Set `SHAIDEN_BEARER` in the repo root `.env` (or `apps/shaiden/.env`). Torii mus
 
 ## Task config (v0)
 
-Author a Task in keidai-ui (`/shaiden/tasks`) and submit it with `POST /api/tasks/run`. The body is validated with `taskSchema` (`goal`, `trigger: { type: "now" }`, `assignee`, optional `limits`). Shaiden accepts the run asynchronously (`202` + `{ runId }`) and streams progress over `GET /api/runs/events`.
+Author a Task in keidai-ui (`/shaiden/tasks`) and submit it with `POST /api/tasks/run` (create saved task + start run) or run a saved task with `POST /api/tasks/:taskId/run`. The body is validated with `taskSchema` (`goal`, `trigger: { type: "now" }`, `assignee`, optional `limits`). Shaiden accepts the run asynchronously (`202` + `{ runId, taskId }`) and streams progress over `GET /api/runs/events`.
+
+Saved tasks are listed at `GET /api/tasks` and persist in SQLite (`SHAIDEN_DB_PATH`). Runs store a task snapshot at start time so later task edits do not rewrite history.
 
 A sample Task shape still lives in [`src/config/boot-task.ts`](src/config/boot-task.ts) for reference; the process no longer auto-runs it at boot.
 
@@ -72,3 +74,4 @@ Starts Torii with `torii.demo.yaml` and the Shaiden HTTP server (awaiting task s
 | `SHAIDEN_MODEL_ID` | OpenRouter model id (default: `google/gemini-2.5-flash`) |
 | `SHAIDEN_HOST` | HTTP bind host for the runs API (default: `127.0.0.1`) |
 | `SHAIDEN_PORT` | HTTP bind port for the runs API (default: `3200`) |
+| `SHAIDEN_DB_PATH` | SQLite path for saved tasks and run history (default: `./data/shaiden.db`) |

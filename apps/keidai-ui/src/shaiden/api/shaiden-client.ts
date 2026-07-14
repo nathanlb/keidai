@@ -1,10 +1,15 @@
 import type { ServiceHealth } from "../../shell/types/service-health.js";
 import type {
+  CreateTaskRequest,
   RunReport,
   RunsResponse,
+  SavedTask,
   StartTaskRunRequest,
   StartTaskRunResponse,
+  TaskResponse,
   TaskRuntimeResponse,
+  TasksResponse,
+  UpdateTaskRequest,
 } from "@keidai/shared";
 
 /** Shaiden API origin. Empty = same-origin (vite proxy or reverse proxy). */
@@ -54,6 +59,20 @@ async function fetchJson<T>(path: string): Promise<T> {
   return (await response.json()) as T;
 }
 
+async function fetchJsonWithBody<T>(
+  path: string,
+  init: RequestInit,
+): Promise<T> {
+  const response = await fetch(path, init);
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      error?: string;
+    } | null;
+    throw new Error(body?.error ?? `Shaiden request failed: ${response.status}`);
+  }
+  return (await response.json()) as T;
+}
+
 export async function fetchRuns(
   query: { limit?: number } = {},
 ): Promise<RunsResponse> {
@@ -79,6 +98,71 @@ export function getRunsEventsUrl(): string {
 
 export async function fetchTaskRuntime(): Promise<TaskRuntimeResponse> {
   return fetchJson<TaskRuntimeResponse>(shaidenApiPath("/api/tasks/runtime"));
+}
+
+export async function fetchTasks(): Promise<TasksResponse> {
+  return fetchJson<TasksResponse>(shaidenApiPath("/api/tasks"));
+}
+
+export async function fetchTask(taskId: string): Promise<TaskResponse> {
+  return fetchJson<TaskResponse>(
+    shaidenApiPath(`/api/tasks/${encodeURIComponent(taskId)}`),
+  );
+}
+
+export async function createTask(
+  task: CreateTaskRequest,
+): Promise<TaskResponse> {
+  return fetchJsonWithBody<TaskResponse>(shaidenApiPath("/api/tasks"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(task),
+  });
+}
+
+export async function updateTask(
+  taskId: string,
+  task: UpdateTaskRequest,
+): Promise<TaskResponse> {
+  return fetchJsonWithBody<TaskResponse>(
+    shaidenApiPath(`/api/tasks/${encodeURIComponent(taskId)}`),
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(task),
+    },
+  );
+}
+
+export async function deleteTask(taskId: string): Promise<void> {
+  const response = await fetch(
+    shaidenApiPath(`/api/tasks/${encodeURIComponent(taskId)}`),
+    { method: "DELETE" },
+  );
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      error?: string;
+    } | null;
+    throw new Error(body?.error ?? `Delete task failed: ${response.status}`);
+  }
+}
+
+export async function runSavedTask(
+  taskId: string,
+): Promise<StartTaskRunResponse> {
+  const response = await fetch(
+    shaidenApiPath(`/api/tasks/${encodeURIComponent(taskId)}/run`),
+    { method: "POST" },
+  );
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      error?: string;
+    } | null;
+    throw new Error(body?.error ?? `Start task failed: ${response.status}`);
+  }
+
+  return (await response.json()) as StartTaskRunResponse;
 }
 
 export async function startTaskRun(
@@ -125,3 +209,5 @@ export async function fetchShaidenHealth(): Promise<ServiceHealth> {
     };
   }
 }
+
+export type { SavedTask };

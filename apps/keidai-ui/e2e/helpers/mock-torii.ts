@@ -10,6 +10,7 @@ import type {
   ServerToolsResponse,
   RunReport,
   RunsResponse,
+  TasksResponse,
   TraceListItem,
   TraceStatsResponse,
   TracesResponse,
@@ -31,6 +32,7 @@ export interface MockToriiConfig {
   traceStats?: TraceStatsResponse;
   runs?: RunsResponse;
   runDetails?: Record<string, RunReport>;
+  tasks?: TasksResponse;
   taskRuntime?: { agentId: string };
   approvals?: ApprovalRecordView[];
   healthy?: boolean;
@@ -61,6 +63,7 @@ export async function mockToriiConfig(
     },
     runs = { runs: [] },
     runDetails = {},
+    tasks = { tasks: [] },
     taskRuntime = { agentId: "shaiden-newsletter-01" },
     approvals = [],
     healthy = true,
@@ -288,6 +291,20 @@ export async function mockToriiConfig(
     await route.fulfill({ json: taskRuntime });
   });
 
+  await page.route(/\/api\/tasks$/, async (route) => {
+    if (!healthy) {
+      await route.fulfill({ status: 503, body: "Gateway unavailable" });
+      return;
+    }
+
+    if (route.request().method() === "GET") {
+      await route.fulfill({ json: tasks });
+      return;
+    }
+
+    await route.continue();
+  });
+
   await page.route(/\/api\/tasks\/run$/, async (route) => {
     if (!healthy) {
       await route.fulfill({ status: 503, body: "Gateway unavailable" });
@@ -296,7 +313,23 @@ export async function mockToriiConfig(
 
     await route.fulfill({
       status: 202,
-      json: { runId: "run-from-task" },
+      json: { runId: "run-from-task", taskId: "task-from-dialog" },
+    });
+  });
+
+  await page.route(/\/api\/tasks\/[^/?]+\/run$/, async (route) => {
+    if (!healthy) {
+      await route.fulfill({ status: 503, body: "Gateway unavailable" });
+      return;
+    }
+
+    const url = new URL(route.request().url());
+    const segments = url.pathname.split("/");
+    const taskId = segments.at(-2) ?? "task-unknown";
+
+    await route.fulfill({
+      status: 202,
+      json: { runId: "run-from-task", taskId },
     });
   });
 

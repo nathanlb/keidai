@@ -21,10 +21,12 @@ WORKDIR /app
 
 RUN addgroup -g 1001 shaiden \
   && adduser -u 1001 -G shaiden -D shaiden \
+  && mkdir -p /app/data \
   && chown -R shaiden:shaiden /app
 
 ENV NODE_ENV=production \
-    TORII_MCP_URL=http://torii:3100/mcp
+    TORII_MCP_URL=http://torii:3100/mcp \
+    SHAIDEN_DB_PATH=/app/data/shaiden.db
 
 COPY --from=build --chown=shaiden:shaiden /out/dist ./dist
 COPY --from=build --chown=shaiden:shaiden /out/node_modules ./node_modules

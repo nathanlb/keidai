@@ -10,6 +10,7 @@ import {
   Timer,
   UserX,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { OwnerAvatar } from "../../torii/agents/owner-avatar.js";
 import { deriveRunDisplayStatus } from "./utils/derive-run-display-status.js";
 import { RUN_STATUS_META } from "./utils/format-run-status.js";
@@ -85,6 +86,14 @@ export function RunsTableRow({
         >
           {run.id}
         </div>
+        <Link
+          to={`/shaiden/tasks?task=${encodeURIComponent(run.taskId)}`}
+          className="mt-0.5 block truncate font-mono text-[11px] text-primary hover:underline"
+          title={run.taskId}
+          onClick={(event) => event.stopPropagation()}
+        >
+          task {run.taskId}
+        </Link>
       </TableCell>
       <TableCell className="py-3 whitespace-nowrap">
         <div className="font-mono text-[12.5px] text-foreground">
