@@ -172,10 +172,19 @@ export async function fetchTrace(traceId: string): Promise<TraceListItem> {
 }
 
 export async function fetchApprovals(
-  status?: ApprovalRecordStatus,
+  query: { status?: ApprovalRecordStatus; limit?: number } = {},
 ): Promise<ApprovalRecordView[]> {
-  const query = status ? `?status=${encodeURIComponent(status)}` : "";
-  return fetchJson<ApprovalRecordView[]>(`/api/approvals${query}`);
+  const params = new URLSearchParams();
+  if (query.status) {
+    params.set("status", query.status);
+  }
+  if (query.limit !== undefined) {
+    params.set("limit", String(query.limit));
+  }
+  const serialized = params.toString();
+  return fetchJson<ApprovalRecordView[]>(
+    `/api/approvals${serialized ? `?${serialized}` : ""}`,
+  );
 }
 
 export async function approveApproval(approvalId: string): Promise<void> {

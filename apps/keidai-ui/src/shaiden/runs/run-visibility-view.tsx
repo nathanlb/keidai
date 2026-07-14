@@ -9,14 +9,24 @@ import {
   TableRow,
 } from "@keidai/ui";
 import { Search, Workflow } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { TablePaginationFooter } from "../../shell/components/table-pagination/table-pagination-footer.js";
+import { paginateItems } from "../../shell/components/table-pagination/paginate-items.js";
+import { useTablePageIndex } from "../../shell/components/table-pagination/use-table-page-index.js";
 import { useFetchRun } from "../../shell/hooks/use-fetch-run.js";
 import { useRuns } from "../../shell/hooks/use-runs.js";
 import { NEW_TASK_HREF, NEW_TASK_PARAM } from "../navigation.js";
 import { TaskAuthoringDialog } from "../tasks/task-authoring-dialog.js";
 import { RunDetailDrawer } from "./run-detail-drawer.js";
 import { RunsSearchBar } from "./runs-search-bar.js";
+import { runsTableColumns } from "./runs-table-columns.js";
 import { RunsStatusChips } from "./runs-status-chips.js";
 import { RunsSummaryTiles } from "./runs-summary-tiles.js";
 import { RunsTableRow } from "./runs-table-row.js";
@@ -136,6 +146,13 @@ export function RunVisibilityView() {
     () => filterRuns(runs, filters, suspendedRunIds),
     [filters, runs, suspendedRunIds],
   );
+  const { pageIndex, onPageChange } = useTablePageIndex([filters]);
+  const {
+    pageItems: pageRuns,
+    shownCount,
+    canGoNewer,
+    canGoOlder,
+  } = paginateItems(filteredRuns, pageIndex);
 
   const syncSearchParams = useCallback(
     (patch: { runId?: string | null; newTask?: boolean }) => {
@@ -279,32 +296,44 @@ export function RunVisibilityView() {
           {hasMatches ? (
             <Card className="overflow-hidden shadow-none">
               <CardContent className="p-0">
-                <Table className="table-fixed">
+                <Table className={runsTableColumns.tableClassName}>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="h-auto w-[28%] py-2.5 pl-[18px] text-xs font-medium">
+                      <TableHead className={runsTableColumns.headClassName("run")}>
                         Run
                       </TableHead>
-                      <TableHead className="h-auto py-2.5 text-xs font-medium">
+                      <TableHead
+                        className={runsTableColumns.headClassName("started")}
+                      >
                         Started
                       </TableHead>
-                      <TableHead className="h-auto py-2.5 text-xs font-medium">
+                      <TableHead
+                        className={runsTableColumns.headClassName("iterations")}
+                      >
                         Iterations
                       </TableHead>
-                      <TableHead className="h-auto py-2.5 text-right text-xs font-medium">
+                      <TableHead
+                        className={runsTableColumns.headClassName("duration")}
+                      >
                         Duration
                       </TableHead>
-                      <TableHead className="h-auto py-2.5 text-xs font-medium">
+                      <TableHead
+                        className={runsTableColumns.headClassName("status")}
+                      >
                         Status
                       </TableHead>
-                      <TableHead className="h-auto w-[16%] py-2.5 text-xs font-medium">
+                      <TableHead
+                        className={runsTableColumns.headClassName("agent")}
+                      >
                         Agent
                       </TableHead>
-                      <TableHead className="h-auto w-0 py-2.5 pr-[18px]" />
+                      <TableHead
+                        className={runsTableColumns.headClassName("chevron")}
+                      />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredRuns.map((run) => (
+                    {pageRuns.map((run) => (
                       <RunsTableRow
                         key={run.id}
                         run={run}
@@ -315,15 +344,15 @@ export function RunVisibilityView() {
                     ))}
                   </TableBody>
                 </Table>
-                <div className="border-t border-border px-[18px] py-2.5 text-xs text-muted-foreground">
-                  Showing{" "}
-                  <span className="font-mono text-foreground">
-                    {filteredRuns.length}
-                  </span>{" "}
-                  of{" "}
-                  <span className="font-mono text-foreground">{runs.length}</span>{" "}
-                  runs
-                </div>
+                <TablePaginationFooter
+                  shownCount={shownCount}
+                  totalCount={runs.length}
+                  totalLabel="runs in buffer"
+                  canGoNewer={canGoNewer}
+                  canGoOlder={canGoOlder}
+                  onPageChange={onPageChange}
+                  pageIndex={pageIndex}
+                />
               </CardContent>
             </Card>
           ) : (
@@ -337,7 +366,9 @@ export function RunVisibilityView() {
               <div className="text-sm font-semibold">Run not found</div>
               <p className="mt-1 text-[12.5px] text-muted-foreground">
                 Could not load run{" "}
-                <span className="font-mono text-foreground">{selectedRunId}</span>{" "}
+                <span className="font-mono text-foreground">
+                  {selectedRunId}
+                </span>{" "}
                 from the service.
               </p>
               <Button

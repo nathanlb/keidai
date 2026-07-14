@@ -3,6 +3,10 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { inject, injectable } from "tsyringe";
 import { ApprovalReadService } from "./approval-read.service.js";
 import { ApprovalStoreService } from "./approval-store.service.js";
+import {
+  DEFAULT_APPROVAL_LIST_LIMIT,
+  MAX_APPROVAL_LIST_LIMIT,
+} from "./types/approval-list.js";
 
 function parseStatus(
   request: FastifyRequest,
@@ -20,6 +24,14 @@ function parseStatus(
   return undefined;
 }
 
+function parseApprovalListLimit(request: FastifyRequest): number {
+  const query = request.query as Record<string, string | undefined>;
+  const parsedLimit = Number(query.limit ?? DEFAULT_APPROVAL_LIST_LIMIT);
+  return Number.isFinite(parsedLimit)
+    ? Math.min(Math.max(1, parsedLimit), MAX_APPROVAL_LIST_LIMIT)
+    : DEFAULT_APPROVAL_LIST_LIMIT;
+}
+
 @injectable()
 export class ApprovalsApiController {
   constructor(
@@ -31,7 +43,12 @@ export class ApprovalsApiController {
 
   registerRoutes(app: FastifyInstance): void {
     app.get("/api/approvals", async (request, reply) => {
-      reply.send(this.approvalRead.listApprovals(parseStatus(request)));
+      reply.send(
+        this.approvalRead.listApprovals(
+          parseStatus(request),
+          parseApprovalListLimit(request),
+        ),
+      );
     });
 
     app.get("/api/approvals/:id", async (request, reply) => {

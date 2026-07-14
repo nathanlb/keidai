@@ -34,7 +34,10 @@ export class ApprovalReadService {
     };
   }
 
-  listApprovals(status?: ApprovalRecordStatus): ApprovalRecordView[] {
-    return this.approvalStore.listApprovals(status);
+  listApprovals(
+    status?: ApprovalRecordStatus,
+    limit?: number,
+  ): ApprovalRecordView[] {
+    return this.approvalStore.listApprovals(status, limit);
   }
 }

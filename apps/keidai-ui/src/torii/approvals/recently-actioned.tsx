@@ -1,10 +1,14 @@
 import type { ApprovalRecordView } from "@keidai/shared";
 import { cn } from "@keidai/ui";
 import { Ban, CheckCheck, X } from "lucide-react";
+import { TablePaginationFooter } from "../../shell/components/table-pagination/table-pagination-footer.js";
+import { paginateItems } from "../../shell/components/table-pagination/paginate-items.js";
+import { useTablePageIndex } from "../../shell/components/table-pagination/use-table-page-index.js";
 import { parseNamespacedToolName } from "./utils/parse-namespaced-tool-name.js";
 
 interface RecentlyActionedProps {
   items: ApprovalRecordView[];
+  bufferCount: number;
 }
 
 function outcomeLabel(status: ApprovalRecordView["status"]): string {
@@ -33,7 +37,15 @@ function OutcomeIcon({ status }: { status: ApprovalRecordView["status"] }) {
   }
 }
 
-export function RecentlyActioned({ items }: RecentlyActionedProps) {
+export function RecentlyActioned({ items, bufferCount }: RecentlyActionedProps) {
+  const { pageIndex, onPageChange } = useTablePageIndex([items.length]);
+  const {
+    pageItems: pageItems,
+    shownCount,
+    canGoNewer,
+    canGoOlder,
+  } = paginateItems(items, pageIndex);
+
   if (items.length === 0) {
     return null;
   }
@@ -44,7 +56,7 @@ export function RecentlyActioned({ items }: RecentlyActionedProps) {
         Recently actioned
       </h3>
       <ul className="mt-3 divide-y divide-border">
-        {items.map((item) => {
+        {pageItems.map((item) => {
           const { server, tool } = parseNamespacedToolName(item.toolName);
           return (
             <li
@@ -77,6 +89,16 @@ export function RecentlyActioned({ items }: RecentlyActionedProps) {
           );
         })}
       </ul>
+      <TablePaginationFooter
+        shownCount={shownCount}
+        totalCount={bufferCount}
+        totalLabel="approvals in buffer"
+        canGoNewer={canGoNewer}
+        canGoOlder={canGoOlder}
+        onPageChange={onPageChange}
+        pageIndex={pageIndex}
+        className="mt-3 flex items-center justify-between rounded-lg border border-border px-4 py-2.5 text-xs text-muted-foreground"
+      />
     </section>
   );
 }

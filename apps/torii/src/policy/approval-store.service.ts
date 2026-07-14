@@ -5,6 +5,10 @@ import type {
   ApprovalRecordView,
 } from "@keidai/shared";
 import { injectable } from "tsyringe";
+import {
+  DEFAULT_APPROVAL_LIST_LIMIT,
+  MAX_APPROVAL_LIST_LIMIT,
+} from "./types/approval-list.js";
 
 const DEFAULT_APPROVAL_TTL_MS = 24 * 60 * 60 * 1000;
 const REJECTION_SUPPRESSION_TTL_MS = 60 * 60 * 1000;
@@ -74,11 +78,19 @@ export class ApprovalStoreService {
     return this.approvals.get(id);
   }
 
-  listApprovals(status?: ApprovalRecordStatus): ApprovalRecordView[] {
+  listApprovals(
+    status?: ApprovalRecordStatus,
+    limit = DEFAULT_APPROVAL_LIST_LIMIT,
+  ): ApprovalRecordView[] {
+    const boundedLimit = Math.min(
+      Math.max(1, limit),
+      MAX_APPROVAL_LIST_LIMIT,
+    );
     const records = [...this.approvals.values()];
     return records
       .filter((record) => (status ? record.status === status : true))
       .sort((left, right) => right.createdAt - left.createdAt)
+      .slice(0, boundedLimit)
       .map((record) => toApprovalView(record));
   }
 

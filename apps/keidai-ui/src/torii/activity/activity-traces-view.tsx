@@ -10,14 +10,14 @@ import {
 } from "@keidai/ui";
 import { Activity, Info, Search } from "lucide-react";
 import { useMemo } from "react";
+import { TablePaginationFooter } from "../../shell/components/table-pagination/table-pagination-footer.js";
+import { paginateItems } from "../../shell/components/table-pagination/paginate-items.js";
 import { useActivityTracesPage } from "./context/use-activity-traces.js";
 import { ActivityFilterBar } from "./activity-filter-bar.js";
 import { ActivityOutcomeChips } from "./activity-outcome-chips.js";
 import { ActivitySummaryTiles } from "./activity-summary-tiles.js";
 import { ActivityTraceRow } from "./activity-trace-row.js";
 import { TraceDetailDrawer } from "./trace-detail-drawer.js";
-
-const PAGE_SIZE = 50;
 
 function TailToggle({
   isLive,
@@ -111,11 +111,12 @@ export function ActivityTracesView() {
 
   const isIdle = traces.length === 0;
   const hasMatches = filteredTraces.length > 0;
-  const pageStart = pageIndex * PAGE_SIZE;
-  const pageTraces = filteredTraces.slice(pageStart, pageStart + PAGE_SIZE);
-  const shownCount = pageTraces.length;
-  const canGoNewer = pageIndex > 0;
-  const canGoOlder = pageStart + PAGE_SIZE < filteredTraces.length;
+  const {
+    pageItems: pageTraces,
+    shownCount,
+    canGoNewer,
+    canGoOlder,
+  } = paginateItems(filteredTraces, pageIndex);
 
   const infoCard = useMemo(
     () => (
@@ -198,39 +199,15 @@ export function ActivityTracesView() {
                   ))}
                 </TableBody>
               </Table>
-              <div className="flex items-center justify-between border-t border-border px-[18px] py-2.5 text-xs text-muted-foreground">
-                <span>
-                  Showing{" "}
-                  <span className="font-mono text-foreground">
-                    {shownCount}
-                  </span>{" "}
-                  of{" "}
-                  <span className="font-mono text-foreground">
-                    {bufferCount}
-                  </span>{" "}
-                  traces in buffer
-                </span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={!canGoNewer}
-                    onClick={() => onPageChange(pageIndex - 1)}
-                  >
-                    Newer
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={!canGoOlder}
-                    onClick={() => onPageChange(pageIndex + 1)}
-                  >
-                    Older
-                  </Button>
-                </div>
-              </div>
+              <TablePaginationFooter
+                shownCount={shownCount}
+                totalCount={bufferCount}
+                totalLabel="traces in buffer"
+                canGoNewer={canGoNewer}
+                canGoOlder={canGoOlder}
+                onPageChange={onPageChange}
+                pageIndex={pageIndex}
+              />
             </CardContent>
           </Card>
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground">

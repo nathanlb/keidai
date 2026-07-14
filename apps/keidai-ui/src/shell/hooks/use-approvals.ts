@@ -1,10 +1,10 @@
 import type { ApprovalRecordView } from "@keidai/shared";
 import useSWR from "swr";
+import { LIST_BUFFER_LIMIT } from "../constants/list-limits.js";
 import { fetchApprovals } from "../../torii/api/torii-client.js";
 
 export const APPROVALS_KEY = "approvals";
 
-const RECENTLY_ACTIONED_LIMIT = 10;
 const REFRESH_INTERVAL_MS = 3_000;
 
 const swrOptions = {
@@ -24,7 +24,7 @@ function sortByDecidedAtDesc(
 export function useApprovals() {
   const { data, error, isLoading, mutate } = useSWR(
     APPROVALS_KEY,
-    () => fetchApprovals(),
+    () => fetchApprovals({ limit: LIST_BUFFER_LIMIT }),
     swrOptions,
   );
 
@@ -32,12 +32,12 @@ export function useApprovals() {
   const pending = approvals.filter((record) => record.status === "pending");
   const recentlyActioned = approvals
     .filter((record) => record.status !== "pending")
-    .sort(sortByDecidedAtDesc)
-    .slice(0, RECENTLY_ACTIONED_LIMIT);
+    .sort(sortByDecidedAtDesc);
 
   return {
     pending,
     recentlyActioned,
+    bufferCount: approvals.length,
     pendingCount: pending.length,
     error,
     isLoading,
