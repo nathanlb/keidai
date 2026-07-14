@@ -17,6 +17,8 @@ export interface RunStep {
   toolCallId?: string;
   text?: string;
   inputPreview?: string;
+  /** Truncated tool output for run-log display (especially errors). */
+  outputPreview?: string;
   status?: "ok" | "error" | "approval_required";
   approvalId?: string;
   charCount?: number;
