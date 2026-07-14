@@ -33,7 +33,7 @@ function latestSteps(store: RunStore) {
 }
 
 describe("harness tool dispatch", () => {
-  it("records dispatch and error result when a tool is unavailable", async () => {
+  it("records dispatch and returns an error result when a tool is unavailable", async () => {
     const { store, reporter } = createHarnessReporter();
     const dispatch = createHarnessToolDispatcher({
       runId: "run-1",
@@ -43,10 +43,10 @@ describe("harness tool dispatch", () => {
     });
     const call = toolCall("notion_search", "call-1");
 
-    await assert.rejects(
-      () => dispatch(call),
-      /tool is not available from Torii/,
-    );
+    const result = await dispatch(call);
+
+    assert.equal(result.isError, true);
+    assert.equal(result.text, "tool is not available from Torii");
 
     const steps = latestSteps(store);
     assert.equal(steps.length, 2);
@@ -59,7 +59,7 @@ describe("harness tool dispatch", () => {
     assert.notEqual(steps[0]?.id, steps[1]?.id);
   });
 
-  it("records dispatch and error result when callTool throws", async () => {
+  it("records dispatch and returns an error result when callTool throws", async () => {
     const { store, reporter } = createHarnessReporter();
     const dispatch = createHarnessToolDispatcher({
       runId: "run-1",
@@ -71,7 +71,10 @@ describe("harness tool dispatch", () => {
     });
     const call = toolCall("notion_search", "call-1");
 
-    await assert.rejects(() => dispatch(call), /connection reset/);
+    const result = await dispatch(call);
+
+    assert.equal(result.isError, true);
+    assert.equal(result.text, "connection reset");
 
     const steps = latestSteps(store);
     assert.equal(steps.length, 2);

@@ -55,7 +55,9 @@ function toModelMessages(history: ConversationEntry[]): ModelMessage[] {
               type: "tool-result",
               toolCallId: entry.toolCallId,
               toolName: entry.toolName,
-              output: { type: "text", value: entry.output },
+              output: entry.isError
+                ? { type: "error-text", value: entry.output }
+                : { type: "text", value: entry.output },
             },
           ],
         };

@@ -36,33 +36,75 @@ describe("task loop", () => {
         { text: "", toolCalls: [toolCall("missing_tool")] },
       ]),
       dispatchToolCall: async () => {
-        throw new Error("tool is not available from Torii");
+        throw new Error("unexpected harness fault");
       },
     });
 
     assert.equal(result.outcome.status, "failed");
     if (result.outcome.status === "failed") {
       assert.match(result.outcome.reason, /missing_tool/);
+      assert.match(result.outcome.reason, /unexpected harness fault/);
     }
   });
 
-  it("terminates as failed(reason) when a tool result is an error", async () => {
+  it("feeds an error tool result into history and recovers to goal_met", async () => {
     const result = await runTaskLoop("goal", limits, {
       callModel: scriptedModel([
         { text: "", toolCalls: [toolCall("send_email")] },
+        { text: "Done after correcting the recipient.", toolCalls: [] },
       ]),
       dispatchToolCall: async () => ({
         isError: true,
-        text: "policy denied",
+        text: "unknown recipient",
       }),
     });
 
-    assert.equal(result.outcome.status, "failed");
-    if (result.outcome.status === "failed") {
-      assert.match(result.outcome.reason, /send_email/);
+    assert.deepEqual(result.outcome, { status: "goal_met" });
+    assert.equal(result.iterations, 2);
+    const toolEntry = result.history.find((entry) => entry.role === "tool");
+    assert.equal(toolEntry?.role, "tool");
+    if (toolEntry?.role === "tool") {
+      assert.equal(toolEntry.isError, true);
+      assert.match(toolEntry.output, /unknown recipient/);
     }
   });
 
+  it("exhausts iterations on repeated tool errors without failing", async () => {
+    const result = await runTaskLoop("goal", limits, {
+      callModel: async () => ({
+        text: "",
+        toolCalls: [toolCall("broken_tool")],
+      }),
+      dispatchToolCall: async () => ({
+        isError: true,
+        text: "still broken",
+      }),
+    });
+
+    assert.deepEqual(result.outcome, { status: "iteration_exhausted" });
+    assert.equal(result.iterations, limits.max_iterations);
+    const errorEntries = result.history.filter(
+      (entry) => entry.role === "tool" && entry.isError,
+    );
+    assert.equal(errorEntries.length, limits.max_iterations);
+  });
+
+  it("times out on repeated tool errors without failing", async () => {
+    let clock = 0;
+    const result = await runTaskLoop("goal", limits, {
+      callModel: scriptedModel([
+        { text: "", toolCalls: [toolCall("slow_broken")] },
+        { text: "never reached", toolCalls: [] },
+      ]),
+      dispatchToolCall: async () => {
+        clock += limits.timeout_seconds * 1000 + 1;
+        return { isError: true, text: "still broken" };
+      },
+      now: () => clock,
+    });
+
+    assert.deepEqual(result.outcome, { status: "timeout" });
+  });
   it("terminates as failed(reason) when the model call throws", async () => {
     const result = await runTaskLoop("goal", limits, {
       callModel: async () => {

@@ -11,7 +11,7 @@ The loop is deliberately thin: call the model (OpenRouter via the AI SDK) with T
 | `goal_met` | Agent responded with final text (no tool calls), self-assessed against the goal |
 | `iteration_exhausted` | Iteration cap reached (default 12) |
 | `timeout` | Wall-clock timeout reached (default 600s) |
-| `failed(reason)` | Unavailable/unsatisfiable tool call, or a model/dispatch error — fails fast |
+| `failed(reason)` | Harness-level failure (model unreachable, operator cancel, session/connect error). Per-call tool errors are fed back to the model as tool results so the agent can retry or adapt. |
 | `human_reject` | Agent concluded the goal is unreachable after a human denial (final text prefixed with `HUMAN_REJECT:`) |
 
 ## Domain boundaries
