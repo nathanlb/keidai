@@ -1,8 +1,5 @@
 import { randomUUID } from "node:crypto";
 import {
-  TORII_APPROVAL_ID_ARG,
-  TORII_RUN_ID_ARG,
-  TORII_STEP_ID_ARG,
   resolveTaskLimits,
   type Logger,
   type Task,
@@ -13,21 +10,15 @@ import { createOpenRouterModel } from "../model/openrouter.js";
 import { connectToriiSession } from "../mcp/torii-client.js";
 import { toriiBaseUrlFromMcpUrl } from "../mcp/torii-approval-client.js";
 import { createPollingApprovalResumeSignal } from "./approval-resume-signal.js";
+import { createHarnessToolDispatcher } from "./harness-tool-dispatch.js";
 import { buildToolSet, createModelStepCaller } from "./model-step.js";
 import { taskGoalPrompt, taskSystemPrompt } from "./prompts.js";
+import { previewOf } from "./run-step-recording.js";
 import { createLocalRunReporter } from "./run-reporter.js";
 import { completeRun, createRun } from "./run-lifecycle.js";
-import { ModelToolCall, ToolDispatchOptions } from "./types/task-loop.js";
 import { HarnessRunResult } from "./types/harness.js";
 import { runTaskLoop } from "./task-loop.js";
 import type { RunStore } from "../runs/run-store.js";
-
-function previewOf(value: string, maxLength = 200): string {
-  const flattened = value.replace(/\s+/g, " ").trim();
-  return flattened.length > maxLength
-    ? `${flattened.slice(0, maxLength)}…`
-    : flattened;
-}
 
 export interface HarnessRunOptions {
   logger?: Logger;
@@ -116,73 +107,13 @@ async function driveHarnessRun(
       });
 
       const availableToolNames = new Set(session.tools.map((tool) => tool.name));
-      const dispatchToolCall = async (
-        call: ModelToolCall,
-        options?: ToolDispatchOptions,
-      ) => {
-        if (!availableToolNames.has(call.toolName)) {
-          throw new Error("tool is not available from Torii");
-        }
-
-        const correlationStepId = options?.stepId ?? randomUUID();
-        const args = {
-          ...call.input,
-          [TORII_RUN_ID_ARG]: options?.runId ?? runDraft.id,
-          [TORII_STEP_ID_ARG]: correlationStepId,
-          ...(options?.approvalId
-            ? { [TORII_APPROVAL_ID_ARG]: options.approvalId }
-            : {}),
-        };
-
-        logger.info("run.tool_dispatch", {
-          runId: runDraft.id,
-          toolName: call.toolName,
-          inputPreview: previewOf(JSON.stringify(call.input)),
-        });
-        reporter.recordStep({
-          id: correlationStepId,
-          kind: "tool_dispatch",
-          toolName: call.toolName,
-          toolCallId: call.toolCallId,
-          inputPreview: previewOf(JSON.stringify(call.input)),
-        });
-        const result = await session.callTool(call.toolName, args);
-        logger.info("run.tool_result", {
-          runId: runDraft.id,
-          toolName: call.toolName,
-          status: result.isError
-            ? "error"
-            : result.approvalRequired
-              ? "approval_required"
-              : "ok",
-          charCount: result.text.length,
-        });
-        reporter.recordStep({
-          id: correlationStepId,
-          kind: "tool_result",
-          toolName: call.toolName,
-          toolCallId: call.toolCallId,
-          status: result.isError
-            ? "error"
-            : result.approvalRequired
-              ? "approval_required"
-              : "ok",
-          charCount: result.text.length,
-          ...(result.meta?.traceId ? { traceId: result.meta.traceId } : {}),
-        });
-
-        if (result.approvalRequired) {
-          return {
-            ...result,
-            approvalRequired: {
-              approvalId: result.approvalRequired.approvalId,
-              stepId: correlationStepId,
-            },
-          };
-        }
-
-        return result;
-      };
+      const dispatchToolCall = createHarnessToolDispatcher({
+        runId: runDraft.id,
+        reporter,
+        availableToolNames,
+        callTool: (toolName, args) => session.callTool(toolName, args),
+        logger,
+      });
 
       const baseCallModel = createModelStepCaller(
         createOpenRouterModel(config.openRouterApiKey, config.modelId),
@@ -194,15 +125,9 @@ async function driveHarnessRun(
         history: Parameters<typeof baseCallModel>[0],
       ) => {
         const step = await baseCallModel(history);
-        const toolSummary =
-          step.toolCalls.length > 0
-            ? ` (${step.toolCalls.map((call) => call.toolName).join(", ")})`
-            : "";
         reporter.recordStep({
           kind: "model",
-          text: step.text
-            ? `${previewOf(step.text, 500)}${toolSummary}`
-            : toolSummary.trim() || undefined,
+          text: step.text ? previewOf(step.text, 500) : undefined,
         });
         return step;
       };

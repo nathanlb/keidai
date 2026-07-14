@@ -184,6 +184,16 @@ export function RunDetailDrawer({
       }
       bodyClassName="space-y-4"
     >
+      {run.outcome?.status === "failed" ? (
+        <Alert variant="destructive">
+          <CircleX className="size-4" />
+          <AlertTitle>Run failed</AlertTitle>
+          <AlertDescription className="text-destructive/90">
+            {run.outcome.reason}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       {suspended ? (
         <>
           <Alert variant="warning">
@@ -255,7 +265,14 @@ export function RunDetailDrawer({
                   </span>
                 ) : null}
               </div>
-              <p className="mt-1 pl-[22px] text-[12.5px] leading-normal text-muted-foreground">
+              <p
+                className={cn(
+                  "mt-1 pl-[22px] text-[12.5px] leading-normal",
+                  step.kind === "tool_result" && step.status === "error"
+                    ? "text-destructive"
+                    : "text-muted-foreground",
+                )}
+              >
                 {formatRunStepDescription(step)}
               </p>
               {step.traceId && step.kind === "tool_result" ? (

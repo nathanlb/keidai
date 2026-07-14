@@ -5,11 +5,11 @@ export function formatRunStepTitle(step: RunStep): string {
     case "model":
       return "Reasoning";
     case "tool_dispatch":
-      return step.toolName ?? "Tool dispatch";
+      return `Tool call · ${step.toolName ?? "unknown"}`;
     case "tool_result":
-      return step.toolName ?? "Tool result";
+      return `Tool result · ${step.toolName ?? "unknown"}`;
     case "waiting_approval":
-      return step.toolName ?? "Awaiting approval";
+      return `Awaiting approval · ${step.toolName ?? "unknown"}`;
   }
 }
 
@@ -18,16 +18,23 @@ export function formatRunStepDescription(step: RunStep): string {
     case "model":
       return step.text ?? "Model responded with tool calls";
     case "tool_dispatch":
-      return step.inputPreview ?? "Dispatching tool call through Torii";
+      return step.inputPreview
+        ? `Arguments: ${step.inputPreview}`
+        : "Dispatching tool call through Torii";
     case "tool_result":
       if (step.status === "error") {
-        return "Tool call failed";
+        return step.outputPreview ?? "Tool call failed";
+      }
+      if (step.outputPreview) {
+        return step.outputPreview;
       }
       return step.charCount !== undefined
         ? `Returned ${step.charCount.toLocaleString()} chars`
         : "Tool call completed";
     case "waiting_approval":
-      return step.inputPreview ?? "Parked on a gated tool call";
+      return step.inputPreview
+        ? `Arguments: ${step.inputPreview}`
+        : "Parked on a gated tool call";
   }
 }
 

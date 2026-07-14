@@ -124,16 +124,18 @@ export function RunsTableRow({
             initials={agentInitials(run.assignee)}
             className="size-[22px] shrink-0 bg-secondary text-[9px] text-secondary-foreground"
           />
-          <span
-            className="truncate font-mono text-xs"
-            title={run.assignee}
-          >
+          <span className="truncate font-mono text-xs" title={run.assignee}>
             {run.assignee}
           </span>
         </div>
       </TableCell>
-      <TableCell className="py-3 pr-[18px] text-right text-muted-foreground">
-        <ChevronRight className="ml-auto size-4" aria-hidden />
+      <TableCell className="w-0 whitespace-nowrap py-3 pl-2 pr-[18px] text-right">
+        <div className="flex items-center justify-end">
+          <ChevronRight
+            className="size-3.5 shrink-0 text-muted-foreground"
+            aria-hidden
+          />
+        </div>
       </TableCell>
     </TableRow>
   );

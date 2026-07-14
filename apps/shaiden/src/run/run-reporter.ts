@@ -17,6 +17,7 @@ export interface RunReporter {
     toolCallId?: string;
     text?: string;
     inputPreview?: string;
+    outputPreview?: string;
     status?: "ok" | "error" | "approval_required";
     approvalId?: string;
     charCount?: number;
