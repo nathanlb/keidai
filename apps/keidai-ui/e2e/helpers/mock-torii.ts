@@ -316,8 +316,26 @@ export async function mockToriiConfig(
     const url = new URL(route.request().url());
     const taskId = decodeURIComponent(url.pathname.split("/").at(-1) ?? "");
 
-    if (taskId === "runtime" || taskId === "run") {
-      await route.continue();
+    if (taskId === "runtime") {
+      if (route.request().method() === "GET") {
+        await route.fulfill({ json: taskRuntime });
+        return;
+      }
+
+      await route.fulfill({ status: 405, body: "Method not allowed" });
+      return;
+    }
+
+    if (taskId === "run") {
+      if (route.request().method() === "POST") {
+        await route.fulfill({
+          status: 202,
+          json: { runId: "run-from-task", taskId: "task-from-dialog" },
+        });
+        return;
+      }
+
+      await route.fulfill({ status: 405, body: "Method not allowed" });
       return;
     }
 

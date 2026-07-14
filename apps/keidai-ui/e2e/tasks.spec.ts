@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import type { PublicAgentConfig, RunReport, SavedTask } from "@keidai/shared";
 import { mockToriiConfig } from "./helpers/mock-torii.js";
 import {
+  createAndRunTask,
   editTaskGoalInput,
   saveEditedTaskGoal,
   waitForEditTaskFormReady,
@@ -57,11 +58,7 @@ test.describe("Shaiden tasks", () => {
     const dialog = page.getByRole("dialog", { name: "New task" });
     await expect(dialog).toBeVisible();
 
-    await dialog
-      .getByPlaceholder(/describe what "done" looks like/i)
-      .fill("Compose weekly status report");
-
-    await dialog.getByRole("button", { name: "Create & run" }).click();
+    await createAndRunTask(dialog, "Compose weekly status report");
 
     await expect(page).toHaveURL(/\/shaiden\/runs\?run=run-from-task$/);
     await expect(dialog).toBeHidden();
