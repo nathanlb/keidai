@@ -92,6 +92,20 @@ export async function fetchRun(runId: string): Promise<RunReport> {
   );
 }
 
+export async function sendRunFollowUp(
+  runId: string,
+  message: string,
+): Promise<{ runId: string }> {
+  return fetchJsonWithBody<{ runId: string }>(
+    shaidenApiPath(`/api/runs/${encodeURIComponent(runId)}/follow-up`),
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message }),
+    },
+  );
+}
+
 export function getRunsEventsUrl(): string {
   return shaidenApiPath("/api/runs/events");
 }

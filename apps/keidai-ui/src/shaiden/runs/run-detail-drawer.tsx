@@ -5,6 +5,7 @@ import {
   Badge,
   Button,
   cn,
+  Textarea,
 } from "@keidai/ui";
 import type { RunReport, RunStep } from "@keidai/shared";
 import {
@@ -16,18 +17,21 @@ import {
   Pause,
   Play,
   RotateCw,
+  Send,
   Timer,
   UserX,
   Wrench,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import {
   approveApproval,
   rejectApproval,
 } from "../../torii/api/torii-client.js";
+import { sendRunFollowUp } from "../api/shaiden-client.js";
 import { DetailDrawer } from "../../shell/components/detail-drawer/detail-drawer.js";
 import {
+  canSendFollowUp,
   deriveRunDisplayStatus,
   isRunSuspended,
 } from "./utils/derive-run-display-status.js";
@@ -53,6 +57,9 @@ function StepIcon({ step }: { step: RunStep }) {
         />
       );
     case "tool_dispatch":
+      return (
+        <Wrench className={cn(className, "text-success")} aria-hidden />
+      );
     case "tool_result":
       return (
         <Wrench
@@ -65,6 +72,12 @@ function StepIcon({ step }: { step: RunStep }) {
       );
     case "waiting_approval":
       return <Pause className={cn(className, "text-warning")} aria-hidden />;
+    case "user_message":
+      return (
+        <MessageSquare className={cn(className, "text-primary")} aria-hidden />
+      );
+    case "outcome":
+      return <CheckCircle2 className={cn(className, "text-muted-foreground")} aria-hidden />;
   }
 }
 
@@ -111,6 +124,42 @@ export function RunDetailDrawer({
   onRunUpdated: () => void;
 }) {
   const [isDeciding, setIsDeciding] = useState(false);
+  const [followUpMessage, setFollowUpMessage] = useState("");
+  const [isSendingFollowUp, setIsSendingFollowUp] = useState(false);
+  const [followUpError, setFollowUpError] = useState<string | null>(null);
+  const followUpFieldId = useId();
+  const followUpErrorId = useId();
+
+  useEffect(() => {
+    setFollowUpMessage("");
+    setFollowUpError(null);
+    setIsSendingFollowUp(false);
+  }, [run?.id]);
+
+  const handleSendFollowUp = useCallback(async () => {
+    if (!run) {
+      return;
+    }
+
+    const message = followUpMessage.trim();
+    if (!message) {
+      return;
+    }
+
+    setIsSendingFollowUp(true);
+    setFollowUpError(null);
+    try {
+      await sendRunFollowUp(run.id, message);
+      setFollowUpMessage("");
+      onRunUpdated();
+    } catch (error) {
+      setFollowUpError(
+        error instanceof Error ? error.message : "Could not send follow-up",
+      );
+    } finally {
+      setIsSendingFollowUp(false);
+    }
+  }, [followUpMessage, onRunUpdated, run]);
 
   const handleApprove = useCallback(async () => {
     if (!run) {
@@ -157,6 +206,7 @@ export function RunDetailDrawer({
   const status = deriveRunDisplayStatus(run, { steps: run.steps });
   const meta = RUN_STATUS_META[status];
   const suspended = isRunSuspended(run.steps);
+  const followUpEnabled = canSendFollowUp(run, run.steps);
 
   return (
     <DetailDrawer
@@ -276,7 +326,7 @@ export function RunDetailDrawer({
               >
                 {formatRunStepDescription(step)}
               </p>
-              {step.traceId && step.kind === "tool_result" ? (
+              {step.kind === "tool_result" && step.traceId ? (
                 <Link
                   to={`/activity?trace_id=${encodeURIComponent(step.traceId)}`}
                   className="mt-1 inline-flex items-center gap-1 pl-[22px] text-[11px] text-primary hover:underline"
@@ -298,6 +348,41 @@ export function RunDetailDrawer({
           ) : null}
         </div>
       </div>
+
+      {followUpEnabled ? (
+        <div className="space-y-2 border-t border-border pt-4">
+          <label
+            htmlFor={followUpFieldId}
+            className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase"
+          >
+            Follow-up message
+          </label>
+          <Textarea
+            id={followUpFieldId}
+            value={followUpMessage}
+            onChange={(event) => setFollowUpMessage(event.target.value)}
+            placeholder="Add guidance, ask for a summary, or suggest a retry…"
+            rows={3}
+            disabled={isSendingFollowUp}
+            aria-invalid={followUpError ? true : undefined}
+            aria-describedby={followUpError ? followUpErrorId : undefined}
+          />
+          {followUpError ? (
+            <p id={followUpErrorId} className="text-[12px] text-destructive">
+              {followUpError}
+            </p>
+          ) : null}
+          <Button
+            type="button"
+            className="w-full"
+            disabled={isSendingFollowUp || followUpMessage.trim().length === 0}
+            onClick={() => void handleSendFollowUp()}
+          >
+            <Send className="size-3.5" aria-hidden />
+            Send follow-up
+          </Button>
+        </div>
+      ) : null}
     </DetailDrawer>
   );
 }

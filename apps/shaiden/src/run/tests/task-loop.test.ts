@@ -1,10 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { runTaskLoop } from "../task-loop.js";
-import {
+import { runGoalLoop, limits,
+  runTaskLoop,
   approvalRequiredDispatch,
   deferredApprovalDecision,
-  limits,
   okDispatch,
   scriptedModel,
   toolCall,
@@ -13,7 +12,7 @@ import {
 describe("task loop", () => {
   it("completes a multi-step tool sequence with exactly one goal_met outcome", async () => {
     const dispatched: string[] = [];
-    const result = await runTaskLoop("goal", limits, {
+    const result = await runGoalLoop("goal", limits, {
       callModel: scriptedModel([
         { text: "", toolCalls: [toolCall("search_issues")] },
         { text: "", toolCalls: [toolCall("create_draft")] },
@@ -31,7 +30,7 @@ describe("task loop", () => {
   });
 
   it("terminates as failed(reason) when a tool call dispatch throws", async () => {
-    const result = await runTaskLoop("goal", limits, {
+    const result = await runGoalLoop("goal", limits, {
       callModel: scriptedModel([
         { text: "", toolCalls: [toolCall("missing_tool")] },
       ]),
@@ -48,7 +47,7 @@ describe("task loop", () => {
   });
 
   it("feeds an error tool result into history and recovers to goal_met", async () => {
-    const result = await runTaskLoop("goal", limits, {
+    const result = await runGoalLoop("goal", limits, {
       callModel: scriptedModel([
         { text: "", toolCalls: [toolCall("send_email")] },
         { text: "Done after correcting the recipient.", toolCalls: [] },
@@ -70,7 +69,7 @@ describe("task loop", () => {
   });
 
   it("exhausts iterations on repeated tool errors without failing", async () => {
-    const result = await runTaskLoop("goal", limits, {
+    const result = await runGoalLoop("goal", limits, {
       callModel: async () => ({
         text: "",
         toolCalls: [toolCall("broken_tool")],
@@ -91,7 +90,7 @@ describe("task loop", () => {
 
   it("times out on repeated tool errors without failing", async () => {
     let clock = 0;
-    const result = await runTaskLoop("goal", limits, {
+    const result = await runGoalLoop("goal", limits, {
       callModel: scriptedModel([
         { text: "", toolCalls: [toolCall("slow_broken")] },
         { text: "never reached", toolCalls: [] },
@@ -106,7 +105,7 @@ describe("task loop", () => {
     assert.deepEqual(result.outcome, { status: "timeout" });
   });
   it("terminates as failed(reason) when the model call throws", async () => {
-    const result = await runTaskLoop("goal", limits, {
+    const result = await runGoalLoop("goal", limits, {
       callModel: async () => {
         throw new Error("provider unreachable");
       },
@@ -118,7 +117,7 @@ describe("task loop", () => {
 
   it("terminates as iteration_exhausted at the iteration cap", async () => {
     let modelCalls = 0;
-    const result = await runTaskLoop("goal", limits, {
+    const result = await runGoalLoop("goal", limits, {
       callModel: async () => {
         modelCalls++;
         return { text: "", toolCalls: [toolCall("busy_tool", `call-${modelCalls}`)] };
@@ -132,7 +131,7 @@ describe("task loop", () => {
 
   it("terminates as timeout when the wall clock passes the deadline", async () => {
     let clock = 0;
-    const result = await runTaskLoop("goal", limits, {
+    const result = await runGoalLoop("goal", limits, {
       callModel: scriptedModel([
         { text: "", toolCalls: [toolCall("slow_tool")] },
         { text: "never reached", toolCalls: [] },
@@ -151,7 +150,7 @@ describe("task loop", () => {
     const dispatched: string[] = [];
     const approval = deferredApprovalDecision();
 
-    const loop = runTaskLoop("goal", limits, {
+    const loop = runGoalLoop("goal", limits, {
       callModel: scriptedModel([
         { text: "", toolCalls: [toolCall("gmail.create_draft")] },
         { text: "Done.", toolCalls: [] },
@@ -180,7 +179,7 @@ describe("task loop", () => {
   it("returns a denial tool result on reject and lets the agent continue", async () => {
     const approval = deferredApprovalDecision();
 
-    const loop = runTaskLoop("goal", limits, {
+    const loop = runGoalLoop("goal", limits, {
       callModel: scriptedModel([
         { text: "", toolCalls: [toolCall("gmail.create_draft")] },
         { text: "Adapted without draft.", toolCalls: [] },
@@ -200,7 +199,7 @@ describe("task loop", () => {
   });
 
   it("terminates as human_reject when the agent concludes the goal is unreachable", async () => {
-    const result = await runTaskLoop("goal", limits, {
+    const result = await runGoalLoop("goal", limits, {
       callModel: scriptedModel([
         {
           text: "HUMAN_REJECT: cannot send newsletter without draft approval.",
@@ -216,7 +215,7 @@ describe("task loop", () => {
   it("terminates as failed when approval is cancelled by operator", async () => {
     const approval = deferredApprovalDecision();
 
-    const loop = runTaskLoop("goal", limits, {
+    const loop = runGoalLoop("goal", limits, {
       callModel: scriptedModel([
         { text: "", toolCalls: [toolCall("gmail.create_draft")] },
         { text: "never reached", toolCalls: [] },
@@ -239,7 +238,7 @@ describe("task loop", () => {
     let clock = 0;
     const approval = deferredApprovalDecision();
 
-    const loop = runTaskLoop(
+    const loop = runGoalLoop(
       "goal",
       { ...limits, timeout_seconds: 10 },
       {
@@ -262,5 +261,126 @@ describe("task loop", () => {
 
     assert.deepEqual(result.outcome, { status: "goal_met" });
     assert.equal(clock, 20_000);
+  });
+
+  it("continues from restored history with fresh limits", async () => {
+    const checkpoints: number[] = [];
+    const result = await runTaskLoop(
+      {
+        initialHistory: [
+          { role: "user", text: "original goal" },
+          { role: "assistant", text: "first attempt failed", toolCalls: [] },
+          { role: "user", text: "try again" },
+        ],
+        limits,
+      },
+      {
+        callModel: scriptedModel([{ text: "Done on retry.", toolCalls: [] }]),
+        dispatchToolCall: okDispatch,
+        onHistoryChanged: (history) => {
+          checkpoints.push(history.length);
+        },
+      },
+    );
+
+    assert.deepEqual(result.outcome, { status: "goal_met" });
+    assert.equal(result.iterations, 1);
+    assert.ok(checkpoints.length > 0);
+  });
+
+  it("drains queued follow-up messages before the next model call", async () => {
+    const seenUserMessages: string[] = [];
+    const approval = deferredApprovalDecision();
+    let releaseQueued = false;
+    let modelCalls = 0;
+
+    const loop = runGoalLoop("goal", limits, {
+      callModel: async (history) => {
+        modelCalls += 1;
+        for (const entry of history) {
+          if (entry.role === "user" && entry.text !== "goal") {
+            seenUserMessages.push(entry.text);
+          }
+        }
+        if (modelCalls === 1) {
+          return { text: "", toolCalls: [toolCall("gmail.create_draft")] };
+        }
+        return { text: "Done.", toolCalls: [] };
+      },
+      dispatchToolCall: approvalRequiredDispatch(),
+      waitForApproval: approval.waitForApproval,
+      drainPendingUserMessages: () => {
+        if (!releaseQueued) {
+          return [];
+        }
+        releaseQueued = false;
+        return [{ role: "user", text: "queued guidance" }];
+      },
+    });
+
+    await approval.whenPending;
+    releaseQueued = true;
+    approval.resolve({ status: "approved" });
+    await loop;
+
+    assert.deepEqual(seenUserMessages, ["queued guidance"]);
+  });
+
+  it("drains queued follow-up messages and records a tool error before failing on cancellation", async () => {
+    const approval = deferredApprovalDecision();
+    let releaseQueued = false;
+
+    const loop = runGoalLoop("goal", limits, {
+      callModel: scriptedModel([
+        { text: "", toolCalls: [toolCall("gmail.create_draft")] },
+      ]),
+      dispatchToolCall: approvalRequiredDispatch(),
+      waitForApproval: approval.waitForApproval,
+      drainPendingUserMessages: () => {
+        if (!releaseQueued) {
+          return [];
+        }
+        releaseQueued = false;
+        return [{ role: "user", text: "queued guidance" }];
+      },
+    });
+
+    await approval.whenPending;
+    releaseQueued = true;
+    approval.resolve({ status: "cancelled" });
+    const result = await loop;
+
+    assert.equal(result.outcome.status, "failed");
+    const userMessages = result.history
+      .filter((entry) => entry.role === "user")
+      .map((entry) => (entry.role === "user" ? entry.text : ""));
+    assert.deepEqual(userMessages, ["goal", "queued guidance"]);
+    const toolEntries = result.history.filter((entry) => entry.role === "tool");
+    assert.equal(toolEntries.length, 1);
+    const toolEntry = toolEntries[0];
+    if (toolEntry?.role === "tool") {
+      assert.equal(toolEntry.isError, true);
+      assert.match(toolEntry.output, /cancelled by operator/);
+    }
+  });
+
+  it("records a synthetic tool error result when dispatch throws", async () => {
+    const result = await runGoalLoop("goal", limits, {
+      callModel: scriptedModel([
+        { text: "", toolCalls: [toolCall("missing_tool")] },
+      ]),
+      dispatchToolCall: async () => {
+        throw new Error("unexpected harness fault");
+      },
+    });
+
+    const toolEntries = result.history.filter((entry) => entry.role === "tool");
+    assert.equal(toolEntries.length, 1);
+    const toolEntry = toolEntries[0];
+    assert.equal(toolEntry?.role, "tool");
+    if (toolEntry?.role === "tool") {
+      assert.equal(toolEntry.isError, true);
+      assert.match(toolEntry.output, /unexpected harness fault/);
+    }
   });
 });

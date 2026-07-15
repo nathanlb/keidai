@@ -1,4 +1,7 @@
-import type { TerminationOutcome, ToriiCallMeta } from "@keidai/shared";
+import type { TaskLimits, TerminationOutcome, ToriiCallMeta } from "@keidai/shared";
+import type { ConversationEntry } from "./conversation-history.js";
+
+export type { ConversationEntry };
 
 /** One tool call requested by the model in a step. */
 export interface ModelToolCall {
@@ -38,21 +41,6 @@ export interface ApprovalWaitContext {
   stepId?: string;
 }
 
-/**
- * Provider-agnostic conversation history, held in memory for a single run.
- * The model adapter maps entries to its own message format.
- */
-export type ConversationEntry =
-  | { role: "user"; text: string }
-  | { role: "assistant"; text: string; toolCalls: ModelToolCall[] }
-  | {
-      role: "tool";
-      toolCallId: string;
-      toolName: string;
-      output: string;
-      isError?: boolean;
-    };
-
 export interface TaskLoopDeps {
   callModel: (history: ConversationEntry[]) => Promise<ModelStep>;
   dispatchToolCall: (
@@ -66,6 +54,15 @@ export interface TaskLoopDeps {
   ) => Promise<ApprovalDecision>;
   /** Injectable clock for tests; defaults to Date.now. */
   now?: () => number;
+  /** Drains queued follow-up user messages immediately before each model call. */
+  drainPendingUserMessages?: () => ConversationEntry[];
+  /** Persists conversation checkpoints after each history mutation. */
+  onHistoryChanged?: (history: readonly ConversationEntry[]) => void;
+}
+
+export interface TaskLoopStart {
+  initialHistory: ConversationEntry[];
+  limits: TaskLimits;
 }
 
 export interface TaskLoopResult {

@@ -14,7 +14,7 @@ function run(
     assignee: "agent-1",
     goalPreview: "goal",
     status: "completed",
-    outcome: "success",
+    outcome: { status: "goal_met" },
     stepCount: 1,
     ...overrides,
   };
@@ -63,7 +63,7 @@ describe("mergeRunListItem", () => {
       current,
       run("old", "2026-07-14T10:00:00.000Z", {
         status: "completed",
-        outcome: "success",
+        outcome: { status: "goal_met" },
         stepCount: 4,
       }),
     );

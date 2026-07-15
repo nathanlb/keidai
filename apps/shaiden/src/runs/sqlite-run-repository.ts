@@ -9,12 +9,20 @@ import {
   type Task,
   type TerminationOutcome,
 } from "@keidai/shared";
+import type { ConversationEntry } from "../run/types/conversation-history.js";
 import {
   DEFAULT_RUN_RETENTION_COUNT,
   type RunRepository,
 } from "./types/run-repository.js";
+import {
+  appendUserMessageToHistory,
+  isEligibleContinuationOutcome,
+  parseConversationHistory,
+  serializeConversationHistory,
+  type BeginContinuationResult,
+} from "./utils/conversation-history.js";
 import { formatGoalPreview } from "./utils/format-goal-preview.js";
-import { createRunStep } from "./in-memory-run-repository.js";
+import { createRunStep } from "./utils/create-run-step.js";
 
 interface RunRow {
   id: string;
@@ -26,6 +34,7 @@ interface RunRow {
   status: string;
   outcome_json: string | null;
   step_count: number;
+  conversation_history_json: string | null;
 }
 
 interface RunStepRow {
@@ -60,7 +69,7 @@ function stepPayloadFromRow(row: RunStepRow): RunStep {
     timestamp: row.timestamp,
     kind: row.kind as RunStepKind,
     ...payload,
-  };
+  } as RunStep;
 }
 
 function stepPayloadToJson(step: RunStep): string {
@@ -73,6 +82,8 @@ export class SqliteRunRepository implements RunRepository {
   private readonly getRunStatement;
   private readonly listRunsStatement;
   private readonly updateRunCompleteStatement;
+  private readonly updateConversationHistoryStatement;
+  private readonly beginContinuationStatement;
   private readonly incrementStepCountStatement;
   private readonly insertStepStatement;
   private readonly listStepsStatement;
@@ -87,21 +98,21 @@ export class SqliteRunRepository implements RunRepository {
     this.insertRunStatement = db.prepare(`
       INSERT INTO runs (
         id, task_id, task_snapshot_json, started_at, assignee, goal_preview,
-        status, outcome_json, step_count
+        status, outcome_json, step_count, conversation_history_json
       ) VALUES (
         @id, @task_id, @task_snapshot_json, @started_at, @assignee, @goal_preview,
-        @status, @outcome_json, @step_count
+        @status, @outcome_json, @step_count, @conversation_history_json
       )
     `);
     this.getRunStatement = db.prepare(`
       SELECT id, task_id, task_snapshot_json, started_at, assignee, goal_preview,
-             status, outcome_json, step_count
+             status, outcome_json, step_count, conversation_history_json
       FROM runs
       WHERE id = ?
     `);
     this.listRunsStatement = db.prepare(`
       SELECT id, task_id, task_snapshot_json, started_at, assignee, goal_preview,
-             status, outcome_json, step_count
+             status, outcome_json, step_count, conversation_history_json
       FROM runs
       ORDER BY started_at DESC, id DESC
       LIMIT ?
@@ -110,6 +121,19 @@ export class SqliteRunRepository implements RunRepository {
       UPDATE runs
       SET status = 'completed', outcome_json = @outcome_json
       WHERE id = @id
+    `);
+    this.updateConversationHistoryStatement = db.prepare(`
+      UPDATE runs
+      SET conversation_history_json = @conversation_history_json
+      WHERE id = @id
+    `);
+    this.beginContinuationStatement = db.prepare(`
+      UPDATE runs
+      SET status = 'running',
+          outcome_json = NULL,
+          conversation_history_json = @conversation_history_json,
+          step_count = step_count + 1
+      WHERE id = @id AND status = 'completed'
     `);
     this.incrementStepCountStatement = db.prepare(`
       UPDATE runs SET step_count = step_count + 1 WHERE id = ?
@@ -148,6 +172,7 @@ export class SqliteRunRepository implements RunRepository {
       status: "running",
       outcome_json: null,
       step_count: 0,
+      conversation_history_json: null,
     });
     this.trim();
     return this.rowToRunReport(
@@ -161,6 +186,7 @@ export class SqliteRunRepository implements RunRepository {
         status: "running",
         outcome_json: null,
         step_count: 0,
+        conversation_history_json: null,
       },
       [],
     );
@@ -172,7 +198,7 @@ export class SqliteRunRepository implements RunRepository {
       return null;
     }
 
-    const normalized = createRunStep(step);
+    const normalized = createRunStep(step as Parameters<typeof createRunStep>[0]);
     this.db.exec("BEGIN IMMEDIATE");
     try {
       this.insertStepStatement.run({
@@ -231,6 +257,86 @@ export class SqliteRunRepository implements RunRepository {
       stepCount: row.step_count,
     }));
     return { runs };
+  }
+
+  setConversationHistory(
+    runId: string,
+    history: readonly ConversationEntry[],
+  ): boolean {
+    const runRow = this.getRunStatement.get(runId) as RunRow | undefined;
+    if (!runRow) {
+      return false;
+    }
+
+    this.updateConversationHistoryStatement.run({
+      id: runId,
+      conversation_history_json: serializeConversationHistory(history),
+    });
+    return true;
+  }
+
+  getConversationHistory(runId: string): ConversationEntry[] | null {
+    const runRow = this.getRunStatement.get(runId) as RunRow | undefined;
+    if (!runRow) {
+      return null;
+    }
+    return parseConversationHistory(runRow.conversation_history_json);
+  }
+
+  beginContinuation(
+    runId: string,
+    message: string,
+    userMessageStep: RunStep,
+  ): BeginContinuationResult {
+    const runRow = this.getRunStatement.get(runId) as RunRow | undefined;
+    if (!runRow) {
+      return { ok: false, reason: "not_found" };
+    }
+
+    if (runRow.status !== "completed") {
+      return { ok: false, reason: "not_terminal" };
+    }
+
+    const outcome = parseOutcome(runRow.outcome_json);
+    if (!isEligibleContinuationOutcome(outcome)) {
+      return { ok: false, reason: "ineligible_outcome" };
+    }
+
+    const history = parseConversationHistory(runRow.conversation_history_json);
+    if (!history || history.length === 0) {
+      return { ok: false, reason: "missing_history" };
+    }
+
+    const updatedHistory = appendUserMessageToHistory(history, message);
+    const normalizedStep = userMessageStep.id
+      ? userMessageStep
+      : createRunStep(userMessageStep as Parameters<typeof createRunStep>[0]);
+
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const result = this.beginContinuationStatement.run({
+        id: runId,
+        conversation_history_json: serializeConversationHistory(updatedHistory),
+      });
+      if (result.changes === 0) {
+        this.db.exec("ROLLBACK");
+        return { ok: false, reason: "concurrent_continuation" };
+      }
+
+      this.insertStepStatement.run({
+        id: normalizedStep.id,
+        run_id: runId,
+        timestamp: normalizedStep.timestamp,
+        kind: normalizedStep.kind,
+        payload_json: stepPayloadToJson(normalizedStep),
+      });
+      this.db.exec("COMMIT");
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      throw error;
+    }
+
+    return { ok: true, history: updatedHistory };
   }
 
   private listStepsForRun(runId: string): RunStep[] {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { InMemoryTaskRepository } from "../in-memory-task-repository.js";
+import { InMemoryTaskRepository } from "../testing/in-memory-task-repository.js";
 
 const sampleTask = {
   goal: "Ship the newsletter",

@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import type { TaskLimits } from "@keidai/shared";
+import { runTaskLoop } from "../task-loop.js";
 import type {
   ApprovalDecision,
   ModelStep,
   ModelToolCall,
+  TaskLoopDeps,
   ToolDispatchOptions,
   ToolDispatchResult,
 } from "../types/task-loop.js";
@@ -12,6 +14,22 @@ export const limits: TaskLimits = {
   max_iterations: 5,
   timeout_seconds: 60,
 };
+
+export function runGoalLoop(
+  goal: string,
+  taskLimits: TaskLimits,
+  deps: TaskLoopDeps,
+) {
+  return runTaskLoop(
+    {
+      initialHistory: [{ role: "user", text: goal }],
+      limits: taskLimits,
+    },
+    deps,
+  );
+}
+
+export { runTaskLoop };
 
 export function toolCall(name: string, id = `${name}-1`): ModelToolCall {
   return { toolCallId: id, toolName: name, input: {} };

@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { taskSchema, type SavedTask, type Task, type UpdateTaskRequest } from "@keidai/shared";
-import type { CreateTaskInput, TaskRepository } from "./types/task-repository.js";
-import { DEFAULT_TASK_LIST_LIMIT } from "./types/task-repository.js";
+import {
+  taskSchema,
+  type SavedTask,
+  type Task,
+  type UpdateTaskRequest,
+} from "@keidai/shared";
+import type { CreateTaskInput, TaskRepository } from "../types/task-repository.js";
+import { DEFAULT_TASK_LIST_LIMIT } from "../types/task-repository.js";
 
 function compareTasks(left: SavedTask, right: SavedTask): number {
   const byTime = right.updatedAt.localeCompare(left.updatedAt);
@@ -11,6 +16,7 @@ function compareTasks(left: SavedTask, right: SavedTask): number {
   return right.id.localeCompare(left.id);
 }
 
+/** Test-only TaskRepository. Not durable and not visible across processes. */
 export class InMemoryTaskRepository implements TaskRepository {
   private readonly tasks = new Map<string, SavedTask>();
   private readonly runCounts = new Map<string, number>();

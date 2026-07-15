@@ -1,7 +1,9 @@
-import type { RunSseEvent } from "@keidai/shared";
+import type { RunSseEvent, RunStep } from "@keidai/shared";
 import { RUN_SSE_EVENT } from "@keidai/shared";
-import { InMemoryRunRepository, createRunStep } from "./in-memory-run-repository.js";
+import type { ConversationEntry } from "../run/types/conversation-history.js";
 import type { RunRepository } from "./types/run-repository.js";
+import type { BeginContinuationResult } from "./utils/conversation-history.js";
+import { createRunStep } from "./utils/create-run-step.js";
 import { projectRunListItem } from "./utils/project-run-api.js";
 
 type RunListener = (event: RunSseEvent) => void;
@@ -13,7 +15,7 @@ type RunListener = (event: RunSseEvent) => void;
 export class RunStore {
   private readonly listeners = new Set<RunListener>();
 
-  constructor(private readonly repository: RunRepository = new InMemoryRunRepository()) {}
+  constructor(private readonly repository: RunRepository) {}
 
   listRuns(limit?: number) {
     return this.repository.list(limit);
@@ -38,7 +40,7 @@ export class RunStore {
 
   appendStep(
     runId: string,
-    step: Omit<Parameters<RunRepository["appendStep"]>[1], "id"> & { id?: string },
+    step: Omit<RunStep, "id"> & { id?: string },
   ) {
     const run = this.repository.appendStep(runId, createRunStep(step));
     if (run) {
@@ -53,6 +55,33 @@ export class RunStore {
       this.notifyUpdated(runId);
     }
     return run;
+  }
+
+  setConversationHistory(
+    runId: string,
+    history: readonly ConversationEntry[],
+  ): boolean {
+    return this.repository.setConversationHistory(runId, history);
+  }
+
+  getConversationHistory(runId: string): ConversationEntry[] | null {
+    return this.repository.getConversationHistory(runId);
+  }
+
+  beginContinuation(
+    runId: string,
+    message: string,
+    userMessageStep: RunStep,
+  ): BeginContinuationResult {
+    const result = this.repository.beginContinuation(
+      runId,
+      message,
+      userMessageStep,
+    );
+    if (result.ok) {
+      this.notifyUpdated(runId);
+    }
+    return result;
   }
 
   private notifyUpdated(runId: string): void {

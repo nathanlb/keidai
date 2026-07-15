@@ -1,4 +1,5 @@
 import type { RunStep } from "@keidai/shared";
+import { RUN_STATUS_META } from "./format-run-status.js";
 
 export function formatRunStepTitle(step: RunStep): string {
   switch (step.kind) {
@@ -10,6 +11,10 @@ export function formatRunStepTitle(step: RunStep): string {
       return `Tool result · ${step.toolName ?? "unknown"}`;
     case "waiting_approval":
       return `Awaiting approval · ${step.toolName ?? "unknown"}`;
+    case "user_message":
+      return "Follow-up message";
+    case "outcome":
+      return `Outcome · ${RUN_STATUS_META[step.outcomeStatus].label}`;
   }
 }
 
@@ -35,6 +40,10 @@ export function formatRunStepDescription(step: RunStep): string {
       return step.inputPreview
         ? `Arguments: ${step.inputPreview}`
         : "Parked on a gated tool call";
+    case "user_message":
+      return step.text;
+    case "outcome":
+      return step.outcomeReason ?? RUN_STATUS_META[step.outcomeStatus].label;
   }
 }
 

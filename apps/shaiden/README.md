@@ -4,7 +4,7 @@ Agent runtime for the Keidai ecosystem. Connects to Torii over MCP with an opaqu
 
 ## Task loop
 
-The loop is deliberately thin: call the model (OpenRouter via the AI SDK) with Torii-discovered tools, dispatch tool calls back to Torii over the same MCP session, feed results in, repeat. Conversation state is held in memory for a single run. Every run records exactly one outcome:
+The loop is deliberately thin: call the model (OpenRouter via the AI SDK) with Torii-discovered tools, dispatch tool calls back to Torii over the same MCP session, feed results in, repeat. Conversation state is held in memory for a single run and checkpointed to persistent storage for terminal continuations. Every run records exactly one outcome:
 
 | Outcome | Meaning |
 |---------|---------|
@@ -51,6 +51,19 @@ Set `SHAIDEN_BEARER` in the repo root `.env` (or `apps/shaiden/.env`). Torii mus
 Author a Task in keidai-ui (`/shaiden/tasks`) and submit it with `POST /api/tasks/run` (create saved task + start run) or run a saved task with `POST /api/tasks/:taskId/run`. The body is validated with `taskSchema` (`goal`, `trigger: { type: "now" }`, `assignee`, optional `limits`). Shaiden accepts the run asynchronously (`202` + `{ runId, taskId }`) and streams progress over `GET /api/runs/events`.
 
 Saved tasks are listed at `GET /api/tasks` and persist in SQLite (`SHAIDEN_DB_PATH`). Runs store a task snapshot at start time so later task edits do not rewrite history.
+
+### Follow-up messages on stopped runs
+
+`POST /api/runs/:runId/follow-up` with `{ "message": "..." }` appends a user follow-up to an existing run and resumes the same run record:
+
+| Run state | Behavior |
+|-----------|----------|
+| `waiting_approval` | Message is queued for the parked loop and recorded in the run log; approval is unchanged |
+| Terminal (`failed`, `goal_met`, `iteration_exhausted`, `timeout`) | Run reopens, message is appended, and the loop resumes with persisted conversation history |
+
+Iteration cap and wall-clock timeout reset on each terminal continuation. Runs created before conversation-history persistence was added cannot be resumed (`409`). If the process restarts while a run is parked on approval, the in-memory follow-up channel is lost (`409`). `human_reject` continuations are not supported in v0.
+
+Conversation history is checkpointed during execution and stored in SQLite (`conversation_history_json`) so terminal resumes can rebuild the model transcript. The run log records `user_message` and `outcome` milestone steps so prior outcomes remain visible after a continuation.
 
 A sample Task shape still lives in [`src/config/boot-task.ts`](src/config/boot-task.ts) for reference; the process no longer auto-runs it at boot.
 
