@@ -18,8 +18,14 @@ export type RunStatusFilter =
   | "failed";
 
 export function isRunSuspended(steps: readonly RunStep[]): boolean {
-  const lastStep = steps[steps.length - 1];
-  return lastStep?.kind === "waiting_approval";
+  for (let index = steps.length - 1; index >= 0; index -= 1) {
+    const step = steps[index];
+    if (!step || step.kind === "user_message") {
+      continue;
+    }
+    return step.kind === "waiting_approval";
+  }
+  return false;
 }
 
 export function deriveRunDisplayStatus(
@@ -73,4 +79,23 @@ export function matchesRunStatusFilter(
   }
 
   return status === filter;
+}
+
+const ELIGIBLE_FOLLOW_UP_OUTCOMES = new Set<RunDisplayStatus>([
+  "failed",
+  "goal_met",
+  "iteration_exhausted",
+  "timeout",
+]);
+
+export function canSendFollowUp(
+  run: RunListItem,
+  steps: readonly RunStep[],
+): boolean {
+  const status = deriveRunDisplayStatus(run, { steps });
+  if (status === "waiting_approval") {
+    return true;
+  }
+
+  return ELIGIBLE_FOLLOW_UP_OUTCOMES.has(status);
 }

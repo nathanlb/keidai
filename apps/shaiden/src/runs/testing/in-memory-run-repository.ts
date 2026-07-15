@@ -1,15 +1,20 @@
-import { randomUUID } from "node:crypto";
 import type {
   CompleteRunRequest,
   CreateRunRequest,
   RunReport,
   RunStep,
 } from "@keidai/shared";
+import type { ConversationEntry } from "../../run/types/conversation-history.js";
 import {
   DEFAULT_RUN_RETENTION_COUNT,
   type RunRepository,
-} from "./types/run-repository.js";
-import { formatGoalPreview } from "./utils/format-goal-preview.js";
+} from "../types/run-repository.js";
+import {
+  appendUserMessageToHistory,
+  isEligibleContinuationOutcome,
+  type BeginContinuationResult,
+} from "../utils/conversation-history.js";
+import { formatGoalPreview } from "../utils/format-goal-preview.js";
 
 function compareRuns(left: RunReport, right: RunReport): number {
   const byTime = right.startedAt.localeCompare(left.startedAt);
@@ -19,8 +24,13 @@ function compareRuns(left: RunReport, right: RunReport): number {
   return right.id.localeCompare(left.id);
 }
 
+interface StoredRun extends RunReport {
+  conversationHistory?: ConversationEntry[];
+}
+
+/** Test-only RunRepository. Not durable and not visible across processes. */
 export class InMemoryRunRepository implements RunRepository {
-  private readonly runs = new Map<string, RunReport>();
+  private readonly runs = new Map<string, StoredRun>();
   private readonly retentionCount: number;
 
   constructor(retentionCount = DEFAULT_RUN_RETENTION_COUNT) {
@@ -28,7 +38,7 @@ export class InMemoryRunRepository implements RunRepository {
   }
 
   create(input: CreateRunRequest): RunReport {
-    const run: RunReport = {
+    const run: StoredRun = {
       id: input.id,
       taskId: input.taskId,
       task: input.task,
@@ -50,7 +60,7 @@ export class InMemoryRunRepository implements RunRepository {
       return null;
     }
 
-    const updated: RunReport = {
+    const updated: StoredRun = {
       ...run,
       steps: [...run.steps, step],
       stepCount: run.steps.length + 1,
@@ -65,7 +75,7 @@ export class InMemoryRunRepository implements RunRepository {
       return null;
     }
 
-    const updated: RunReport = {
+    const updated: StoredRun = {
       ...run,
       status: "completed",
       outcome: input.outcome,
@@ -96,6 +106,66 @@ export class InMemoryRunRepository implements RunRepository {
     return { runs };
   }
 
+  setConversationHistory(
+    runId: string,
+    history: readonly ConversationEntry[],
+  ): boolean {
+    const run = this.runs.get(runId);
+    if (!run) {
+      return false;
+    }
+
+    this.runs.set(runId, {
+      ...run,
+      conversationHistory: [...history],
+    });
+    return true;
+  }
+
+  getConversationHistory(runId: string): ConversationEntry[] | null {
+    const run = this.runs.get(runId);
+    if (!run?.conversationHistory) {
+      return null;
+    }
+    return [...run.conversationHistory];
+  }
+
+  beginContinuation(
+    runId: string,
+    message: string,
+    userMessageStep: RunStep,
+  ): BeginContinuationResult {
+    const run = this.runs.get(runId);
+    if (!run) {
+      return { ok: false, reason: "not_found" };
+    }
+
+    if (run.status !== "completed") {
+      return { ok: false, reason: "not_terminal" };
+    }
+
+    if (!isEligibleContinuationOutcome(run.outcome)) {
+      return { ok: false, reason: "ineligible_outcome" };
+    }
+
+    const history = run.conversationHistory;
+    if (!history || history.length === 0) {
+      return { ok: false, reason: "missing_history" };
+    }
+
+    const updatedHistory = appendUserMessageToHistory(history, message);
+    const updated: StoredRun = {
+      ...run,
+      status: "running",
+      outcome: undefined,
+      conversationHistory: updatedHistory,
+      steps: [...run.steps, userMessageStep],
+      stepCount: run.steps.length + 1,
+    };
+    this.runs.set(runId, updated);
+    return { ok: true, history: updatedHistory };
+  }
+
   private trim(): void {
     const completed = [...this.runs.values()]
       .filter((run) => run.status === "completed")
@@ -108,13 +178,4 @@ export class InMemoryRunRepository implements RunRepository {
       this.runs.delete(run.id);
     }
   }
-}
-
-export function createRunStep(
-  step: Omit<RunStep, "id"> & { id?: string },
-): RunStep {
-  return {
-    ...step,
-    id: step.id ?? randomUUID(),
-  };
 }

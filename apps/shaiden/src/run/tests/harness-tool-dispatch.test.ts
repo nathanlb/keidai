@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { RunStore } from "../../runs/run-store.js";
+import { createTestPersistence, createTestRun } from "../../testing/persistence.js";
+import type { RunStore } from "../../runs/run-store.js";
 import { createHarnessToolDispatcher } from "../harness-tool-dispatch.js";
 import { createLocalRunReporter } from "../run-reporter.js";
 import { toolCall } from "./task-loop-helpers.js";
@@ -13,14 +14,12 @@ const sampleTask = {
 };
 
 function createHarnessReporter() {
-  const store = new RunStore();
-  store.createRun({
-    id: "run-1",
-    taskId: "task-1",
+  const persistence = createTestPersistence("sqlite");
+  const store = persistence.runStore;
+  createTestRun(persistence, {
+    runId: "run-1",
     task: sampleTask,
-    assignee: sampleTask.assignee,
     goal: sampleTask.goal,
-    startedAt: "2026-07-14T12:00:00.000Z",
   });
   return {
     store,

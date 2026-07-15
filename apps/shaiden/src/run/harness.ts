@@ -9,20 +9,27 @@ import { defaultLogger } from "../logging/logger.js";
 import { createOpenRouterModel } from "../model/openrouter.js";
 import { connectToriiSession } from "../mcp/torii-client.js";
 import { toriiBaseUrlFromMcpUrl } from "../mcp/torii-approval-client.js";
+import {
+  ActiveRunRegistry,
+  createActiveRunHandle,
+} from "./active-run-registry.js";
 import { createPollingApprovalResumeSignal } from "./approval-resume-signal.js";
 import { createHarnessToolDispatcher } from "./harness-tool-dispatch.js";
 import { buildToolSet, createModelStepCaller } from "./model-step.js";
 import { taskGoalPrompt, taskSystemPrompt } from "./prompts.js";
+import { completeRunWithOutcomeStep } from "./run-completion.js";
 import { previewOf } from "./run-step-recording.js";
 import { createLocalRunReporter } from "./run-reporter.js";
 import { completeRun, createRun } from "./run-lifecycle.js";
 import { HarnessRunResult } from "./types/harness.js";
+import type { ConversationEntry } from "./types/conversation-history.js";
 import { runTaskLoop } from "./task-loop.js";
 import type { RunStore } from "../runs/run-store.js";
 
 export interface HarnessRunOptions {
   logger?: Logger;
   runStore?: RunStore;
+  activeRunRegistry?: ActiveRunRegistry;
 }
 
 export interface LaunchHarnessRunInput {
@@ -33,9 +40,29 @@ export interface LaunchHarnessRunInput {
   options?: HarnessRunOptions;
 }
 
+export interface ResumeHarnessRunInput {
+  runId: string;
+  initialHistory: ConversationEntry[];
+  task: Task;
+  config: RuntimeConfig;
+  runStore: RunStore;
+  options?: HarnessRunOptions;
+}
+
 export interface LaunchedHarnessRun {
   runId: string;
   done: Promise<HarnessRunResult>;
+}
+
+interface DriveHarnessRunInput {
+  runId: string;
+  task: Task;
+  config: RuntimeConfig;
+  reporter: ReturnType<typeof createLocalRunReporter>;
+  logger: Logger;
+  runStore: RunStore;
+  initialHistory: ConversationEntry[];
+  activeRunRegistry: ActiveRunRegistry;
 }
 
 /**
@@ -65,7 +92,22 @@ export function launchHarnessRun({
     startedAt: runDraft.startedAt,
   });
 
-  const done = driveHarnessRun(runDraft, task, config, reporter, logger, runStore);
+  const initialHistory: ConversationEntry[] = [
+    { role: "user", text: taskGoalPrompt(task.goal) },
+  ];
+  runStore.setConversationHistory(runDraft.id, initialHistory);
+
+  const done = driveHarnessRun({
+    runId: runDraft.id,
+    task,
+    config,
+    reporter,
+    logger,
+    runStore,
+    initialHistory,
+    activeRunRegistry: options.activeRunRegistry ?? new ActiveRunRegistry(),
+  }).then((result) => result);
+
   return { runId: runDraft.id, done };
 }
 
@@ -80,17 +122,62 @@ export async function startHarnessRun(
   return done;
 }
 
-async function driveHarnessRun(
-  runDraft: ReturnType<typeof createRun>,
-  task: Task,
-  config: RuntimeConfig,
-  reporter: ReturnType<typeof createLocalRunReporter>,
-  logger: Logger,
-  runStore: RunStore,
-): Promise<HarnessRunResult> {
+export function resumeHarnessRun({
+  runId,
+  initialHistory,
+  task,
+  config,
+  runStore,
+  options = {},
+}: ResumeHarnessRunInput): LaunchedHarnessRun {
+  const logger = options.logger ?? defaultLogger;
+  const reporter = createLocalRunReporter(runStore, runId);
+
+  const done = driveHarnessRun({
+    runId,
+    task,
+    config,
+    reporter,
+    logger,
+    runStore,
+    initialHistory,
+    activeRunRegistry: options.activeRunRegistry ?? new ActiveRunRegistry(),
+  }).catch((error) => {
+    const reason = error instanceof Error ? error.message : String(error);
+    const existing = runStore.getRun(runId);
+    if (existing?.status === "running") {
+      completeRunWithOutcomeStep(runStore, runId, {
+        status: "failed",
+        reason: `resume failed: ${reason}`,
+      });
+    }
+    throw error;
+  });
+
+  return { runId, done };
+}
+
+async function driveHarnessRun({
+  runId,
+  task,
+  config,
+  reporter,
+  logger,
+  runStore,
+  initialHistory,
+  activeRunRegistry,
+}: DriveHarnessRunInput): Promise<HarnessRunResult> {
   const limits = resolveTaskLimits(task);
   const toriiBaseUrl = toriiBaseUrlFromMcpUrl(config.toriiMcpUrl);
   const resumeSignal = createPollingApprovalResumeSignal(toriiBaseUrl);
+  const activeHandle = createActiveRunHandle(runId);
+  const unregisterActiveRun = activeRunRegistry.register(activeHandle);
+
+  const runDraft = {
+    id: runId,
+    task,
+    startedAt: runStore.getRun(runId)?.startedAt ?? new Date().toISOString(),
+  };
 
   try {
     const session = await connectToriiSession(
@@ -100,7 +187,7 @@ async function driveHarnessRun(
 
     try {
       logger.info("run.tools_discovered", {
-        runId: runDraft.id,
+        runId,
         agentId: config.agentId,
         toolCount: session.tools.length,
         tools: session.tools.map((tool) => tool.name),
@@ -108,7 +195,7 @@ async function driveHarnessRun(
 
       const availableToolNames = new Set(session.tools.map((tool) => tool.name));
       const dispatchToolCall = createHarnessToolDispatcher({
-        runId: runDraft.id,
+        runId,
         reporter,
         availableToolNames,
         callTool: (toolName, args) => session.callTool(toolName, args),
@@ -138,7 +225,7 @@ async function driveHarnessRun(
       ) => {
         const pollUrl = `${toriiBaseUrl}/api/approvals/${approvalId}`;
         logger.info("run.waiting_approval", {
-          runId: runDraft.id,
+          runId,
           approvalId,
           stepId: context?.stepId,
           pollUrl,
@@ -148,21 +235,31 @@ async function driveHarnessRun(
           kind: "waiting_approval",
           approvalId,
         });
-        return resumeSignal.waitForDecision(approvalId);
+        activeHandle.setWaitingForApproval(true);
+        try {
+          return await resumeSignal.waitForDecision(approvalId);
+        } finally {
+          activeHandle.setWaitingForApproval(false);
+        }
       };
 
       logger.info("run.started", {
-        runId: runDraft.id,
+        runId,
         modelId: config.modelId,
         assignee: task.assignee,
       });
+
       const { outcome, iterations, history } = await runTaskLoop(
-        taskGoalPrompt(task.goal),
-        limits,
+        { initialHistory, limits },
         {
           callModel,
           dispatchToolCall,
           waitForApproval,
+          drainPendingUserMessages: () =>
+            activeHandle.drainPendingUserMessages(),
+          onHistoryChanged: (updatedHistory) => {
+            runStore.setConversationHistory(runId, updatedHistory);
+          },
         },
       );
 
@@ -170,15 +267,17 @@ async function driveHarnessRun(
         const finalEntry = history.at(-1);
         if (finalEntry?.role === "assistant" && finalEntry.text) {
           logger.info("run.goal_met", {
-            runId: runDraft.id,
+            runId,
             responseLength: finalEntry.text.length,
             response: finalEntry.text,
           });
         }
       }
 
+      runStore.setConversationHistory(runId, history);
+      unregisterActiveRun();
       const run = completeRun(runDraft, outcome);
-      reporter.complete(outcome);
+      completeRunWithOutcomeStep(runStore, runId, outcome);
       logger.info("run.completed", {
         runId: run.id,
         iterations,
@@ -191,10 +290,16 @@ async function driveHarnessRun(
     }
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
-    const existing = runStore.getRun(runDraft.id);
+    const existing = runStore.getRun(runId);
+    unregisterActiveRun();
     if (existing?.status === "running") {
-      reporter.complete({ status: "failed", reason });
+      completeRunWithOutcomeStep(runStore, runId, {
+        status: "failed",
+        reason,
+      });
     }
     throw error;
+  } finally {
+    unregisterActiveRun();
   }
 }

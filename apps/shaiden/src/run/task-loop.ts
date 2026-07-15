@@ -1,9 +1,10 @@
-import type { TaskLimits, TerminationOutcome } from "@keidai/shared";
+import type { TerminationOutcome } from "@keidai/shared";
 import { isHumanRejectResponse } from "../mcp/parse-tool-result.js";
+import type { ConversationEntry } from "./types/conversation-history.js";
 import {
   TaskLoopDeps,
   TaskLoopResult,
-  ConversationEntry,
+  TaskLoopStart,
   ModelStep,
   ToolDispatchResult,
   ModelToolCall,
@@ -12,6 +13,20 @@ import {
 
 function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function cloneHistory(
+  history: readonly ConversationEntry[],
+): ConversationEntry[] {
+  return history.map((entry) => {
+    if (entry.role === "assistant") {
+      return {
+        ...entry,
+        toolCalls: entry.toolCalls.map((call) => ({ ...call, input: { ...call.input } })),
+      };
+    }
+    return { ...entry };
+  });
 }
 
 /**
@@ -26,18 +41,51 @@ function describeError(error: unknown): string {
  *   (per-call tool errors are fed back as tool results; the model decides)
  */
 export async function runTaskLoop(
-  goalPrompt: string,
-  limits: TaskLimits,
+  start: TaskLoopStart,
   deps: TaskLoopDeps,
 ): Promise<TaskLoopResult> {
   const now = deps.now ?? Date.now;
-  let deadline = now() + limits.timeout_seconds * 1000;
-  const history: ConversationEntry[] = [{ role: "user", text: goalPrompt }];
+  let deadline = now() + start.limits.timeout_seconds * 1000;
+  const history = cloneHistory(start.initialHistory);
+
+  const checkpoint = (): void => {
+    deps.onHistoryChanged?.(history);
+  };
+
+  const drainPendingUserMessages = (): void => {
+    if (!deps.drainPendingUserMessages) {
+      return;
+    }
+
+    const pending = deps.drainPendingUserMessages();
+    if (pending.length === 0) {
+      return;
+    }
+
+    for (const entry of pending) {
+      history.push(entry);
+    }
+    checkpoint();
+  };
+
+  const pushToolErrorResult = (call: ModelToolCall, error: unknown): void => {
+    history.push({
+      role: "tool",
+      toolCallId: call.toolCallId,
+      toolName: call.toolName,
+      output: describeError(error),
+      isError: true,
+    });
+    checkpoint();
+  };
 
   const terminate = (
     outcome: TerminationOutcome,
     iterations: number,
-  ): TaskLoopResult => ({ outcome, history, iterations });
+  ): TaskLoopResult => {
+    drainPendingUserMessages();
+    return { outcome, history, iterations };
+  };
 
   const resolveToolResult = async (
     call: ModelToolCall,
@@ -82,10 +130,12 @@ export async function runTaskLoop(
     return result;
   };
 
-  for (let iteration = 1; iteration <= limits.max_iterations; iteration++) {
+  for (let iteration = 1; iteration <= start.limits.max_iterations; iteration++) {
     if (now() >= deadline) {
       return terminate({ status: "timeout" }, iteration - 1);
     }
+
+    drainPendingUserMessages();
 
     let step: ModelStep;
     try {
@@ -105,6 +155,7 @@ export async function runTaskLoop(
       text: step.text,
       toolCalls: step.toolCalls,
     });
+    checkpoint();
 
     if (step.toolCalls.length === 0) {
       if (isHumanRejectResponse(step.text)) {
@@ -118,6 +169,7 @@ export async function runTaskLoop(
       try {
         result = await resolveToolResult(call);
       } catch (error) {
+        pushToolErrorResult(call, error);
         return terminate(
           {
             status: "failed",
@@ -135,7 +187,8 @@ export async function runTaskLoop(
         ...(result.isError ? { isError: true } : {}),
       });
     }
+    checkpoint();
   }
 
-  return terminate({ status: "iteration_exhausted" }, limits.max_iterations);
+  return terminate({ status: "iteration_exhausted" }, start.limits.max_iterations);
 }

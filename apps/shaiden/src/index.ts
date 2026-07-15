@@ -6,7 +6,8 @@ import { getShaidenPersistence } from "./boot/persistence.js";
 import { loadRuntimeConfig } from "./config/runtime-config.js";
 import { ShaidenHttpServer } from "./http/shaiden-http-server.js";
 import { defaultLogger } from "./logging/logger.js";
-import { launchHarnessRun } from "./run/harness.js";
+import { ActiveRunRegistry } from "./run/active-run-registry.js";
+import { launchHarnessRun, resumeHarnessRun } from "./run/harness.js";
 
 function waitForShutdown(): Promise<void> {
   return new Promise((resolve) => {
@@ -19,14 +20,33 @@ function waitForShutdown(): Promise<void> {
 async function main(): Promise<void> {
   const config = loadRuntimeConfig();
   const { runStore, taskRepository } = getShaidenPersistence();
+  const activeRunRegistry = new ActiveRunRegistry();
 
   const httpServer = new ShaidenHttpServer({
     runStore,
     taskRepository,
     logger: defaultLogger,
     agentId: config.agentId,
+    runtimeConfig: config,
+    activeRunRegistry,
     startTaskRun: ({ task, taskId }) =>
-      launchHarnessRun({ task, taskId, config, runStore }),
+      launchHarnessRun({
+        task,
+        taskId,
+        config,
+        runStore,
+        options: { activeRunRegistry },
+      }),
+    resumeHarnessRun: (input) =>
+      resumeHarnessRun({
+        ...input,
+        config,
+        options: {
+          activeRunRegistry,
+          logger: defaultLogger,
+          ...input.options,
+        },
+      }),
   });
   const http = await httpServer.start({
     host: config.httpHost,

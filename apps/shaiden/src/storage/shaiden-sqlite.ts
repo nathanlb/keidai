@@ -43,10 +43,20 @@ CREATE INDEX IF NOT EXISTS idx_run_steps_run_id
   ON run_steps(run_id, timestamp ASC, id ASC);
 `;
 
+function ensureConversationHistoryColumn(db: DatabaseSync): void {
+  const columns = db
+    .prepare("PRAGMA table_info(runs)")
+    .all() as Array<{ name: string }>;
+  if (!columns.some((column) => column.name === "conversation_history_json")) {
+    db.exec("ALTER TABLE runs ADD COLUMN conversation_history_json TEXT");
+  }
+}
+
 export function openShaidenDatabase(databasePath: string): DatabaseSync {
   const db = new DatabaseSync(databasePath);
   db.exec("PRAGMA journal_mode = WAL");
   db.exec("PRAGMA foreign_keys = ON");
   db.exec(SCHEMA_SQL);
+  ensureConversationHistoryColumn(db);
   return db;
 }

@@ -7,24 +7,64 @@ export type RunStepKind =
   | "model"
   | "tool_dispatch"
   | "tool_result"
-  | "waiting_approval";
+  | "waiting_approval"
+  | "user_message"
+  | "outcome";
 
-export interface RunStep {
+interface RunStepBase {
   id: string;
   timestamp: string;
-  kind: RunStepKind;
+}
+
+export interface ModelRunStep extends RunStepBase {
+  kind: "model";
+  text?: string;
+}
+
+export interface ToolDispatchRunStep extends RunStepBase {
+  kind: "tool_dispatch";
   toolName?: string;
   toolCallId?: string;
-  text?: string;
   inputPreview?: string;
+}
+
+export interface ToolResultRunStep extends RunStepBase {
+  kind: "tool_result";
+  toolName?: string;
+  toolCallId?: string;
   /** Truncated tool output for run-log display (especially errors). */
   outputPreview?: string;
   status?: "ok" | "error" | "approval_required";
-  approvalId?: string;
   charCount?: number;
   /** Torii `CallTrace.traceId` for this tool call, when available. */
   traceId?: string;
 }
+
+export interface WaitingApprovalRunStep extends RunStepBase {
+  kind: "waiting_approval";
+  toolName?: string;
+  approvalId?: string;
+  inputPreview?: string;
+}
+
+export interface UserMessageRunStep extends RunStepBase {
+  kind: "user_message";
+  text: string;
+}
+
+export interface OutcomeRunStep extends RunStepBase {
+  kind: "outcome";
+  outcomeStatus: TerminationOutcome["status"];
+  outcomeReason?: string;
+}
+
+export type RunStep =
+  | ModelRunStep
+  | ToolDispatchRunStep
+  | ToolResultRunStep
+  | WaitingApprovalRunStep
+  | UserMessageRunStep
+  | OutcomeRunStep;
 
 export interface RunListItem {
   id: string;
@@ -61,6 +101,16 @@ export interface AppendRunStepRequest {
 
 export interface CompleteRunRequest {
   outcome: TerminationOutcome;
+}
+
+export const FOLLOW_UP_MESSAGE_MAX_LENGTH = 10_000;
+
+export interface FollowUpRunRequest {
+  message: string;
+}
+
+export interface FollowUpRunResponse {
+  runId: string;
 }
 
 /** SSE `event:` names on `GET /api/runs/events`. */

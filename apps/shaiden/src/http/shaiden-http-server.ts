@@ -5,12 +5,11 @@ import { TasksApiController } from "./tasks-api.controller.js";
 import type { RunStore } from "../runs/run-store.js";
 import type { LaunchedHarnessRun } from "../run/harness.js";
 import type { TaskRepository } from "../tasks/types/task-repository.js";
-import type {
-  ShaidenHttpServerHandle,
-  ShaidenHttpServerOptions,
-} from "./types/shaiden-http-server.js";
+import type { ShaidenHttpServerHandle, ShaidenHttpServerOptions } from "./types/shaiden-http-server.js";
 import { registerShaidenRoutes } from "./utils/register-shaiden-routes.js";
 import { readPackageVersion } from "./utils/read-package-version.js";
+import type { ActiveRunRegistry } from "../run/active-run-registry.js";
+import type { ResumeHarnessRunInput } from "../run/harness.js";
 
 const requestStartTime = Symbol("requestStartTime");
 
@@ -27,6 +26,11 @@ export interface ShaidenHttpServerDeps {
     task: Task;
     taskId: string;
   }) => LaunchedHarnessRun;
+  resumeHarnessRun: (
+    input: Omit<ResumeHarnessRunInput, "config">,
+  ) => LaunchedHarnessRun;
+  activeRunRegistry: ActiveRunRegistry;
+  runtimeConfig: import("../config/runtime-config.js").RuntimeConfig;
 }
 
 export class ShaidenHttpServer {
@@ -37,7 +41,13 @@ export class ShaidenHttpServer {
 
   constructor(private readonly deps: ShaidenHttpServerDeps) {
     this.agentId = deps.agentId;
-    this.runsApi = new RunsApiController(deps.runStore);
+    this.runsApi = new RunsApiController({
+      runStore: deps.runStore,
+      activeRunRegistry: deps.activeRunRegistry,
+      resumeHarnessRun: deps.resumeHarnessRun,
+      runtimeConfig: deps.runtimeConfig,
+      logger: deps.logger,
+    });
     this.tasksApi = new TasksApiController({
       agentId: deps.agentId,
       runStore: deps.runStore,
