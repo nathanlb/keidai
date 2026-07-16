@@ -8,11 +8,13 @@ The loop is deliberately thin: call the model (OpenRouter via the AI SDK) with T
 
 | Outcome | Meaning |
 |---------|---------|
-| `goal_met` | Agent responded with final text (no tool calls), self-assessed against the goal |
+| `goal_met` | Agent called `report_step_assessment` with `status: goal_met`, or returned final text when assessment was omitted |
 | `iteration_exhausted` | Iteration cap reached (default 12) |
 | `timeout` | Wall-clock timeout reached (default 600s) |
-| `failed(reason)` | Harness-level failure (model unreachable, operator cancel, session/connect error). Per-call tool errors are fed back to the model as tool results so the agent can retry or adapt. |
-| `human_reject` | Agent concluded the goal is unreachable after a human denial (final text prefixed with `HUMAN_REJECT:`) |
+| `failed(reason)` | Harness-level failure (model unreachable, operator cancel, session/connect error), or agent self-assessed give-up (`status: cannot_complete`). Per-call tool errors are fed back to the model as tool results so the agent can retry or adapt. |
+| `human_reject` | Agent reported `status: human_reject` via `report_step_assessment` after a human denial made the goal unreachable |
+
+Working steps continue implicitly when the model calls Torii tools. `report_step_assessment` is terminal-only (`goal_met` | `human_reject` | `cannot_complete`) and should not be called alongside other tools.
 
 ## Domain boundaries
 

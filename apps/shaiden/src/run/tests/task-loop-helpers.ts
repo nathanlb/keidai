@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import type { TaskLimits } from "@keidai/shared";
+import { normalizeModelStep } from "../step-assessment.js";
 import { runTaskLoop } from "../task-loop.js";
 import type {
   ApprovalDecision,
   ModelStep,
   ModelToolCall,
+  StepAssessment,
   TaskLoopDeps,
   ToolDispatchOptions,
   ToolDispatchResult,
@@ -35,13 +37,23 @@ export function toolCall(name: string, id = `${name}-1`): ModelToolCall {
   return { toolCallId: id, toolName: name, input: {} };
 }
 
-export function scriptedModel(steps: ModelStep[]): () => Promise<ModelStep> {
+type ModelStepInput = Pick<ModelStep, "text" | "toolCalls"> & {
+  assessment?: StepAssessment;
+};
+
+export function modelStep(step: ModelStepInput): ModelStep {
+  return normalizeModelStep(step);
+}
+
+export function scriptedModel(
+  steps: ModelStepInput[],
+): () => Promise<ModelStep> {
   let index = 0;
   return async () => {
     const step = steps[index];
     assert.ok(step, "model called more times than scripted");
     index++;
-    return step;
+    return normalizeModelStep(step);
   };
 }
 
