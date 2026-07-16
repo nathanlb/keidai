@@ -155,6 +155,8 @@ describe("Gateway /api/config endpoints", () => {
       new ConnectionsApiController(
         new ConnectionReadService(connectionManager, toolCatalog),
         connectionManager,
+        toolCatalog,
+        configService,
       ),
       createOAuthApiController(configService),
       createTracesApiController({ traceEmitter: new CapturingTraceEmitter() }),

@@ -1,5 +1,6 @@
 import type { OAuthConnectionStatus } from "@keidai/shared";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { mutate } from "swr";
 import {
   reconnectAllConnections,
   reconnectConnection,
@@ -8,6 +9,7 @@ import { useActingOwner } from "../../../shell/hooks/use-acting-owner.js";
 import { useFetchLinkingRequiredTrace } from "../../../shell/hooks/use-fetch-linking-required-trace.js";
 import { useFetchOAuthConnections } from "../../../shell/hooks/use-fetch-oauth-connections.js";
 import { useFetchOAuthProviders } from "../../../shell/hooks/use-fetch-oauth-providers.js";
+import { SERVER_TOOLS_KEY } from "../../../shell/hooks/use-fetch-server-tools.js";
 import { useFetchServers } from "../../../shell/hooks/use-fetch-servers.js";
 import { useLiveConnections } from "../../../shell/hooks/use-live-connections.js";
 import { isLinkingStillRequired } from "../../linking/format-linking-required-prompt.js";
@@ -136,6 +138,7 @@ export function ConnectionsPageProvider({
     setReconnectingServers((current) => new Set(current).add(serverName));
     try {
       await reconnectConnection(serverName);
+      await mutate([SERVER_TOOLS_KEY, serverName]);
     } finally {
       setReconnectingServers((current) => {
         const next = new Set(current);
@@ -149,6 +152,11 @@ export function ConnectionsPageProvider({
     setIsReconnectingAll(true);
     try {
       await reconnectAllConnections();
+      await mutate(
+        (key) => Array.isArray(key) && key[0] === SERVER_TOOLS_KEY,
+        undefined,
+        { revalidate: true },
+      );
     } finally {
       setIsReconnectingAll(false);
     }
