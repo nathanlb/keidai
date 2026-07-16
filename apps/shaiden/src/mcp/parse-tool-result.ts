@@ -71,9 +71,3 @@ export function formatApprovalDeniedForModel(
 
   return "Human review denied this tool call. This denial is authoritative — do not retry this call or attempt the same action through a different tool.";
 }
-
-export const HUMAN_REJECT_PREFIX = "HUMAN_REJECT:";
-
-export function isHumanRejectResponse(text: string): boolean {
-  return text.trimStart().startsWith(HUMAN_REJECT_PREFIX);
-}

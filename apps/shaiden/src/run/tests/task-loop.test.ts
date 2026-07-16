@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { runGoalLoop, limits,
+  modelStep,
   runTaskLoop,
   approvalRequiredDispatch,
   deferredApprovalDecision,
@@ -70,10 +71,8 @@ describe("task loop", () => {
 
   it("exhausts iterations on repeated tool errors without failing", async () => {
     const result = await runGoalLoop("goal", limits, {
-      callModel: async () => ({
-        text: "",
-        toolCalls: [toolCall("broken_tool")],
-      }),
+      callModel: async () =>
+        modelStep({ text: "", toolCalls: [toolCall("broken_tool")] }),
       dispatchToolCall: async () => ({
         isError: true,
         text: "still broken",
@@ -120,7 +119,10 @@ describe("task loop", () => {
     const result = await runGoalLoop("goal", limits, {
       callModel: async () => {
         modelCalls++;
-        return { text: "", toolCalls: [toolCall("busy_tool", `call-${modelCalls}`)] };
+        return modelStep({
+          text: "",
+          toolCalls: [toolCall("busy_tool", `call-${modelCalls}`)],
+        });
       },
       dispatchToolCall: okDispatch,
     });
@@ -202,14 +204,72 @@ describe("task loop", () => {
     const result = await runGoalLoop("goal", limits, {
       callModel: scriptedModel([
         {
-          text: "HUMAN_REJECT: cannot send newsletter without draft approval.",
+          text: "cannot send newsletter without draft approval.",
           toolCalls: [],
+          assessment: {
+            status: "human_reject",
+            message: "cannot send newsletter without draft approval.",
+          },
         },
       ]),
       dispatchToolCall: okDispatch,
     });
 
     assert.deepEqual(result.outcome, { status: "human_reject" });
+  });
+
+  it("terminates as failed(reason) when the agent reports cannot_complete", async () => {
+    const result = await runGoalLoop("goal", limits, {
+      callModel: scriptedModel([
+        {
+          text: "I don't have permission to create the draft.",
+          toolCalls: [],
+          assessment: {
+            status: "cannot_complete",
+            message: "I don't have permission to create the draft.",
+          },
+        },
+      ]),
+      dispatchToolCall: okDispatch,
+    });
+
+    assert.deepEqual(result.outcome, {
+      status: "failed",
+      reason: "I don't have permission to create the draft.",
+    });
+  });
+
+  it("terminates as failed when a text-only step has no assessment and no message", async () => {
+    const result = await runGoalLoop("goal", limits, {
+      callModel: async () => ({ text: "", toolCalls: [] }),
+      dispatchToolCall: okDispatch,
+    });
+
+    assert.deepEqual(result.outcome, {
+      status: "failed",
+      reason: "model returned no step assessment",
+    });
+  });
+
+  it("ignores terminal assessment when Torii tool calls are present", async () => {
+    const dispatched: string[] = [];
+    const result = await runGoalLoop("goal", limits, {
+      callModel: scriptedModel([
+        {
+          text: "calling tool",
+          toolCalls: [toolCall("search_issues")],
+          assessment: { status: "goal_met", message: "calling tool" },
+        },
+        { text: "Done.", toolCalls: [] },
+      ]),
+      dispatchToolCall: async (call) => {
+        dispatched.push(call.toolName);
+        return { isError: false, text: "ok" };
+      },
+    });
+
+    assert.deepEqual(result.outcome, { status: "goal_met" });
+    assert.deepEqual(dispatched, ["search_issues"]);
   });
 
   it("terminates as failed when approval is cancelled by operator", async () => {
@@ -303,9 +363,12 @@ describe("task loop", () => {
           }
         }
         if (modelCalls === 1) {
-          return { text: "", toolCalls: [toolCall("gmail.create_draft")] };
+          return modelStep({
+            text: "",
+            toolCalls: [toolCall("gmail.create_draft")],
+          });
         }
-        return { text: "Done.", toolCalls: [] };
+        return modelStep({ text: "Done.", toolCalls: [] });
       },
       dispatchToolCall: approvalRequiredDispatch(),
       waitForApproval: approval.waitForApproval,

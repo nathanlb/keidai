@@ -1,7 +1,8 @@
 import type { TaskLimits, TerminationOutcome, ToriiCallMeta } from "@keidai/shared";
+import type { StepAssessment } from "../step-assessment.js";
 import type { ConversationEntry } from "./conversation-history.js";
 
-export type { ConversationEntry };
+export type { ConversationEntry, StepAssessment };
 
 /** One tool call requested by the model in a step. */
 export interface ModelToolCall {
@@ -10,10 +11,12 @@ export interface ModelToolCall {
   input: Record<string, unknown>;
 }
 
-/** One model step: final text, or one or more tool calls to dispatch. */
+/** One model step: optional terminal assessment, narrative text, and tool calls. */
 export interface ModelStep {
   text: string;
   toolCalls: ModelToolCall[];
+  /** Present only for terminal steps (no Torii tools). Working steps omit this. */
+  assessment?: StepAssessment;
 }
 
 /** Result of dispatching one tool call, flattened for the model. */

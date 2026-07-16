@@ -1,5 +1,5 @@
 import type { TerminationOutcome } from "@keidai/shared";
-import { isHumanRejectResponse } from "../mcp/parse-tool-result.js";
+import { mapTerminalAssessmentToOutcome } from "./step-assessment.js";
 import type { ConversationEntry } from "./types/conversation-history.js";
 import {
   TaskLoopDeps,
@@ -33,11 +33,11 @@ function cloneHistory(
  * The thin harness: call the model with Torii-sourced tools, dispatch tool
  * calls, feed results back, repeat. Every exit funnels through exactly one
  * typed TerminationOutcome:
- * - final text-only response          -> goal_met (agent's self-assessment)
- * - final text prefixed HUMAN_REJECT: -> human_reject (goal unreachable after denial)
- * - iteration cap reached             -> iteration_exhausted
- * - wall-clock deadline passed        -> timeout
- * - model or harness-level error      -> failed(reason)
+ * - final text-only step with assessment -> goal_met | human_reject | failed(reason)
+ * - Torii tool calls                     -> continue (implicit; no assessment needed)
+ * - iteration cap reached                -> iteration_exhausted
+ * - wall-clock deadline passed           -> timeout
+ * - model or harness-level error         -> failed(reason)
  *   (per-call tool errors are fed back as tool results; the model decides)
  */
 export async function runTaskLoop(
@@ -158,10 +158,10 @@ export async function runTaskLoop(
     checkpoint();
 
     if (step.toolCalls.length === 0) {
-      if (isHumanRejectResponse(step.text)) {
-        return terminate({ status: "human_reject" }, iteration);
-      }
-      return terminate({ status: "goal_met" }, iteration);
+      return terminate(
+        mapTerminalAssessmentToOutcome(step.assessment),
+        iteration,
+      );
     }
 
     for (const call of step.toolCalls) {

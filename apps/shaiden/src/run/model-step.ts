@@ -1,12 +1,19 @@
 import {
   generateText,
   jsonSchema,
+  zodSchema,
   type JSONSchema7,
   type LanguageModel,
   type ModelMessage,
   type ToolSet,
 } from "ai";
 import type { DiscoveredTool } from "../mcp/types/index.js";
+import {
+  parseStepAssessment,
+  REPORT_STEP_ASSESSMENT_TOOL,
+  resolveModelStepAssessment,
+  stepAssessmentSchema,
+} from "./step-assessment.js";
 import type { ConversationEntry, ModelStep } from "./types/task-loop.js";
 
 const EMPTY_INPUT_SCHEMA: JSONSchema7 = { type: "object", properties: {} };
@@ -17,7 +24,14 @@ const EMPTY_INPUT_SCHEMA: JSONSchema7 = { type: "object", properties: {} };
  * dispatching them to Torii.
  */
 export function buildToolSet(tools: DiscoveredTool[]): ToolSet {
-  const toolSet: ToolSet = {};
+  const toolSet: ToolSet = {
+    [REPORT_STEP_ASSESSMENT_TOOL]: {
+      description:
+        "Report a terminal outcome when the task is finished. Call alone (no other tools) with status goal_met, human_reject, or cannot_complete.",
+      inputSchema: zodSchema(stepAssessmentSchema),
+    },
+  };
+
   for (const tool of tools) {
     toolSet[tool.name] = {
       description: tool.description,
@@ -79,13 +93,27 @@ export function createModelStepCaller(
       tools,
     });
 
-    return {
-      text: result.text,
-      toolCalls: result.toolCalls.map((call) => ({
+    const assessmentCall = result.toolCalls.find(
+      (call) => call.toolName === REPORT_STEP_ASSESSMENT_TOOL,
+    );
+    const toolCalls = result.toolCalls
+      .filter((call) => call.toolName !== REPORT_STEP_ASSESSMENT_TOOL)
+      .map((call) => ({
         toolCallId: call.toolCallId,
         toolName: call.toolName,
         input: (call.input ?? {}) as Record<string, unknown>,
-      })),
+      }));
+
+    const assessment = resolveModelStepAssessment(
+      parseStepAssessment(assessmentCall?.input),
+      toolCalls,
+      result.text,
+    );
+
+    return {
+      text: assessment?.message || result.text,
+      toolCalls,
+      ...(assessment ? { assessment } : {}),
     };
   };
 }

@@ -7,7 +7,6 @@ import {
 import {
   enrichToolCallResult,
   formatApprovalDeniedForModel,
-  isHumanRejectResponse,
 } from "../parse-tool-result.js";
 
 describe("parse tool result", () => {
@@ -35,14 +34,6 @@ describe("parse tool result", () => {
     assert.equal(result.approvalDenied, true);
     assert.match(result.text, /too risky/);
     assert.match(result.text, /authoritative/);
-  });
-
-  it("detects human reject final responses", () => {
-    assert.equal(
-      isHumanRejectResponse("HUMAN_REJECT: cannot proceed"),
-      true,
-    );
-    assert.equal(isHumanRejectResponse("Done."), false);
   });
 
   it("formats denial text consistently", () => {

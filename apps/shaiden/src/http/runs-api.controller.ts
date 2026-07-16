@@ -49,10 +49,13 @@ export class RunsApiController {
       reply.hijack();
       reply.raw.writeHead(200, {
         "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
+        "Cache-Control": "no-cache, no-transform",
         Connection: "keep-alive",
+        "X-Accel-Buffering": "no",
         "Access-Control-Allow-Origin": "*",
       });
+      // Flush headers + open the stream so proxies do not buffer early events.
+      reply.raw.write(": connected\n\n");
 
       const writeEvent = (event: RunSseEvent): void => {
         reply.raw.write(`event: ${event.type}\n`);
@@ -70,8 +73,12 @@ export class RunsApiController {
       }
 
       const unsubscribe = this.deps.runStore.subscribe(writeEvent);
+      const keepalive = setInterval(() => {
+        reply.raw.write(": keepalive\n\n");
+      }, 15_000);
 
       request.raw.on("close", () => {
+        clearInterval(keepalive);
         unsubscribe();
       });
     });

@@ -27,6 +27,19 @@ export default defineConfig({
       "/api/runs": {
         target: shaidenUrl,
         changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on("proxyRes", (proxyRes, req) => {
+            const url = req.url ?? "";
+            if (!url.includes("/events")) {
+              return;
+            }
+            // Keep SSE chunks unbuffered through the Vite proxy.
+            proxyRes.headers["cache-control"] = "no-cache, no-transform";
+            proxyRes.headers["x-accel-buffering"] = "no";
+            delete proxyRes.headers["content-length"];
+            delete proxyRes.headers["content-encoding"];
+          });
+        },
       },
       "/api": {
         target: toriiUrl,
