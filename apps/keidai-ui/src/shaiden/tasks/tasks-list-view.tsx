@@ -152,24 +152,33 @@ export function TasksListView() {
 
           <Card className="overflow-hidden shadow-none">
             <CardContent className="px-0 py-0">
-              <Table className={tasksTableColumns.tableClassName}>
+              <Table
+                className={tasksTableColumns.tableClassName}
+                style={tasksTableColumns.tableStyle}
+              >
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className={tasksTableColumns.headClassName("goal")}>
+                    <TableHead
+                      className={tasksTableColumns.headClassName("goal")}
+                      style={tasksTableColumns.headStyle("goal")}
+                    >
                       Goal
                     </TableHead>
                     <TableHead
                       className={tasksTableColumns.headClassName("assignee")}
+                      style={tasksTableColumns.headStyle("assignee")}
                     >
                       Assignee
                     </TableHead>
                     <TableHead
                       className={tasksTableColumns.headClassName("updated")}
+                      style={tasksTableColumns.headStyle("updated")}
                     >
                       Updated
                     </TableHead>
                     <TableHead
                       className={tasksTableColumns.headClassName("actions")}
+                      style={tasksTableColumns.headStyle("actions")}
                     >
                       Actions
                     </TableHead>

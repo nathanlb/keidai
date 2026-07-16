@@ -1,4 +1,5 @@
 import { cn } from "@keidai/ui";
+import type { CSSProperties } from "react";
 
 export type TableColumnWidth =
   | { type: "grow"; minWidth?: number }
@@ -23,20 +24,31 @@ export type DefineTableColumnsOptions = {
 
 export type TableColumnsLayout<T extends string> = {
   tableClassName: string;
+  tableStyle: CSSProperties | undefined;
   headClassName: (key: T, extra?: string) => string;
+  headStyle: (key: T) => CSSProperties | undefined;
   cellClassName: (key: T, extra?: string) => string;
+  cellStyle: (key: T) => CSSProperties | undefined;
 };
 
 function widthClassName(width: TableColumnWidth): string {
+  return width.type === "shrink" ? "whitespace-nowrap" : "";
+}
+
+function widthStyle(width: TableColumnWidth): CSSProperties | undefined {
   switch (width.type) {
     case "grow":
-      return width.minWidth !== undefined ? `min-w-[${width.minWidth}px]` : "";
+      return {
+        width: "auto",
+        ...(width.minWidth !== undefined ? { minWidth: width.minWidth } : {}),
+      };
     case "fixed":
-      return `w-[${width.width}px]`;
+      return { width: width.width };
     case "percent":
-      return `w-[${width.width}%]`;
+      return { width: `${width.width}%` };
     case "shrink":
-      return "w-0 whitespace-nowrap";
+      // 1% + nowrap is the standard table "hug content" hint under table-fixed.
+      return { width: "1%" };
   }
 }
 
@@ -67,11 +79,9 @@ export function defineTableColumns<T extends string>(
   const columnList = Object.values(columns) as TableColumnSpec[];
   const minTableWidth = computeMinTableWidth(columnList);
 
-  const tableClassName = cn(
-    "table-fixed",
-    minTableWidth !== null && `min-w-[${minTableWidth}px]`,
-    options.tableClassName,
-  );
+  const tableClassName = cn("table-fixed", options.tableClassName);
+  const tableStyle =
+    minTableWidth !== null ? { minWidth: minTableWidth } : undefined;
 
   const headClassName = (key: T, extra?: string): string => {
     const column = columns[key];
@@ -83,20 +93,35 @@ export function defineTableColumns<T extends string>(
     );
   };
 
+  const headStyle = (key: T): CSSProperties | undefined => {
+    return widthStyle(columns[key].width);
+  };
+
   const cellClassName = (key: T, extra?: string): string => {
     const column = columns[key];
     return cn(
       widthClassName(column.width),
-      column.cellMaxWidth !== undefined && `max-w-[${column.cellMaxWidth}px]`,
       options.defaults?.cellClassName,
       column.cellClassName,
       extra,
     );
   };
 
+  const cellStyle = (key: T): CSSProperties | undefined => {
+    const column = columns[key];
+    const style = widthStyle(column.width);
+    if (column.cellMaxWidth === undefined) {
+      return style;
+    }
+    return { ...style, maxWidth: column.cellMaxWidth };
+  };
+
   return {
     tableClassName,
+    tableStyle,
     headClassName,
+    headStyle,
     cellClassName,
+    cellStyle,
   };
-}
+};

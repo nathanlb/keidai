@@ -28,7 +28,9 @@ oauth_providers:
     client_id: ${env:GOOGLE_CLIENT_ID}
     client_secret: ${env:GOOGLE_CLIENT_SECRET}
     scopes:
+      # Gmail MCP requires compose (not drafts) — see Google Workspace MCP docs.
       - https://www.googleapis.com/auth/gmail.readonly
+      - https://www.googleapis.com/auth/gmail.compose
       - https://www.googleapis.com/auth/gmail.drafts
     authorize_params:
       access_type: offline

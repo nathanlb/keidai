@@ -3,35 +3,35 @@ import { defineTableColumns } from "../../shell/components/table-layout/define-t
 export const runsTableColumns = defineTableColumns(
   {
     run: {
-      width: { type: "percent", width: 28 },
+      width: { type: "grow", minWidth: 240 },
       headClassName: "pl-[18px]",
-      cellClassName: "max-w-0 py-3",
+      cellClassName: "min-w-0 overflow-hidden py-3 pl-[18px]",
     },
     started: {
-      width: { type: "percent", width: 14 },
-      cellClassName: "min-w-0 py-3",
+      width: { type: "fixed", width: 100 },
+      cellClassName: "py-3 whitespace-nowrap",
     },
     iterations: {
-      width: { type: "percent", width: 9 },
+      width: { type: "fixed", width: 108 },
       headClassName: "text-right",
-      cellClassName: "min-w-0 py-3 font-mono text-right text-xs",
+      cellClassName: "py-3 font-mono text-right text-xs whitespace-nowrap",
     },
     duration: {
-      width: { type: "percent", width: 9 },
+      width: { type: "fixed", width: 96 },
       headClassName: "text-right",
       cellClassName:
-        "min-w-0 py-3 text-right font-mono text-xs text-muted-foreground",
+        "py-3 text-right font-mono text-xs text-muted-foreground whitespace-nowrap",
     },
     status: {
-      width: { type: "percent", width: 14 },
-      cellClassName: "min-w-0 overflow-hidden py-3",
+      width: { type: "fixed", width: 156 },
+      cellClassName: "overflow-hidden py-3",
     },
     agent: {
-      width: { type: "percent", width: 16 },
-      cellClassName: "max-w-0 py-3",
+      width: { type: "fixed", width: 172 },
+      cellClassName: "min-w-0 overflow-hidden py-3",
     },
     chevron: {
-      width: { type: "shrink" },
+      width: { type: "fixed", width: 44 },
       headClassName: "pr-[18px]",
       cellClassName: "py-3 pl-2 pr-[18px] text-right",
     },

@@ -296,39 +296,51 @@ export function RunVisibilityView() {
           {hasMatches ? (
             <Card className="overflow-hidden shadow-none">
               <CardContent className="p-0">
-                <Table className={runsTableColumns.tableClassName}>
+                <Table
+                  className={runsTableColumns.tableClassName}
+                  style={runsTableColumns.tableStyle}
+                >
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className={runsTableColumns.headClassName("run")}>
+                      <TableHead
+                        className={runsTableColumns.headClassName("run")}
+                        style={runsTableColumns.headStyle("run")}
+                      >
                         Run
                       </TableHead>
                       <TableHead
                         className={runsTableColumns.headClassName("started")}
+                        style={runsTableColumns.headStyle("started")}
                       >
                         Started
                       </TableHead>
                       <TableHead
                         className={runsTableColumns.headClassName("iterations")}
+                        style={runsTableColumns.headStyle("iterations")}
                       >
                         Iterations
                       </TableHead>
                       <TableHead
                         className={runsTableColumns.headClassName("duration")}
+                        style={runsTableColumns.headStyle("duration")}
                       >
                         Duration
                       </TableHead>
                       <TableHead
                         className={runsTableColumns.headClassName("status")}
+                        style={runsTableColumns.headStyle("status")}
                       >
                         Status
                       </TableHead>
                       <TableHead
                         className={runsTableColumns.headClassName("agent")}
+                        style={runsTableColumns.headStyle("agent")}
                       >
                         Agent
                       </TableHead>
                       <TableHead
                         className={runsTableColumns.headClassName("chevron")}
+                        style={runsTableColumns.headStyle("chevron")}
                       />
                     </TableRow>
                   </TableHeader>

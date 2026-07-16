@@ -96,7 +96,7 @@ describe("RunDetailDrawer run log loader", () => {
       status: "completed",
       outcome: { status: "failed", reason: "tool error" },
     });
-    expect(screen.getByText("Follow-up message")).toBeInTheDocument();
+    expect(screen.getByText("Follow-up")).toBeInTheDocument();
 
     renderRunDetailDrawer({
       ...baseRun,
@@ -111,7 +111,7 @@ describe("RunDetailDrawer run log loader", () => {
         },
       ],
     });
-    expect(screen.getAllByText("Follow-up message").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Follow-up").length).toBeGreaterThan(0);
   });
 
   it("hides the follow-up composer while actively running", () => {

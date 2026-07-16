@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { defineTableColumns } from "../define-table-columns.js";
 
 describe("defineTableColumns", () => {
-  it("sums pixel constraints into table min-width", () => {
+  it("sums pixel constraints into table min-width style", () => {
     const layout = defineTableColumns({
       goal: { width: { type: "grow", minWidth: 150 } },
       assignee: { width: { type: "fixed", width: 200 } },
@@ -10,8 +10,8 @@ describe("defineTableColumns", () => {
       actions: { width: { type: "fixed", width: 170 } },
     });
 
-    expect(layout.tableClassName).toContain("table-fixed");
-    expect(layout.tableClassName).toContain("min-w-[670px]");
+    expect(layout.tableClassName).toBe("table-fixed");
+    expect(layout.tableStyle).toEqual({ minWidth: 670 });
   });
 
   it("omits table min-width for percent-only tables", () => {
@@ -21,10 +21,10 @@ describe("defineTableColumns", () => {
     });
 
     expect(layout.tableClassName).toBe("table-fixed");
-    expect(layout.tableClassName).not.toContain("min-w-[");
+    expect(layout.tableStyle).toBeUndefined();
   });
 
-  it("maps width types to shared head and cell classes", () => {
+  it("maps width types to shared head and cell styles", () => {
     const layout = defineTableColumns({
       goal: { width: { type: "grow", minWidth: 150 }, headClassName: "pl-[18px]" },
       assignee: { width: { type: "fixed", width: 200 } },
@@ -32,10 +32,12 @@ describe("defineTableColumns", () => {
       actions: { width: { type: "shrink" } },
     });
 
-    expect(layout.headClassName("goal")).toBe("min-w-[150px] pl-[18px]");
-    expect(layout.cellClassName("assignee")).toBe("w-[200px]");
-    expect(layout.headClassName("chevron")).toBe("w-[10%]");
-    expect(layout.cellClassName("actions")).toBe("w-0 whitespace-nowrap");
+    expect(layout.headClassName("goal")).toBe("pl-[18px]");
+    expect(layout.headStyle("goal")).toEqual({ width: "auto", minWidth: 150 });
+    expect(layout.cellStyle("assignee")).toEqual({ width: 200 });
+    expect(layout.headStyle("chevron")).toEqual({ width: "10%" });
+    expect(layout.cellClassName("actions")).toBe("whitespace-nowrap");
+    expect(layout.cellStyle("actions")).toEqual({ width: "1%" });
   });
 
   it("merges defaults, per-column classes, and per-call extras", () => {
@@ -56,10 +58,11 @@ describe("defineTableColumns", () => {
     );
 
     expect(layout.headClassName("run", "extra-head")).toBe(
-      "w-[28%] h-auto py-2.5 text-xs font-medium pl-[18px] extra-head",
+      "h-auto py-2.5 text-xs font-medium pl-[18px] extra-head",
     );
+    expect(layout.headStyle("run")).toEqual({ width: "28%" });
     expect(layout.cellClassName("run", "extra-cell")).toBe(
-      "w-[28%] align-top py-3 extra-cell",
+      "align-top py-3 extra-cell",
     );
   });
 
@@ -71,7 +74,7 @@ describe("defineTableColumns", () => {
       },
     });
 
-    expect(layout.cellClassName("endpoint")).toBe("max-w-[220px]");
+    expect(layout.cellStyle("endpoint")).toEqual({ width: "auto", maxWidth: 220 });
   });
 
   it("supports mixed percent and shrink columns in one table", () => {
@@ -81,8 +84,8 @@ describe("defineTableColumns", () => {
     });
 
     expect(layout.tableClassName).toBe("table-fixed");
-    expect(layout.headClassName("run")).toBe("w-[28%]");
-    expect(layout.cellClassName("chevron")).toBe("w-0 whitespace-nowrap");
+    expect(layout.headStyle("run")).toEqual({ width: "28%" });
+    expect(layout.cellStyle("chevron")).toEqual({ width: "1%" });
   });
 
   it("supports mixed percent and fixed columns in one table", () => {
@@ -91,9 +94,9 @@ describe("defineTableColumns", () => {
       chevron: { width: { type: "fixed", width: 44 } },
     });
 
-    expect(layout.tableClassName).toBe("table-fixed min-w-[44px]");
-    expect(layout.headClassName("run")).toBe("w-[28%]");
-    expect(layout.cellClassName("chevron")).toBe("w-[44px]");
+    expect(layout.tableStyle).toEqual({ minWidth: 44 });
+    expect(layout.headStyle("run")).toEqual({ width: "28%" });
+    expect(layout.cellStyle("chevron")).toEqual({ width: 44 });
   });
 
   it("merges optional table class names", () => {
@@ -104,8 +107,7 @@ describe("defineTableColumns", () => {
       { tableClassName: "custom-table" },
     );
 
-    expect(layout.tableClassName).toBe(
-      "table-fixed min-w-[100px] custom-table",
-    );
+    expect(layout.tableClassName).toBe("table-fixed custom-table");
+    expect(layout.tableStyle).toEqual({ minWidth: 100 });
   });
 });
