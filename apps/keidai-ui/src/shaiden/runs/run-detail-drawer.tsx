@@ -57,9 +57,7 @@ function StepIcon({ step }: { step: RunStep }) {
         />
       );
     case "tool_dispatch":
-      return (
-        <Wrench className={cn(className, "text-success")} aria-hidden />
-      );
+      return <Wrench className={cn(className, "text-success")} aria-hidden />;
     case "tool_result":
       return (
         <Wrench
@@ -77,7 +75,12 @@ function StepIcon({ step }: { step: RunStep }) {
         <MessageSquare className={cn(className, "text-primary")} aria-hidden />
       );
     case "outcome":
-      return <CheckCircle2 className={cn(className, "text-muted-foreground")} aria-hidden />;
+      return (
+        <CheckCircle2
+          className={cn(className, "text-muted-foreground")}
+          aria-hidden
+        />
+      );
   }
 }
 
@@ -355,7 +358,7 @@ export function RunDetailDrawer({
             htmlFor={followUpFieldId}
             className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase"
           >
-            Follow-up message
+            Follow-up
           </label>
           <Textarea
             id={followUpFieldId}

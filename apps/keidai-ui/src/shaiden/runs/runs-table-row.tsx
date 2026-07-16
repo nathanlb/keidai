@@ -74,7 +74,10 @@ export function RunsTableRow({
       className="cursor-pointer border-border hover:bg-muted/30"
       onClick={() => onOpen(run.id)}
     >
-      <TableCell className={runsTableColumns.cellClassName("run")}>
+      <TableCell
+        className={runsTableColumns.cellClassName("run")}
+        style={runsTableColumns.cellStyle("run")}
+      >
         <div
           className="truncate text-[13px] font-semibold"
           title={run.goalPreview}
@@ -96,7 +99,10 @@ export function RunsTableRow({
           task {run.taskId}
         </Link>
       </TableCell>
-      <TableCell className={runsTableColumns.cellClassName("started")}>
+      <TableCell
+        className={runsTableColumns.cellClassName("started")}
+        style={runsTableColumns.cellStyle("started")}
+      >
         <div className="truncate font-mono text-[12.5px] text-foreground">
           {formatRunClock(run.startedAt)}
         </div>
@@ -104,13 +110,22 @@ export function RunsTableRow({
           {formatRunRelative(run.startedAt)}
         </div>
       </TableCell>
-      <TableCell className={runsTableColumns.cellClassName("iterations")}>
+      <TableCell
+        className={runsTableColumns.cellClassName("iterations")}
+        style={runsTableColumns.cellStyle("iterations")}
+      >
         {formatRunIterations(run)}
       </TableCell>
-      <TableCell className={runsTableColumns.cellClassName("duration")}>
+      <TableCell
+        className={runsTableColumns.cellClassName("duration")}
+        style={runsTableColumns.cellStyle("duration")}
+      >
         {formatRunDuration(run)}
       </TableCell>
-      <TableCell className={runsTableColumns.cellClassName("status")}>
+      <TableCell
+        className={runsTableColumns.cellClassName("status")}
+        style={runsTableColumns.cellStyle("status")}
+      >
         <Badge
           variant="outline"
           className={cn("max-w-full gap-1 truncate font-normal", meta.badgeClass)}
@@ -119,7 +134,10 @@ export function RunsTableRow({
           <span className="truncate">{meta.label}</span>
         </Badge>
       </TableCell>
-      <TableCell className={runsTableColumns.cellClassName("agent")}>
+      <TableCell
+        className={runsTableColumns.cellClassName("agent")}
+        style={runsTableColumns.cellStyle("agent")}
+      >
         <div className="flex min-w-0 items-center gap-2">
           <OwnerAvatar
             initials={agentInitials(run.assignee)}
@@ -130,7 +148,10 @@ export function RunsTableRow({
           </span>
         </div>
       </TableCell>
-      <TableCell className={runsTableColumns.cellClassName("chevron")}>
+      <TableCell
+        className={runsTableColumns.cellClassName("chevron")}
+        style={runsTableColumns.cellStyle("chevron")}
+      >
         <ChevronRight
           className="ml-auto size-3.5 shrink-0 text-muted-foreground"
           aria-hidden

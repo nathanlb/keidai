@@ -3,14 +3,20 @@ import assert from "node:assert/strict";
 import http from "node:http";
 import { describe, it } from "node:test";
 import type { ToriiConfig } from "@keidai/shared";
+import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
 import { ConnectionManager } from "../../connections/connection-manager.service.js";
 import { DefaultMcpClientConnector } from "../../connections/mcp-client-connector.service.js";
 import { startMockMcpServer } from "../../connections/tests/mock-mcp-server.js";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
-import type { ConnectionStatus, ConnectionsResponse } from "@keidai/shared";
+import type {
+  ConnectionStatus,
+  ConnectionsResponse,
+  ServerToolsResponse,
+} from "@keidai/shared";
 import type { GatewayHttpServer } from "../gateway-http-server.service.js";
 import { createStubToolCatalog, createTestGatewayHttpServer } from "./test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
+import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
 import {
   createCredentialServices,
   withStubAgentPrincipal,
@@ -19,12 +25,13 @@ import {
 function serverConfig(
   name: string,
   url: string,
+  policy: ToriiConfig["servers"][number]["policy"] = { default: "deny" },
 ): ToriiConfig["servers"][number] {
   return {
     name,
     transport: { type: "http", url },
     credential: { strategy: "none" },
-    policy: { default: "deny" },
+    policy,
   };
 }
 
@@ -42,15 +49,12 @@ async function closeManagerConnections(
 function createConnectionsGateway(
   configService: ToriiConfigService,
   connectionManager: ConnectionManager,
+  toolCatalog = createStubToolCatalog(),
 ): GatewayHttpServer {
-  return createTestGatewayHttpServer(
-    createStubToolCatalog(),
-    {} as never,
-    {
-      configService,
-      connectionManager,
-    },
-  );
+  return createTestGatewayHttpServer(toolCatalog, {} as never, {
+    configService,
+    connectionManager,
+  });
 }
 
 function parseSseChunk(chunk: string): Array<{ event: string; data: string }> {
@@ -167,6 +171,82 @@ describe("Gateway /api/connections endpoints", () => {
     } finally {
       await closeManagerConnections(connectionManager);
       await Promise.all([goodServer.close(), badServer.close()]);
+    }
+  });
+
+  it("refreshes the tool catalog on reconnect", async () => {
+    const mockServer = await startMockMcpServer({
+      tools: [
+        { name: "create_draft", description: "Create a draft" },
+        { name: "list_drafts", description: "List drafts" },
+      ],
+    });
+    const configService = new ToriiConfigService({
+      oauth_providers: {},
+      servers: [
+        serverConfig("gmail", mockServer.url, {
+          default: "deny",
+          allow: ["create_draft", "list_drafts"],
+        }),
+      ],
+    });
+    const { credentialResolver } = createCredentialServices();
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
+    const toolCatalog = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+      createPolicyEnforcement(configService),
+      createNoopLogger(),
+    );
+    const gatewayHttpServer = createConnectionsGateway(
+      configService,
+      connectionManager,
+      toolCatalog,
+    );
+
+    try {
+      await withStubAgentPrincipal(() => connectionManager.connectAll());
+      // Catalog left empty on purpose — reconnect must refresh it.
+      assert.deepEqual(toolCatalog.getServerTools("gmail"), []);
+
+      const gateway = await gatewayHttpServer.start();
+      try {
+        const reconnect = await fetch(
+          `${gateway.baseUrl}/api/connections/gmail/reconnect`,
+          { method: "POST" },
+        );
+        assert.equal(reconnect.status, 200);
+
+        const toolsResponse = await fetch(
+          `${gateway.baseUrl}/api/connections/gmail/tools`,
+        );
+        assert.equal(toolsResponse.status, 200);
+        const toolsBody = (await toolsResponse.json()) as ServerToolsResponse;
+        assert.deepEqual(
+          toolsBody.tools.map((tool) => tool.name),
+          ["create_draft", "list_drafts"],
+        );
+
+        const connectionsResponse = await fetch(
+          `${gateway.baseUrl}/api/connections`,
+        );
+        const connectionsBody =
+          (await connectionsResponse.json()) as ConnectionsResponse;
+        assert.equal(
+          connectionsBody.connections.find((c) => c.name === "gmail")
+            ?.toolCount,
+          2,
+        );
+      } finally {
+        await gateway.close();
+      }
+    } finally {
+      await closeManagerConnections(connectionManager);
+      await mockServer.close();
     }
   });
 

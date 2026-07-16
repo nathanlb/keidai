@@ -28,8 +28,10 @@ oauth_providers:
     client_id: ${env:GOOGLE_CLIENT_ID}
     client_secret: ${env:GOOGLE_CLIENT_SECRET}
     scopes:
+      # Gmail MCP requires compose (not drafts) — see Google Workspace MCP docs.
       - https://www.googleapis.com/auth/gmail.readonly
       - https://www.googleapis.com/auth/gmail.compose
+      - https://www.googleapis.com/auth/gmail.drafts
     authorize_params:
       access_type: offline
       prompt: consent
@@ -44,7 +46,7 @@ servers:
       key: ${env:LINEAR_API_KEY}
     policy:
       default: deny
-      allow: [list_issues, get_issue, list_projects]
+      allow: [list_issues, get_issue, list_projects, list_initiatives]
 
   - name: github
     transport:
@@ -78,7 +80,7 @@ servers:
       provider: google
     policy:
       default: deny
-      allow: [create_draft]
+      allow: [create_draft, list_drafts]
 
 agents:
   - subject:

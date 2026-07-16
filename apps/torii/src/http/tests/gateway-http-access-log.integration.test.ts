@@ -37,6 +37,8 @@ describe("Gateway HTTP access logging", () => {
       new ConnectionsApiController(
         new ConnectionReadService(connectionManager, createStubToolCatalog()),
         connectionManager,
+        createStubToolCatalog(),
+        configService,
       ),
       createOAuthApiController(configService),
       createTracesApiController(),

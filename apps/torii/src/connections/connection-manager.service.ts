@@ -79,6 +79,24 @@ export class ConnectionManager {
     };
   }
 
+  /**
+   * Re-emit current connection state so subscribers recompute projections
+   * (e.g. toolCount after a catalog refresh).
+   */
+  rebroadcast(name?: string): void {
+    if (name !== undefined) {
+      const connection = this.connections.get(name);
+      if (connection) {
+        this.notifyStateChange(connection);
+      }
+      return;
+    }
+
+    for (const connection of this.connections.values()) {
+      this.notifyStateChange(connection);
+    }
+  }
+
   private setConnection(name: string, connection: BackendConnection): void {
     this.connections.set(name, connection);
     this.notifyStateChange(connection);

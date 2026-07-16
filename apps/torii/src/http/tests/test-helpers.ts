@@ -115,8 +115,10 @@ export function createTestGatewayHttpServer(
       },
       createNoopLogger(),
     );
-  const catalog = createStubToolCatalog();
-  const connectionRead = new ConnectionReadService(connectionManager, catalog);
+  const connectionRead = new ConnectionReadService(
+    connectionManager,
+    toolCatalog,
+  );
   const traceRepository = options.traceRepository ?? new InMemoryTraceRepository();
   const traceEmitter =
     options.traceEmitter ??
@@ -133,7 +135,12 @@ export function createTestGatewayHttpServer(
 
   return new GatewayHttpServer(
     new ConfigApiController(configRead),
-    new ConnectionsApiController(connectionRead, connectionManager),
+    new ConnectionsApiController(
+      connectionRead,
+      connectionManager,
+      toolCatalog,
+      configService,
+    ),
     options.oauthApi ?? createOAuthApiController(configService),
     new TracesApiController(traceRead),
     approvalsApi,

@@ -3,11 +3,16 @@ services:
     build:
       context: .
       dockerfile: apps/torii/Dockerfile
+    env_file:
+      - .env
+      - apps/torii/.env
     environment:
       SHAIDEN_BEARER: ${SHAIDEN_BEARER:?SHAIDEN_BEARER is required}
       TORII_CONFIG_PATH: /app/torii.demo.yaml
+      TORII_DB_PATH: /app/data/torii.db
     volumes:
       - ./apps/torii/torii.demo.yaml:/app/torii.demo.yaml:ro
+      - torii-data:/app/data
     ports:
       - "3100:3100"
     healthcheck:
@@ -30,6 +35,9 @@ services:
     depends_on:
       torii:
         condition: service_healthy
+    env_file:
+      - .env
+      - apps/shaiden/.env
     environment:
       SHAIDEN_BEARER: ${SHAIDEN_BEARER:?SHAIDEN_BEARER is required}
       TORII_MCP_URL: http://torii:3100/mcp
@@ -42,4 +50,5 @@ services:
       - "3200:3200"
 
 volumes:
+  torii-data:
   shaiden-data:

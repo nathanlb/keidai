@@ -35,6 +35,21 @@ CREATE INDEX IF NOT EXISTS idx_call_traces_timestamp
   ON call_traces(timestamp DESC, trace_id DESC);
 CREATE INDEX IF NOT EXISTS idx_call_traces_server
   ON call_traces(server);
+
+CREATE TABLE IF NOT EXISTS pending_oauth_links (
+  link_id TEXT NOT NULL PRIMARY KEY,
+  owner_id TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  code_verifier TEXT,
+  redirect_uri TEXT NOT NULL,
+  ui_origin TEXT,
+  status TEXT NOT NULL,
+  error TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_pending_oauth_links_owner_provider_created
+  ON pending_oauth_links(owner_id, provider, created_at DESC);
 `;
 
 function ensureOAuthClientRedirectUriColumn(db: DatabaseSync): void {

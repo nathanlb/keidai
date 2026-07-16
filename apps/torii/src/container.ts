@@ -20,7 +20,7 @@ import { ConfigApiController } from "./config/config-api.controller.js";
 import { ToriiConfigService } from "./config/torii-config.service.js";
 import { ConnectionReadService } from "./connections/connection-read.service.js";
 import { ConnectionsApiController } from "./connections/connections-api.controller.js";
-import { InMemoryPendingLinkStore } from "./credentials/in-memory-pending-link-store.service.js";
+import { SqlitePendingLinkStore } from "./credentials/sqlite-pending-link-store.service.js";
 import { OAuthApiController } from "./credentials/oauth-api.controller.js";
 import { OAuthConnectionReadService } from "./credentials/oauth-connection-read.service.js";
 import { OAuthLinkService } from "./credentials/oauth-link.service.js";
@@ -64,6 +64,7 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
 
   let tokenRepository: SqliteTokenRepository | undefined;
   let oauthClientRepository: SqliteOAuthClientRepository | undefined;
+  let pendingLinkStore: SqlitePendingLinkStore | undefined;
   let traceRepository: SqliteTraceRepository | undefined;
   appContainer.register(ToriiConfigService, {
     useValue: new ToriiConfigService(config),
@@ -114,7 +115,10 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
     SINGLETON,
   );
   appContainer.register(PENDING_OAUTH_LINK_STORE, {
-    useFactory: () => new InMemoryPendingLinkStore(),
+    useFactory: () => {
+      pendingLinkStore ??= new SqlitePendingLinkStore(resolveGatewayDatabase());
+      return pendingLinkStore;
+    },
   });
   appContainer.register(AGENT_REGISTRY, {
     useFactory: (c) =>

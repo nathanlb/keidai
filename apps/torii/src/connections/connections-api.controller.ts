@@ -1,6 +1,10 @@
 import { CONNECTION_SSE_EVENT, type ConnectionSseEvent } from "@keidai/shared";
 import type { FastifyInstance } from "fastify";
 import { inject, injectable } from "tsyringe";
+import { ToolCatalogService } from "../catalog/tool-catalog.service.js";
+import { ToriiConfigService } from "../config/torii-config.service.js";
+import { runWithAgentPrincipal } from "../identity/agent-principal-context.js";
+import { resolveBootAgentPrincipal } from "../identity/stub-agent-principal.js";
 import { ConnectionManager } from "./connection-manager.service.js";
 import { ConnectionReadService } from "./connection-read.service.js";
 
@@ -11,6 +15,10 @@ export class ConnectionsApiController {
     private readonly connectionRead: ConnectionReadService,
     @inject(ConnectionManager)
     private readonly connectionManager: ConnectionManager,
+    @inject(ToolCatalogService)
+    private readonly toolCatalog: ToolCatalogService,
+    @inject(ToriiConfigService)
+    private readonly configService: ToriiConfigService,
   ) {}
 
   registerRoutes(app: FastifyInstance): void {
@@ -25,12 +33,14 @@ export class ConnectionsApiController {
 
     app.post("/api/connections/reconnect", async (_request, reply) => {
       await this.connectionManager.reconnectAll();
+      await this.refreshCatalogAndBroadcast();
       reply.send({ ok: true });
     });
 
     app.post("/api/connections/:name/reconnect", async (request, reply) => {
       const { name } = request.params as { name: string };
       await this.connectionManager.reconnect(name);
+      await this.refreshCatalogAndBroadcast(name);
       reply.send({ ok: true });
     });
 
@@ -60,5 +70,11 @@ export class ConnectionsApiController {
         unsubscribe();
       });
     });
+  }
+
+  private async refreshCatalogAndBroadcast(name?: string): Promise<void> {
+    const principal = resolveBootAgentPrincipal(this.configService.get());
+    await runWithAgentPrincipal(principal, () => this.toolCatalog.refresh());
+    this.connectionManager.rebroadcast(name);
   }
 }

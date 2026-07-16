@@ -13,7 +13,10 @@
     "lint": "turbo run lint",
     "torii:dev": "pnpm --filter @keidai/torii dev",
     "shaiden": "pnpm --filter @keidai/shaiden start",
-    "shaiden:dev": "pnpm --filter @keidai/shaiden dev"
+    "shaiden:dev": "pnpm --filter @keidai/shaiden dev",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up",
+    "docker:down": "docker compose down"
   },
   "devDependencies": {
     "turbo": "^2.10.2",

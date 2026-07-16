@@ -40,7 +40,10 @@ export function TasksTableRow({
 }) {
   return (
     <TableRow className="border-border hover:bg-muted/30">
-      <TableCell className={tasksTableColumns.cellClassName("goal")}>
+      <TableCell
+        className={tasksTableColumns.cellClassName("goal")}
+        style={tasksTableColumns.cellStyle("goal")}
+      >
         <div className="truncate text-[13px] font-semibold" title={task.goal}>
           {task.goal}
         </div>
@@ -52,7 +55,10 @@ export function TasksTableRow({
           {task.id}
         </Link>
       </TableCell>
-      <TableCell className={tasksTableColumns.cellClassName("assignee")}>
+      <TableCell
+        className={tasksTableColumns.cellClassName("assignee")}
+        style={tasksTableColumns.cellStyle("assignee")}
+      >
         <div className="flex min-w-0 items-center gap-2">
           <OwnerAvatar
             initials={agentInitials(task.assignee)}
@@ -63,10 +69,16 @@ export function TasksTableRow({
           </span>
         </div>
       </TableCell>
-      <TableCell className={tasksTableColumns.cellClassName("updated")}>
+      <TableCell
+        className={tasksTableColumns.cellClassName("updated")}
+        style={tasksTableColumns.cellStyle("updated")}
+      >
         {formatUpdatedAt(task.updatedAt)}
       </TableCell>
-      <TableCell className={tasksTableColumns.cellClassName("actions")}>
+      <TableCell
+        className={tasksTableColumns.cellClassName("actions")}
+        style={tasksTableColumns.cellStyle("actions")}
+      >
         <div className="flex justify-end gap-2">
           <Button type="button" size="sm" variant="ghost" onClick={onEdit}>
             <Pencil className="size-3.5" aria-hidden />

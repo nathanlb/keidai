@@ -1,6 +1,7 @@
 import type { ApprovalRecordView } from "@keidai/shared";
 import { cn } from "@keidai/ui";
 import { Ban, CheckCheck, X } from "lucide-react";
+import { Link } from "react-router-dom";
 import { TablePaginationFooter } from "../../shell/components/table-pagination/table-pagination-footer.js";
 import { paginateItems } from "../../shell/components/table-pagination/paginate-items.js";
 import { useTablePageIndex } from "../../shell/components/table-pagination/use-table-page-index.js";
@@ -37,7 +38,10 @@ function OutcomeIcon({ status }: { status: ApprovalRecordView["status"] }) {
   }
 }
 
-export function RecentlyActioned({ items, bufferCount }: RecentlyActionedProps) {
+export function RecentlyActioned({
+  items,
+  bufferCount,
+}: RecentlyActionedProps) {
   const { pageIndex, onPageChange } = useTablePageIndex([items.length]);
   const {
     pageItems: pageItems,
@@ -65,16 +69,34 @@ export function RecentlyActioned({ items, bufferCount }: RecentlyActionedProps) 
             >
               <OutcomeIcon status={item.status} />
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-baseline gap-x-2">
-                  <span className="font-mono text-[13px] font-semibold">{tool}</span>
-                  <span className="text-[12px] text-muted-foreground">{server}</span>
+                <div className="flex justify-between">
+                  <div className="flex flex-wrap items-baseline gap-x-2">
+                    <span className="font-mono text-[13px] font-semibold">
+                      {tool}
+                    </span>
+                    <span className="text-[12px] text-muted-foreground">
+                      {server}
+                    </span>
+                  </div>
+                  {item.runId ? (
+                    <Link
+                      to={`/shaiden/runs?run=${encodeURIComponent(item.runId)}`}
+                      className="block truncate font-mono text-[11px] text-primary hover:underline"
+                      title={item.runId}
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      run: {item.runId}
+                    </Link>
+                  ) : null}
                 </div>
+
                 {item.rejectionReason ? (
                   <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
                     {item.rejectionReason}
                   </p>
                 ) : null}
               </div>
+
               <span
                 className={cn(
                   "shrink-0 text-[12px] font-medium",
