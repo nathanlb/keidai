@@ -4,7 +4,7 @@ import { createTestPersistence, createTestRun } from "../../testing/persistence.
 import type { RunStore } from "../../runs/run-store.js";
 import { createHarnessToolDispatcher } from "../harness-tool-dispatch.js";
 import { createLocalRunReporter } from "../run-reporter.js";
-import { toolCall } from "./task-loop-helpers.js";
+import { toolCall } from "../testing/task-loop-harness.js";
 
 const sampleTask = {
   goal: "Summarize the job board.",

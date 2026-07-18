@@ -16,6 +16,16 @@ The loop is deliberately thin: call the model (OpenRouter via the AI SDK) with T
 
 Working steps continue implicitly when the model calls Torii tools. `report_step_assessment` is terminal-only (`goal_met` | `human_reject` | `cannot_complete`) and should not be called alongside other tools.
 
+### Evals (NAT-112)
+
+Eval suites live in `eval/`, separate from unit tests. They are **not** run by `pnpm test`. They cover stochastic self-assessment through the real harness (Torii MCP + model); deterministic limit/timeout/connectivity cases stay in `src/**/tests/**`.
+
+- `pnpm --filter @keidai/shaiden eval` — live harness evals (requires `OPEN_ROUTER_API_KEY`)
+
+See `eval/README.md` for stack details.
+
+CI gate: `.github/workflows/shaiden-termination-eval.yml` runs `eval` on PRs that touch DECIDE / termination paths.
+
 ## Domain boundaries
 
 - **Torii** owns agent identity/registration (`agent_id`, `inbound_token`), tool catalog/dispatch, and the **approval ledger** — see `apps/torii/torii.demo.yaml`

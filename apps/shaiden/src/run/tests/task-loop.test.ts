@@ -8,7 +8,7 @@ import { runGoalLoop, limits,
   okDispatch,
   scriptedModel,
   toolCall,
-} from "./task-loop-helpers.js";
+} from "../testing/task-loop-harness.js";
 
 describe("task loop", () => {
   it("completes a multi-step tool sequence with exactly one goal_met outcome", async () => {

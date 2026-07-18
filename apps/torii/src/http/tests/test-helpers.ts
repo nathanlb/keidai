@@ -28,7 +28,10 @@ import { TraceReadService } from "../../trace/trace-read.service.js";
 import { TracesApiController } from "../../trace/traces-api.controller.js";
 import type { TraceRepository } from "../../trace/types/trace-repository.js";
 import type { TraceEmitter } from "../../trace/types/trace-emitter.js";
-import { createApprovalServices } from "../../policy/tests/test-helpers.js";
+import {
+  createApprovalServices,
+  type ApprovalServices,
+} from "../../policy/tests/test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 import {
   createInboundIdentityService,
@@ -98,6 +101,7 @@ export function createTestGatewayHttpServer(
     configService?: ToriiConfigService;
     connectionManager?: ConnectionManager;
     oauthApi?: OAuthApiController;
+    approvalServices?: ApprovalServices;
   } = {},
 ): GatewayHttpServer {
   const configService =
@@ -124,7 +128,9 @@ export function createTestGatewayHttpServer(
     options.traceEmitter ??
     new TraceEmitterService(traceRepository);
   const traceRead = new TraceReadService(traceRepository, traceEmitter);
-  const { approvalsApi } = createApprovalServices(configService);
+  const approvalsApi =
+    options.approvalServices?.approvalsApi ??
+    createApprovalServices(configService).approvalsApi;
   const mcpServer = new GatewayMcpServer(
     toolCatalog,
     toolDispatch,

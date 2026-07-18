@@ -9,7 +9,8 @@
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "test": "tsx --test 'src/**/tests/**/*.test.ts'",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "eval": "tsx --tsconfig tsconfig.eval.json --test 'eval/**/*.live.eval.ts'",
+    "typecheck": "tsc -p tsconfig.check.json --noEmit"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.109",
@@ -21,6 +22,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.20.0",
+    "reflect-metadata": "^0.2.2",
     "tsx": "^4.22.4",
     "typescript": "^5.9.3"
   }
