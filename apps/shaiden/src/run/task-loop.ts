@@ -29,12 +29,19 @@ function cloneHistory(
   });
 }
 
+function formatApprovalDenial(reason?: string): string {
+  return reason
+    ? `Human review denied this tool call. Reason: ${reason}. This denial is authoritative — do not retry this call or attempt the same action through a different tool.`
+    : "Human review denied this tool call. This denial is authoritative — do not retry this call or attempt the same action through a different tool.";
+}
+
 /**
  * The thin harness: call the model with Torii-sourced tools, dispatch tool
  * calls, feed results back, repeat. Every exit funnels through exactly one
  * typed TerminationOutcome:
  * - final text-only step with assessment -> goal_met | human_reject | failed(reason)
  * - Torii tool calls                     -> continue (implicit; no assessment needed)
+ * - human approval rejection             -> human_reject (harness-driven; no model round-trip)
  * - iteration cap reached                -> iteration_exhausted
  * - wall-clock deadline passed           -> timeout
  * - model or harness-level error         -> failed(reason)
@@ -110,9 +117,7 @@ export async function runTaskLoop(
       if (decision.status === "rejected") {
         return {
           isError: false,
-          text: decision.reason
-            ? `Human review denied this tool call. Reason: ${decision.reason}. This denial is authoritative — do not retry this call or attempt the same action through a different tool.`
-            : "Human review denied this tool call. This denial is authoritative — do not retry this call or attempt the same action through a different tool.",
+          text: formatApprovalDenial(decision.reason),
           approvalDenied: true,
         };
       }
@@ -186,6 +191,12 @@ export async function runTaskLoop(
         output: result.text,
         ...(result.isError ? { isError: true } : {}),
       });
+      checkpoint();
+
+      // Human denial is authoritative — terminate here; do not ask the model.
+      if (result.approvalDenied) {
+        return terminate({ status: "human_reject" }, iteration);
+      }
     }
     checkpoint();
   }

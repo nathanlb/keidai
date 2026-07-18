@@ -201,27 +201,4 @@ describe("task-loop termination live harness eval", { concurrency: 1 }, () => {
       }
     },
   );
-
-  it(
-    "approval rejected at gated call → human_reject",
-    { timeout: LIVE_EVAL_TIMEOUT_MS },
-    async () => {
-      const stack = await startEvalToriiStack();
-
-      try {
-        const result = await runLiveHarnessEval({
-          task: evalTask(
-            "Create a Gmail draft to myself with a short status update.",
-          ),
-          stack,
-          approvalDriver: "reject",
-          rejectReason: "too risky",
-        });
-
-        assertOutcome(result.outcome, { status: "human_reject" }, "approval_rejected");
-      } finally {
-        await stack.close();
-      }
-    },
-  );
 });

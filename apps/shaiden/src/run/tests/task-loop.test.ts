@@ -178,14 +178,18 @@ describe("task loop", () => {
     assert.deepEqual(dispatched, ["gmail.create_draft", "gmail.create_draft:replay"]);
   });
 
-  it("returns a denial tool result on reject and lets the agent continue", async () => {
+  it("terminates as human_reject immediately when approval is rejected", async () => {
     const approval = deferredApprovalDecision();
+    let modelCalls = 0;
 
     const loop = runGoalLoop("goal", limits, {
-      callModel: scriptedModel([
-        { text: "", toolCalls: [toolCall("gmail.create_draft")] },
-        { text: "Adapted without draft.", toolCalls: [] },
-      ]),
+      callModel: async () => {
+        modelCalls += 1;
+        return modelStep({
+          text: "",
+          toolCalls: [toolCall("gmail.create_draft")],
+        });
+      },
       dispatchToolCall: approvalRequiredDispatch(),
       waitForApproval: approval.waitForApproval,
     });
@@ -194,28 +198,11 @@ describe("task loop", () => {
     approval.resolve({ status: "rejected", reason: "too risky" });
     const settled = await loop;
 
-    assert.deepEqual(settled.outcome, { status: "goal_met" });
+    assert.deepEqual(settled.outcome, { status: "human_reject" });
+    assert.equal(modelCalls, 1);
     const toolEntry = settled.history.find((entry) => entry.role === "tool");
     assert.match(toolEntry?.output ?? "", /too risky/);
     assert.match(toolEntry?.output ?? "", /authoritative/);
-  });
-
-  it("terminates as human_reject when the agent concludes the goal is unreachable", async () => {
-    const result = await runGoalLoop("goal", limits, {
-      callModel: scriptedModel([
-        {
-          text: "cannot send newsletter without draft approval.",
-          toolCalls: [],
-          assessment: {
-            status: "human_reject",
-            message: "cannot send newsletter without draft approval.",
-          },
-        },
-      ]),
-      dispatchToolCall: okDispatch,
-    });
-
-    assert.deepEqual(result.outcome, { status: "human_reject" });
   });
 
   it("terminates as failed(reason) when the agent reports cannot_complete", async () => {

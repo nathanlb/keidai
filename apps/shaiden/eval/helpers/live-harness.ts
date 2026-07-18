@@ -28,7 +28,7 @@ export function loadLiveEvalConfig(stack: EvalToriiStack): RuntimeConfig {
   };
 }
 
-export type ApprovalDriverMode = "approve" | "reject" | "none";
+export type ApprovalDriverMode = "approve" | "none";
 
 export interface LiveHarnessEvalResult {
   outcome: TerminationOutcome;
@@ -40,7 +40,6 @@ export async function runLiveHarnessEval(input: {
   task: Task;
   stack: EvalToriiStack;
   approvalDriver?: ApprovalDriverMode;
-  rejectReason?: string;
 }): Promise<LiveHarnessEvalResult> {
   const config = loadLiveEvalConfig(input.stack);
   const persistence = createTestPersistence("memory");
@@ -51,10 +50,8 @@ export async function runLiveHarnessEval(input: {
   const driver =
     approvalDriver === "none"
       ? undefined
-      : pollAndResolveApprovals({
+      : pollAndApprovePending({
           baseUrl: input.stack.httpBaseUrl,
-          mode: approvalDriver,
-          rejectReason: input.rejectReason,
           signal: driverAbort.signal,
         });
 
@@ -79,10 +76,8 @@ export async function runLiveHarnessEval(input: {
   }
 }
 
-async function pollAndResolveApprovals(input: {
+async function pollAndApprovePending(input: {
   baseUrl: string;
-  mode: "approve" | "reject";
-  rejectReason?: string;
   signal: AbortSignal;
 }): Promise<void> {
   while (!input.signal.aborted) {
@@ -99,22 +94,17 @@ async function pollAndResolveApprovals(input: {
     }
 
     for (const approval of body) {
-      const endpoint =
-        input.mode === "approve"
-          ? `${input.baseUrl}/api/approvals/${approval.id}/approve`
-          : `${input.baseUrl}/api/approvals/${approval.id}/reject`;
-      const resolveResponse = await fetch(endpoint, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(
-          input.mode === "reject"
-            ? { reason: input.rejectReason ?? "eval rejection" }
-            : {},
-        ),
-      });
+      const resolveResponse = await fetch(
+        `${input.baseUrl}/api/approvals/${approval.id}/approve`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: "{}",
+        },
+      );
       if (!resolveResponse.ok) {
         throw new Error(
-          `failed to ${input.mode} approval ${approval.id}: ${resolveResponse.status}`,
+          `failed to approve approval ${approval.id}: ${resolveResponse.status}`,
         );
       }
     }

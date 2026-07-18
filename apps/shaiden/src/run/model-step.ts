@@ -27,7 +27,7 @@ export function buildToolSet(tools: DiscoveredTool[]): ToolSet {
   const toolSet: ToolSet = {
     [REPORT_STEP_ASSESSMENT_TOOL]: {
       description:
-        "Report a terminal outcome when the task is finished. Call alone (no other tools) with status goal_met, human_reject, or cannot_complete.",
+        "Report a terminal outcome when the task is finished. Call alone (no other tools) with status goal_met or cannot_complete.",
       inputSchema: zodSchema(stepAssessmentSchema),
     },
   };
