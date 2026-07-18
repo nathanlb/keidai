@@ -1,0 +1,37 @@
+# Gate for task-loop DECIDE / termination self-assessment (NAT-112).
+#
+# Evals are not part of the always-on `shaiden` test job. Live evals use the
+# real harness (Torii MCP + model) and require OPEN_ROUTER_API_KEY.
+name: Shaiden termination eval
+
+on:
+  pull_request:
+    paths:
+      - apps/shaiden/src/run/task-loop.ts
+      - apps/shaiden/src/run/step-assessment.ts
+      - apps/shaiden/src/run/model-step.ts
+      - apps/shaiden/src/run/prompts.ts
+      - apps/shaiden/src/run/run-completion.ts
+      - apps/shaiden/src/run/harness.ts
+      - apps/shaiden/src/run/harness-tool-dispatch.ts
+      - apps/shaiden/src/run/types/task-loop.ts
+      - apps/shaiden/src/run/testing/task-loop-harness.ts
+      - apps/shaiden/eval/**
+      - apps/torii/src/connections/tests/mock-mcp-server.ts
+      - packages/shared/src/run.ts
+      - .github/workflows/shaiden-termination-eval.yml
+
+concurrency:
+  group: shaiden-termination-eval-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  termination-eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: pnpm turbo run build --filter=@keidai/shaiden...
+      - run: pnpm --filter @keidai/shaiden eval
+        env:
+          OPEN_ROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}

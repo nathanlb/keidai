@@ -30,6 +30,16 @@ describe("step assessment", () => {
     );
   });
 
+  it("rejects human_reject as a model assessment status", () => {
+    assert.equal(
+      parseStepAssessment({
+        status: "human_reject",
+        message: "Denied by reviewer.",
+      }),
+      undefined,
+    );
+  });
+
   it("maps goal_met assessment to goal_met outcome", () => {
     assert.deepEqual(
       mapTerminalAssessmentToOutcome({
@@ -37,16 +47,6 @@ describe("step assessment", () => {
         message: "Done.",
       }),
       { status: "goal_met" },
-    );
-  });
-
-  it("maps human_reject assessment to human_reject outcome", () => {
-    assert.deepEqual(
-      mapTerminalAssessmentToOutcome({
-        status: "human_reject",
-        message: "Denied by reviewer.",
-      }),
-      { status: "human_reject" },
     );
   });
 

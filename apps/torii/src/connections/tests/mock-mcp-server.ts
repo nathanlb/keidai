@@ -3,9 +3,17 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import * as z from "zod";
 
+export type MockToolHandler = (
+  input: Record<string, unknown>,
+) =>
+  | { text: string; isError?: boolean }
+  | Promise<{ text: string; isError?: boolean }>;
+
 export interface MockToolDefinition {
   name: string;
   description?: string;
+  /** When omitted, the tool returns `"ok"`. */
+  handler?: MockToolHandler;
 }
 
 export interface MockMcpServer {
@@ -93,11 +101,30 @@ export async function startMockMcpServer(
             description: tool.description,
             inputSchema: {
               query: z.string().optional().describe("Example query"),
+              to: z.union([z.string(), z.array(z.string())]).optional(),
+              subject: z.string().optional(),
+              body: z.string().optional(),
+              project: z.string().optional(),
             },
           },
-          async () => ({
-            content: [{ type: "text" as const, text: "ok" }],
-          }),
+          async (input) => {
+            const args =
+              input && typeof input === "object"
+                ? (input as Record<string, unknown>)
+                : {};
+            const result = tool.handler
+              ? await tool.handler(args)
+              : { text: "ok" };
+            if (result.isError) {
+              return {
+                isError: true,
+                content: [{ type: "text" as const, text: result.text }],
+              };
+            }
+            return {
+              content: [{ type: "text" as const, text: result.text }],
+            };
+          },
         );
       }
 

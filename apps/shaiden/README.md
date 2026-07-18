@@ -12,9 +12,19 @@ The loop is deliberately thin: call the model (OpenRouter via the AI SDK) with T
 | `iteration_exhausted` | Iteration cap reached (default 12) |
 | `timeout` | Wall-clock timeout reached (default 600s) |
 | `failed(reason)` | Harness-level failure (model unreachable, operator cancel, session/connect error), or agent self-assessed give-up (`status: cannot_complete`). Per-call tool errors are fed back to the model as tool results so the agent can retry or adapt. |
-| `human_reject` | Agent reported `status: human_reject` via `report_step_assessment` after a human denial made the goal unreachable |
+| `human_reject` | Human denied a gated tool call — the harness terminates immediately; the model does not decide |
 
-Working steps continue implicitly when the model calls Torii tools. `report_step_assessment` is terminal-only (`goal_met` | `human_reject` | `cannot_complete`) and should not be called alongside other tools.
+Working steps continue implicitly when the model calls Torii tools. `report_step_assessment` is terminal-only (`goal_met` | `cannot_complete`) and should not be called alongside other tools.
+
+### Evals (NAT-112)
+
+Eval suites live in `eval/`, separate from unit tests. They are **not** run by `pnpm test`. They cover stochastic self-assessment through the real harness (Torii MCP + model); deterministic limit/timeout/connectivity cases stay in `src/**/tests/**`.
+
+- `pnpm --filter @keidai/shaiden eval` — live harness evals (requires `OPEN_ROUTER_API_KEY`)
+
+See `eval/README.md` for stack details.
+
+CI gate: `.github/workflows/shaiden-termination-eval.yml` runs `eval` on PRs that touch DECIDE / termination paths.
 
 ## Domain boundaries
 
@@ -22,7 +32,7 @@ Working steps continue implicitly when the model calls Torii tools. `report_step
 - **Shaiden** owns task execution, harness runtime, and **run visibility** (`POST /api/tasks/run`, `GET /api/runs`, SSE `/api/runs/events`)
 - **Shared** (`@keidai/shared`) owns cross-app Task/Run types, schemas, and structured logging
 
-Gated tools are declared per agent in Torii (`gated_tools` in `torii.yaml`). When the model calls a gated tool, Torii returns an `approval_required` sentinel. Shaiden parks the loop (wall-clock frozen), polls Torii's `/api/approvals/:id` for a decision via a narrow `ApprovalResumeSignal` interface, and replays the call with `approval_id` on approve. Rejections are returned to the model as a normal tool result; the agent decides whether to adapt (`goal_met`) or self-assess `human_reject`.
+Gated tools are declared per agent in Torii (`gated_tools` in `torii.yaml`). When the model calls a gated tool, Torii returns an `approval_required` sentinel. Shaiden parks the loop (wall-clock frozen), polls Torii's `/api/approvals/:id` for a decision via a narrow `ApprovalResumeSignal` interface, and replays the call with `approval_id` on approve. On reject, the harness records the denial in history and terminates as `human_reject` immediately — denials are not fed back to the model.
 
 Opaque correlation refs (`_torii_run_id`, `_torii_step_id`) are attached to gated calls so Torii can echo them on the ledger without interpreting run/step semantics.
 ## Log streams

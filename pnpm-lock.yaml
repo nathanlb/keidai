@@ -133,6 +133,9 @@ importers:
       '@types/node':
         specifier: ^22.20.0
         version: 22.20.0
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
       tsx:
         specifier: ^4.22.4
         version: 4.22.4

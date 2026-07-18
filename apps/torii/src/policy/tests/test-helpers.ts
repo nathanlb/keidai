@@ -34,3 +34,5 @@ export function createApprovalServices(
 
   return { approvalStore, approvalGate, approvalRead, approvalsApi };
 }
+
+export type ApprovalServices = ReturnType<typeof createApprovalServices>;

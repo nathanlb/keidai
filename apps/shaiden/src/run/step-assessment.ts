@@ -2,10 +2,9 @@ import type { TerminationOutcome } from "@keidai/shared";
 import { z } from "zod";
 import type { ModelStep } from "./types/task-loop.js";
 
-/** Terminal statuses only — working steps continue implicitly via Torii tool calls. */
+/** Terminal statuses the model may report. Human denials are harness-driven. */
 export const stepAssessmentStatusSchema = z.enum([
   "goal_met",
-  "human_reject",
   "cannot_complete",
 ]);
 
@@ -37,8 +36,6 @@ export function mapTerminalAssessmentToOutcome(
   switch (assessment.status) {
     case "goal_met":
       return { status: "goal_met" };
-    case "human_reject":
-      return { status: "human_reject" };
     case "cannot_complete": {
       const reason = assessment.message.trim();
       return {
