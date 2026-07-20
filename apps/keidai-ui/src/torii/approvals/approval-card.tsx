@@ -2,9 +2,10 @@ import type { ApprovalRecordView } from "@keidai/shared";
 import {
   Badge,
   Button,
+  Card,
+  Separator,
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@keidai/ui";
 import {
@@ -56,7 +57,7 @@ export function ApprovalCard({
   };
 
   return (
-    <article className="overflow-hidden rounded-[14px] border border-border bg-card">
+    <Card className="overflow-hidden rounded-[14px] py-0 shadow-none">
       <div className="flex w-full items-start gap-3 px-[15px] py-[18px]">
         <button
           type="button"
@@ -98,26 +99,26 @@ export function ApprovalCard({
           <span className="font-mono text-[12px] text-muted-foreground">
             {parkedLabel}
           </span>
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  size="icon"
-                  className="size-[26px] shrink-0"
-                  disabled={busy}
-                  onClick={handleQuickApprove}
-                  aria-label="Approve and resume"
-                >
-                  <CheckCheck className="size-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="left">Approve & resume</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <button
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                size="icon"
+                className="size-[26px] shrink-0"
+                disabled={busy}
+                onClick={handleQuickApprove}
+                aria-label="Approve and resume"
+              >
+                <CheckCheck className="size-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">Approve & resume</TooltipContent>
+          </Tooltip>
+          <Button
             type="button"
-            className="text-muted-foreground"
+            variant="ghost"
+            size="icon"
+            className="size-8 text-muted-foreground"
             onClick={onToggle}
             aria-label={expanded ? "Collapse approval" : "Expand approval"}
           >
@@ -126,58 +127,61 @@ export function ApprovalCard({
             ) : (
               <ChevronDown className="size-4" />
             )}
-          </button>
+          </Button>
         </div>
       </div>
 
       {expanded ? (
-        <div className="space-y-4 border-t border-border px-[18px] pb-[18px] pt-[15px]">
-          {display.reasoning ? (
-            <div className="rounded-lg border border-border bg-muted/30 p-3">
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                <MessageSquare className="size-3.5" />
-                Why the agent wants this
+        <>
+          <Separator />
+          <div className="flex flex-col gap-4 px-[18px] pb-[18px] pt-[15px]">
+            {display.reasoning ? (
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <MessageSquare className="size-3.5" />
+                  Why the agent wants this
+                </div>
+                <p className="mt-2 text-[13px] leading-relaxed">{display.reasoning}</p>
               </div>
-              <p className="mt-2 text-[13px] leading-relaxed">{display.reasoning}</p>
-            </div>
-          ) : null}
-
-          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
-            <span>
-              Agent{" "}
-              <span className="font-mono text-foreground">{approval.agentId}</span>
-            </span>
-            <span>
-              Connection{" "}
-              <span className="font-mono text-foreground">{display.server}</span>
-            </span>
-            <span>
-              Parked{" "}
-              <span className="font-mono text-foreground">{parkedLabel}</span> ago
-            </span>
-            {display.iterationCurrent !== undefined ? (
-              <span>
-                Iteration{" "}
-                <span className="font-mono text-foreground">
-                  {display.iterationCurrent}
-                </span>
-              </span>
             ) : null}
+
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
+              <span>
+                Agent{" "}
+                <span className="font-mono text-foreground">{approval.agentId}</span>
+              </span>
+              <span>
+                Connection{" "}
+                <span className="font-mono text-foreground">{display.server}</span>
+              </span>
+              <span>
+                Parked{" "}
+                <span className="font-mono text-foreground">{parkedLabel}</span> ago
+              </span>
+              {display.iterationCurrent !== undefined ? (
+                <span>
+                  Iteration{" "}
+                  <span className="font-mono text-foreground">
+                    {display.iterationCurrent}
+                  </span>
+                </span>
+              ) : null}
+            </div>
+
+            <ApprovalCapturedCall
+              toolName={approval.toolName}
+              params={approval.params}
+            />
+
+            <ApprovalActions
+              disabled={busy}
+              onApprove={() => onApprove(approval.id)}
+              onReject={(reason) => onReject(approval.id, reason)}
+              onCancel={() => onCancel(approval.id)}
+            />
           </div>
-
-          <ApprovalCapturedCall
-            toolName={approval.toolName}
-            params={approval.params}
-          />
-
-          <ApprovalActions
-            disabled={busy}
-            onApprove={() => onApprove(approval.id)}
-            onReject={(reason) => onReject(approval.id, reason)}
-            onCancel={() => onCancel(approval.id)}
-          />
-        </div>
+        </>
       ) : null}
-    </article>
+    </Card>
   );
 }

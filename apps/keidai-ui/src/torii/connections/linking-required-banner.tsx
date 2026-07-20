@@ -1,4 +1,9 @@
-import { Button } from "@keidai/ui";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Button,
+} from "@keidai/ui";
 import type { PublicServerConfig } from "@keidai/shared/dto";
 import type { TraceListItem } from "@keidai/shared";
 import { AlertTriangle, Link2 } from "lucide-react";
@@ -28,20 +33,12 @@ export function LinkingRequiredBanner({
   }
 
   return (
-    <div
-      role="alert"
-      className="rounded-lg border border-destructive/40 bg-destructive/8 px-4 py-3.5"
-    >
-      <div className="flex items-start gap-3">
-        <AlertTriangle
-          className="mt-0.5 size-4 shrink-0 text-destructive"
-          aria-hidden
-        />
+    <Alert variant="destructive" className="border-destructive/40 bg-destructive/8">
+      <AlertTriangle aria-hidden />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-destructive">
-            {LINKING_REQUIRED_BANNER_TITLE}
-          </p>
-          <p className="mt-1 text-[13px] leading-snug text-foreground">
+          <AlertTitle>{LINKING_REQUIRED_BANNER_TITLE}</AlertTitle>
+          <AlertDescription className="text-[13px] leading-snug text-foreground">
             <span className="font-mono">{trace.tool}</span> for owner{" "}
             <span className="font-mono">{ownerId}</span> returned{" "}
             <span className="font-mono">linking_required</span>
@@ -53,7 +50,7 @@ export function LinkingRequiredBanner({
             ) : (
               "."
             )}
-          </p>
+          </AlertDescription>
           <p className="sr-only">{formatLinkingRequiredBannerBody(trace)}</p>
         </div>
         <Button
@@ -67,6 +64,6 @@ export function LinkingRequiredBanner({
           {formatLinkProviderButtonLabel(providerId)}
         </Button>
       </div>
-    </div>
+    </Alert>
   );
 }

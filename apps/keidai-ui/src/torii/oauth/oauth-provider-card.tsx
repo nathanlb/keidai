@@ -16,7 +16,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useState } from "react";
-import { OwnerAvatar } from "../agents/owner-avatar.js";
+import { OwnerAvatar } from "../../shell/components/owner-avatar/owner-avatar.js";
 import type { OAuthProviderSummary } from "./utils/build-oauth-provider-summaries.js";
 import type { OAuthProviderAggregateStatus } from "./utils/oauth-provider-config.js";
 

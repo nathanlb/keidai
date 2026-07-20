@@ -1,14 +1,16 @@
+import { PageEmptyState } from "../../shell/components/page-content/page-empty-state.js";
 import {
   Button,
   Card,
   CardContent,
+  Spinner,
   Table,
   TableBody,
   TableHead,
   TableHeader,
   TableRow,
 } from "@keidai/ui";
-import { ListChecks, Loader2, Plus } from "lucide-react";
+import { ListChecks, Plus } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { TablePaginationFooter } from "../../shell/components/table-pagination/table-pagination-footer.js";
@@ -23,22 +25,17 @@ import { tasksTableColumns } from "./tasks-table-columns.js";
 
 function TasksEmptyState({ onNewTask }: { onNewTask: () => void }) {
   return (
-    <Card className="shadow-none">
-      <CardContent className="flex flex-col items-center px-6 py-[60px] text-center">
-        <span className="flex size-[52px] items-center justify-center rounded-[14px] bg-muted/55 text-muted-foreground">
-          <ListChecks className="size-[30px]" aria-hidden />
-        </span>
-        <div className="mt-4 text-base font-semibold">No saved tasks yet</div>
-        <p className="mt-1.5 max-w-[380px] text-[13px] leading-normal text-muted-foreground">
-          Author a goal, assign an agent, and run it. Saved tasks can be re-run
-          without re-entering the configuration.
-        </p>
-        <Button type="button" className="mt-4" onClick={onNewTask}>
+    <PageEmptyState
+      icon={<ListChecks className="size-[30px]" aria-hidden />}
+      title="No saved tasks yet"
+      description="Author a goal, assign an agent, and run it. Saved tasks can be re-run without re-entering the configuration."
+      action={
+        <Button type="button" onClick={onNewTask}>
           <Plus className="size-4" aria-hidden />
           New task
         </Button>
-      </CardContent>
-    </Card>
+      }
+    />
   );
 }
 
@@ -116,7 +113,7 @@ export function TasksListView() {
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="size-4 animate-spin" aria-hidden />
+        <Spinner className="size-4" aria-hidden />
         Loading tasks…
       </div>
     );

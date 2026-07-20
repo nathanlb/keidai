@@ -11,7 +11,7 @@ import {
   UserX,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { OwnerAvatar } from "../../torii/agents/owner-avatar.js";
+import { OwnerAvatar } from "../../shell/components/owner-avatar/owner-avatar.js";
 import { deriveRunDisplayStatus } from "./utils/derive-run-display-status.js";
 import { RUN_STATUS_META } from "./utils/format-run-status.js";
 import {

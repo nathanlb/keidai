@@ -1,4 +1,4 @@
-import { cn } from "@keidai/ui";
+import { cn, ToggleGroup, ToggleGroupItem } from "@keidai/ui";
 import { Braces, List } from "lucide-react";
 import { useState } from "react";
 import { parseNamespacedToolName } from "./utils/parse-namespaced-tool-name.js";
@@ -45,34 +45,33 @@ export function ApprovalCapturedCall({
             Exactly what runs on approve
           </div>
         </div>
-        <div className="flex rounded-md bg-muted p-0.5">
-          <button
-            type="button"
-            className={cn(
-              "inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-medium transition-colors",
-              view === "fields"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground",
-            )}
-            onClick={() => setView("fields")}
+        <ToggleGroup
+          type="single"
+          value={view}
+          onValueChange={(next) => {
+            if (next === "fields" || next === "raw") {
+              setView(next);
+            }
+          }}
+          variant="outline"
+          size="sm"
+          className="rounded-md bg-muted p-0.5"
+        >
+          <ToggleGroupItem
+            value="fields"
+            className="h-auto gap-1 rounded px-2 py-1 text-[11px] font-medium data-[state=on]:bg-background data-[state=on]:shadow-sm"
           >
             <List className="size-3" />
             Fields
-          </button>
-          <button
-            type="button"
-            className={cn(
-              "inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-medium transition-colors",
-              view === "raw"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground",
-            )}
-            onClick={() => setView("raw")}
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="raw"
+            className="h-auto gap-1 rounded px-2 py-1 text-[11px] font-medium data-[state=on]:bg-background data-[state=on]:shadow-sm"
           >
             <Braces className="size-3" />
             Raw
-          </button>
-        </div>
+          </ToggleGroupItem>
+        </ToggleGroup>
       </div>
 
       {view === "fields" ? (

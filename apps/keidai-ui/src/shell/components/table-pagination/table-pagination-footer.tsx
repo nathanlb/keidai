@@ -1,4 +1,4 @@
-import { Button } from "@keidai/ui";
+import { Button, Separator } from "@keidai/ui";
 
 interface TablePaginationFooterProps {
   shownCount: number;
@@ -21,13 +21,8 @@ export function TablePaginationFooter({
   pageIndex,
   className,
 }: TablePaginationFooterProps) {
-  return (
-    <div
-      className={
-        className ??
-        "flex items-center justify-between border-t border-border px-[18px] py-2.5 text-xs text-muted-foreground"
-      }
-    >
+  const content = (
+    <>
       <span>
         Showing{" "}
         <span className="font-mono text-foreground">{shownCount}</span> of{" "}
@@ -53,6 +48,19 @@ export function TablePaginationFooter({
           Older
         </Button>
       </div>
-    </div>
+    </>
+  );
+
+  if (className) {
+    return <div className={className}>{content}</div>;
+  }
+
+  return (
+    <>
+      <Separator />
+      <div className="flex items-center justify-between px-[18px] py-2.5 text-xs text-muted-foreground">
+        {content}
+      </div>
+    </>
   );
 }

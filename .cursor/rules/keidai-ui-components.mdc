@@ -33,7 +33,15 @@ Use `cn` from `@keidai/ui` for conditional classes. Use design tokens (`bg-card`
 | Actions | `Button` |
 | Status / tags / chips | `Badge` |
 | Dividers | `Separator` |
-| Hover detail | `Tooltip` + `TooltipProvider` |
+| Hover detail | `Tooltip` + `TooltipProvider` (hoisted in `app-shell.tsx`) |
+| Avatars | `Avatar`, `AvatarFallback` via `OwnerAvatar` |
+| Menus | `DropdownMenu` |
+| Empty states | `Empty` via `PageEmptyState` helper |
+| Search inputs | `InputGroup`, `InputGroupAddon`, `InputGroupInput` |
+| View toggles | `ToggleGroup`, `ToggleGroupItem` |
+| Breadcrumbs | `Breadcrumb`, `BreadcrumbList`, etc. |
+| Loading | `Spinner` |
+| Info/warning banners | `Alert`, `AlertTitle`, `AlertDescription` |
 
 ## Reference implementations
 
@@ -46,7 +54,7 @@ Copy patterns from these before inventing new markup:
 
 ## Missing primitive?
 
-If no `@keidai/ui` export fits (e.g. Alert, Avatar, Collapsible, DropdownMenu), **add it to `packages/ui` via shadcn CLI and export from `index.ts`** — do not inline a one-off in keidai-ui.
+If no `@keidai/ui` export fits (e.g. Alert, Avatar, DropdownMenu), **add it to `packages/ui` via shadcn CLI and export from `index.ts`** — do not inline a one-off in keidai-ui.
 
 ```bash
 cd packages/ui && npx shadcn@latest add alert
@@ -56,4 +64,4 @@ Then export the new component from `packages/ui/src/index.ts` and use it in keid
 
 ## Allowed raw markup
 
-Layout wrappers (`div`, `span`, `p`), icons (`lucide-react`), and domain-specific composites (e.g. `OwnerAvatar` until `Avatar` lands in `@keidai/ui`) are fine. Do not use raw HTML for primitives that already exist in the library.
+Layout wrappers (`div`, `span`, `p`), icons (`lucide-react`), and domain-specific composites (e.g. `DetailDrawer`, `PageEmptyState`, filter chips with counts) are fine. Do not use raw HTML for primitives that already exist in the library.

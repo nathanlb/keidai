@@ -1,5 +1,8 @@
 import {
-  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
   Select,
   SelectContent,
   SelectItem,
@@ -23,19 +26,19 @@ export function ActivityFilterBar({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2.5">
-      <div className="relative min-w-[240px] flex-1">
-        <Search
-          className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground"
-          aria-hidden
-        />
-        <Input
+      <InputGroup className="h-9 min-w-[240px] flex-1">
+        <InputGroupAddon align="inline-start">
+          <InputGroupText>
+            <Search aria-hidden />
+          </InputGroupText>
+        </InputGroupAddon>
+        <InputGroupInput
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
           placeholder="Filter by tool, server, agent, owner…"
-          className="h-9 pl-9"
           aria-label="Filter traces"
         />
-      </div>
+      </InputGroup>
       <Select value={server} onValueChange={onServerChange}>
         <SelectTrigger className="h-9 w-[170px]">
           <SelectValue placeholder="All servers" />

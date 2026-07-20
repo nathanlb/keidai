@@ -1,5 +1,6 @@
 import {
   Button,
+  Separator,
   Sheet,
   SheetClose,
   SheetContent,
@@ -111,9 +112,10 @@ export function DetailDrawer({
           {children}
         </div>
 
+        <Separator />
         <SheetFooter
           className={cn(
-            "flex-row border-t border-border px-5 py-3.5",
+            "flex-row px-5 py-3.5",
             footerLeading
               ? "justify-between sm:justify-between"
               : "justify-end sm:justify-end",

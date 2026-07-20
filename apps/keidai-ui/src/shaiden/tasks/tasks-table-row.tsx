@@ -1,9 +1,7 @@
 import { Button, TableCell, TableRow } from "@keidai/ui";
 import type { SavedTask } from "@keidai/shared";
 import { Loader2, Pencil, Play } from "lucide-react";
-import { Link } from "react-router-dom";
-import { OwnerAvatar } from "../../torii/agents/owner-avatar.js";
-import { taskEditHref } from "../navigation.js";
+import { OwnerAvatar } from "../../shell/components/owner-avatar/owner-avatar.js";
 import { tasksTableColumns } from "./tasks-table-columns.js";
 
 function agentInitials(agentId: string): string {

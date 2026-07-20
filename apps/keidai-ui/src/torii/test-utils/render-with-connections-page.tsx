@@ -71,9 +71,9 @@ export function renderWithConnectionsPage(
 }
 
 export function createMockReconnect() {
-  return vi.fn();
+  return vi.fn<(serverName: string) => void>();
 }
 
 export function createMockLink() {
-  return vi.fn();
+  return vi.fn<(providerId: string) => void>();
 }
