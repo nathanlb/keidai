@@ -3,13 +3,12 @@ import type { Logger, Task } from "@keidai/shared";
 import { RunsApiController } from "./runs-api.controller.js";
 import { TasksApiController } from "./tasks-api.controller.js";
 import type { RunStore } from "../runs/run-store.js";
-import type { LaunchedHarnessRun } from "../run/harness.js";
+import type { LaunchedHarnessRun, ResumeHarnessRunInput } from "../run/types/harness.js";
 import type { TaskRepository } from "../tasks/types/task-repository.js";
 import type { ShaidenHttpServerHandle, ShaidenHttpServerOptions } from "./types/shaiden-http-server.js";
 import { registerShaidenRoutes } from "./utils/register-shaiden-routes.js";
 import { readPackageVersion } from "./utils/read-package-version.js";
 import type { ActiveRunRegistry } from "../run/active-run-registry.js";
-import type { ResumeHarnessRunInput } from "../run/harness.js";
 
 const requestStartTime = Symbol("requestStartTime");
 

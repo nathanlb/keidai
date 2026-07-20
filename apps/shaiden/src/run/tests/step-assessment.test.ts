@@ -77,10 +77,10 @@ describe("step assessment", () => {
     });
   });
 
-  it("defaults terminal text-only steps to goal_met when assessment is missing", () => {
+  it("defaults terminal text-only steps to cannot_complete when assessment is missing", () => {
     assert.deepEqual(
       resolveModelStepAssessment(undefined, [], "Done: draft created."),
-      { status: "goal_met", message: "Done: draft created." },
+      { status: "cannot_complete", message: "Done: draft created." },
     );
   });
 

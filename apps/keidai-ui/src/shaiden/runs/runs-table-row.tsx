@@ -92,7 +92,7 @@ export function RunsTableRow({
         </div>
         <Link
           to={`/shaiden/tasks?task=${encodeURIComponent(run.taskId)}`}
-          className="mt-0.5 block truncate font-mono text-[11px] text-primary hover:underline"
+          className="mt-0.5 inline truncate font-mono text-[11px] text-primary hover:underline"
           title={run.taskId}
           onClick={(event) => event.stopPropagation()}
         >
@@ -128,7 +128,10 @@ export function RunsTableRow({
       >
         <Badge
           variant="outline"
-          className={cn("max-w-full gap-1 truncate font-normal", meta.badgeClass)}
+          className={cn(
+            "max-w-full gap-1 truncate font-normal",
+            meta.badgeClass,
+          )}
         >
           <StatusIcon status={status} />
           <span className="truncate">{meta.label}</span>

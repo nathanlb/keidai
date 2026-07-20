@@ -146,7 +146,7 @@ export class SqliteRunRepository implements RunRepository {
       SELECT id, run_id, timestamp, kind, payload_json
       FROM run_steps
       WHERE run_id = ?
-      ORDER BY timestamp ASC, id ASC
+      ORDER BY timestamp ASC, rowid ASC
     `);
     this.trimRunsStatement = db.prepare(`
       SELECT id FROM runs
