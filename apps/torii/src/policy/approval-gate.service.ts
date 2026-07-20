@@ -1,5 +1,6 @@
 import type { AgentPrincipal } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
+import { tryGetMcpSessionId } from "../mcp/mcp-session-context.js";
 import { ToriiConfigService } from "../config/torii-config.service.js";
 import { ApprovalStoreService } from "./approval-store.service.js";
 import {
@@ -74,6 +75,7 @@ export class ApprovalGateService {
       paramsHash,
       runId: input.runId,
       stepId: input.stepId,
+      mcpSessionId: tryGetMcpSessionId(),
       now: input.now,
     });
 

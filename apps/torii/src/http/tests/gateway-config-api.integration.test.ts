@@ -21,6 +21,7 @@ import { createCredentialServices } from "../../credentials/tests/test-helpers.j
 import { createPolicyEnforcement, createApprovalServices } from "../../policy/tests/test-helpers.js";
 import { GatewayHttpServer } from "../gateway-http-server.service.js";
 import { GatewayMcpServer } from "../../mcp/gateway-mcp-server.service.js";
+import { McpSessionRegistry } from "../../mcp/mcp-session-registry.service.js";
 import { createOAuthApiController, createStubToolCatalog, createTestGatewayHttpServer, createTracesApiController } from "./test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 
@@ -167,6 +168,7 @@ describe("Gateway /api/config endpoints", () => {
         {} as never,
         new CapturingTraceEmitter(),
         createNoopLogger(),
+        new McpSessionRegistry(),
       ),
       createNoopLogger(),
     );

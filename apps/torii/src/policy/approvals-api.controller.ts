@@ -1,6 +1,7 @@
 import type { ApprovalRecordStatus } from "@keidai/shared";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { inject, injectable } from "tsyringe";
+import { ApprovalNotificationService } from "./approval-notification.service.js";
 import { ApprovalReadService } from "./approval-read.service.js";
 import { ApprovalStoreService } from "./approval-store.service.js";
 import {
@@ -39,6 +40,8 @@ export class ApprovalsApiController {
     private readonly approvalRead: ApprovalReadService,
     @inject(ApprovalStoreService)
     private readonly approvalStore: ApprovalStoreService,
+    @inject(ApprovalNotificationService)
+    private readonly approvalNotifications: ApprovalNotificationService,
   ) {}
 
   registerRoutes(app: FastifyInstance): void {
@@ -68,6 +71,7 @@ export class ApprovalsApiController {
         reply.code(404).send({ error: "approval not found or not pending" });
         return;
       }
+      this.approvalNotifications.notifyDecision(approval);
       reply.send(this.approvalRead.getApproval(id));
     });
 
@@ -82,6 +86,7 @@ export class ApprovalsApiController {
         reply.code(404).send({ error: "approval not found or not pending" });
         return;
       }
+      this.approvalNotifications.notifyDecision(approval);
       reply.send(this.approvalRead.getApproval(id));
     });
 
@@ -92,6 +97,7 @@ export class ApprovalsApiController {
         reply.code(404).send({ error: "approval not found or not pending" });
         return;
       }
+      this.approvalNotifications.notifyDecision(approval);
       reply.send(this.approvalRead.getApproval(id));
     });
   }
