@@ -9,6 +9,7 @@ import { ConnectionReadService } from "../../connections/connection-read.service
 import { ConnectionManager } from "../../connections/connection-manager.service.js";
 import { GatewayHttpServer } from "../gateway-http-server.service.js";
 import { GatewayMcpServer } from "../../mcp/gateway-mcp-server.service.js";
+import { McpSessionRegistry } from "../../mcp/mcp-session-registry.service.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import { createCapturingLogger } from "../../logging/tests/test-helpers.js";
 import { createOAuthApiController, createStubToolCatalog, createTracesApiController } from "./test-helpers.js";
@@ -49,6 +50,7 @@ describe("Gateway HTTP access logging", () => {
         {} as never,
         new CapturingTraceEmitter(),
         logger,
+        new McpSessionRegistry(),
       ),
       logger,
     );

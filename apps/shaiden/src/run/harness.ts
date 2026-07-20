@@ -8,12 +8,10 @@ import type { RuntimeConfig } from "../config/runtime-config.js";
 import { defaultLogger } from "../logging/logger.js";
 import { createOpenRouterModel } from "../model/openrouter.js";
 import { connectToriiSession } from "../mcp/torii-client.js";
-import { toriiBaseUrlFromMcpUrl } from "../mcp/torii-approval-client.js";
 import {
   ActiveRunRegistry,
   createActiveRunHandle,
 } from "./active-run-registry.js";
-import { createPollingApprovalResumeSignal } from "./approval-resume-signal.js";
 import { createHarnessToolDispatcher } from "./harness-tool-dispatch.js";
 import { buildToolSet, createModelStepCaller } from "./model-step.js";
 import { taskGoalPrompt, taskSystemPrompt } from "./prompts.js";
@@ -168,8 +166,6 @@ async function driveHarnessRun({
   activeRunRegistry,
 }: DriveHarnessRunInput): Promise<HarnessRunResult> {
   const limits = resolveTaskLimits(task);
-  const toriiBaseUrl = toriiBaseUrlFromMcpUrl(config.toriiMcpUrl);
-  const resumeSignal = createPollingApprovalResumeSignal(toriiBaseUrl);
   const activeHandle = createActiveRunHandle(runId);
   const unregisterActiveRun = activeRunRegistry.register(activeHandle);
 
@@ -184,6 +180,7 @@ async function driveHarnessRun({
       config.toriiMcpUrl,
       config.bearerToken,
     );
+    const resumeSignal = session.createApprovalResumeSignal();
 
     try {
       logger.info("run.tools_discovered", {
@@ -223,12 +220,11 @@ async function driveHarnessRun({
         approvalId: string,
         context?: { stepId?: string },
       ) => {
-        const pollUrl = `${toriiBaseUrl}/api/approvals/${approvalId}`;
         logger.info("run.waiting_approval", {
           runId,
           approvalId,
           stepId: context?.stepId,
-          pollUrl,
+          wakeup: "mcp_notification",
         });
         reporter.recordStep({
           id: context?.stepId,

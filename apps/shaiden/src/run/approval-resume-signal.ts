@@ -1,25 +1,83 @@
-import type { ApprovalDecision } from "./types/task-loop.js";
-import { pollApprovalDecision } from "../mcp/torii-approval-client.js";
+import type { ApprovalDecidedNotificationParams } from "@keidai/shared";
+import type { ApprovalDecision } from "../run/types/task-loop.js";
 
-/**
- * Narrow resume-signal seam for parked gated tool calls.
- * v0 implementation polls Torii's approval ledger; a later issue can swap
- * this for the SSE session stream without touching run models or the ledger.
- */
 export interface ApprovalResumeSignal {
   waitForDecision(approvalId: string): Promise<ApprovalDecision>;
+  dispose(): void;
 }
 
-export function createPollingApprovalResumeSignal(
-  toriiBaseUrl: string,
-  options?: {
-    intervalMs?: number;
-    sleep?: (ms: number) => Promise<void>;
-  },
+export function createMcpNotificationApprovalResumeSignal(
+  onNotification: (
+    handler: (params: ApprovalDecidedNotificationParams) => void,
+  ) => () => void,
+  onSessionLost: () => void,
 ): ApprovalResumeSignal {
+  const waiters = new Map<
+    string,
+    {
+      resolve: (decision: ApprovalDecision) => void;
+      reject: (error: Error) => void;
+    }
+  >();
+  /** Decisions that arrived before waitForDecision registered a waiter. */
+  const pendingDecisions = new Map<string, ApprovalDecision>();
+  let disposed = false;
+
+  const failPendingWaiters = (error: Error) => {
+    for (const waiter of waiters.values()) {
+      waiter.reject(error);
+    }
+    waiters.clear();
+    pendingDecisions.clear();
+  };
+
+  const toDecision = (
+    params: ApprovalDecidedNotificationParams,
+  ): ApprovalDecision => ({
+    status: params.status,
+    reason: params.reason,
+  });
+
+  const unsubscribe = onNotification((params) => {
+    if (disposed) {
+      return;
+    }
+    const decision = toDecision(params);
+    const waiter = waiters.get(params.approval_id);
+    if (waiter) {
+      waiters.delete(params.approval_id);
+      waiter.resolve(decision);
+      return;
+    }
+    pendingDecisions.set(params.approval_id, decision);
+  });
+
   return {
     waitForDecision(approvalId: string) {
-      return pollApprovalDecision(toriiBaseUrl, approvalId, options);
+      if (disposed) {
+        return Promise.reject(
+          new Error("MCP session closed while waiting for approval"),
+        );
+      }
+      const buffered = pendingDecisions.get(approvalId);
+      if (buffered) {
+        pendingDecisions.delete(approvalId);
+        return Promise.resolve(buffered);
+      }
+      return new Promise<ApprovalDecision>((resolve, reject) => {
+        waiters.set(approvalId, { resolve, reject });
+      });
+    },
+    dispose() {
+      if (disposed) {
+        return;
+      }
+      disposed = true;
+      unsubscribe();
+      failPendingWaiters(
+        new Error("MCP session closed while waiting for approval"),
+      );
+      onSessionLost();
     },
   };
 }

@@ -1,6 +1,15 @@
 import { Client } from "@modelcontextprotocol/sdk/client";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { TORII_CALL_META_KEY, type ToriiCallMeta } from "@keidai/shared";
+import {
+  APPROVAL_DECIDED_NOTIFICATION_METHOD,
+  TORII_CALL_META_KEY,
+  type ApprovalDecidedNotificationParams,
+  type ToriiCallMeta,
+} from "@keidai/shared";
+import {
+  createMcpNotificationApprovalResumeSignal,
+  type ApprovalResumeSignal,
+} from "../run/approval-resume-signal.js";
 import { enrichToolCallResult } from "./parse-tool-result.js";
 import type { DiscoveredTool, ToolCallResult, ToriiSession } from "./types/index.js";
 
@@ -75,6 +84,16 @@ export async function connectToriiSession(
   await client.connect(transport);
   const result = await client.listTools();
 
+  let activeResumeSignal: ApprovalResumeSignal | undefined;
+
+  const failParkedApprovals = () => {
+    activeResumeSignal?.dispose();
+  };
+  // SSE drop (maxRetries: 0) fires onerror without onclose; both paths must
+  // unblock parked approval waiters so the run can terminate as failed.
+  client.onerror = failParkedApprovals;
+  client.onclose = failParkedApprovals;
+
   const callTool = async (
     name: string,
     args: Record<string, unknown>,
@@ -91,6 +110,35 @@ export async function connectToriiSession(
   return {
     tools: result.tools.map(toDiscoveredTool),
     callTool,
-    close: () => client.close(),
+    createApprovalResumeSignal: () => {
+      if (activeResumeSignal) {
+        activeResumeSignal.dispose();
+      }
+
+      activeResumeSignal = createMcpNotificationApprovalResumeSignal(
+        (handler) => {
+          client.fallbackNotificationHandler = async (notification) => {
+            if (notification.method !== APPROVAL_DECIDED_NOTIFICATION_METHOD) {
+              return;
+            }
+            handler(
+              notification.params as unknown as ApprovalDecidedNotificationParams,
+            );
+          };
+          return () => {
+            client.fallbackNotificationHandler = undefined;
+          };
+        },
+        () => {
+          activeResumeSignal = undefined;
+        },
+      );
+
+      return activeResumeSignal;
+    },
+    close: async () => {
+      activeResumeSignal?.dispose();
+      await client.close();
+    },
   };
 }

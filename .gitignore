@@ -11,3 +11,4 @@ data/
 .designs/
 apps/keidai-ui/test-results/
 apps/keidai-ui/playwright-report/
+.DS_Store

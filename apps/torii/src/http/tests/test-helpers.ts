@@ -22,6 +22,7 @@ import type { TokenRepository } from "../../credentials/types/token-repository.j
 import type { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { GatewayHttpServer } from "../gateway-http-server.service.js";
 import { GatewayMcpServer } from "../../mcp/gateway-mcp-server.service.js";
+import { McpSessionRegistry } from "../../mcp/mcp-session-registry.service.js";
 import { InMemoryTraceRepository } from "../../trace/in-memory-trace-repository.service.js";
 import { TraceEmitterService } from "../../trace/trace-emitter.service.js";
 import { TraceReadService } from "../../trace/trace-read.service.js";
@@ -128,15 +129,18 @@ export function createTestGatewayHttpServer(
     options.traceEmitter ??
     new TraceEmitterService(traceRepository);
   const traceRead = new TraceReadService(traceRepository, traceEmitter);
-  const approvalsApi =
-    options.approvalServices?.approvalsApi ??
-    createApprovalServices(configService).approvalsApi;
+  const sessionRegistry =
+    options.approvalServices?.sessionRegistry ?? new McpSessionRegistry();
+  const approvalServices =
+    options.approvalServices ??
+    createApprovalServices(configService, sessionRegistry);
   const mcpServer = new GatewayMcpServer(
     toolCatalog,
     toolDispatch,
     createInboundIdentityService(options.identityResolver),
     traceEmitter,
     createNoopLogger(),
+    sessionRegistry,
   );
 
   return new GatewayHttpServer(
@@ -149,7 +153,7 @@ export function createTestGatewayHttpServer(
     ),
     options.oauthApi ?? createOAuthApiController(configService),
     new TracesApiController(traceRead),
-    approvalsApi,
+    approvalServices.approvalsApi,
     mcpServer,
     createNoopLogger(),
   );

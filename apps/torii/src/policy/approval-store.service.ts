@@ -24,6 +24,7 @@ interface ApprovalRecord {
   runId?: string;
   /** Opaque correlation ref — Torii stores and echoes only. */
   stepId?: string;
+  mcpSessionId?: string;
   status: ApprovalRecordStatus;
   rejectionReason?: string;
   createdAt: number;
@@ -52,6 +53,7 @@ export class ApprovalStoreService {
     paramsHash: string;
     runId?: string;
     stepId?: string;
+    mcpSessionId?: string;
     now?: number;
     ttlMs?: number;
   }): ApprovalRecord {
@@ -65,6 +67,7 @@ export class ApprovalStoreService {
       paramsHash: input.paramsHash,
       runId: input.runId,
       stepId: input.stepId,
+      mcpSessionId: input.mcpSessionId,
       status: "pending",
       createdAt: now,
       expiresAt: now + (input.ttlMs ?? DEFAULT_APPROVAL_TTL_MS),

@@ -1,4 +1,5 @@
 import type { ToriiCallMeta } from "@keidai/shared";
+import type { ApprovalResumeSignal } from "../../run/approval-resume-signal.js";
 
 export interface DiscoveredTool {
   name: string;
@@ -22,5 +23,6 @@ export interface ToriiSession {
     name: string,
     args: Record<string, unknown>,
   ) => Promise<ToolCallResult>;
+  createApprovalResumeSignal: () => ApprovalResumeSignal;
   close: () => Promise<void>;
 }
