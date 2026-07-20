@@ -47,13 +47,12 @@ export function TasksTableRow({
         <div className="truncate text-[13px] font-semibold" title={task.goal}>
           {task.goal}
         </div>
-        <Link
-          to={taskEditHref(task.id)}
-          className="mt-0.5 block truncate font-mono text-[11.5px] text-muted-foreground hover:text-foreground"
+        <div
+          className="mt-0.5 block truncate font-mono text-[11.5px] text-muted-foreground"
           title={task.id}
         >
           {task.id}
-        </Link>
+        </div>
       </TableCell>
       <TableCell
         className={tasksTableColumns.cellClassName("assignee")}
