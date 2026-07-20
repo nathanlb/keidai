@@ -19,49 +19,10 @@ import { completeRunWithOutcomeStep } from "./run-completion.js";
 import { previewOf } from "./run-step-recording.js";
 import { createLocalRunReporter } from "./run-reporter.js";
 import { completeRun, createRun } from "./run-lifecycle.js";
-import { HarnessRunResult } from "./types/harness.js";
+import { HarnessRunResult, LaunchedHarnessRun, LaunchHarnessRunInput, ResumeHarnessRunInput, HarnessRunOptions, DriveHarnessRunInput } from "./types/harness.js";
 import type { ConversationEntry } from "./types/conversation-history.js";
 import { runTaskLoop } from "./task-loop.js";
 import type { RunStore } from "../runs/run-store.js";
-
-export interface HarnessRunOptions {
-  logger?: Logger;
-  runStore?: RunStore;
-  activeRunRegistry?: ActiveRunRegistry;
-}
-
-export interface LaunchHarnessRunInput {
-  task: Task;
-  taskId: string;
-  config: RuntimeConfig;
-  runStore: RunStore;
-  options?: HarnessRunOptions;
-}
-
-export interface ResumeHarnessRunInput {
-  runId: string;
-  initialHistory: ConversationEntry[];
-  task: Task;
-  config: RuntimeConfig;
-  runStore: RunStore;
-  options?: HarnessRunOptions;
-}
-
-export interface LaunchedHarnessRun {
-  runId: string;
-  done: Promise<HarnessRunResult>;
-}
-
-interface DriveHarnessRunInput {
-  runId: string;
-  task: Task;
-  config: RuntimeConfig;
-  reporter: ReturnType<typeof createLocalRunReporter>;
-  logger: Logger;
-  runStore: RunStore;
-  initialHistory: ConversationEntry[];
-  activeRunRegistry: ActiveRunRegistry;
-}
 
 /**
  * Registers a run in the store synchronously, then drives the harness in the

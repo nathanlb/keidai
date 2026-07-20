@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Logger, Task } from "@keidai/shared";
 import type { HarnessRunResult } from "../../run/types/harness.js";
-import type { LaunchedHarnessRun } from "../../run/harness.js";
+import type { LaunchedHarnessRun } from "../../run/types/harness.js";
 import { ActiveRunRegistry } from "../../run/active-run-registry.js";
 import { resumeHarnessRun } from "../../run/harness.js";
 import type { RuntimeConfig } from "../../config/runtime-config.js";

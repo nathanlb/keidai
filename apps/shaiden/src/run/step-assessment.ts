@@ -81,7 +81,7 @@ export function parseStepAssessment(
 /**
  * Resolve assessment from an optional terminal report tool call.
  * Torii tool calls imply continue — assessment is ignored/omitted.
- * Text-only with no assessment falls back to goal_met when message is present.
+ * Text-only with no assessment falls back to cannot_complete when message is present.
  */
 export function resolveModelStepAssessment(
   assessment: StepAssessment | undefined,
@@ -98,7 +98,7 @@ export function resolveModelStepAssessment(
 
   const message = fallbackText.trim();
   if (message.length > 0) {
-    return { status: "goal_met", message };
+    return { status: "cannot_complete", message };
   }
 
   return undefined;

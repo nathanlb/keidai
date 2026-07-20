@@ -149,6 +149,68 @@ describe("SqliteRunRepository", () => {
     assert.notEqual(run?.steps[0]?.id, run?.steps[1]?.id);
   });
 
+  it("preserves append order when steps share the same timestamp", () => {
+    const databasePath = path.join(
+      mkdtempSync(path.join(tmpdir(), "shaiden-run-store-")),
+      "shaiden.db",
+    );
+    const db = openShaidenDatabase(databasePath);
+    db.prepare(`
+      INSERT INTO tasks (
+        id, goal, trigger_json, assignee, limits_json, created_at, updated_at
+      ) VALUES (
+        'task-1', @goal, @trigger_json, @assignee, @limits_json, @created_at, @updated_at
+      )
+    `).run({
+      goal: sampleTask.goal,
+      trigger_json: JSON.stringify(sampleTask.trigger),
+      assignee: sampleTask.assignee,
+      limits_json: JSON.stringify(sampleTask.limits),
+      created_at: "2026-07-08T12:00:00.000Z",
+      updated_at: "2026-07-08T12:00:00.000Z",
+    });
+
+    const repository = createRepository(databasePath);
+    repository.create({
+      id: "run-1",
+      taskId: "task-1",
+      task: sampleTask,
+      assignee: sampleTask.assignee,
+      goal: sampleTask.goal,
+      startedAt: "2026-07-08T12:00:00.000Z",
+    });
+
+    const sharedTimestamp = "2026-07-08T12:00:01.000Z";
+    repository.appendStep(
+      "run-1",
+      createRunStep({
+        id: "zzz-dispatch",
+        timestamp: sharedTimestamp,
+        kind: "tool_dispatch",
+        toolName: "notion_search",
+        toolCallId: "call-1",
+        inputPreview: "{}",
+      }),
+    );
+    repository.appendStep(
+      "run-1",
+      createRunStep({
+        id: "aaa-result",
+        timestamp: sharedTimestamp,
+        kind: "tool_result",
+        toolName: "notion_search",
+        toolCallId: "call-1",
+        status: "error",
+        charCount: 13,
+        outputPreview: "policy denied",
+      }),
+    );
+
+    const run = repository.get("run-1");
+    assert.equal(run?.steps[0]?.kind, "tool_dispatch");
+    assert.equal(run?.steps[1]?.kind, "tool_result");
+  });
+
   it("rejects a second continuation while the run is already reopened", () => {
     const databasePath = path.join(
       mkdtempSync(path.join(tmpdir(), "shaiden-run-store-")),

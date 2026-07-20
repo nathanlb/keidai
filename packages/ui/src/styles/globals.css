@@ -12,6 +12,12 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --breakpoint-sm: 40rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
+  --breakpoint-xl: 80rem;
+  --breakpoint-2xl: 96rem;
+
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
 

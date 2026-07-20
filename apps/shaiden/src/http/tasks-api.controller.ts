@@ -6,7 +6,7 @@ import {
 } from "@keidai/shared";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { RunStore } from "../runs/run-store.js";
-import type { LaunchedHarnessRun } from "../run/harness.js";
+import type { LaunchedHarnessRun } from "../run/types/harness.js";
 import type { TaskRepository } from "../tasks/types/task-repository.js";
 import {
   DEFAULT_TASK_LIST_LIMIT,

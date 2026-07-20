@@ -1,5 +1,6 @@
 import {
   RUN_SSE_EVENT,
+  type FollowUpRunRequest,
   type FollowUpRunResponse,
   type RunReport,
   type RunSseEvent,
@@ -8,6 +9,10 @@ import type { Logger } from "@keidai/shared";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { RuntimeConfig } from "../config/runtime-config.js";
 import type { ActiveRunRegistry } from "../run/active-run-registry.js";
+import type {
+  LaunchedHarnessRun,
+  ResumeHarnessRunInput,
+} from "../run/types/harness.js";
 import type { RunStore } from "../runs/run-store.js";
 import {
   DEFAULT_RUN_LIST_LIMIT,
@@ -35,8 +40,8 @@ export interface RunsApiControllerDeps {
   runStore: RunStore;
   activeRunRegistry: ActiveRunRegistry;
   resumeHarnessRun: (
-    input: Omit<import("../run/harness.js").ResumeHarnessRunInput, "config">,
-  ) => import("../run/harness.js").LaunchedHarnessRun;
+    input: Omit<ResumeHarnessRunInput, "config">,
+  ) => LaunchedHarnessRun;
   runtimeConfig: RuntimeConfig;
   logger: Logger;
 }
@@ -100,7 +105,7 @@ export class RunsApiController {
     app.post("/api/runs/:runId/follow-up", async (request, reply) => {
       const { runId } = request.params as { runId: string };
       const message = normalizeFollowUpMessage(
-        request.body as import("@keidai/shared").FollowUpRunRequest,
+        request.body as FollowUpRunRequest,
       );
       if (!message) {
         reply.code(400).send({ error: "invalid follow-up message" });
