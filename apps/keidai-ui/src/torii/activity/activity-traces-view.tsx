@@ -1,7 +1,9 @@
+import { PageEmptyState } from "../../shell/components/page-content/page-empty-state.js";
 import {
   Button,
   Card,
   CardContent,
+  cn,
   Table,
   TableBody,
   TableHead,
@@ -27,37 +29,41 @@ function TailToggle({
   onToggle: () => void;
 }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="outline"
       onClick={onToggle}
-      className="inline-flex h-[30px] items-center gap-1.5 rounded-full border border-border bg-background px-3 font-mono text-[12.5px] text-foreground whitespace-nowrap hover:bg-muted/40"
+      className="h-[30px] gap-1.5 rounded-full px-3 font-mono text-[12.5px] whitespace-nowrap"
     >
       <span
-        className={`size-1.5 rounded-full ${isLive ? "bg-success" : "bg-muted-foreground"}`}
+        className={cn(
+          "size-1.5 rounded-full",
+          isLive ? "bg-success" : "bg-muted-foreground",
+        )}
         aria-hidden
       />
       {isLive ? "live" : "paused"}
-    </button>
+    </Button>
   );
 }
 
 function ActivityIdleEmptyState() {
   return (
-    <Card className="shadow-none">
-      <CardContent className="flex flex-col items-center px-6 py-[60px] text-center">
-        <span className="flex size-[52px] items-center justify-center rounded-[14px] bg-muted/55 text-muted-foreground">
-          <Activity className="size-[30px]" aria-hidden />
-        </span>
-        <div className="mt-4 text-base font-semibold">No activity yet</div>
-        <p className="mt-1.5 max-w-[380px] text-[13px] leading-normal text-muted-foreground">
+    <PageEmptyState
+      icon={<Activity className="size-[30px]" aria-hidden />}
+      title="No activity yet"
+      description={
+        <>
           The gateway is idle. A <span className="font-mono">CallTrace</span>{" "}
           will appear here the moment an agent invokes a tool through Torii.
-        </p>
+        </>
+      }
+      footer={
         <span className="mt-4 rounded-md border border-border px-2.5 py-1.5 font-mono text-xs text-muted-foreground">
           waiting on tools/call …
         </span>
-      </CardContent>
-    </Card>
+      }
+    />
   );
 }
 
@@ -67,26 +73,17 @@ function ActivityNoMatchEmptyState({
   onClearFilters: () => void;
 }) {
   return (
-    <Card className="shadow-none">
-      <CardContent className="flex flex-col items-center px-6 py-12 text-center">
-        <Search className="size-[18px] text-muted-foreground" aria-hidden />
-        <div className="mt-3 text-sm font-semibold">
-          No traces match these filters
-        </div>
-        <p className="mt-1 text-[12.5px] text-muted-foreground">
-          Try a different outcome, server, or search term.
-        </p>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="mt-3.5"
-          onClick={onClearFilters}
-        >
+    <PageEmptyState
+      icon={<Search className="size-[18px]" aria-hidden />}
+      title="No traces match these filters"
+      description="Try a different outcome, server, or search term."
+      contentClassName="py-12"
+      action={
+        <Button type="button" variant="outline" size="sm" onClick={onClearFilters}>
           Clear filters
         </Button>
-      </CardContent>
-    </Card>
+      }
+    />
   );
 }
 

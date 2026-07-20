@@ -1,4 +1,11 @@
-import { ChevronRight } from "lucide-react";
+import {
+  Breadcrumb as BreadcrumbRoot,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@keidai/ui";
 import { Link } from "react-router-dom";
 import type { AppShellBreadcrumb } from "../../types/index.js";
 
@@ -13,32 +20,38 @@ export function Breadcrumb({ breadcrumb }: BreadcrumbProps) {
       : [{ label: breadcrumb.page }];
 
   return (
-    <div className="flex min-w-0 items-center gap-2 text-[13.5px] text-muted-foreground">
-      <span>{breadcrumb.section}</span>
-      {trail.map((segment, index) => {
-        const isLast = index === trail.length - 1;
-        return (
-          <span key={`${segment.label}-${index}`} className="contents">
-            <ChevronRight className="size-3.5 shrink-0" aria-hidden />
-            {segment.href && !isLast ? (
-              <Link
-                to={segment.href}
-                className="truncate rounded-md px-1.5 py-0.5 transition-colors hover:bg-accent hover:text-accent-foreground"
-              >
-                {segment.label}
-              </Link>
-            ) : (
-              <span
-                className={
-                  isLast ? "truncate text-foreground" : "truncate"
-                }
-              >
-                {segment.label}
-              </span>
-            )}
-          </span>
-        );
-      })}
-    </div>
+    <BreadcrumbRoot className="min-w-0 text-[13.5px]">
+      <BreadcrumbList>
+        <BreadcrumbItem className="text-muted-foreground">
+          {breadcrumb.section}
+        </BreadcrumbItem>
+        {trail.map((segment, index) => {
+          const isLast = index === trail.length - 1;
+          return (
+            <span key={`${segment.label}-${index}`} className="contents">
+              <BreadcrumbSeparator />
+              <BreadcrumbItem className="min-w-0">
+                {isLast ? (
+                  <BreadcrumbPage className="truncate">
+                    {segment.label}
+                  </BreadcrumbPage>
+                ) : segment.href ? (
+                  <BreadcrumbLink asChild>
+                    <Link
+                      to={segment.href}
+                      className="truncate rounded-md px-1.5 py-0.5 hover:bg-accent hover:text-accent-foreground"
+                    >
+                      {segment.label}
+                    </Link>
+                  </BreadcrumbLink>
+                ) : (
+                  <span className="truncate">{segment.label}</span>
+                )}
+              </BreadcrumbItem>
+            </span>
+          );
+        })}
+      </BreadcrumbList>
+    </BreadcrumbRoot>
   );
 }

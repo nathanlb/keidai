@@ -1,4 +1,8 @@
+import { PageEmptyState } from "../../shell/components/page-content/page-empty-state.js";
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
   Button,
   Card,
   CardContent,
@@ -20,32 +24,29 @@ import { LinkingRequiredBanner } from "./linking-required-banner.js";
 
 function PrivacyBanner() {
   return (
-    <div className="mb-4 grid grid-cols-[auto_1fr] items-center gap-x-3 rounded-lg border border-border px-4 py-3 text-muted-foreground">
+    <Alert className="mb-4">
       <Shield className="size-4" aria-hidden />
-      <p className="text-sm leading-snug">
+      <AlertTitle>Credentials stay private</AlertTitle>
+      <AlertDescription>
         API keys, client secrets, and access tokens are never shown — only
         strategy, policy, and connection health.
-      </p>
-    </div>
+      </AlertDescription>
+    </Alert>
   );
 }
 
 function ConnectionsEmptyState() {
   return (
-    <Card className="shadow-none">
-      <CardContent className="flex flex-col items-center px-6 py-[60px] text-center">
-        <span className="flex size-[52px] items-center justify-center rounded-[14px] bg-muted/55 text-muted-foreground">
-          <Cable className="size-[30px]" aria-hidden />
-        </span>
-        <div className="mt-4 text-base font-semibold">
-          No servers configured
-        </div>
-        <p className="mt-1.5 max-w-[380px] text-[13px] leading-normal text-muted-foreground">
+    <PageEmptyState
+      icon={<Cable className="size-[30px]" aria-hidden />}
+      title="No servers configured"
+      description={
+        <>
           Add MCP backends to <span className="font-mono">torii.yaml</span> to
           expose namespaced tools through the gateway.
-        </p>
-      </CardContent>
-    </Card>
+        </>
+      }
+    />
   );
 }
 

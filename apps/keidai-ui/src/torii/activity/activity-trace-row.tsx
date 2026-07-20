@@ -6,7 +6,7 @@ import {
   Link2,
   TriangleAlert,
 } from "lucide-react";
-import { OwnerAvatar } from "../agents/owner-avatar.js";
+import { OwnerAvatar } from "../../shell/components/owner-avatar/owner-avatar.js";
 import { TRACE_OUTCOME_META } from "./utils/format-trace-outcome.js";
 import {
   formatTracePolicyShort,

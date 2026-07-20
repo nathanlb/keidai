@@ -1,5 +1,9 @@
+import { PageEmptyState } from "../../shell/components/page-content/page-empty-state.js";
 import type { PublicAgentConfig } from "@keidai/shared";
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
   Badge,
   Card,
   CardContent,
@@ -20,37 +24,36 @@ import { useFetchServers } from "../../shell/hooks/use-fetch-servers.js";
 import { deriveOwnerInitials } from "../../shell/utils/derive-owner-initials.js";
 import { formatAgentSubject } from "./utils/format-agent-subject.js";
 import type { OwnerAgentGroup } from "./utils/group-agents-by-owner.js";
-import { OwnerAvatar } from "./owner-avatar.js";
+import { OwnerAvatar } from "../../shell/components/owner-avatar/owner-avatar.js";
 
 function StrictOwnershipBanner() {
   return (
-    <div className="mb-4 grid grid-cols-[auto_1fr] items-center gap-x-3 rounded-lg border border-border bg-background px-4 py-3 text-muted-foreground">
+    <Alert className="mb-4">
       <Lock className="size-4" aria-hidden />
-      <p className="text-sm leading-snug">
-        Strict ownership — each agent acts as exactly one owner, fixed at
-        registration and never asserted per request. The resolved{" "}
+      <AlertTitle>Strict ownership</AlertTitle>
+      <AlertDescription>
+        Each agent acts as exactly one owner, fixed at registration and never
+        asserted per request. The resolved{" "}
         <span className="font-mono">owner_id</span> selects which delegated
         grant a call uses.
-      </p>
-    </div>
+      </AlertDescription>
+    </Alert>
   );
 }
 
 function AgentsEmptyState() {
   return (
-    <Card className="shadow-none">
-      <CardContent className="flex flex-col items-center px-6 py-[60px] text-center">
-        <span className="flex size-[52px] items-center justify-center rounded-[14px] bg-muted/55 text-muted-foreground">
-          <Bot className="size-[30px]" aria-hidden />
-        </span>
-        <div className="mt-4 text-base font-semibold">No agents registered</div>
-        <p className="mt-1.5 max-w-[380px] text-[13px] leading-normal text-muted-foreground">
+    <PageEmptyState
+      icon={<Bot className="size-[30px]" aria-hidden />}
+      title="No agents registered"
+      description={
+        <>
           Register an agent bound to an owner to start routing calls. Each agent
           acts as exactly one <span className="font-mono">owner_id</span>, fixed
           at registration — never asserted per request.
-        </p>
-      </CardContent>
-    </Card>
+        </>
+      }
+    />
   );
 }
 

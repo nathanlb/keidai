@@ -15,7 +15,7 @@ import { DetailDrawer, DetailDrawerSectionLabel } from "../../shell/components/d
 import { useActivityTracesPage } from "./context/use-activity-traces.js";
 import { buildLinkingResolutionKey } from "../linking/format-linking-required-prompt.js";
 import { deriveOwnerInitials } from "../../shell/utils/derive-owner-initials.js";
-import { OwnerAvatar } from "../agents/owner-avatar.js";
+import { OwnerAvatar } from "../../shell/components/owner-avatar/owner-avatar.js";
 import { buildTraceSpans } from "./utils/build-trace-spans.js";
 import {
   formatCredentialProvider,

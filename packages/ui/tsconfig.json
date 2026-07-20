@@ -4,7 +4,15 @@
     "rootDir": "src",
     "outDir": "dist",
     "jsx": "react-jsx",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "paths": {
+      "@keidai/ui/components": ["./src/components"],
+      "@keidai/ui/components/*": ["./src/components/*"],
+      "@keidai/ui/components/ui": ["./src/components/ui"],
+      "@keidai/ui/components/ui/*": ["./src/components/ui/*"],
+      "@keidai/ui/lib/utils": ["./src/lib/utils"],
+      "@keidai/ui/lib/*": ["./src/lib/*"]
+    }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"]
 }
