@@ -1,9 +1,10 @@
 import type {
   OAuthClientRepository,
   OAuthProviderClient,
-} from "./types/oauth-client-repository.js";
+} from "../../credentials/types/oauth-client-repository.js";
 
-export class InMemoryOAuthClientRepository implements OAuthClientRepository {
+/** @internal Test-only. Not for production use. */
+export class MockOAuthClientRepository implements OAuthClientRepository {
   private readonly clients = new Map<string, OAuthProviderClient>();
 
   async get(provider: string): Promise<OAuthProviderClient | null> {

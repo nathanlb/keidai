@@ -5,8 +5,8 @@ import type { ToriiConfig } from "@keidai/shared";
 import { ToriiConfigService } from "../../../config/torii-config.service.js";
 import { CredentialResolverService } from "../../credential-resolver.service.js";
 import { OAuthTokenLifecycleService } from "../../oauth-token-lifecycle.service.js";
-import { InMemoryOAuthClientRepository } from "../../in-memory-oauth-client-repository.service.js";
-import { InMemoryTokenRepository } from "../../in-memory-token-repository.service.js";
+import { MockOAuthClientRepository } from "../../../testing/mocks/mock-oauth-client-repository.js";
+import { MockTokenRepository } from "../../../testing/mocks/mock-token-repository.js";
 import { NoneCredentialResolver } from "../none-credential-resolver.service.js";
 import { UserOAuthCredentialResolver } from "../user_oauth_credential-resolver.service.js";
 import { ServiceKeyCredentialResolver } from "../service-key-credential-resolver.service.js";
@@ -54,13 +54,13 @@ describe("CredentialResolverService none dispatch", () => {
     oauth_providers: {},
     servers: [],
   });
-  const tokenRepository = new InMemoryTokenRepository();
+  const tokenRepository = new MockTokenRepository();
   const credentialResolver = new CredentialResolverService(
     new NoneCredentialResolver(),
     new UserOAuthCredentialResolver(
       new OAuthTokenLifecycleService(
         tokenRepository,
-        new InMemoryOAuthClientRepository(),
+        new MockOAuthClientRepository(),
         configService,
       ),
       configService,

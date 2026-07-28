@@ -1,13 +1,12 @@
 import type { CallTrace } from "@keidai/shared";
-import { injectable } from "tsyringe";
 import type {
   TraceListFilters,
   TraceListResult,
   TraceRepository,
   TraceStatsResult,
-} from "./types/trace-repository.js";
-import { DEFAULT_TRACE_RETENTION_COUNT } from "./types/trace-repository.js";
-import { deriveTraceOutcome } from "./utils/derive-trace-outcome.js";
+} from "../../trace/types/trace-repository.js";
+import { DEFAULT_TRACE_RETENTION_COUNT } from "../../trace/types/trace-repository.js";
+import { deriveTraceOutcome } from "../../trace/utils/derive-trace-outcome.js";
 
 function compareTraces(left: CallTrace, right: CallTrace): number {
   const timestampCompare = right.timestamp.localeCompare(left.timestamp);
@@ -26,8 +25,8 @@ function percentile(values: number[], p: number): number | null {
   return sorted[Math.max(0, index)] ?? null;
 }
 
-@injectable()
-export class InMemoryTraceRepository implements TraceRepository {
+/** @internal Test-only. Not for production use. */
+export class MockTraceRepository implements TraceRepository {
   private readonly traces: CallTrace[] = [];
 
   constructor(
@@ -74,7 +73,12 @@ export class InMemoryTraceRepository implements TraceRepository {
     if (filters.text) {
       const needle = filters.text.toLowerCase();
       filtered = filtered.filter((trace) =>
-        [trace.tool, trace.server, trace.principal?.agentId, trace.principal?.ownerId]
+        [
+          trace.tool,
+          trace.server,
+          trace.principal?.agentId,
+          trace.principal?.ownerId,
+        ]
           .filter((value): value is string => value !== undefined)
           .some((value) => value.toLowerCase().includes(needle)),
       );

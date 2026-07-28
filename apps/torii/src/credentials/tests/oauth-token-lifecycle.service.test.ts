@@ -4,8 +4,8 @@ import { describe, it } from "node:test";
 import type { ToriiConfig } from "@keidai/shared";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
 import { OAuthTokenLifecycleService } from "../oauth-token-lifecycle.service.js";
-import { InMemoryOAuthClientRepository } from "../in-memory-oauth-client-repository.service.js";
-import { InMemoryTokenRepository } from "../in-memory-token-repository.service.js";
+import { MockOAuthClientRepository } from "../../testing/mocks/mock-oauth-client-repository.js";
+import { MockTokenRepository } from "../../testing/mocks/mock-token-repository.js";
 import {
   OAuthTokenRefreshError,
   type OAuthFetch,
@@ -22,7 +22,7 @@ const oauthProviders: ToriiConfig["oauth_providers"] = {
 };
 
 function createLifecycle(
-  repository = new InMemoryTokenRepository(),
+  repository = new MockTokenRepository(),
   providers: ToriiConfig["oauth_providers"] = oauthProviders,
 ): OAuthTokenLifecycleService {
   const configService = new ToriiConfigService({
@@ -31,7 +31,7 @@ function createLifecycle(
   });
   return new OAuthTokenLifecycleService(
     repository,
-    new InMemoryOAuthClientRepository(),
+    new MockOAuthClientRepository(),
     configService,
   );
 }
@@ -77,7 +77,7 @@ describe("OAuthTokenLifecycleService", () => {
   });
 
   it("returns a valid token without calling the provider", async () => {
-    const repository = new InMemoryTokenRepository();
+    const repository = new MockTokenRepository();
     await repository.set("user-1", "github", {
       accessToken: "gho_valid",
       expiresAt: new Date(Date.now() + 60_000),
@@ -96,7 +96,7 @@ describe("OAuthTokenLifecycleService", () => {
   });
 
   it("treats tokens without expiresAt as always valid", async () => {
-    const repository = new InMemoryTokenRepository();
+    const repository = new MockTokenRepository();
     await repository.set("user-1", "github", {
       accessToken: "gho_no_expiry",
     });
@@ -114,7 +114,7 @@ describe("OAuthTokenLifecycleService", () => {
   });
 
   it("returns null when the access token is expired and no refresh token exists", async () => {
-    const repository = new InMemoryTokenRepository();
+    const repository = new MockTokenRepository();
     await repository.set("user-1", "github", {
       accessToken: "gho_expired",
       expiresAt: new Date(Date.now() - 60_000),
@@ -127,7 +127,7 @@ describe("OAuthTokenLifecycleService", () => {
   });
 
   it("refreshes a stale token and persists the new access token", async () => {
-    const repository = new InMemoryTokenRepository();
+    const repository = new MockTokenRepository();
     await repository.set("user-1", "github", {
       accessToken: "gho_stale",
       refreshToken: "ghr_stale",
@@ -152,7 +152,7 @@ describe("OAuthTokenLifecycleService", () => {
   });
 
   it("persists a rotated refresh token from the provider response", async () => {
-    const repository = new InMemoryTokenRepository();
+    const repository = new MockTokenRepository();
     await repository.set("user-1", "github", {
       accessToken: "gho_stale",
       refreshToken: "ghr_old",
@@ -176,7 +176,7 @@ describe("OAuthTokenLifecycleService", () => {
   });
 
   it("accepts form-encoded provider refresh responses", async () => {
-    const repository = new InMemoryTokenRepository();
+    const repository = new MockTokenRepository();
     await repository.set("user-1", "github", {
       accessToken: "gho_stale",
       refreshToken: "ghr_stale",
@@ -198,7 +198,7 @@ describe("OAuthTokenLifecycleService", () => {
   });
 
   it("single-flights concurrent refresh for the same owner and provider", async () => {
-    const repository = new InMemoryTokenRepository();
+    const repository = new MockTokenRepository();
     await repository.set("user-1", "github", {
       accessToken: "gho_stale",
       refreshToken: "ghr_stale",
@@ -230,7 +230,7 @@ describe("OAuthTokenLifecycleService", () => {
   });
 
   it("does not single-flight refresh across different owners", async () => {
-    const repository = new InMemoryTokenRepository();
+    const repository = new MockTokenRepository();
     const staleToken = {
       accessToken: "gho_stale",
       refreshToken: "ghr_stale",
@@ -261,7 +261,7 @@ describe("OAuthTokenLifecycleService", () => {
   });
 
   it("releases the in-flight lock after refresh completes", async () => {
-    const repository = new InMemoryTokenRepository();
+    const repository = new MockTokenRepository();
     await repository.set("user-1", "github", {
       accessToken: "gho_stale",
       refreshToken: "ghr_stale",
@@ -289,7 +289,7 @@ describe("OAuthTokenLifecycleService", () => {
   });
 
   it("throws a terminal OAuthTokenRefreshError when the provider rejects the refresh grant", async () => {
-    const repository = new InMemoryTokenRepository();
+    const repository = new MockTokenRepository();
     await repository.set("user-1", "github", {
       accessToken: "gho_stale",
       refreshToken: "ghr_revoked",
@@ -318,7 +318,7 @@ describe("OAuthTokenLifecycleService", () => {
   });
 
   it("throws a non-terminal OAuthTokenRefreshError on transient provider failures", async () => {
-    const repository = new InMemoryTokenRepository();
+    const repository = new MockTokenRepository();
     await repository.set("user-1", "github", {
       accessToken: "gho_stale",
       refreshToken: "ghr_stale",
@@ -341,7 +341,7 @@ describe("OAuthTokenLifecycleService", () => {
   });
 
   it("throws when the provider is not defined in config", async () => {
-    const repository = new InMemoryTokenRepository();
+    const repository = new MockTokenRepository();
     await repository.set("user-1", "unknown", {
       accessToken: "gho_stale",
       refreshToken: "ghr_stale",

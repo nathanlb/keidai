@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { OAuthProviderConfig } from "@keidai/shared";
-import { InMemoryOAuthClientRepository } from "../../in-memory-oauth-client-repository.service.js";
+import { MockOAuthClientRepository } from "../../../testing/mocks/mock-oauth-client-repository.js";
 import { ensureRegisteredOAuthClient } from "../resolve-oauth-provider-config.js";
 
 const notionConfig: OAuthProviderConfig = {
@@ -13,7 +13,7 @@ const notionConfig: OAuthProviderConfig = {
 
 describe("ensureRegisteredOAuthClient", () => {
   it("re-registers dynamic clients when the redirect URI changes", async () => {
-    const clientRepository = new InMemoryOAuthClientRepository();
+    const clientRepository = new MockOAuthClientRepository();
     const loopbackRedirect = "https://127.0.0.1:8765/callback";
     const gatewayRedirect = "http://127.0.0.1:3100/oauth/callback/notion";
 

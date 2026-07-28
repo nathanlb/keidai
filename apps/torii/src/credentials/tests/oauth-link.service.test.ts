@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ToriiConfig } from "@keidai/shared";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
-import { InMemoryOAuthClientRepository } from "../in-memory-oauth-client-repository.service.js";
-import { InMemoryPendingLinkStore } from "../in-memory-pending-link-store.service.js";
-import { InMemoryTokenRepository } from "../in-memory-token-repository.service.js";
+import { MockOAuthClientRepository } from "../../testing/mocks/mock-oauth-client-repository.js";
+import { MockPendingLinkStore } from "../../testing/mocks/mock-pending-link-store.js";
+import { MockTokenRepository } from "../../testing/mocks/mock-token-repository.js";
 import { OAuthLinkService } from "../oauth-link.service.js";
 import { encodeOAuthLinkState } from "../utils/oauth-link-state.js";
 import {
@@ -39,19 +39,19 @@ const sampleConfig: ToriiConfig = {
 function createOAuthLinkService(
   config: ToriiConfig = sampleConfig,
   options: {
-    tokenRepository?: InMemoryTokenRepository;
-    pendingLinkStore?: InMemoryPendingLinkStore;
+    tokenRepository?: MockTokenRepository;
+    pendingLinkStore?: MockPendingLinkStore;
     logger?: ReturnType<typeof createCapturingLogger>;
   } = {},
 ): {
   service: OAuthLinkService;
-  tokenRepository: InMemoryTokenRepository;
-  pendingLinkStore: InMemoryPendingLinkStore;
+  tokenRepository: MockTokenRepository;
+  pendingLinkStore: MockPendingLinkStore;
   logger: ReturnType<typeof createCapturingLogger>;
 } {
-  const tokenRepository = options.tokenRepository ?? new InMemoryTokenRepository();
+  const tokenRepository = options.tokenRepository ?? new MockTokenRepository();
   const pendingLinkStore =
-    options.pendingLinkStore ?? new InMemoryPendingLinkStore();
+    options.pendingLinkStore ?? new MockPendingLinkStore();
   const logger = options.logger ?? createCapturingLogger();
   const configService = new ToriiConfigService(config);
 
@@ -59,7 +59,7 @@ function createOAuthLinkService(
     service: new OAuthLinkService(
       configService,
       tokenRepository,
-      new InMemoryOAuthClientRepository(),
+      new MockOAuthClientRepository(),
       pendingLinkStore,
       logger,
     ),
@@ -101,7 +101,7 @@ function mockTokenExchange(response: Record<string, unknown> = {}): () => void {
 
 describe("OAuthLinkService", () => {
   it("initiate stores a pending link and returns an authorization URL", async () => {
-    const pendingLinkStore = new InMemoryPendingLinkStore();
+    const pendingLinkStore = new MockPendingLinkStore();
     const { service } = createOAuthLinkService(sampleConfig, { pendingLinkStore });
 
     const result = await service.initiate(
@@ -132,7 +132,7 @@ describe("OAuthLinkService", () => {
   });
 
   it("completeCallback marks the pending link failed when the provider returns an error", async () => {
-    const pendingLinkStore = new InMemoryPendingLinkStore();
+    const pendingLinkStore = new MockPendingLinkStore();
     const { service } = createOAuthLinkService(sampleConfig, { pendingLinkStore });
     const { linkId } = await service.initiate(
       "github",
@@ -183,7 +183,7 @@ describe("OAuthLinkService", () => {
   });
 
   it("completeCallback rejects provider mismatches and marks the link failed", async () => {
-    const pendingLinkStore = new InMemoryPendingLinkStore();
+    const pendingLinkStore = new MockPendingLinkStore();
     const { service } = createOAuthLinkService(sampleConfig, { pendingLinkStore });
     const { linkId } = await service.initiate(
       "github",
@@ -229,7 +229,7 @@ describe("OAuthLinkService", () => {
   });
 
   it("completeCallback rejects already completed links", async () => {
-    const pendingLinkStore = new InMemoryPendingLinkStore();
+    const pendingLinkStore = new MockPendingLinkStore();
     const { service } = createOAuthLinkService(sampleConfig, { pendingLinkStore });
     const { linkId } = await service.initiate(
       "github",
@@ -256,8 +256,8 @@ describe("OAuthLinkService", () => {
   });
 
   it("completeCallback stores tokens and completes the pending link on success", async () => {
-    const pendingLinkStore = new InMemoryPendingLinkStore();
-    const tokenRepository = new InMemoryTokenRepository();
+    const pendingLinkStore = new MockPendingLinkStore();
+    const tokenRepository = new MockTokenRepository();
     const { service } = createOAuthLinkService(sampleConfig, {
       pendingLinkStore,
       tokenRepository,
@@ -294,7 +294,7 @@ describe("OAuthLinkService", () => {
   });
 
   it("completeCallback marks the link failed when token exchange fails", async () => {
-    const pendingLinkStore = new InMemoryPendingLinkStore();
+    const pendingLinkStore = new MockPendingLinkStore();
     const { service } = createOAuthLinkService(sampleConfig, { pendingLinkStore });
     const { linkId } = await service.initiate(
       "github",
@@ -342,7 +342,7 @@ describe("OAuthLinkService", () => {
   });
 
   it("unlink removes stored grants for the resolved owner", async () => {
-    const tokenRepository = new InMemoryTokenRepository();
+    const tokenRepository = new MockTokenRepository();
     const { service } = createOAuthLinkService(sampleConfig, { tokenRepository });
     await tokenRepository.set("demo-owner", "github", {
       accessToken: "token",

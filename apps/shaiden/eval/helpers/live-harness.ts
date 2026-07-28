@@ -2,7 +2,7 @@ import "../load-env.js";
 import type { Task, TerminationOutcome } from "@keidai/shared";
 import type { RuntimeConfig } from "../../src/config/runtime-config.js";
 import { startHarnessRun } from "../../src/run/harness.js";
-import { createTestPersistence } from "../../src/testing/persistence.js";
+import { createEvalPersistence } from "../../src/testing/persistence.js";
 import { EVAL_AGENT_ID, EVAL_BEARER } from "./torii-eval-stack.js";
 import type { EvalToriiStack } from "./torii-eval-stack.js";
 
@@ -42,7 +42,7 @@ export async function runLiveHarnessEval(input: {
   approvalDriver?: ApprovalDriverMode;
 }): Promise<LiveHarnessEvalResult> {
   const config = loadLiveEvalConfig(input.stack);
-  const persistence = createTestPersistence("memory");
+  const persistence = createEvalPersistence();
   const taskId = persistence.taskRepository.create({ task: input.task }).id;
   const driverAbort = new AbortController();
   const approvalDriver = input.approvalDriver ?? "none";

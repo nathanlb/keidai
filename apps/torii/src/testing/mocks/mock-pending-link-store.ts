@@ -1,9 +1,8 @@
-import { injectable } from "tsyringe";
-import type { PendingOAuthLink } from "./types/pending-oauth-link.js";
-import type { PendingOAuthLinkStore } from "./types/pending-oauth-link-store.js";
+import type { PendingOAuthLink } from "../../credentials/types/pending-oauth-link.js";
+import type { PendingOAuthLinkStore } from "../../credentials/types/pending-oauth-link-store.js";
 
-@injectable()
-export class InMemoryPendingLinkStore implements PendingOAuthLinkStore {
+/** @internal Test-only. Not for production use. */
+export class MockPendingLinkStore implements PendingOAuthLinkStore {
   private readonly links = new Map<string, PendingOAuthLink>();
   private readonly latestByOwnerProvider = new Map<string, string>();
 

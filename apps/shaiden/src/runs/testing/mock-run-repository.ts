@@ -28,8 +28,8 @@ interface StoredRun extends RunReport {
   conversationHistory?: ConversationEntry[];
 }
 
-/** Test-only RunRepository. Not durable and not visible across processes. */
-export class InMemoryRunRepository implements RunRepository {
+/** @internal Test-only. Not for production use. */
+export class MockRunRepository implements RunRepository {
   private readonly runs = new Map<string, StoredRun>();
   private readonly retentionCount: number;
 

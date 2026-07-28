@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ToriiConfig } from "@keidai/shared";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
-import { InMemoryPendingLinkStore } from "../in-memory-pending-link-store.service.js";
-import { InMemoryTokenRepository } from "../in-memory-token-repository.service.js";
+import { MockPendingLinkStore } from "../../testing/mocks/mock-pending-link-store.js";
+import { MockTokenRepository } from "../../testing/mocks/mock-token-repository.js";
 import { OAuthConnectionReadService } from "../oauth-connection-read.service.js";
 
 const sampleConfig: ToriiConfig = {
@@ -40,17 +40,17 @@ const sampleConfig: ToriiConfig = {
 function createReadService(
   config: ToriiConfig = sampleConfig,
   options: {
-    tokenRepository?: InMemoryTokenRepository;
-    pendingLinkStore?: InMemoryPendingLinkStore;
+    tokenRepository?: MockTokenRepository;
+    pendingLinkStore?: MockPendingLinkStore;
   } = {},
 ): {
   service: OAuthConnectionReadService;
-  tokenRepository: InMemoryTokenRepository;
-  pendingLinkStore: InMemoryPendingLinkStore;
+  tokenRepository: MockTokenRepository;
+  pendingLinkStore: MockPendingLinkStore;
 } {
-  const tokenRepository = options.tokenRepository ?? new InMemoryTokenRepository();
+  const tokenRepository = options.tokenRepository ?? new MockTokenRepository();
   const pendingLinkStore =
-    options.pendingLinkStore ?? new InMemoryPendingLinkStore();
+    options.pendingLinkStore ?? new MockPendingLinkStore();
 
   return {
     service: new OAuthConnectionReadService(
@@ -82,7 +82,7 @@ describe("OAuthConnectionReadService", () => {
   });
 
   it("reports pending when a link is in flight", async () => {
-    const pendingLinkStore = new InMemoryPendingLinkStore();
+    const pendingLinkStore = new MockPendingLinkStore();
     const { service } = createReadService(sampleConfig, { pendingLinkStore });
 
     await pendingLinkStore.create({
@@ -105,7 +105,7 @@ describe("OAuthConnectionReadService", () => {
   });
 
   it("reports linked and expired token states from stored grants", async () => {
-    const tokenRepository = new InMemoryTokenRepository();
+    const tokenRepository = new MockTokenRepository();
     const { service } = createReadService(sampleConfig, { tokenRepository });
 
     await tokenRepository.set("demo-owner", "github", {
@@ -132,8 +132,8 @@ describe("OAuthConnectionReadService", () => {
   });
 
   it("prefers stored grants over completed pending links", async () => {
-    const tokenRepository = new InMemoryTokenRepository();
-    const pendingLinkStore = new InMemoryPendingLinkStore();
+    const tokenRepository = new MockTokenRepository();
+    const pendingLinkStore = new MockPendingLinkStore();
     const { service } = createReadService(sampleConfig, {
       tokenRepository,
       pendingLinkStore,
@@ -158,7 +158,7 @@ describe("OAuthConnectionReadService", () => {
   });
 
   it("reports failed links from the latest pending store entry", async () => {
-    const pendingLinkStore = new InMemoryPendingLinkStore();
+    const pendingLinkStore = new MockPendingLinkStore();
     const { service } = createReadService(sampleConfig, { pendingLinkStore });
 
     await pendingLinkStore.create({
@@ -179,7 +179,7 @@ describe("OAuthConnectionReadService", () => {
   });
 
   it("uses an explicit owner when provided", async () => {
-    const tokenRepository = new InMemoryTokenRepository();
+    const tokenRepository = new MockTokenRepository();
     const { service } = createReadService(sampleConfig, { tokenRepository });
     await tokenRepository.set("other-owner", "github", {
       accessToken: "other-token",

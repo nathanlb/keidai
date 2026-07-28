@@ -18,7 +18,7 @@ import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter
 import { createCapturingLogger } from "../tests/test-helpers.js";
 import { StructuredLoggerService } from "../structured-logger.service.js";
 import { TraceEmitterService } from "../../trace/trace-emitter.service.js";
-import { InMemoryTraceRepository } from "../../trace/in-memory-trace-repository.service.js";
+import { createTestGatewayPersistence } from "../../testing/gateway-persistence.js";
 import {
   finalizeCallTrace,
   toTracePrincipal,
@@ -78,6 +78,7 @@ describe("gateway log streams", () => {
       return true;
     }) as typeof process.stderr.write;
 
+    let persistence: ReturnType<typeof createTestGatewayPersistence> | undefined;
     try {
       const structuredLogger = new StructuredLoggerService();
       structuredLogger.info("boot.config_loaded", { serverCount: 1 });
@@ -87,8 +88,9 @@ describe("gateway log streams", () => {
         await toolDispatch.callTool("demo.ping");
       });
 
+      persistence = createTestGatewayPersistence();
       const traceEmitterService = new TraceEmitterService(
-        new InMemoryTraceRepository(),
+        persistence.traceRepository,
       );
       traceEmitterService.emit(
         finalizeCallTrace(
@@ -125,6 +127,7 @@ describe("gateway log streams", () => {
 
       assert.equal(traceEmitter.traces.length, 1);
     } finally {
+      persistence?.close();
       process.stdout.write = originalStdoutWrite;
       process.stderr.write = originalStderrWrite;
       await mockServer.close();

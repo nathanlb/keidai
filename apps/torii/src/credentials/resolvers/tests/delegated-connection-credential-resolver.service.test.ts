@@ -4,8 +4,8 @@ import { describe, it } from "node:test";
 import type { ToriiConfig } from "@keidai/shared";
 import { ToriiConfigService } from "../../../config/torii-config.service.js";
 import { OAuthTokenLifecycleService } from "../../oauth-token-lifecycle.service.js";
-import { InMemoryOAuthClientRepository } from "../../in-memory-oauth-client-repository.service.js";
-import { InMemoryTokenRepository } from "../../in-memory-token-repository.service.js";
+import { MockOAuthClientRepository } from "../../../testing/mocks/mock-oauth-client-repository.js";
+import { MockTokenRepository } from "../../../testing/mocks/mock-token-repository.js";
 import { UserOAuthCredentialResolver } from "../user_oauth_credential-resolver.service.js";
 import {
   LINKING_REQUIRED_CODE,
@@ -40,7 +40,7 @@ function userOAuthServer(
 }
 
 function createResolver(
-  repository = new InMemoryTokenRepository(),
+  repository = new MockTokenRepository(),
 ): UserOAuthCredentialResolver {
   const configService = new ToriiConfigService({
     oauth_providers: oauthProviders,
@@ -48,7 +48,7 @@ function createResolver(
   });
   const tokenLifecycle = new OAuthTokenLifecycleService(
     repository,
-    new InMemoryOAuthClientRepository(),
+    new MockOAuthClientRepository(),
     configService,
   );
   return new UserOAuthCredentialResolver(tokenLifecycle, configService);
@@ -73,25 +73,9 @@ function mockRefreshFetch(options: {
   };
 }
 
-describe("InMemoryTokenRepository", () => {
-  it("stores and retrieves tokens by owner and provider", async () => {
-    const repository = new InMemoryTokenRepository();
-
-    await repository.set("user-1", "github", {
-      accessToken: "gho_test",
-      refreshToken: "ghr_test",
-    });
-
-    const token = await repository.get("user-1", "github");
-    assert.equal(token?.accessToken, "gho_test");
-    assert.equal(token?.refreshToken, "ghr_test");
-    assert.equal(await repository.get("user-1", "stripe"), null);
-  });
-});
-
 describe("DelegatedConnectionCredentialResolver", () => {
   it("injects a bearer token when one is stored for the principal owner", async () => {
-    const repository = new InMemoryTokenRepository();
+    const repository = new MockTokenRepository();
     await repository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
       accessToken: "gho_secret_token",
     });
@@ -131,7 +115,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
   });
 
   it("returns linking_required when the stored access token is expired and cannot be refreshed", async () => {
-    const repository = new InMemoryTokenRepository();
+    const repository = new MockTokenRepository();
     await repository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
       accessToken: "gho_expired",
       expiresAt: new Date(Date.now() - 60_000),
@@ -151,7 +135,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
   });
 
   it("refreshes a stale access token using the stored refresh token", async () => {
-    const repository = new InMemoryTokenRepository();
+    const repository = new MockTokenRepository();
     await repository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
       accessToken: "gho_stale",
       refreshToken: "ghr_stale",
@@ -181,7 +165,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
   });
 
   it("persists a rotated refresh token before returning credentials", async () => {
-    const repository = new InMemoryTokenRepository();
+    const repository = new MockTokenRepository();
     await repository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
       accessToken: "gho_stale",
       refreshToken: "ghr_old",
@@ -205,7 +189,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
   });
 
   it("single-flights concurrent refresh for the same owner and backend", async () => {
-    const repository = new InMemoryTokenRepository();
+    const repository = new MockTokenRepository();
     await repository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
       accessToken: "gho_stale",
       refreshToken: "ghr_stale",
@@ -248,7 +232,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
   });
 
   it("returns linking_required when refresh fails with a terminal provider error", async () => {
-    const repository = new InMemoryTokenRepository();
+    const repository = new MockTokenRepository();
     await repository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
       accessToken: "gho_stale",
       refreshToken: "ghr_revoked",
@@ -279,7 +263,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
   });
 
   it("does not use another owner's stored token", async () => {
-    const repository = new InMemoryTokenRepository();
+    const repository = new MockTokenRepository();
     await repository.set("other-owner", "github", {
       accessToken: "gho_other_owner",
     });
@@ -293,7 +277,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
   });
 
   it("uses the token for the principal on the request context", async () => {
-    const repository = new InMemoryTokenRepository();
+    const repository = new MockTokenRepository();
     await repository.set("context-owner", "github", {
       accessToken: "gho_context_owner",
     });

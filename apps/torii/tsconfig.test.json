@@ -3,5 +3,5 @@
   "compilerOptions": {
     "noEmit": true
   },
-  "include": ["src/**/tests/**/*.ts", "src/**/*.test.ts"]
+  "include": ["src/**/tests/**/*.ts", "src/**/*.test.ts", "src/testing/**/*.ts"]
 }
