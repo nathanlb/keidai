@@ -7,13 +7,11 @@ import type {
   ToriiConfig,
 } from "@keidai/shared";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
-import { InMemoryOAuthClientRepository } from "../../credentials/in-memory-oauth-client-repository.service.js";
-import { InMemoryPendingLinkStore } from "../../credentials/in-memory-pending-link-store.service.js";
-import { InMemoryTokenRepository } from "../../credentials/in-memory-token-repository.service.js";
 import { decodeOAuthLinkState } from "../../credentials/utils/oauth-link-state.js";
 import {
   createOAuthApiController,
   createTestGatewayHttpServer,
+  createTestGatewayPersistence,
 } from "./test-helpers.js";
 
 const sampleConfig: ToriiConfig = {
@@ -42,19 +40,15 @@ const sampleConfig: ToriiConfig = {
 
 describe("Gateway OAuth linking API", () => {
   it("initiate returns an authorization URL for configured providers", async () => {
-    const tokenRepository = new InMemoryTokenRepository();
-    const pendingLinkStore = new InMemoryPendingLinkStore();
+    const persistence = createTestGatewayPersistence();
     const configService = new ToriiConfigService(sampleConfig);
     const gatewayHttpServer = createTestGatewayHttpServer(
       {} as never,
       {} as never,
       {
         configService,
-        oauthApi: createOAuthApiController(configService, {
-          tokenRepository,
-          clientRepository: new InMemoryOAuthClientRepository(),
-          pendingLinkStore,
-        }),
+        persistence,
+        oauthApi: createOAuthApiController(configService, { persistence }),
       },
     );
 
@@ -92,22 +86,21 @@ describe("Gateway OAuth linking API", () => {
       assert.doesNotMatch(JSON.stringify(body), /accessToken/);
     } finally {
       await gateway.close();
+      persistence.close();
     }
   });
 
   it("connections reports link status without exposing tokens", async () => {
-    const tokenRepository = new InMemoryTokenRepository();
-    const pendingLinkStore = new InMemoryPendingLinkStore();
+    const persistence = createTestGatewayPersistence();
+    const { tokenRepository } = persistence;
     const configService = new ToriiConfigService(sampleConfig);
     const gatewayHttpServer = createTestGatewayHttpServer(
       {} as never,
       {} as never,
       {
         configService,
-        oauthApi: createOAuthApiController(configService, {
-          tokenRepository,
-          pendingLinkStore,
-        }),
+        persistence,
+        oauthApi: createOAuthApiController(configService, { persistence }),
       },
     );
 
@@ -134,18 +127,21 @@ describe("Gateway OAuth linking API", () => {
       assert.equal(JSON.stringify(body).includes("secret"), false);
     } finally {
       await gateway.close();
+      persistence.close();
     }
   });
 
   it("unlink removes stored grant for owner and provider", async () => {
-    const tokenRepository = new InMemoryTokenRepository();
+    const persistence = createTestGatewayPersistence();
+    const { tokenRepository } = persistence;
     const configService = new ToriiConfigService(sampleConfig);
     const gatewayHttpServer = createTestGatewayHttpServer(
       {} as never,
       {} as never,
       {
         configService,
-        oauthApi: createOAuthApiController(configService, { tokenRepository }),
+        persistence,
+        oauthApi: createOAuthApiController(configService, { persistence }),
       },
     );
 
@@ -172,22 +168,21 @@ describe("Gateway OAuth linking API", () => {
       assert.equal(missingResponse.status, 404);
     } finally {
       await gateway.close();
+      persistence.close();
     }
   });
 
   it("callback completes UI-initiated flows on success and error paths", async () => {
-    const tokenRepository = new InMemoryTokenRepository();
-    const pendingLinkStore = new InMemoryPendingLinkStore();
+    const persistence = createTestGatewayPersistence();
+    const { tokenRepository } = persistence;
     const configService = new ToriiConfigService(sampleConfig);
     const gatewayHttpServer = createTestGatewayHttpServer(
       {} as never,
       {} as never,
       {
         configService,
-        oauthApi: createOAuthApiController(configService, {
-          tokenRepository,
-          pendingLinkStore,
-        }),
+        persistence,
+        oauthApi: createOAuthApiController(configService, { persistence }),
       },
     );
 
@@ -264,6 +259,7 @@ describe("Gateway OAuth linking API", () => {
       }
     } finally {
       await gateway.close();
+      persistence.close();
     }
   });
 });

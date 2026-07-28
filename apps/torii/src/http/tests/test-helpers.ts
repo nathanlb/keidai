@@ -10,9 +10,6 @@ import { ConnectionReadService } from "../../connections/connection-read.service
 import { ConfigApiController } from "../../config/config-api.controller.js";
 import { ConfigReadService } from "../../config/config-read.service.js";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
-import { InMemoryOAuthClientRepository } from "../../credentials/in-memory-oauth-client-repository.service.js";
-import { InMemoryPendingLinkStore } from "../../credentials/in-memory-pending-link-store.service.js";
-import { InMemoryTokenRepository } from "../../credentials/in-memory-token-repository.service.js";
 import { OAuthApiController } from "../../credentials/oauth-api.controller.js";
 import { OAuthConnectionReadService } from "../../credentials/oauth-connection-read.service.js";
 import { OAuthLinkService } from "../../credentials/oauth-link.service.js";
@@ -23,7 +20,6 @@ import type { ToolDispatchService } from "../../dispatch/tool-dispatch.service.j
 import { GatewayHttpServer } from "../gateway-http-server.service.js";
 import { GatewayMcpServer } from "../../mcp/gateway-mcp-server.service.js";
 import { McpSessionRegistry } from "../../mcp/mcp-session-registry.service.js";
-import { InMemoryTraceRepository } from "../../trace/in-memory-trace-repository.service.js";
 import { TraceEmitterService } from "../../trace/trace-emitter.service.js";
 import { TraceReadService } from "../../trace/trace-read.service.js";
 import { TracesApiController } from "../../trace/traces-api.controller.js";
@@ -38,10 +34,17 @@ import {
   createInboundIdentityService,
   FixedIdentityResolver,
 } from "../../identity/tests/test-helpers.js";
+import {
+  createTestGatewayPersistence,
+  type TestGatewayPersistence,
+} from "../../testing/gateway-persistence.js";
 
 export function createStubToolCatalog(
   catalog: readonly CatalogTool[] = [],
-  serverTools: Record<string, readonly { name: string; description?: string; allowed: boolean }[]> = {},
+  serverTools: Record<
+    string,
+    readonly { name: string; description?: string; allowed: boolean }[]
+  > = {},
 ): ToolCatalogService {
   return {
     getCatalog: () => catalog,
@@ -58,17 +61,26 @@ export function createOAuthApiController(
     tokenRepository?: TokenRepository;
     clientRepository?: OAuthClientRepository;
     pendingLinkStore?: PendingOAuthLinkStore;
+    persistence?: TestGatewayPersistence;
   } = {},
 ): OAuthApiController {
-  const tokenRepository = options.tokenRepository ?? new InMemoryTokenRepository();
+  const persistence = options.persistence ?? createTestGatewayPersistence();
+  const tokenRepository =
+    options.tokenRepository ?? persistence.tokenRepository;
   const clientRepository =
-    options.clientRepository ?? new InMemoryOAuthClientRepository();
+    options.clientRepository ?? persistence.clientRepository;
   const pendingLinkStore =
-    options.pendingLinkStore ?? new InMemoryPendingLinkStore();
+    options.pendingLinkStore ?? persistence.pendingLinkStore;
 
   return new OAuthApiController(
     configService,
-    new OAuthLinkService(configService, tokenRepository, clientRepository, pendingLinkStore, createNoopLogger()),
+    new OAuthLinkService(
+      configService,
+      tokenRepository,
+      clientRepository,
+      pendingLinkStore,
+      createNoopLogger(),
+    ),
     new OAuthConnectionReadService(
       configService,
       tokenRepository,
@@ -81,16 +93,18 @@ export function createTracesApiController(
   options: {
     traceRepository?: TraceRepository;
     traceEmitter?: TraceEmitter;
+    persistence?: TestGatewayPersistence;
   } = {},
 ): TracesApiController {
-  const traceRepository = options.traceRepository ?? new InMemoryTraceRepository();
+  const persistence = options.persistence ?? createTestGatewayPersistence();
+  const traceRepository =
+    options.traceRepository ?? persistence.traceRepository;
   const traceEmitter =
     options.traceEmitter ?? new TraceEmitterService(traceRepository);
   return new TracesApiController(
     new TraceReadService(traceRepository, traceEmitter),
   );
 }
-
 
 export function createTestGatewayHttpServer(
   toolCatalog: ToolCatalogService,
@@ -103,8 +117,10 @@ export function createTestGatewayHttpServer(
     connectionManager?: ConnectionManager;
     oauthApi?: OAuthApiController;
     approvalServices?: ApprovalServices;
+    persistence?: TestGatewayPersistence;
   } = {},
 ): GatewayHttpServer {
+  const persistence = options.persistence ?? createTestGatewayPersistence();
   const configService =
     options.configService ??
     new ToriiConfigService({ oauth_providers: {}, servers: [], agents: [] });
@@ -124,10 +140,10 @@ export function createTestGatewayHttpServer(
     connectionManager,
     toolCatalog,
   );
-  const traceRepository = options.traceRepository ?? new InMemoryTraceRepository();
+  const traceRepository =
+    options.traceRepository ?? persistence.traceRepository;
   const traceEmitter =
-    options.traceEmitter ??
-    new TraceEmitterService(traceRepository);
+    options.traceEmitter ?? new TraceEmitterService(traceRepository);
   const traceRead = new TraceReadService(traceRepository, traceEmitter);
   const sessionRegistry =
     options.approvalServices?.sessionRegistry ?? new McpSessionRegistry();
@@ -151,7 +167,8 @@ export function createTestGatewayHttpServer(
       toolCatalog,
       configService,
     ),
-    options.oauthApi ?? createOAuthApiController(configService),
+    options.oauthApi ??
+      createOAuthApiController(configService, { persistence }),
     new TracesApiController(traceRead),
     approvalServices.approvalsApi,
     mcpServer,
@@ -160,4 +177,5 @@ export function createTestGatewayHttpServer(
 }
 
 export { FixedIdentityResolver };
-export type { AgentIdentityResolver, AgentPrincipal };
+export { createTestGatewayPersistence };
+export type { AgentIdentityResolver, AgentPrincipal, TestGatewayPersistence };

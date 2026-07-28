@@ -38,7 +38,7 @@ const testRuntimeConfig: RuntimeConfig = {
 };
 
 function createTestServer({
-  persistence = createTestPersistence("sqlite"),
+  persistence = createTestPersistence(),
   startTaskRun,
 }: {
   persistence?: TestPersistence;
@@ -260,7 +260,7 @@ describe("tasks API", () => {
   });
 
   it("rejects when a run is already in progress", async () => {
-    const persistence = createTestPersistence("sqlite");
+    const persistence = createTestPersistence();
     createTestRun(persistence, {
       runId: "existing",
       task: sampleTask,
@@ -288,7 +288,7 @@ describe("tasks API", () => {
   });
 
   it("rejects deleting a task that has runs", async () => {
-    const persistence = createTestPersistence("sqlite");
+    const persistence = createTestPersistence();
     const taskId = createTestRun(persistence, { runId: "run-1", task: sampleTask });
 
     const { server } = createTestServer({ persistence });

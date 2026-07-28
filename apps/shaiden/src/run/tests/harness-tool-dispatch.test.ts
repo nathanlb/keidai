@@ -14,7 +14,7 @@ const sampleTask = {
 };
 
 function createHarnessReporter() {
-  const persistence = createTestPersistence("sqlite");
+  const persistence = createTestPersistence();
   const store = persistence.runStore;
   createTestRun(persistence, {
     runId: "run-1",

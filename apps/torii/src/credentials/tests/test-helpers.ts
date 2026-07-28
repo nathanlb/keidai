@@ -2,8 +2,6 @@ import type { ToriiConfig } from "@keidai/shared";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
 import { CredentialResolverService } from "../credential-resolver.service.js";
 import { OAuthTokenLifecycleService } from "../oauth-token-lifecycle.service.js";
-import { InMemoryOAuthClientRepository } from "../in-memory-oauth-client-repository.service.js";
-import { InMemoryTokenRepository } from "../in-memory-token-repository.service.js";
 import type { TokenRepository } from "../types/token-repository.js";
 import { NoneCredentialResolver } from "../resolvers/none-credential-resolver.service.js";
 import { UserOAuthCredentialResolver } from "../resolvers/user_oauth_credential-resolver.service.js";
@@ -11,6 +9,10 @@ import { ServiceKeyCredentialResolver } from "../resolvers/service-key-credentia
 import { runWithAgentPrincipal } from "../../identity/agent-principal-context.js";
 import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
 import type { OAuthFetch } from "../utils/oauth-token-refresh.js";
+import {
+  createTestGatewayPersistence,
+  type TestGatewayPersistence,
+} from "../../testing/gateway-persistence.js";
 
 export function withStubAgentPrincipal<T>(fn: () => T): T;
 export function withStubAgentPrincipal<T>(fn: () => Promise<T>): Promise<T>;
@@ -56,12 +58,14 @@ export function createCredentialServices(
   config: Pick<ToriiConfig, "oauth_providers"> = {
     oauth_providers: defaultOAuthProviders,
   },
+  persistence: TestGatewayPersistence = createTestGatewayPersistence(),
 ): {
   tokenRepository: TokenRepository;
   credentialResolver: CredentialResolverService;
   configService: ToriiConfigService;
+  persistence: TestGatewayPersistence;
 } {
-  const tokenRepository = new InMemoryTokenRepository();
+  const tokenRepository = persistence.tokenRepository;
   const configService = new ToriiConfigService({
     oauth_providers: config.oauth_providers,
     agents: [],
@@ -70,7 +74,7 @@ export function createCredentialServices(
   const noneResolver = new NoneCredentialResolver();
   const tokenLifecycle = new OAuthTokenLifecycleService(
     tokenRepository,
-    new InMemoryOAuthClientRepository(),
+    persistence.clientRepository,
     configService,
   );
   const userOAuthResolver = new UserOAuthCredentialResolver(
@@ -83,5 +87,5 @@ export function createCredentialServices(
     userOAuthResolver,
     serviceKeyResolver,
   );
-  return { tokenRepository, credentialResolver, configService };
+  return { tokenRepository, credentialResolver, configService, persistence };
 }

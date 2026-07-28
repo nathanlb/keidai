@@ -5,13 +5,11 @@ import path from "node:path";
 import type { Task } from "@keidai/shared";
 import { RunStore } from "../runs/run-store.js";
 import { SqliteRunRepository } from "../runs/sqlite-run-repository.js";
-import { InMemoryRunRepository } from "../runs/testing/in-memory-run-repository.js";
+import { MockRunRepository } from "../runs/testing/mock-run-repository.js";
 import { openShaidenDatabase } from "../storage/shaiden-sqlite.js";
 import { SqliteTaskRepository } from "../tasks/sqlite-task-repository.js";
-import { InMemoryTaskRepository } from "../tasks/testing/in-memory-task-repository.js";
+import { MockTaskRepository } from "../tasks/testing/mock-task-repository.js";
 import type { TaskRepository } from "../tasks/types/task-repository.js";
-
-export type TestPersistenceBackend = "memory" | "sqlite";
 
 export interface TestPersistence {
   runStore: RunStore;
@@ -19,17 +17,11 @@ export interface TestPersistence {
   close: () => void;
 }
 
-export function createTestPersistence(
-  backend: TestPersistenceBackend = "sqlite",
-): TestPersistence {
-  if (backend === "memory") {
-    return {
-      runStore: new RunStore(new InMemoryRunRepository()),
-      taskRepository: new InMemoryTaskRepository(),
-      close: () => {},
-    };
-  }
-
+/**
+ * Builds Shaiden persistence for tests using a temp SQLite database
+ * (the production path).
+ */
+export function createTestPersistence(): TestPersistence {
   const databasePath = path.join(
     mkdtempSync(path.join(tmpdir(), "shaiden-test-")),
     "shaiden.db",
@@ -41,6 +33,18 @@ export function createTestPersistence(
     close: () => {
       (database as DatabaseSync).close();
     },
+  };
+}
+
+/**
+ * In-process mock persistence for live eval harnesses that do not need
+ * durable storage. Prefer {@link createTestPersistence} for automated tests.
+ */
+export function createEvalPersistence(): TestPersistence {
+  return {
+    runStore: new RunStore(new MockRunRepository()),
+    taskRepository: new MockTaskRepository(),
+    close: () => {},
   };
 }
 

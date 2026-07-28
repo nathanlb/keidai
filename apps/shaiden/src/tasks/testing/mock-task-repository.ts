@@ -16,8 +16,8 @@ function compareTasks(left: SavedTask, right: SavedTask): number {
   return right.id.localeCompare(left.id);
 }
 
-/** Test-only TaskRepository. Not durable and not visible across processes. */
-export class InMemoryTaskRepository implements TaskRepository {
+/** @internal Test-only. Not for production use. */
+export class MockTaskRepository implements TaskRepository {
   private readonly tasks = new Map<string, SavedTask>();
   private readonly runCounts = new Map<string, number>();
 
@@ -72,7 +72,7 @@ export class InMemoryTaskRepository implements TaskRepository {
     return (this.runCounts.get(taskId) ?? 0) > 0;
   }
 
-  /** Test helper for in-memory run linkage. */
+  /** Test helper for mock run linkage. */
   recordRunForTask(taskId: string): void {
     this.runCounts.set(taskId, (this.runCounts.get(taskId) ?? 0) + 1);
   }

@@ -1,16 +1,15 @@
-import { injectable } from "tsyringe";
 import type {
   OAuthToken,
   StoredOAuthGrant,
   TokenRepository,
-} from "./types/token-repository.js";
+} from "../../credentials/types/token-repository.js";
 
 function storageKey(ownerId: string, provider: string): string {
   return `${ownerId}:${provider}`;
 }
 
-@injectable()
-export class InMemoryTokenRepository implements TokenRepository {
+/** @internal Test-only. Not for production use. */
+export class MockTokenRepository implements TokenRepository {
   private readonly tokens = new Map<string, OAuthToken>();
 
   async get(ownerId: string, provider: string): Promise<OAuthToken | null> {

@@ -8,15 +8,20 @@ import type {
   TraceStatsResponse,
   TracesResponse,
 } from "@keidai/shared";
-import { InMemoryTraceRepository } from "../../trace/in-memory-trace-repository.service.js";
 import { TraceEmitterService } from "../../trace/trace-emitter.service.js";
+import type { TraceRepository } from "../../trace/types/trace-repository.js";
 import {
   finalizeCallTrace,
   toTracePrincipal,
 } from "../../trace/utils/build-call-trace.js";
 import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
 import type { GatewayHttpServer } from "../gateway-http-server.service.js";
-import { createStubToolCatalog, createTestGatewayHttpServer } from "./test-helpers.js";
+import {
+  createStubToolCatalog,
+  createTestGatewayHttpServer,
+  createTestGatewayPersistence,
+  type TestGatewayPersistence,
+} from "./test-helpers.js";
 
 function parseSseChunk(chunk: string): Array<{ event: string; data: string }> {
   return chunk
@@ -87,10 +92,12 @@ async function readSseEventsUntil(
 }
 
 function createTracesGateway(
-  traceRepository = new InMemoryTraceRepository(),
+  persistence: TestGatewayPersistence,
+  traceRepository: TraceRepository = persistence.traceRepository,
   traceEmitter = new TraceEmitterService(traceRepository),
 ): GatewayHttpServer {
   return createTestGatewayHttpServer(createStubToolCatalog(), {} as never, {
+    persistence,
     traceRepository,
     traceEmitter,
   });
@@ -98,9 +105,11 @@ function createTracesGateway(
 
 describe("Gateway /api/traces endpoints", () => {
   it("returns recent traces newest-first with filters and pagination", async () => {
-    const traceRepository = new InMemoryTraceRepository();
+    const persistence = createTestGatewayPersistence();
+    const { traceRepository } = persistence;
     const traceEmitter = new TraceEmitterService(traceRepository);
     const gatewayHttpServer = createTracesGateway(
+      persistence,
       traceRepository,
       traceEmitter,
     );
@@ -158,13 +167,16 @@ describe("Gateway /api/traces endpoints", () => {
       assert.equal(JSON.stringify(body).includes("gho_"), false);
     } finally {
       await gateway.close();
+      persistence.close();
     }
   });
 
   it("returns a single trace and summary stats", async () => {
-    const traceRepository = new InMemoryTraceRepository();
+    const persistence = createTestGatewayPersistence();
+    const { traceRepository } = persistence;
     const traceEmitter = new TraceEmitterService(traceRepository);
     const gatewayHttpServer = createTracesGateway(
+      persistence,
       traceRepository,
       traceEmitter,
     );
@@ -197,13 +209,16 @@ describe("Gateway /api/traces endpoints", () => {
       assert.equal(statsBody.linkingRequiredCount, 0);
     } finally {
       await gateway.close();
+      persistence.close();
     }
   });
 
   it("streams new traces over SSE", async () => {
-    const traceRepository = new InMemoryTraceRepository();
+    const persistence = createTestGatewayPersistence();
+    const { traceRepository } = persistence;
     const traceEmitter = new TraceEmitterService(traceRepository);
     const gatewayHttpServer = createTracesGateway(
+      persistence,
       traceRepository,
       traceEmitter,
     );
@@ -240,6 +255,7 @@ describe("Gateway /api/traces endpoints", () => {
       );
     } finally {
       await gateway.close();
+      persistence.close();
     }
   });
 });

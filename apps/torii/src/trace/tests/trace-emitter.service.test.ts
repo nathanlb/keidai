@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import type { CallTrace } from "@keidai/shared";
 import { PolicyDecision } from "@keidai/shared";
 import { TraceEmitterService } from "../trace-emitter.service.js";
-import { InMemoryTraceRepository } from "../in-memory-trace-repository.service.js";
+import { MockTraceRepository } from "../../testing/mocks/mock-trace-repository.js";
 import {
   finalizeCallTrace,
   toTracePrincipal,
@@ -57,7 +57,7 @@ describe("TraceEmitterService", () => {
     }) as typeof process.stdout.write;
 
     try {
-      const emitter = new TraceEmitterService(new InMemoryTraceRepository());
+      const emitter = new TraceEmitterService(new MockTraceRepository());
       const traces: CallTrace[] = [
         finalizeCallTrace(
           {

@@ -76,7 +76,7 @@ async function createServer(persistence: TestPersistence) {
 
 describe("runs follow-up API", () => {
   it("accepts a follow-up on a terminal failed run", async () => {
-    const persistence = createTestPersistence("sqlite");
+    const persistence = createTestPersistence();
     const { app } = await createServer(persistence);
     try {
       createTestRun(persistence, { runId: "run-1", task: sampleTask });
@@ -104,7 +104,7 @@ describe("runs follow-up API", () => {
   });
 
   it("queues a follow-up while waiting for approval", async () => {
-    const persistence = createTestPersistence("sqlite");
+    const persistence = createTestPersistence();
     const { app, activeRunRegistry } = await createServer(persistence);
     try {
       createTestRun(persistence, { runId: "run-1", task: sampleTask });
@@ -132,7 +132,7 @@ describe("runs follow-up API", () => {
   });
 
   it("rejects continuation when history is missing", async () => {
-    const persistence = createTestPersistence("sqlite");
+    const persistence = createTestPersistence();
     const { app } = await createServer(persistence);
     try {
       createTestRun(persistence, { runId: "run-1", task: sampleTask });
@@ -151,7 +151,7 @@ describe("runs follow-up API", () => {
   });
 
   it("rejects follow-up while actively running without a waiting handle", async () => {
-    const persistence = createTestPersistence("sqlite");
+    const persistence = createTestPersistence();
     const { app } = await createServer(persistence);
     try {
       createTestRun(persistence, { runId: "run-1", task: sampleTask });
@@ -170,7 +170,7 @@ describe("runs follow-up API", () => {
   });
 
   it("rejects follow-up for ineligible outcomes", async () => {
-    const persistence = createTestPersistence("sqlite");
+    const persistence = createTestPersistence();
     const { app } = await createServer(persistence);
     try {
       createTestRun(persistence, { runId: "run-1", task: sampleTask });
@@ -194,7 +194,7 @@ describe("runs follow-up API", () => {
   });
 
   it("rejects invalid follow-up messages", async () => {
-    const persistence = createTestPersistence("sqlite");
+    const persistence = createTestPersistence();
     const { app } = await createServer(persistence);
     try {
       createTestRun(persistence, { runId: "run-1", task: sampleTask });
