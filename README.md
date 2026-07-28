@@ -3,8 +3,8 @@
 Keidai (境内) is a self-hostable ecosystem for securely configuring, running, and observing autonomous agents: who they are, what they may touch, and what they did.
 
 - **Torii** - the MCP gateway and control plane. (In Progress)
-- **Fuda**- the agent registry and identity provider (Planned)
-- **Shaiden** - the agent runtime and orchestration (Planned)
+- **Fuda** - the agent registry and identity provider (In Progress)
+- **Shaiden** - the agent runtime and orchestration (In Progress)
 - **Keidai-UI** - the GUI to tie them all together ~and the the darkness bind them~ (Planned)
 
 ## Stack
@@ -12,13 +12,15 @@ Keidai (境内) is a self-hostable ecosystem for securely configuring, running, 
 - **Runtime:** Node.js 24 (LTS)
 - **Monorepo:** pnpm workspaces + Turborepo
 - **Gateway (Torii):** TypeScript, Fastify, tsyringe, official MCP SDK — see [`apps/torii/README.md`](apps/torii/README.md)
-- **Config:** `torii.yaml` at boot — no database
+- **AIdP (Fuda):** TypeScript, Fastify, tsyringe, SQLite — see [`apps/fuda/README.md`](apps/fuda/README.md)
+- **Config:** `torii.yaml` at boot for Torii; Fuda uses env + SQLite migrations
 
 ## Layout
 
 ```
 apps/
   keidai-ui/        # Web UI for managing and controling the Keidai ecosystem
+  fuda/             # Fuda - Agent Identity Provider (AIdP)
   shaiden/          # Shaiden - Agent runtime for the ecosystem
   torii/            # Torii - MCP gateway (see apps/torii/README.md)
 packages/

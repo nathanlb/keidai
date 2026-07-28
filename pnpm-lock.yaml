@@ -18,6 +18,34 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  apps/fuda:
+    dependencies:
+      '@keidai/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      fastify:
+        specifier: ^5.8.5
+        version: 5.8.5
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
+      tsyringe:
+        specifier: ^4.10.0
+        version: 4.10.0
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.20.0
+        version: 22.20.0
+      tsx:
+        specifier: ^4.22.4
+        version: 4.22.4
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   apps/keidai-ui:
     dependencies:
       '@fastify/static':
@@ -894,6 +922,7 @@ packages:
   '@modelcontextprotocol/inspector@0.22.0':
     resolution: {integrity: sha512-HUyvF+6C3e/sL3wZSc71Li1SkuWysixblFpVdm8csJKBOlT2kNG5kWP0AAgdXRiRWRZ27ZajNtagYgwoJ+QBpQ==}
     engines: {node: '>=22.7.5'}
+    deprecated: 'v1 is deprecated. Upgrade to v2: npm i @modelcontextprotocol/inspector@latest. v1 gets security fixes only, published under the v1-latest tag.'
     hasBin: true
 
   '@modelcontextprotocol/sdk@1.29.0':

@@ -14,6 +14,8 @@
     "torii:dev": "pnpm --filter @keidai/torii dev",
     "shaiden": "pnpm --filter @keidai/shaiden start",
     "shaiden:dev": "pnpm --filter @keidai/shaiden dev",
+    "fuda": "pnpm --filter @keidai/fuda start",
+    "fuda:dev": "pnpm --filter @keidai/fuda dev",
     "docker:build": "docker compose build",
     "docker:up": "docker compose up",
     "docker:down": "docker compose down"
