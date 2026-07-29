@@ -5,6 +5,7 @@ import {
   type RouteGroup,
 } from "../http/types/route-group.js";
 import { resolveFudaDbPath } from "../storage/fuda-db-path.js";
+import { SchemaIntegrityError } from "../storage/validate-schema-integrity.js";
 
 const DEFAULT_HTTP_PORT = 3300;
 
@@ -99,7 +100,10 @@ export function loadRuntimeConfig(
 }
 
 export function reportConfigError(error: unknown): never {
-  if (error instanceof ConfigValidationError) {
+  if (
+    error instanceof ConfigValidationError ||
+    error instanceof SchemaIntegrityError
+  ) {
     for (const message of error.errors) {
       console.error(message);
     }

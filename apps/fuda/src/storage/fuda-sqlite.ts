@@ -1,6 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { runMigrations, type MigrationResult } from "./migrate.js";
 import { fudaMigrations } from "./migrations/index.js";
+import { validateFudaSchemaIntegrity } from "./validate-schema-integrity.js";
 
 export interface OpenFudaDatabaseResult {
   db: DatabaseSync;
@@ -12,5 +13,6 @@ export function openFudaDatabase(databasePath: string): OpenFudaDatabaseResult {
   db.exec("PRAGMA journal_mode = WAL");
   db.exec("PRAGMA foreign_keys = ON");
   const migrations = runMigrations(db, fudaMigrations);
+  validateFudaSchemaIntegrity(db);
   return { db, migrations };
 }
