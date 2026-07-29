@@ -6,6 +6,7 @@ import { AgentsManagementApiController } from "../agents/agents-management-api.c
 import { BearersManagementApiController } from "../bearers/bearers-management-api.controller.js";
 import { FudaConfigService } from "../config/fuda-config.service.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
+import { JwksApiController } from "../signing/jwks-api.controller.js";
 import type { RouteGroup } from "./types/route-group.js";
 import type {
   FudaHttpServerHandle,
@@ -29,6 +30,8 @@ export class FudaHttpServer {
     private readonly configService: FudaConfigService,
     @inject(StructuredLoggerService)
     private readonly logger: Logger,
+    @inject(JwksApiController)
+    private readonly jwks: JwksApiController,
     @inject(AgentsManagementApiController)
     private readonly agentsManagement: AgentsManagementApiController,
     @inject(BearersManagementApiController)
@@ -66,6 +69,7 @@ export class FudaHttpServer {
     });
 
     registerRouteGroups(app, listenGroups, {
+      jwks: this.jwks,
       agentsManagement: this.agentsManagement,
       bearersManagement: this.bearersManagement,
       agentDefinition: this.agentDefinition,

@@ -4,6 +4,8 @@ import {
   isRouteGroup,
   type RouteGroup,
 } from "../http/types/route-group.js";
+import type { SigningKeysConfig } from "../signing/types/signing-key-config.js";
+import { parseSigningKeysEnv } from "../signing/utils/parse-signing-keys-env.js";
 import { resolveFudaDbPath } from "../storage/fuda-db-path.js";
 import { SchemaIntegrityError } from "../storage/validate-schema-integrity.js";
 
@@ -21,6 +23,7 @@ export interface RuntimeConfig {
   httpPort: number;
   dbPath: string;
   listenGroups: readonly RouteGroup[];
+  signingKeys: SigningKeysConfig;
 }
 
 const runtimeConfigSchema = z.object({
@@ -28,6 +31,20 @@ const runtimeConfigSchema = z.object({
   httpPort: z.number().int().positive(),
   dbPath: z.string().min(1),
   listenGroups: z.array(z.enum(["public", "agent", "management"])).nonempty(),
+  signingKeys: z.object({
+    keys: z
+      .array(
+        z.object({
+          kid: z.string().min(1),
+          material: z.union([
+            z.object({ kind: z.literal("file"), path: z.string().min(1) }),
+            z.object({ kind: z.literal("env"), name: z.string().min(1) }),
+          ]),
+        }),
+      )
+      .nonempty(),
+    signingKid: z.string().min(1),
+  }),
 });
 
 function parseListenGroups(raw: string | undefined): RouteGroup[] | string {
@@ -76,6 +93,14 @@ export function loadRuntimeConfig(
     errors.push(listenGroupsOrError);
   }
 
+  const signingKeysOrError = parseSigningKeysEnv(
+    env.FUDA_SIGNING_KEYS,
+    env.FUDA_SIGNING_KID,
+  );
+  if (typeof signingKeysOrError === "string") {
+    errors.push(signingKeysOrError);
+  }
+
   if (errors.length > 0) {
     throw new ConfigValidationError(errors);
   }
@@ -85,6 +110,7 @@ export function loadRuntimeConfig(
     httpPort,
     dbPath: resolveFudaDbPath(env),
     listenGroups: listenGroupsOrError as RouteGroup[],
+    signingKeys: signingKeysOrError as SigningKeysConfig,
   };
 
   const parsed = runtimeConfigSchema.safeParse(candidate);

@@ -8,7 +8,7 @@ HTTP route groups are structurally separate so they can be exposed independently
 
 | Group | Purpose | Examples |
 |-------|---------|----------|
-| `public` | Unauthenticated discovery | JWKS (`/.well-known/jwks.json`) — later |
+| `public` | Unauthenticated discovery | JWKS (`GET /.well-known/jwks.json`) |
 | `agent` | Agent / runtime facing | Definition view (`GET /agents/{id}`), token exchange (later) |
 | `management` | Operator / UI facing | Agent / bearer CRUD (`/api/agents`, `/api/bearers`) |
 
@@ -19,11 +19,23 @@ By default one process listens on `127.0.0.1:3300` with all groups. To expose JW
 ```bash
 # From repo root
 cp apps/fuda/.env.example apps/fuda/.env
+
+# Generate an RSA signing key (never commit private keys)
+mkdir -p apps/fuda/keys
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out apps/fuda/keys/dev.pem
+chmod 600 apps/fuda/keys/dev.pem
+
+# In apps/fuda/.env:
+# FUDA_SIGNING_KEYS=dev=./keys/dev.pem
+# FUDA_SIGNING_KID=dev
+
 pnpm install
 pnpm fuda:dev
 ```
 
 Health: `GET /api/health` → `{ ok, version }`.
+
+JWKS: `GET /.well-known/jwks.json` → `{ keys: [...] }` (unauthenticated; public route group).
 
 SQLite path defaults to `./data/fuda.db` (`FUDA_DB_PATH`). Migrations run at boot before the HTTP server starts, then structural integrity is checked (duplicate slugs, orphan grants).
 
@@ -64,6 +76,25 @@ Consumed by Shaiden at task start (`FUDA_LISTEN_GROUPS` must include `agent`):
 | `bearers` | `{ bearer_id, display_name }` only — credential mapping lives in the subject validator |
 | `bearer_agent_grants` | Join table authorizing a bearer to act as an agent |
 
+## Signing keys and JWKS
+
+Private signing keys are loaded at boot from files (prefer mode `0600`) or env vars — never from sqlite. Tokens are signed RS256 with `kid` in the JWT header. Torii validates offline against `GET /.well-known/jwks.json`.
+
+| Variable | Notes |
+|----------|-------|
+| `FUDA_SIGNING_KEYS` | Comma-separated `kid=path` or `kid=env:VAR_NAME` entries (one or two during rotation) |
+| `FUDA_SIGNING_KID` | Kid used to mint new tokens; must appear in `FUDA_SIGNING_KEYS` |
+
+### Key rotation (manual)
+
+Order is **publish → sign → retire**. Do not reverse these steps.
+
+1. **Publish.** Generate a new RSA private key, place it with restrictive permissions, add its `kid=path` to `FUDA_SIGNING_KEYS` alongside the current key. Keep `FUDA_SIGNING_KID` on the old kid. Restart. Confirm the new public key appears in JWKS.
+2. **Sign.** Set `FUDA_SIGNING_KID` to the new kid. Restart. New tokens use the new key; in-flight tokens signed with the old key still verify because both keys remain in JWKS.
+3. **Retire.** Wait at least the maximum token TTL (5 minutes proposed for token exchange). Remove the old `kid=path` from `FUDA_SIGNING_KEYS`. Restart. Old-key tokens will no longer verify.
+
+Automated rotation scheduling is out of scope for v0.
+
 ## Config
 
 | Variable | Default | Notes |
@@ -72,5 +103,7 @@ Consumed by Shaiden at task start (`FUDA_LISTEN_GROUPS` must include `agent`):
 | `FUDA_PORT` | `3300` | Listen port |
 | `FUDA_DB_PATH` | `./data/fuda.db` | SQLite file |
 | `FUDA_LISTEN_GROUPS` | `public,agent,management` | Subset of route groups this process serves |
+| `FUDA_SIGNING_KEYS` | — | Required. `kid=path` or `kid=env:VAR` list |
+| `FUDA_SIGNING_KID` | — | Required. Active signing kid |
 
 Invalid config fails fast at boot.

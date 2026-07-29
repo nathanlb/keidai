@@ -12,6 +12,8 @@ import { SqliteBearerRepository } from "./bearers/sqlite-bearer-repository.js";
 import { BEARER_REPOSITORY } from "./bearers/types/bearer-repository.js";
 import { FudaHttpServer } from "./http/fuda-http-server.service.js";
 import { StructuredLoggerService } from "./logging/structured-logger.service.js";
+import { JwksApiController } from "./signing/jwks-api.controller.js";
+import { SigningKeyService } from "./signing/signing-key.service.js";
 import { openFudaDatabase } from "./storage/fuda-sqlite.js";
 import type { MigrationResult } from "./storage/migrate.js";
 
@@ -27,14 +29,21 @@ export interface FudaContainerResult {
 export function createContainer(config: RuntimeConfig): FudaContainerResult {
   const appContainer = container.createChildContainer();
   const { db, migrations } = openFudaDatabase(config.dbPath);
+  const signingKeys = new SigningKeyService(config.signingKeys);
 
   appContainer.register(FudaConfigService, {
     useValue: new FudaConfigService(config),
   });
   appContainer.register(FUDA_DATABASE, { useValue: db });
+  appContainer.register(SigningKeyService, { useValue: signingKeys });
   appContainer.register(
     StructuredLoggerService,
     { useClass: StructuredLoggerService },
+    SINGLETON,
+  );
+  appContainer.register(
+    JwksApiController,
+    { useClass: JwksApiController },
     SINGLETON,
   );
   appContainer.register(
