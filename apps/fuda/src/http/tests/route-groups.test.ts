@@ -2,10 +2,13 @@ import assert from "node:assert/strict";
 import type { FastifyInstance } from "fastify";
 import { describe, it } from "node:test";
 import type { RouteGroup } from "../types/route-group.js";
+import type { FudaRouteControllers } from "../utils/register-route-groups.js";
 import {
   ROUTE_GROUP_REGISTRARS,
   registerRouteGroups,
 } from "../utils/register-route-groups.js";
+
+const emptyControllers = {} as FudaRouteControllers;
 
 describe("registerRouteGroups", () => {
   it("keeps public, agent, and management registrars as distinct modules", () => {
@@ -38,11 +41,16 @@ describe("registerRouteGroups", () => {
       },
     };
 
-    registerRouteGroups(app, ["public"], registrars);
+    registerRouteGroups(app, ["public"], emptyControllers, registrars);
     assert.deepEqual(called, ["public"]);
 
     called.length = 0;
-    registerRouteGroups(app, ["agent", "management"], registrars);
+    registerRouteGroups(
+      app,
+      ["agent", "management"],
+      emptyControllers,
+      registrars,
+    );
     assert.deepEqual(called, ["agent", "management"]);
   });
 });

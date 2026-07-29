@@ -3,12 +3,15 @@ import { container, type DependencyContainer, Lifecycle } from "tsyringe";
 import type { DatabaseSync } from "node:sqlite";
 import type { RuntimeConfig } from "./config/runtime-config.js";
 import { FudaConfigService } from "./config/fuda-config.service.js";
-import { FudaHttpServer } from "./http/fuda-http-server.service.js";
-import { StructuredLoggerService } from "./logging/structured-logger.service.js";
+import { AgentDefinitionApiController } from "./agents/agent-definition-api.controller.js";
+import { AgentsManagementApiController } from "./agents/agents-management-api.controller.js";
 import { SqliteAgentRepository } from "./agents/sqlite-agent-repository.js";
 import { AGENT_REPOSITORY } from "./agents/types/agent-repository.js";
+import { BearersManagementApiController } from "./bearers/bearers-management-api.controller.js";
 import { SqliteBearerRepository } from "./bearers/sqlite-bearer-repository.js";
 import { BEARER_REPOSITORY } from "./bearers/types/bearer-repository.js";
+import { FudaHttpServer } from "./http/fuda-http-server.service.js";
+import { StructuredLoggerService } from "./logging/structured-logger.service.js";
 import { openFudaDatabase } from "./storage/fuda-sqlite.js";
 import type { MigrationResult } from "./storage/migrate.js";
 
@@ -32,6 +35,21 @@ export function createContainer(config: RuntimeConfig): FudaContainerResult {
   appContainer.register(
     StructuredLoggerService,
     { useClass: StructuredLoggerService },
+    SINGLETON,
+  );
+  appContainer.register(
+    AgentsManagementApiController,
+    { useClass: AgentsManagementApiController },
+    SINGLETON,
+  );
+  appContainer.register(
+    BearersManagementApiController,
+    { useClass: BearersManagementApiController },
+    SINGLETON,
+  );
+  appContainer.register(
+    AgentDefinitionApiController,
+    { useClass: AgentDefinitionApiController },
     SINGLETON,
   );
   appContainer.register(

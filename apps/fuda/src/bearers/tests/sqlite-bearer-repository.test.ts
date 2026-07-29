@@ -53,4 +53,21 @@ describe("SqliteBearerRepository", () => {
       /FOREIGN KEY|constraint/i,
     );
   });
+
+  it("deletes a bearer and its grants", () => {
+    const { agents, bearers } = createRepos();
+    const agent = agents.create({
+      slug: "newsletter",
+      name: "Newsletter",
+      ownerId: "owner-1",
+      groups: [],
+      persona: "Draft newsletters.",
+    });
+    bearers.create({ bearerId: "ci-runner", displayName: "CI" });
+    bearers.grant("ci-runner", agent.id);
+
+    assert.equal(bearers.delete("ci-runner"), true);
+    assert.equal(bearers.get("ci-runner"), null);
+    assert.equal(bearers.hasGrant("ci-runner", agent.id), false);
+  });
 });

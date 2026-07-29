@@ -107,4 +107,36 @@ describe("SqliteAgentRepository", () => {
       sample.persona,
     );
   });
+
+  it("updates groups without touching slug or persona", () => {
+    const { repository } = createRepository();
+    const created = repository.create(sample);
+    const updated = repository.updateGroups(created.id, {
+      groups: ["editors", "ops"],
+    });
+
+    assert.deepEqual(updated?.groups, ["editors", "ops"]);
+    assert.equal(updated?.slug, sample.slug);
+    assert.equal(updated?.currentPersonaVersion, 1);
+  });
+
+  it("deletes an agent along with personas and grants", () => {
+    const { repository, db } = createRepository();
+    const created = repository.create(sample);
+    db.prepare(
+      `INSERT INTO bearers (bearer_id, display_name) VALUES (?, ?)`,
+    ).run("ci", "CI");
+    db.prepare(
+      `INSERT INTO bearer_agent_grants (bearer_id, agent_id) VALUES (?, ?)`,
+    ).run("ci", created.id);
+
+    assert.equal(repository.delete(created.id), true);
+    assert.equal(repository.get(created.id), null);
+    assert.equal(repository.getPersonaVersion(created.id, 1), null);
+
+    const grants = db
+      .prepare(`SELECT COUNT(*) AS n FROM bearer_agent_grants WHERE agent_id = ?`)
+      .get(created.id) as { n: number };
+    assert.equal(grants.n, 0);
+  });
 });

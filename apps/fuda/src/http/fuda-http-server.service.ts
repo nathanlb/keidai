@@ -1,6 +1,9 @@
 import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import { inject, injectable } from "tsyringe";
 import type { Logger } from "@keidai/shared";
+import { AgentDefinitionApiController } from "../agents/agent-definition-api.controller.js";
+import { AgentsManagementApiController } from "../agents/agents-management-api.controller.js";
+import { BearersManagementApiController } from "../bearers/bearers-management-api.controller.js";
 import { FudaConfigService } from "../config/fuda-config.service.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
 import type { RouteGroup } from "./types/route-group.js";
@@ -26,6 +29,12 @@ export class FudaHttpServer {
     private readonly configService: FudaConfigService,
     @inject(StructuredLoggerService)
     private readonly logger: Logger,
+    @inject(AgentsManagementApiController)
+    private readonly agentsManagement: AgentsManagementApiController,
+    @inject(BearersManagementApiController)
+    private readonly bearersManagement: BearersManagementApiController,
+    @inject(AgentDefinitionApiController)
+    private readonly agentDefinition: AgentDefinitionApiController,
   ) {}
 
   async createApp(
@@ -56,7 +65,11 @@ export class FudaHttpServer {
       reply.send({ ok: true, version: readPackageVersion() });
     });
 
-    registerRouteGroups(app, listenGroups);
+    registerRouteGroups(app, listenGroups, {
+      agentsManagement: this.agentsManagement,
+      bearersManagement: this.bearersManagement,
+      agentDefinition: this.agentDefinition,
+    });
 
     return app;
   }
