@@ -5,6 +5,10 @@ import type { RuntimeConfig } from "./config/runtime-config.js";
 import { FudaConfigService } from "./config/fuda-config.service.js";
 import { FudaHttpServer } from "./http/fuda-http-server.service.js";
 import { StructuredLoggerService } from "./logging/structured-logger.service.js";
+import { SqliteAgentRepository } from "./agents/sqlite-agent-repository.js";
+import { AGENT_REPOSITORY } from "./agents/types/agent-repository.js";
+import { SqliteBearerRepository } from "./bearers/sqlite-bearer-repository.js";
+import { BEARER_REPOSITORY } from "./bearers/types/bearer-repository.js";
 import { openFudaDatabase } from "./storage/fuda-sqlite.js";
 import type { MigrationResult } from "./storage/migrate.js";
 
@@ -35,6 +39,26 @@ export function createContainer(config: RuntimeConfig): FudaContainerResult {
     { useClass: FudaHttpServer },
     SINGLETON,
   );
+
+  let agentRepository: SqliteAgentRepository | undefined;
+  let bearerRepository: SqliteBearerRepository | undefined;
+
+  appContainer.register(AGENT_REPOSITORY, {
+    useFactory: () => {
+      agentRepository ??= new SqliteAgentRepository(
+        appContainer.resolve<DatabaseSync>(FUDA_DATABASE),
+      );
+      return agentRepository;
+    },
+  });
+  appContainer.register(BEARER_REPOSITORY, {
+    useFactory: () => {
+      bearerRepository ??= new SqliteBearerRepository(
+        appContainer.resolve<DatabaseSync>(FUDA_DATABASE),
+      );
+      return bearerRepository;
+    },
+  });
 
   return { container: appContainer, migrations };
 }

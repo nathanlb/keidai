@@ -25,7 +25,16 @@ pnpm fuda:dev
 
 Health: `GET /api/health` → `{ ok, version }`.
 
-SQLite path defaults to `./data/fuda.db` (`FUDA_DB_PATH`). Migrations run at boot before the HTTP server starts.
+SQLite path defaults to `./data/fuda.db` (`FUDA_DB_PATH`). Migrations run at boot before the HTTP server starts, then structural integrity is checked (duplicate slugs, orphan grants).
+
+### Data model
+
+| Table | Notes |
+|-------|-------|
+| `agents` | `id`, unique immutable `slug`, editable `name`, `owner_id`, opaque `groups`, pointer to current persona version |
+| `persona_versions` | Append-only (`agent_id`, `version`, `content`). Edits insert a new row |
+| `bearers` | `{ bearer_id, display_name }` only — credential mapping lives in the subject validator |
+| `bearer_agent_grants` | Join table authorizing a bearer to act as an agent |
 
 ## Config
 

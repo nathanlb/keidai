@@ -1,8 +1,8 @@
 import type { Migration } from "../migrate.js";
 
 /**
- * Baseline marker. Domain tables (agents, persona versions, bearers, grants)
- * land in later migrations (NAT-115).
+ * Baseline marker. Establishes the migration ledger only.
+ * Domain tables land in `002_agent_schema`.
  */
 export const migration001Baseline: Migration = {
   id: "001_baseline",
