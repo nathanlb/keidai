@@ -26,6 +26,11 @@ export interface BearerRepository {
   listGrantsForBearer(bearerId: string): BearerAgentGrant[];
   listGrantsForAgent(agentId: string): BearerAgentGrant[];
   hasGrant(bearerId: string, agentId: string): boolean;
+  /**
+   * Deletes the bearer and its grants.
+   * Returns false when the bearer does not exist.
+   */
+  delete(bearerId: string): boolean;
 }
 
 /** tsyringe injection token for {@link BearerRepository}. */

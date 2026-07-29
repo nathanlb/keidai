@@ -5,6 +5,7 @@ import type {
   AgentRepository,
   CreateAgentInput,
   PersonaVersion,
+  UpdateAgentGroupsInput,
   UpdateAgentNameInput,
 } from "./types/agent-repository.js";
 
@@ -55,8 +56,12 @@ export class SqliteAgentRepository implements AgentRepository {
   private readonly getBySlugStatement;
   private readonly listStatement;
   private readonly updateNameStatement;
+  private readonly updateGroupsStatement;
   private readonly updateCurrentPersonaStatement;
   private readonly getPersonaStatement;
+  private readonly deleteGrantsStatement;
+  private readonly deletePersonasStatement;
+  private readonly deleteAgentStatement;
 
   constructor(private readonly db: DatabaseSync) {
     this.insertAgentStatement = db.prepare(`
@@ -95,6 +100,11 @@ export class SqliteAgentRepository implements AgentRepository {
       SET name = @name, updated_at = @updated_at
       WHERE id = @id
     `);
+    this.updateGroupsStatement = db.prepare(`
+      UPDATE agents
+      SET groups_json = @groups_json, updated_at = @updated_at
+      WHERE id = @id
+    `);
     this.updateCurrentPersonaStatement = db.prepare(`
       UPDATE agents
       SET current_persona_version = @version, updated_at = @updated_at
@@ -104,6 +114,15 @@ export class SqliteAgentRepository implements AgentRepository {
       SELECT agent_id, version, content, created_at
       FROM persona_versions
       WHERE agent_id = ? AND version = ?
+    `);
+    this.deleteGrantsStatement = db.prepare(`
+      DELETE FROM bearer_agent_grants WHERE agent_id = ?
+    `);
+    this.deletePersonasStatement = db.prepare(`
+      DELETE FROM persona_versions WHERE agent_id = ?
+    `);
+    this.deleteAgentStatement = db.prepare(`
+      DELETE FROM agents WHERE id = ?
     `);
   }
 
@@ -186,6 +205,29 @@ export class SqliteAgentRepository implements AgentRepository {
     };
   }
 
+  updateGroups(
+    agentId: string,
+    input: UpdateAgentGroupsInput,
+  ): AgentRecord | null {
+    const existing = this.get(agentId);
+    if (!existing) {
+      return null;
+    }
+
+    const updatedAt = new Date().toISOString();
+    this.updateGroupsStatement.run({
+      id: agentId,
+      groups_json: JSON.stringify(input.groups),
+      updated_at: updatedAt,
+    });
+
+    return {
+      ...existing,
+      groups: [...input.groups],
+      updatedAt,
+    };
+  }
+
   appendPersona(agentId: string, content: string): PersonaVersion | null {
     this.db.exec("BEGIN IMMEDIATE");
     try {
@@ -239,5 +281,25 @@ export class SqliteAgentRepository implements AgentRepository {
       return null;
     }
     return this.getPersonaVersion(agentId, agent.currentPersonaVersion);
+  }
+
+  delete(agentId: string): boolean {
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const existing = this.get(agentId);
+      if (!existing) {
+        this.db.exec("ROLLBACK");
+        return false;
+      }
+
+      this.deleteGrantsStatement.run(agentId);
+      this.deletePersonasStatement.run(agentId);
+      this.deleteAgentStatement.run(agentId);
+      this.db.exec("COMMIT");
+      return true;
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      throw error;
+    }
   }
 }

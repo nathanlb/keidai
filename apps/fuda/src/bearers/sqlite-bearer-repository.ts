@@ -40,6 +40,8 @@ export class SqliteBearerRepository implements BearerRepository {
   private readonly listGrantsForBearerStatement;
   private readonly listGrantsForAgentStatement;
   private readonly hasGrantStatement;
+  private readonly deleteGrantsForBearerStatement;
+  private readonly deleteBearerStatement;
 
   constructor(private readonly db: DatabaseSync) {
     this.insertBearerStatement = db.prepare(`
@@ -80,6 +82,12 @@ export class SqliteBearerRepository implements BearerRepository {
       FROM bearer_agent_grants
       WHERE bearer_id = ? AND agent_id = ?
       LIMIT 1
+    `);
+    this.deleteGrantsForBearerStatement = db.prepare(`
+      DELETE FROM bearer_agent_grants WHERE bearer_id = ?
+    `);
+    this.deleteBearerStatement = db.prepare(`
+      DELETE FROM bearers WHERE bearer_id = ?
     `);
   }
 
@@ -154,5 +162,24 @@ export class SqliteBearerRepository implements BearerRepository {
       | { found: number }
       | undefined;
     return row !== undefined;
+  }
+
+  delete(bearerId: string): boolean {
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const existing = this.get(bearerId);
+      if (!existing) {
+        this.db.exec("ROLLBACK");
+        return false;
+      }
+
+      this.deleteGrantsForBearerStatement.run(bearerId);
+      this.deleteBearerStatement.run(bearerId);
+      this.db.exec("COMMIT");
+      return true;
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      throw error;
+    }
   }
 }
