@@ -1,9 +1,17 @@
 import type { FastifyInstance } from "fastify";
+import type { JwksApiController } from "../../signing/jwks-api.controller.js";
+
+export interface PublicRouteControllers {
+  jwks: JwksApiController;
+}
 
 /**
- * Public route group: unauthenticated discovery (JWKS in NAT-116).
+ * Public route group: unauthenticated discovery (JWKS).
  * Register only public surface here — never management or token routes.
  */
-export function registerPublicRoutes(_app: FastifyInstance): void {
-  // Routes land in later stories (NAT-116).
+export function registerPublicRoutes(
+  app: FastifyInstance,
+  controllers: PublicRouteControllers,
+): void {
+  controllers.jwks.registerRoutes(app);
 }

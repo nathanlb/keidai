@@ -13,17 +13,17 @@
     "typecheck": "tsc -p tsconfig.check.json --noEmit"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^2.0.109",
+    "@ai-sdk/openai": "^2.0.116",
     "@keidai/shared": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "ai": "^5.0.205",
-    "fastify": "^5.8.5",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "ai": "^5.0.222",
+    "fastify": "^5.10.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@types/node": "^22.20.0",
+    "@types/node": "^22.20.1",
     "reflect-metadata": "^0.2.2",
-    "tsx": "^4.22.4",
+    "tsx": "^4.23.1",
     "typescript": "^5.9.3"
   }
 }

@@ -4,9 +4,11 @@ import type { AgentRouteControllers } from "../route-groups/agent-routes.js";
 import { registerAgentRoutes } from "../route-groups/agent-routes.js";
 import type { ManagementRouteControllers } from "../route-groups/management-routes.js";
 import { registerManagementRoutes } from "../route-groups/management-routes.js";
+import type { PublicRouteControllers } from "../route-groups/public-routes.js";
 import { registerPublicRoutes } from "../route-groups/public-routes.js";
 
-export type FudaRouteControllers = AgentRouteControllers &
+export type FudaRouteControllers = PublicRouteControllers &
+  AgentRouteControllers &
   ManagementRouteControllers;
 
 export type RouteGroupRegistrar = (
@@ -15,8 +17,8 @@ export type RouteGroupRegistrar = (
 ) => void;
 
 export const ROUTE_GROUP_REGISTRARS: Record<RouteGroup, RouteGroupRegistrar> = {
-  public: (app) => {
-    registerPublicRoutes(app);
+  public: (app, controllers) => {
+    registerPublicRoutes(app, controllers);
   },
   agent: (app, controllers) => {
     registerAgentRoutes(app, controllers);

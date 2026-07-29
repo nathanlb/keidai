@@ -8,6 +8,7 @@ dist/
 !.env.example
 torii.yaml
 data/
+apps/fuda/keys/
 .designs/
 apps/keidai-ui/test-results/
 apps/keidai-ui/playwright-report/
