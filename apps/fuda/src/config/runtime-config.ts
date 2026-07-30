@@ -6,7 +6,6 @@ import {
 } from "../http/types/route-group.js";
 import type { SigningKeysConfig } from "../signing/types/signing-key-config.js";
 import { parseSigningKeysEnv } from "../signing/utils/parse-signing-keys-env.js";
-import { K8S_SA_OIDC_SUBJECT_VALIDATOR_NOT_IMPLEMENTED } from "../subject-token/k8s-sa-oidc-not-implemented.js";
 import type {
   SubjectTokenValidatorConfig,
   SubjectTokenValidatorSelection,
@@ -170,12 +169,8 @@ function validateSubjectTokenForRouteGroups(
     !subjectTokenLoadFailed
   ) {
     errors.push(
-      "Subject token validator required when FUDA_LISTEN_GROUPS includes agent; set FUDA_STATIC_SUBJECT_MAPPINGS=credential=bearer_id,...",
+      "Subject token validator required when FUDA_LISTEN_GROUPS includes agent; set FUDA_STATIC_SUBJECT_MAPPINGS=credential=bearer_id,... (or FUDA_K8S_SA_OIDC_* together)",
     );
-  }
-
-  if (subjectTokenValidator?.kind === "k8s_sa_oidc") {
-    errors.push(K8S_SA_OIDC_SUBJECT_VALIDATOR_NOT_IMPLEMENTED);
   }
 }
 

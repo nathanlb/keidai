@@ -1,13 +1,20 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { K8S_SA_OIDC_SUBJECT_VALIDATOR_NOT_IMPLEMENTED } from "../k8s-sa-oidc-not-implemented.js";
 import { createSubjectTokenValidator } from "../utils/create-subject-token-validator.js";
+import { parseK8sSaSubjectMappings } from "../utils/parse-k8s-sa-subject-mappings.js";
 import { parseStaticSubjectMappings } from "../utils/parse-static-subject-mappings.js";
 import {
   resolveSubjectTokenValidatorConfig,
   tryResolveSubjectTokenValidatorConfig,
 } from "../utils/resolve-subject-token-validator-config.js";
 import { tryResolveK8sSaOidcSubjectConfig } from "../utils/try-resolve-k8s-sa-oidc-subject-config.js";
+
+const K8S_ENV = {
+  FUDA_K8S_SA_OIDC_ISSUER: "https://kubernetes.default.svc",
+  FUDA_K8S_SA_OIDC_AUDIENCE: "fuda",
+  FUDA_K8S_SA_OIDC_JWKS_URI: "https://example.test/jwks",
+  FUDA_K8S_SA_OIDC_SUBJECT_MAPPINGS: "agents/catalog=catalog-runner",
+} as const;
 
 describe("parseStaticSubjectMappings", () => {
   it("returns null when unset", () => {
@@ -37,6 +44,39 @@ describe("parseStaticSubjectMappings", () => {
   });
 });
 
+describe("parseK8sSaSubjectMappings", () => {
+  it("returns null when unset", () => {
+    assert.equal(parseK8sSaSubjectMappings(undefined), null);
+    assert.equal(parseK8sSaSubjectMappings(""), null);
+  });
+
+  it("stores kind-prefixed registry keys", () => {
+    const parsed = parseK8sSaSubjectMappings(
+      "agents/catalog=catalog-runner,default/other=other-bearer",
+    );
+    assert.ok(parsed && typeof parsed !== "string");
+    assert.equal(
+      parsed.get("k8s_service_account:agents/catalog"),
+      "catalog-runner",
+    );
+    assert.equal(
+      parsed.get("k8s_service_account:default/other"),
+      "other-bearer",
+    );
+  });
+
+  it("rejects malformed and duplicate entries", () => {
+    assert.match(
+      parseK8sSaSubjectMappings("no-slash=bearer") as string,
+      /namespace\/serviceAccount/,
+    );
+    assert.match(
+      parseK8sSaSubjectMappings("ns/sa=a,ns/sa=b") as string,
+      /Duplicate subject/,
+    );
+  });
+});
+
 describe("tryResolveK8sSaOidcSubjectConfig", () => {
   it("returns null when all unset", () => {
     assert.equal(tryResolveK8sSaOidcSubjectConfig({}), null);
@@ -50,20 +90,26 @@ describe("tryResolveK8sSaOidcSubjectConfig", () => {
         }),
       /partially configured/,
     );
+    assert.throws(
+      () =>
+        tryResolveK8sSaOidcSubjectConfig({
+          FUDA_K8S_SA_OIDC_ISSUER: "https://kubernetes.default.svc",
+          FUDA_K8S_SA_OIDC_AUDIENCE: "fuda",
+          FUDA_K8S_SA_OIDC_JWKS_URI: "https://example.test/jwks",
+        }),
+      /partially configured/,
+    );
   });
 
-  it("returns config when all three are set", () => {
-    assert.deepEqual(
-      tryResolveK8sSaOidcSubjectConfig({
-        FUDA_K8S_SA_OIDC_ISSUER: "https://kubernetes.default.svc",
-        FUDA_K8S_SA_OIDC_AUDIENCE: "fuda",
-        FUDA_K8S_SA_OIDC_JWKS_URI: "https://example.test/jwks",
-      }),
-      {
-        issuer: "https://kubernetes.default.svc",
-        audience: "fuda",
-        jwksUri: "https://example.test/jwks",
-      },
+  it("returns config when all four are set", () => {
+    const config = tryResolveK8sSaOidcSubjectConfig(K8S_ENV);
+    assert.ok(config);
+    assert.equal(config.issuer, K8S_ENV.FUDA_K8S_SA_OIDC_ISSUER);
+    assert.equal(config.audience, "fuda");
+    assert.equal(config.jwksUri, K8S_ENV.FUDA_K8S_SA_OIDC_JWKS_URI);
+    assert.equal(
+      config.mappings.get("k8s_service_account:agents/catalog"),
+      "catalog-runner",
     );
   });
 });
@@ -80,12 +126,14 @@ describe("resolveSubjectTokenValidatorConfig", () => {
   });
 
   it("selects k8s when only that group is set", () => {
-    const config = resolveSubjectTokenValidatorConfig({
-      FUDA_K8S_SA_OIDC_ISSUER: "https://kubernetes.default.svc",
-      FUDA_K8S_SA_OIDC_AUDIENCE: "fuda",
-      FUDA_K8S_SA_OIDC_JWKS_URI: "https://example.test/jwks",
-    });
+    const config = resolveSubjectTokenValidatorConfig(K8S_ENV);
     assert.equal(config.kind, "k8s_sa_oidc");
+    if (config.kind === "k8s_sa_oidc") {
+      assert.equal(
+        config.mappings.get("k8s_service_account:agents/catalog"),
+        "catalog-runner",
+      );
+    }
   });
 
   it("fails on ambiguous configuration", () => {
@@ -93,9 +141,7 @@ describe("resolveSubjectTokenValidatorConfig", () => {
       () =>
         resolveSubjectTokenValidatorConfig({
           FUDA_STATIC_SUBJECT_MAPPINGS: "dev-secret=local-dev",
-          FUDA_K8S_SA_OIDC_ISSUER: "https://kubernetes.default.svc",
-          FUDA_K8S_SA_OIDC_AUDIENCE: "fuda",
-          FUDA_K8S_SA_OIDC_JWKS_URI: "https://example.test/jwks",
+          ...K8S_ENV,
         }),
       /Ambiguous/,
     );
@@ -119,20 +165,16 @@ describe("createSubjectTokenValidator", () => {
     assert.equal(await validator.validate("secret"), "bearer-1");
   });
 
-  it("refuses k8s until NAT-118 implements the adapter", () => {
-    assert.throws(
-      () =>
-        createSubjectTokenValidator({
-          kind: "k8s_sa_oidc",
-          issuer: "https://kubernetes.default.svc",
-          audience: "fuda",
-          jwksUri: "https://example.test/jwks",
-        }),
-      (error: unknown) => {
-        assert.ok(error instanceof Error);
-        assert.equal(error.message, K8S_SA_OIDC_SUBJECT_VALIDATOR_NOT_IMPLEMENTED);
-        return true;
-      },
-    );
+  it("builds a k8s validator from config", () => {
+    const validator = createSubjectTokenValidator({
+      kind: "k8s_sa_oidc",
+      issuer: "https://kubernetes.default.svc",
+      audience: "fuda",
+      jwksUri: "https://example.test/jwks",
+      mappings: new Map([
+        ["k8s_service_account:agents/catalog", "catalog-runner"],
+      ]),
+    });
+    assert.equal(typeof validator.validate, "function");
   });
 });

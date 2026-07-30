@@ -87,11 +87,14 @@ validator (k8s SA OIDC, SPIFFE) an addition rather than a refactor.
 | Variable | Notes |
 |----------|-------|
 | `FUDA_STATIC_SUBJECT_MAPPINGS` | `credential=bearer_id` list for local/pre-cluster use |
-| `FUDA_K8S_SA_OIDC_ISSUER` / `_AUDIENCE` / `_JWKS_URI` | Set all three together (validator implementation: NAT-118) |
+| `FUDA_K8S_SA_OIDC_ISSUER` / `_AUDIENCE` / `_JWKS_URI` / `_SUBJECT_MAPPINGS` | Set all four together. Audience should be `fuda` (projected volume `aud`). Mappings: `namespace/serviceAccount=bearer_id,...` |
 
 Exactly one config group may be set. Partial k8s env fails at boot; setting
 both static and k8s is ambiguous and also fails. Required when
 `FUDA_LISTEN_GROUPS` includes `agent`.
+
+The k8s SA OIDC validator is **unit-tested** against a mocked JWKS (optional
+`verifyKey` inject). Cluster integration coverage is pending.
 
 ## Signing keys and JWKS
 
@@ -123,5 +126,9 @@ Automated rotation scheduling is out of scope for v0.
 | `FUDA_SIGNING_KEYS` | — | Required. `kid=path` or `kid=env:VAR` list |
 | `FUDA_SIGNING_KID` | — | Required. Active signing kid |
 | `FUDA_STATIC_SUBJECT_MAPPINGS` | — | Subject-validator config group (alternative: `FUDA_K8S_SA_OIDC_*`). Exactly one group required when `agent` is enabled. `credential=bearer_id` list |
+| `FUDA_K8S_SA_OIDC_ISSUER` | — | K8s SA OIDC issuer (with audience, JWKS, subject mappings) |
+| `FUDA_K8S_SA_OIDC_AUDIENCE` | — | Expected JWT audience (deploy projected volume with `aud=fuda`) |
+| `FUDA_K8S_SA_OIDC_JWKS_URI` | — | Cluster JWKS endpoint |
+| `FUDA_K8S_SA_OIDC_SUBJECT_MAPPINGS` | — | `namespace/serviceAccount=bearer_id` list (validator-private) |
 
 Invalid config fails fast at boot.
