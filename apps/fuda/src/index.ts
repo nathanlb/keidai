@@ -21,8 +21,11 @@ function waitForShutdown(): Promise<void> {
 }
 
 export async function startServer(): Promise<void> {
-  const config = loadRuntimeConfig();
-  const { container: app, migrations } = createContainer(config);
+  const { config, subjectTokenValidatorConfig } = loadRuntimeConfig();
+  const { container: app, migrations } = createContainer(
+    config,
+    subjectTokenValidatorConfig,
+  );
   const logger = app.resolve(StructuredLoggerService);
   const httpServer = app.resolve(FudaHttpServer);
 
