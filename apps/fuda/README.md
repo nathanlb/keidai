@@ -28,6 +28,7 @@ chmod 600 apps/fuda/keys/dev.pem
 # In apps/fuda/.env:
 # FUDA_SIGNING_KEYS=dev=./keys/dev.pem
 # FUDA_SIGNING_KID=dev
+# FUDA_STATIC_SUBJECT_MAPPINGS=dev-secret=local-dev
 
 pnpm install
 pnpm fuda:dev
@@ -76,6 +77,22 @@ Consumed by Shaiden at task start (`FUDA_LISTEN_GROUPS` must include `agent`):
 | `bearers` | `{ bearer_id, display_name }` only — credential mapping lives in the subject validator |
 | `bearer_agent_grants` | Join table authorizing a bearer to act as an agent |
 
+## Subject token validators
+
+The token exchange endpoint (later) validates a platform credential via
+`SubjectTokenValidator` and receives only a `bearer_id`. Native credential
+subjects never enter the schema or grant check — that is what keeps a second
+validator (k8s SA OIDC, SPIFFE) an addition rather than a refactor.
+
+| Variable | Notes |
+|----------|-------|
+| `FUDA_STATIC_SUBJECT_MAPPINGS` | `credential=bearer_id` list for local/pre-cluster use |
+| `FUDA_K8S_SA_OIDC_ISSUER` / `_AUDIENCE` / `_JWKS_URI` | Set all three together (validator implementation: NAT-118) |
+
+Exactly one config group may be set. Partial k8s env fails at boot; setting
+both static and k8s is ambiguous and also fails. Required when
+`FUDA_LISTEN_GROUPS` includes `agent`.
+
 ## Signing keys and JWKS
 
 Private signing keys are loaded at boot from files (prefer mode `0600`) or env vars — never from sqlite. Tokens are signed RS256 with `kid` in the JWT header. Torii validates offline against `GET /.well-known/jwks.json`.
@@ -105,5 +122,6 @@ Automated rotation scheduling is out of scope for v0.
 | `FUDA_LISTEN_GROUPS` | `public,agent,management` | Subset of route groups this process serves |
 | `FUDA_SIGNING_KEYS` | — | Required. `kid=path` or `kid=env:VAR` list |
 | `FUDA_SIGNING_KID` | — | Required. Active signing kid |
+| `FUDA_STATIC_SUBJECT_MAPPINGS` | — | Subject-validator config group (alternative: `FUDA_K8S_SA_OIDC_*`). Exactly one group required when `agent` is enabled. `credential=bearer_id` list |
 
 Invalid config fails fast at boot.

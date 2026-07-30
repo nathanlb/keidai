@@ -14,6 +14,9 @@ import { FudaHttpServer } from "./http/fuda-http-server.service.js";
 import { StructuredLoggerService } from "./logging/structured-logger.service.js";
 import { JwksApiController } from "./signing/jwks-api.controller.js";
 import { SigningKeyService } from "./signing/signing-key.service.js";
+import type { SubjectTokenValidatorConfig } from "./subject-token/types/subject-token-validator-config.js";
+import { SUBJECT_TOKEN_VALIDATOR } from "./subject-token/types/subject-token-validator.js";
+import { createSubjectTokenValidator } from "./subject-token/utils/create-subject-token-validator.js";
 import { openFudaDatabase } from "./storage/fuda-sqlite.js";
 import type { MigrationResult } from "./storage/migrate.js";
 
@@ -26,7 +29,14 @@ export interface FudaContainerResult {
   migrations: MigrationResult;
 }
 
-export function createContainer(config: RuntimeConfig): FudaContainerResult {
+/**
+ * @param subjectTokenValidatorConfig One-shot wiring from loadRuntimeConfig;
+ *   credential mappings stay off RuntimeConfig.
+ */
+export function createContainer(
+  config: RuntimeConfig,
+  subjectTokenValidatorConfig: SubjectTokenValidatorConfig | null = null,
+): FudaContainerResult {
   const appContainer = container.createChildContainer();
   const { db, migrations } = openFudaDatabase(config.dbPath);
   const signingKeys = new SigningKeyService(config.signingKeys);
@@ -36,6 +46,11 @@ export function createContainer(config: RuntimeConfig): FudaContainerResult {
   });
   appContainer.register(FUDA_DATABASE, { useValue: db });
   appContainer.register(SigningKeyService, { useValue: signingKeys });
+  if (subjectTokenValidatorConfig) {
+    appContainer.register(SUBJECT_TOKEN_VALIDATOR, {
+      useValue: createSubjectTokenValidator(subjectTokenValidatorConfig),
+    });
+  }
   appContainer.register(
     StructuredLoggerService,
     { useClass: StructuredLoggerService },

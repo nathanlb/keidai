@@ -22,15 +22,16 @@ export function createTestServer(listenGroups?: string): FudaHttpServer {
   const dbPath = path.join(dbDir, "fuda.db");
   const keyPath = writeTempSigningKeyPem("test");
 
-  const config = loadRuntimeConfig({
+  const { config, subjectTokenValidatorConfig } = loadRuntimeConfig({
     FUDA_DB_PATH: dbPath,
     FUDA_HOST: "127.0.0.1",
     FUDA_PORT: "3300",
     FUDA_SIGNING_KEYS: `test=${keyPath}`,
     FUDA_SIGNING_KID: "test",
+    FUDA_STATIC_SUBJECT_MAPPINGS: "test-secret=test-bearer",
     ...(listenGroups ? { FUDA_LISTEN_GROUPS: listenGroups } : {}),
   });
-  const { container } = createContainer(config);
+  const { container } = createContainer(config, subjectTokenValidatorConfig);
   container.register(StructuredLoggerService, { useValue: silentLogger });
   return container.resolve(FudaHttpServer);
 }
@@ -51,17 +52,18 @@ export function createTestServerWithKeys(options: {
     .map((key) => `${key.kid}=${key.path}`)
     .join(",");
 
-  const config = loadRuntimeConfig({
+  const { config, subjectTokenValidatorConfig } = loadRuntimeConfig({
     FUDA_DB_PATH: dbPath,
     FUDA_HOST: "127.0.0.1",
     FUDA_PORT: "3300",
     FUDA_SIGNING_KEYS: signingKeys,
     FUDA_SIGNING_KID: options.signingKid,
+    FUDA_STATIC_SUBJECT_MAPPINGS: "test-secret=test-bearer",
     ...(options.listenGroups
       ? { FUDA_LISTEN_GROUPS: options.listenGroups }
       : {}),
   });
-  const { container } = createContainer(config);
+  const { container } = createContainer(config, subjectTokenValidatorConfig);
   container.register(StructuredLoggerService, { useValue: silentLogger });
   return {
     server: container.resolve(FudaHttpServer),
