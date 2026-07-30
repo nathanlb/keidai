@@ -125,6 +125,7 @@ describe("loadRuntimeConfig", () => {
             FUDA_K8S_SA_OIDC_ISSUER: "https://kubernetes.default.svc",
             FUDA_K8S_SA_OIDC_AUDIENCE: "fuda",
             FUDA_K8S_SA_OIDC_JWKS_URI: "https://example.test/jwks",
+            FUDA_K8S_SA_OIDC_SUBJECT_MAPPINGS: "agents/catalog=catalog-runner",
           }),
         ),
       (error: unknown) => {
@@ -153,23 +154,26 @@ describe("loadRuntimeConfig", () => {
     );
   });
 
-  it("fails fast when only k8s SA OIDC is configured before NAT-118", () => {
-    assert.throws(
-      () =>
-        loadRuntimeConfig(
-          envWithTempDbAndKey({
-            FUDA_STATIC_SUBJECT_MAPPINGS: "",
-            FUDA_K8S_SA_OIDC_ISSUER: "https://kubernetes.default.svc",
-            FUDA_K8S_SA_OIDC_AUDIENCE: "fuda",
-            FUDA_K8S_SA_OIDC_JWKS_URI: "https://example.test/jwks",
-          }),
-        ),
-      (error: unknown) => {
-        assert.ok(error instanceof ConfigValidationError);
-        assert.match(error.errors.join("\n"), /NAT-118/);
-        return true;
-      },
+  it("selects k8s SA OIDC when that group is fully configured", () => {
+    const { config, subjectTokenValidatorConfig } = loadRuntimeConfig(
+      envWithTempDbAndKey({
+        FUDA_STATIC_SUBJECT_MAPPINGS: "",
+        FUDA_K8S_SA_OIDC_ISSUER: "https://kubernetes.default.svc",
+        FUDA_K8S_SA_OIDC_AUDIENCE: "fuda",
+        FUDA_K8S_SA_OIDC_JWKS_URI: "https://example.test/jwks",
+        FUDA_K8S_SA_OIDC_SUBJECT_MAPPINGS: "agents/catalog=catalog-runner",
+      }),
     );
+    assert.equal(config.subjectTokenValidator?.kind, "k8s_sa_oidc");
+    assert.equal(subjectTokenValidatorConfig?.kind, "k8s_sa_oidc");
+    if (subjectTokenValidatorConfig?.kind === "k8s_sa_oidc") {
+      assert.equal(
+        subjectTokenValidatorConfig.mappings.get(
+          "k8s_service_account:agents/catalog",
+        ),
+        "catalog-runner",
+      );
+    }
   });
 
   it("parses two signing keys for rotation", () => {
