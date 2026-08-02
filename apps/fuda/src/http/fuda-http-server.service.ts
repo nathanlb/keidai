@@ -7,6 +7,7 @@ import { BearersManagementApiController } from "../bearers/bearers-management-ap
 import { FudaConfigService } from "../config/fuda-config.service.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
 import { JwksApiController } from "../signing/jwks-api.controller.js";
+import { TokenExchangeApiController } from "../token-exchange/token-exchange-api.controller.js";
 import type { RouteGroup } from "./types/route-group.js";
 import type {
   FudaHttpServerHandle,
@@ -38,6 +39,8 @@ export class FudaHttpServer {
     private readonly bearersManagement: BearersManagementApiController,
     @inject(AgentDefinitionApiController)
     private readonly agentDefinition: AgentDefinitionApiController,
+    @inject(TokenExchangeApiController)
+    private readonly tokenExchange: TokenExchangeApiController,
   ) {}
 
   async createApp(
@@ -73,6 +76,7 @@ export class FudaHttpServer {
       agentsManagement: this.agentsManagement,
       bearersManagement: this.bearersManagement,
       agentDefinition: this.agentDefinition,
+      tokenExchange: this.tokenExchange,
     });
 
     return app;

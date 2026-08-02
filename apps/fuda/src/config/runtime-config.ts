@@ -29,6 +29,8 @@ export interface RuntimeConfig {
   dbPath: string;
   listenGroups: readonly RouteGroup[];
   signingKeys: SigningKeysConfig;
+  /** Issuer claim (`iss`) on minted agent identity tokens. */
+  tokenIssuer: string;
   /**
    * Selected subject-token validator kind. Required when the `agent` route
    * group is enabled (token exchange). Null for public/management-only
@@ -68,6 +70,7 @@ const runtimeConfigSchema = z.object({
       .nonempty(),
     signingKid: z.string().min(1),
   }),
+  tokenIssuer: z.string().url(),
 });
 
 function parseListenGroups(raw: string | undefined): RouteGroup[] | string {
@@ -140,6 +143,25 @@ function loadSigningKeysConfig(
   return signingKeysOrError;
 }
 
+function loadTokenIssuerConfig(
+  env: NodeJS.ProcessEnv,
+  errors: string[],
+): string | null {
+  const raw = env.FUDA_ISSUER?.trim();
+  if (!raw) {
+    errors.push("FUDA_ISSUER is required (issuer URL for minted agent tokens)");
+    return null;
+  }
+  try {
+    // Reject relative / non-absolute values early (zod .url() also checks later).
+    new URL(raw);
+  } catch {
+    errors.push(`Invalid FUDA_ISSUER: ${raw}`);
+    return null;
+  }
+  return raw;
+}
+
 function loadSubjectTokenValidatorConfig(
   env: NodeJS.ProcessEnv,
   errors: string[],
@@ -182,6 +204,7 @@ export function loadRuntimeConfig(
   const { httpHost, httpPort } = loadHttpConfig(env, errors);
   const listenGroups = loadListenGroupsConfig(env, errors);
   const signingKeys = loadSigningKeysConfig(env, errors);
+  const tokenIssuer = loadTokenIssuerConfig(env, errors);
   const {
     config: subjectTokenValidatorConfig,
     failed: subjectTokenLoadFailed,
@@ -203,6 +226,7 @@ export function loadRuntimeConfig(
     dbPath: resolveFudaDbPath(env),
     listenGroups: listenGroups!,
     signingKeys: signingKeys!,
+    tokenIssuer: tokenIssuer!,
   });
   if (!parsed.success) {
     throw new ConfigValidationError(
