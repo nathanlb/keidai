@@ -19,6 +19,7 @@ import { SUBJECT_TOKEN_VALIDATOR } from "./subject-token/types/subject-token-val
 import { createSubjectTokenValidator } from "./subject-token/utils/create-subject-token-validator.js";
 import { openFudaDatabase } from "./storage/fuda-sqlite.js";
 import type { MigrationResult } from "./storage/migrate.js";
+import { TokenExchangeApiController } from "./token-exchange/token-exchange-api.controller.js";
 
 const SINGLETON = { lifecycle: Lifecycle.Singleton } as const;
 
@@ -74,6 +75,11 @@ export function createContainer(
   appContainer.register(
     AgentDefinitionApiController,
     { useClass: AgentDefinitionApiController },
+    SINGLETON,
+  );
+  appContainer.register(
+    TokenExchangeApiController,
+    { useClass: TokenExchangeApiController },
     SINGLETON,
   );
   appContainer.register(

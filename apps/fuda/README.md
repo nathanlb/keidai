@@ -9,7 +9,7 @@ HTTP route groups are structurally separate so they can be exposed independently
 | Group | Purpose | Examples |
 |-------|---------|----------|
 | `public` | Unauthenticated discovery | JWKS (`GET /.well-known/jwks.json`) |
-| `agent` | Agent / runtime facing | Definition view (`GET /agents/{id}`), token exchange (later) |
+| `agent` | Agent / runtime facing | Definition view (`GET /agents/{id}`), token exchange (`POST /token`) |
 | `management` | Operator / UI facing | Agent / bearer CRUD (`/api/agents`, `/api/bearers`) |
 
 By default one process listens on `127.0.0.1:3300` with all groups. To expose JWKS without management, run a process with `FUDA_LISTEN_GROUPS=public` (optionally on its own port). Management is unauthenticated in v0 and expects localhost bind.
@@ -28,6 +28,7 @@ chmod 600 apps/fuda/keys/dev.pem
 # In apps/fuda/.env:
 # FUDA_SIGNING_KEYS=dev=./keys/dev.pem
 # FUDA_SIGNING_KID=dev
+# FUDA_ISSUER=https://fuda.local
 # FUDA_STATIC_SUBJECT_MAPPINGS=dev-secret=local-dev
 
 pnpm install
@@ -68,6 +69,31 @@ Consumed by Shaiden at task start (`FUDA_LISTEN_GROUPS` must include `agent`):
 
 `GET /agents/:id` → `{ name, slug, persona, personaVersion }` — no `ownerId` / `groups`.
 
+### Token exchange
+
+`POST /token` exchanges a platform subject token for a short-lived agent identity JWT (`FUDA_LISTEN_GROUPS` must include `agent`):
+
+```json
+// request
+{ "subject_token": "...", "agent_id": "..." }
+
+// 200 response
+{ "access_token": "<jwt>", "token_type": "Bearer", "expires_in": 300 }
+```
+
+Flow: validate subject → `bearer_id`, look up agent, require a `bearer_agent_grants` row, mint JWT.
+
+JWT claims (pinned at mint): `agent_id`, `owner_id`, `groups`, `bearer_id`, plus `iss` (`FUDA_ISSUER`), `aud=torii`, `iat`/`exp` (5 minute TTL). Signed RS256 with the current signing kid.
+
+| Status | Error | Meaning |
+|--------|-------|---------|
+| `400` | `invalid token exchange request` | Missing / malformed body |
+| `401` | `invalid subject token` | Subject validator rejected the credential |
+| `403` | `bearer not granted for agent` | Valid bearer, no grant for that agent |
+| `404` | `agent not found` | Unknown `agent_id` |
+
+Not an OAuth2 authorization server: no authorization code, consent, refresh tokens, or PKCE. Torii continues to broker tool credentials; Fuda mints identity only.
+
 ### Data model
 
 | Table | Notes |
@@ -79,7 +105,7 @@ Consumed by Shaiden at task start (`FUDA_LISTEN_GROUPS` must include `agent`):
 
 ## Subject token validators
 
-The token exchange endpoint (later) validates a platform credential via
+The token exchange endpoint validates a platform credential via
 `SubjectTokenValidator` and receives only a `bearer_id`. Native credential
 subjects never enter the schema or grant check — that is what keeps a second
 validator (k8s SA OIDC, SPIFFE) an addition rather than a refactor.
@@ -111,7 +137,7 @@ Order is **publish → sign → retire**. Do not reverse these steps.
 
 1. **Publish.** Generate a new RSA private key, place it with restrictive permissions, add its `kid=path` to `FUDA_SIGNING_KEYS` alongside the current key. Keep `FUDA_SIGNING_KID` on the old kid. Restart. Confirm the new public key appears in JWKS.
 2. **Sign.** Set `FUDA_SIGNING_KID` to the new kid. Restart. New tokens use the new key; in-flight tokens signed with the old key still verify because both keys remain in JWKS.
-3. **Retire.** Wait at least the maximum token TTL (5 minutes proposed for token exchange). Remove the old `kid=path` from `FUDA_SIGNING_KEYS`. Restart. Old-key tokens will no longer verify.
+3. **Retire.** Wait at least the maximum token TTL (5 minutes). Remove the old `kid=path` from `FUDA_SIGNING_KEYS`. Restart. Old-key tokens will no longer verify.
 
 Automated rotation scheduling is out of scope for v0.
 
@@ -125,6 +151,7 @@ Automated rotation scheduling is out of scope for v0.
 | `FUDA_LISTEN_GROUPS` | `public,agent,management` | Subset of route groups this process serves |
 | `FUDA_SIGNING_KEYS` | — | Required. `kid=path` or `kid=env:VAR` list |
 | `FUDA_SIGNING_KID` | — | Required. Active signing kid |
+| `FUDA_ISSUER` | — | Required. Absolute URL used as JWT `iss` |
 | `FUDA_STATIC_SUBJECT_MAPPINGS` | — | Subject-validator config group (alternative: `FUDA_K8S_SA_OIDC_*`). Exactly one group required when `agent` is enabled. `credential=bearer_id` list |
 | `FUDA_K8S_SA_OIDC_ISSUER` | — | K8s SA OIDC issuer (with audience, JWKS, subject mappings) |
 | `FUDA_K8S_SA_OIDC_AUDIENCE` | — | Expected JWT audience (deploy projected volume with `aud=fuda`) |

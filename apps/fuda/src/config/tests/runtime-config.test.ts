@@ -22,6 +22,7 @@ function envWithTempDbAndKey(
     FUDA_DB_PATH: dbPath,
     FUDA_SIGNING_KEYS: `default=${keyPath}`,
     FUDA_SIGNING_KID: "default",
+    FUDA_ISSUER: "https://fuda.test",
     FUDA_STATIC_SUBJECT_MAPPINGS: "dev-secret=local-dev",
     ...overrides,
   };
@@ -37,6 +38,7 @@ describe("loadRuntimeConfig", () => {
     assert.deepEqual(config.listenGroups, ["public", "agent", "management"]);
     assert.equal(config.signingKeys.signingKid, "default");
     assert.equal(config.signingKeys.keys.length, 1);
+    assert.equal(config.tokenIssuer, "https://fuda.test");
     assert.equal(config.subjectTokenValidator?.kind, "static");
     assert.deepEqual(config.subjectTokenValidator, { kind: "static" });
     assert.equal(subjectTokenValidatorConfig?.kind, "static");
@@ -217,6 +219,38 @@ describe("loadRuntimeConfig", () => {
       (error: unknown) => {
         assert.ok(error instanceof ConfigValidationError);
         assert.match(error.errors.join("\n"), /FUDA_SIGNING_KEYS/);
+        return true;
+      },
+    );
+  });
+
+  it("fails fast on missing issuer", () => {
+    assert.throws(
+      () =>
+        loadRuntimeConfig(
+          envWithTempDbAndKey({
+            FUDA_ISSUER: "",
+          }),
+        ),
+      (error: unknown) => {
+        assert.ok(error instanceof ConfigValidationError);
+        assert.match(error.errors.join("\n"), /FUDA_ISSUER/);
+        return true;
+      },
+    );
+  });
+
+  it("fails fast on invalid issuer URL", () => {
+    assert.throws(
+      () =>
+        loadRuntimeConfig(
+          envWithTempDbAndKey({
+            FUDA_ISSUER: "not-a-url",
+          }),
+        ),
+      (error: unknown) => {
+        assert.ok(error instanceof ConfigValidationError);
+        assert.match(error.errors.join("\n"), /FUDA_ISSUER/);
         return true;
       },
     );
