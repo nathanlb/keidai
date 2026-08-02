@@ -188,4 +188,72 @@ describe("agents management API", () => {
       await handle.close();
     }
   });
+
+  it("lists persona versions newest first", async () => {
+    const server = createTestServer("management");
+    const handle = await server.start({ host: "127.0.0.1", port: 0 });
+    try {
+      const createResponse = await fetch(`${handle.baseUrl}/api/agents`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(sampleAgentBody),
+      });
+      const { agent } = (await createResponse.json()) as {
+        agent: { id: string };
+      };
+
+      await fetch(`${handle.baseUrl}/api/agents/${agent.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ persona: "Version two." }),
+      });
+
+      const personasResponse = await fetch(
+        `${handle.baseUrl}/api/agents/${agent.id}/personas`,
+      );
+      assert.equal(personasResponse.status, 200);
+      const body = (await personasResponse.json()) as {
+        personas: Array<{ version: number; content: string }>;
+      };
+      assert.equal(body.personas.length, 2);
+      assert.equal(body.personas[0]?.version, 2);
+      assert.equal(body.personas[0]?.content, "Version two.");
+      assert.equal(body.personas[1]?.version, 1);
+      assert.equal(body.personas[1]?.content, sampleAgentBody.persona);
+    } finally {
+      await handle.close();
+    }
+  });
+
+  it("reports slug availability for inline create validation", async () => {
+    const server = createTestServer("management");
+    const handle = await server.start({ host: "127.0.0.1", port: 0 });
+    try {
+      const free = await fetch(
+        `${handle.baseUrl}/api/agents/slugs/${sampleAgentBody.slug}/availability`,
+      );
+      assert.equal(free.status, 200);
+      assert.equal(
+        ((await free.json()) as { available: boolean }).available,
+        true,
+      );
+
+      await fetch(`${handle.baseUrl}/api/agents`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(sampleAgentBody),
+      });
+
+      const taken = await fetch(
+        `${handle.baseUrl}/api/agents/slugs/${sampleAgentBody.slug}/availability`,
+      );
+      assert.equal(taken.status, 200);
+      assert.equal(
+        ((await taken.json()) as { available: boolean }).available,
+        false,
+      );
+    } finally {
+      await handle.close();
+    }
+  });
 });

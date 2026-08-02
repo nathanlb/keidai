@@ -6,6 +6,7 @@ const toriiUrl =
   process.env.VITE_TORII_URL ?? "http://127.0.0.1:3100";
 const shaidenUrl =
   process.env.VITE_SHAIDEN_URL ?? "http://127.0.0.1:3200";
+const fudaUrl = process.env.VITE_FUDA_URL ?? "http://127.0.0.1:3300";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -40,6 +41,20 @@ export default defineConfig({
             delete proxyRes.headers["content-encoding"];
           });
         },
+      },
+      // Fuda owns agent identity + bearer/grant management.
+      "/api/fuda/health": {
+        target: fudaUrl,
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/fuda/, "/api"),
+      },
+      "/api/agents": {
+        target: fudaUrl,
+        changeOrigin: true,
+      },
+      "/api/bearers": {
+        target: fudaUrl,
+        changeOrigin: true,
       },
       "/api": {
         target: toriiUrl,

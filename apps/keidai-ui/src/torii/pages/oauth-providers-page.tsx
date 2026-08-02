@@ -26,7 +26,7 @@ export function OAuthProvidersPage() {
 
   const ownerIds = useMemo(
     () => [
-      ...new Set((agentsData?.agents ?? []).map((agent) => agent.owner_id)),
+      ...new Set((agentsData?.agents ?? []).map((agent) => agent.ownerId)),
     ],
     [agentsData],
   );

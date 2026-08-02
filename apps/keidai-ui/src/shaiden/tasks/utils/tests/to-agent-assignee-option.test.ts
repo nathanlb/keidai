@@ -1,26 +1,33 @@
-import type { PublicAgentConfig } from "@keidai/shared";
+import type { ManagementAgent } from "../../../../fuda/api/fuda-client.js";
 import { describe, expect, it } from "vitest";
 import { toAgentAssigneeOption } from "../to-agent-assignee-option.js";
 
-const agent: PublicAgentConfig = {
-  agent_id: "shaiden-newsletter-01",
-  owner_id: "nathanlb",
-  subject: {
-    kind: "k8s_service_account",
-    namespace: "agents",
-    service_account: "shaiden",
-  },
+const agent: ManagementAgent = {
+  id: "shaiden-newsletter-01",
+  slug: "shaiden",
+  name: "Newsletter Writer",
+  ownerId: "nathanlb",
   groups: [],
+  persona: "You draft the weekly engineering newsletter.",
+  currentPersonaVersion: 1,
+  createdAt: "2026-06-02T00:00:00.000Z",
+  updatedAt: "2026-06-02T00:00:00.000Z",
 };
 
 describe("toAgentAssigneeOption", () => {
-  it("uses the service account as the display name", () => {
+  it("uses the agent's display name and derives initials from it", () => {
     expect(toAgentAssigneeOption(agent, "shaiden-newsletter-01")).toEqual({
       agentId: "shaiden-newsletter-01",
-      displayName: "shaiden",
-      initials: "SH",
+      displayName: "Newsletter Writer",
+      initials: "NW",
       connected: true,
     });
+  });
+
+  it("falls back to the slug when name is empty", () => {
+    expect(toAgentAssigneeOption({ ...agent, name: "" }).displayName).toBe(
+      "shaiden",
+    );
   });
 
   it("marks mismatched runtime agents as not connected", () => {

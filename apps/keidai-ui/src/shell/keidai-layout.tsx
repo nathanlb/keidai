@@ -3,6 +3,7 @@ import { AppShell } from "./app-shell.js";
 import { AppProvider } from "./context/app-provider.js";
 import { PlatformSidebarNav } from "./components/sidebar/platform-sidebar-nav.js";
 import { resolveAppNav, resolveAppSection } from "./resolve-app-nav.js";
+import { isFudaAgentsRoute } from "../fuda/navigation.js";
 import { OAuthLinkProvider } from "../torii/oauth/context/oauth-link-provider.js";
 import type { AppShellBreadcrumb } from "./types/index.js";
 
@@ -25,30 +26,37 @@ function buildBreadcrumb(
   };
 }
 
+function isAgentsRoute(pathname: string): boolean {
+  return isFudaAgentsRoute(pathname);
+}
+
 export function KeidaiLayout() {
   const { pathname } = useLocation();
   const current = resolveAppNav(pathname);
   const section = resolveAppSection(pathname);
+  const onAgentsRoute = isAgentsRoute(pathname);
 
   return (
     <AppProvider>
       <OAuthLinkProvider>
         <AppShell
           breadcrumb={
-            current
-              ? buildBreadcrumb(section, current)
-              : { section, page: section }
+            onAgentsRoute
+              ? { section: "Fuda", page: "Agents" }
+              : current
+                ? buildBreadcrumb(section, current)
+                : { section, page: section }
           }
           pageHeader={
-            current
-              ? {
+            onAgentsRoute || !current
+              ? undefined
+              : {
                   title: current.title,
                   description: current.description,
                   configChip: section === "Torii" ? "torii.yaml" : undefined,
                   showRefresh:
                     "showRefresh" in current ? current.showRefresh : undefined,
                 }
-              : undefined
           }
           sidebarNav={<PlatformSidebarNav />}
           sidebarSubtitle="Agent ecosystem"

@@ -31,10 +31,26 @@ export const router = createBrowserRouter([
       {
         path: "agents",
         lazy: async () => {
-          const { AgentsOwnersPage } = await import(
-            "./torii/pages/agents-owners-page.js"
+          const { AgentsPage } = await import("./fuda/pages/agents-page.js");
+          return { Component: AgentsPage };
+        },
+      },
+      {
+        path: "agents/new",
+        lazy: async () => {
+          const { AgentCreatePage } = await import(
+            "./fuda/pages/agent-create-page.js"
           );
-          return { Component: AgentsOwnersPage };
+          return { Component: AgentCreatePage };
+        },
+      },
+      {
+        path: "agents/:agentId",
+        lazy: async () => {
+          const { AgentDetailPage } = await import(
+            "./fuda/pages/agent-detail-page.js"
+          );
+          return { Component: AgentDetailPage };
         },
       },
       {

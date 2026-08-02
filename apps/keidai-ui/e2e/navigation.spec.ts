@@ -19,13 +19,24 @@ test.describe("Torii navigation", () => {
   test("navigates between sidebar pages", async ({ page }) => {
     await page.goto("/connections");
 
-    await page.getByRole("link", { name: "Agents & owners" }).click();
+    await sidebarNavLink(page, "/agents").click();
     await expect(page).toHaveURL(/\/agents$/);
-    await expect(page.getByText("Strict ownership")).toBeVisible();
+    await expect(page.getByText("No agents yet")).toBeVisible();
 
     await page.getByRole("link", { name: "Activity & traces" }).click();
     await expect(page).toHaveURL(/\/activity$/);
     await expect(page.getByText("No activity yet")).toBeVisible();
+  });
+
+  test("shows the Fuda agents section in the sidebar", async ({ page }) => {
+    await page.goto("/connections");
+
+    await expect(sidebarNavSection(page, "fuda")).toBeVisible();
+    await expect(sidebarNavLink(page, "/agents")).toBeVisible();
+
+    await sidebarNavLink(page, "/agents").click();
+
+    await expect(page).toHaveURL(/\/agents$/);
   });
 
   test("shows the Shaiden tasks and runs sections in the sidebar", async ({

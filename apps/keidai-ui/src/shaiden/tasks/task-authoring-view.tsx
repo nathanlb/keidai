@@ -8,12 +8,8 @@ import {
   SelectTrigger,
   Textarea,
 } from "@keidai/ui";
-import {
-  DEFAULT_TASK_LIMITS,
-  taskSchema,
-  type PublicAgentConfig,
-  type Task,
-} from "@keidai/shared";
+import { DEFAULT_TASK_LIMITS, taskSchema, type Task } from "@keidai/shared";
+import type { ManagementAgent } from "../../fuda/api/fuda-client.js";
 import {
   Bot,
   Calendar,
@@ -29,19 +25,18 @@ import {
   Timer,
   Zap,
 } from "lucide-react";
-import {
-  useEffect,
-  useId,
-  useMemo,
-  useState,
-  type FormEvent,
-  type ReactNode,
-} from "react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
+import { Controller } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { fetchTask, startTaskRun, updateTask } from "../api/shaiden-client.js";
 import { useFetchTaskRuntime } from "../hooks/use-fetch-task-runtime.js";
 import { useActingOwner } from "../../shell/hooks/use-acting-owner.js";
 import { useFetchAgents } from "../../shell/hooks/use-fetch-agents.js";
+import { useZodForm } from "../../shell/forms/use-zod-form.js";
+import {
+  taskAuthoringFormSchema,
+  type TaskAuthoringFormValues,
+} from "./schemas/task-authoring-form-schema.js";
 import {
   toAgentAssigneeOption,
   type AgentAssigneeOption,
@@ -50,11 +45,16 @@ import {
 const V0_LOCKED_LIMITS = DEFAULT_TASK_LIMITS;
 const WALL_CLOCK_MINUTES = V0_LOCKED_LIMITS.timeout_seconds / 60;
 
-function buildTask(goal: string, assignee: string): Task {
+const EMPTY_FORM_VALUES: TaskAuthoringFormValues = {
+  goal: "",
+  assignee: "",
+};
+
+function buildTask(values: TaskAuthoringFormValues): Task {
   return taskSchema.parse({
-    goal: goal.trim(),
+    goal: values.goal.trim(),
     trigger: { type: "now" },
-    assignee,
+    assignee: values.assignee,
     limits: V0_LOCKED_LIMITS,
   });
 }
@@ -199,56 +199,52 @@ export function TaskAuthoringView({
       return [];
     }
     return agents
-      .map((agent: PublicAgentConfig) =>
+      .map((agent: ManagementAgent) =>
         toAgentAssigneeOption(agent, runtimeAgentId),
       )
       .sort((a, b) => a.agentId.localeCompare(b.agentId));
   }, [agentsData?.agents, runtimeAgentId]);
 
-  const [goal, setGoal] = useState("");
-  const [assignee, setAssignee] = useState("");
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingTask, setIsLoadingTask] = useState(isEditMode);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [savedSnapshot, setSavedSnapshot] = useState<{
-    goal: string;
-    assignee: string;
-  } | null>(null);
 
-  const isDirty =
-    isEditMode &&
-    savedSnapshot !== null &&
-    (goal.trim() !== savedSnapshot.goal.trim() ||
-      assignee !== savedSnapshot.assignee);
+  const {
+    control,
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    setValue,
+    formState: { isDirty, isSubmitting, isValid },
+  } = useZodForm(taskAuthoringFormSchema, {
+    defaultValues: EMPTY_FORM_VALUES,
+  });
+
+  const assignee = watch("assignee");
 
   useEffect(() => {
-    onDirtyChange?.(isDirty);
-  }, [isDirty, onDirtyChange]);
+    onDirtyChange?.(isEditMode && isDirty);
+  }, [isDirty, isEditMode, onDirtyChange]);
 
   useEffect(() => {
     if (!taskId) {
-      setGoal("");
-      setAssignee("");
+      reset(EMPTY_FORM_VALUES);
       setLoadError(null);
       setIsLoadingTask(false);
-      setSavedSnapshot(null);
       return;
     }
 
     let cancelled = false;
     setIsLoadingTask(true);
     setLoadError(null);
-    setSavedSnapshot(null);
 
     void fetchTask(taskId)
       .then(({ task }) => {
         if (cancelled) {
           return;
         }
-        setGoal(task.goal);
-        setAssignee(task.assignee);
-        setSavedSnapshot({ goal: task.goal, assignee: task.assignee });
+        reset({ goal: task.goal, assignee: task.assignee });
       })
       .catch((error) => {
         if (cancelled) {
@@ -267,7 +263,7 @@ export function TaskAuthoringView({
     return () => {
       cancelled = true;
     };
-  }, [taskId]);
+  }, [taskId, reset]);
 
   useEffect(() => {
     if (isEditMode || assignee || !runtimeAgentId) {
@@ -277,15 +273,15 @@ export function TaskAuthoringView({
       (option) => option.agentId === runtimeAgentId && option.connected,
     );
     if (connected) {
-      setAssignee(connected.agentId);
+      setValue("assignee", connected.agentId);
     }
-  }, [assignee, isEditMode, options, runtimeAgentId]);
+  }, [assignee, isEditMode, options, runtimeAgentId, setValue]);
 
   const selectedOption =
     options.find((option) => option.agentId === assignee) ?? null;
 
   const canSubmit =
-    goal.trim().length > 0 &&
+    isValid &&
     Boolean(runtimeAgentId) &&
     assignee === runtimeAgentId &&
     (!isEditMode || isDirty) &&
@@ -297,19 +293,17 @@ export function TaskAuthoringView({
     !agentsError &&
     !runtimeError;
 
-  async function onSubmit(event: FormEvent) {
-    event.preventDefault();
+  const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null);
 
     let task: Task;
     try {
-      task = buildTask(goal, assignee);
+      task = buildTask(values);
     } catch {
       setSubmitError("Check goal and assignee before running.");
       return;
     }
 
-    setIsSubmitting(true);
     try {
       if (taskId) {
         await updateTask(taskId, task);
@@ -328,10 +322,8 @@ export function TaskAuthoringView({
             ? "Failed to save task"
             : "Failed to start task",
       );
-    } finally {
-      setIsSubmitting(false);
     }
-  }
+  });
 
   function handleCancel() {
     if (onCancel) {
@@ -370,11 +362,10 @@ export function TaskAuthoringView({
           </p>
           <Textarea
             id={goalId}
-            value={goal}
-            onChange={(event) => setGoal(event.target.value)}
+            {...register("goal")}
             placeholder={`Describe what "done" looks like…  e.g. "Draft and send the weekly newsletter, but pause for my approval before sending."`}
             required
-            className="min-h-[118px] bg-background text-[13.5px] leading-relaxed shadow-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
+            className="min-h-[118px] text-[13.5px] leading-relaxed focus-visible:ring-[3px] focus-visible:ring-ring/30"
           />
         </section>
 
@@ -428,7 +419,7 @@ export function TaskAuthoringView({
             </p>
           ) : options.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No agents registered in Torii yet.
+              No agents registered yet.
             </p>
           ) : !runtimeAgentId ? (
             <p className="text-sm text-muted-foreground">
@@ -440,38 +431,47 @@ export function TaskAuthoringView({
               <span className="font-mono">{runtimeAgentId}</span>).
             </p>
           ) : (
-            <Select value={assignee || undefined} onValueChange={setAssignee}>
-              <SelectTrigger
-                className={cn(
-                  "h-auto min-h-11 w-full items-center gap-2.5 border-input bg-background px-3 py-2 shadow-none",
-                )}
-              >
-                <AssigneeTriggerContent option={selectedOption} />
-              </SelectTrigger>
-              <SelectContent>
-                {options.map((option) => (
-                  <SelectItem
-                    key={option.agentId}
-                    value={option.agentId}
-                    disabled={!option.connected}
+            <Controller
+              name="assignee"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  value={field.value || undefined}
+                  onValueChange={field.onChange}
+                >
+                  <SelectTrigger
+                    className={cn(
+                      "h-auto min-h-11 w-full items-center gap-2.5 border-input px-3 py-2",
+                    )}
                   >
-                    <span className="flex items-center gap-2.5">
-                      <span className="inline-flex size-7 items-center justify-center rounded-md bg-secondary text-[11px] font-medium text-secondary-foreground">
-                        {option.initials}
-                      </span>
-                      <span className="flex flex-row items-center gap-2">
-                        <span className="text-[13px] font-semibold">
-                          {option.displayName}
+                    <AssigneeTriggerContent option={selectedOption} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {options.map((option) => (
+                      <SelectItem
+                        key={option.agentId}
+                        value={option.agentId}
+                        disabled={!option.connected}
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <span className="inline-flex size-7 items-center justify-center rounded-md bg-secondary text-[11px] font-medium text-secondary-foreground">
+                            {option.initials}
+                          </span>
+                          <span className="flex flex-row items-center gap-2">
+                            <span className="text-[13px] font-semibold">
+                              {option.displayName}
+                            </span>
+                            <span className="font-mono text-[11.5px] text-muted-foreground">
+                              {option.agentId}
+                            </span>
+                          </span>
                         </span>
-                        <span className="font-mono text-[11.5px] text-muted-foreground">
-                          {option.agentId}
-                        </span>
-                      </span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           )}
         </section>
 

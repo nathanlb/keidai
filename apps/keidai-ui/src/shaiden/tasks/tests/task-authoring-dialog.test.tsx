@@ -1,26 +1,28 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { PublicAgentConfig, SavedTask } from "@keidai/shared";
+import type { SavedTask } from "@keidai/shared";
+import type { ManagementAgent } from "../../../fuda/api/fuda-client.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as shaidenClient from "../../api/shaiden-client.js";
 import { TaskAuthoringDialog } from "../task-authoring-dialog.js";
 
-const shaidenAgent: PublicAgentConfig = {
-  agent_id: "shaiden-newsletter-01",
-  owner_id: "nathanlb",
-  subject: {
-    kind: "k8s_service_account",
-    namespace: "agents",
-    service_account: "shaiden",
-  },
+const shaidenAgent: ManagementAgent = {
+  id: "shaiden-newsletter-01",
+  slug: "shaiden",
+  name: "Newsletter Writer",
+  ownerId: "nathanlb",
   groups: [],
+  persona: "You draft the weekly engineering newsletter.",
+  currentPersonaVersion: 1,
+  createdAt: "2026-06-02T00:00:00.000Z",
+  updatedAt: "2026-06-02T00:00:00.000Z",
 };
 
 const savedTask: SavedTask = {
   id: "task-saved-1",
   goal: "Compose weekly status report",
   trigger: { type: "now" },
-  assignee: shaidenAgent.agent_id,
+  assignee: shaidenAgent.id,
   createdAt: "2026-07-13T12:00:00.000Z",
   updatedAt: "2026-07-13T12:00:00.000Z",
 };
@@ -33,7 +35,7 @@ vi.mock("../../api/shaiden-client.js", () => ({
 
 vi.mock("../../hooks/use-fetch-task-runtime.js", () => ({
   useFetchTaskRuntime: () => ({
-    data: { agentId: shaidenAgent.agent_id },
+    data: { agentId: shaidenAgent.id },
     error: undefined,
     isLoading: false,
   }),
@@ -204,7 +206,7 @@ describe("TaskAuthoringDialog edit mode", () => {
       expect(shaidenClient.updateTask).toHaveBeenCalledWith(savedTask.id, {
         goal: "Compose monthly status report",
         trigger: { type: "now" },
-        assignee: shaidenAgent.agent_id,
+        assignee: shaidenAgent.id,
         limits: { max_iterations: 25, timeout_seconds: 600 },
       });
     });

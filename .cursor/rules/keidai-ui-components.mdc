@@ -20,7 +20,7 @@ import { Card, CardContent, Table, TableRow, Button, Badge } from "@keidai/ui";
 <button type="button">…</button>
 ```
 
-Use `cn` from `@keidai/ui` for conditional classes. Use design tokens (`bg-card`, `border-border`, `text-muted-foreground`) — not one-off styling that duplicates primitives.
+Use `cn` from `@keidai/ui` for conditional classes. Use design tokens (`bg-card`, `border-border`, `text-muted-foreground`) — not one-off styling that duplicates primitives. `Input`, `Textarea`, `SelectTrigger`, and `InputGroup` already use `bg-background` so fields read correctly on `bg-card` panels — don't add `bg-background` per field unless you need an exception.
 
 ## Component map
 

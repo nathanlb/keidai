@@ -8,8 +8,15 @@ describe("resolveAppNav", () => {
     expect(resolveAppSection("/shaiden/runs")).toBe("Shaiden");
   });
 
+  it("resolves Fuda routes", () => {
+    expect(resolveAppNav("/agents")?.label).toBe("Agents");
+    expect(resolveAppNav("/agents/new")?.label).toBe("Agents");
+    expect(resolveAppSection("/agents")).toBe("Fuda");
+    expect(resolveAppSection("/agents/agt-1")).toBe("Fuda");
+  });
+
   it("resolves Torii routes", () => {
-    expect(resolveAppNav("/agents")?.label).toBe("Agents & owners");
-    expect(resolveAppSection("/agents")).toBe("Torii");
+    expect(resolveAppNav("/connections")?.label).toBe("Connections");
+    expect(resolveAppSection("/connections")).toBe("Torii");
   });
 });

@@ -37,6 +37,7 @@ npx shadcn@latest add alert
 ## Styling
 
 - Use semantic tokens from `src/styles/globals.css` and `src/styles/tokens/` (`bg-card`, `border-border`, `text-muted-foreground`, etc.)
+- Form controls (`Input`, `Textarea`, `SelectTrigger`, `InputGroup`) default to `bg-background` so fields stay the page surface color inside `bg-card` panels — do not override unless you need a different treatment
 - Prefer `shadow-none` on Cards inside dense operator views (matches existing Torii pages)
 - Use `cn()` from `@keidai/ui` for conditional classes
 - Icons: `lucide-react` in consuming apps
