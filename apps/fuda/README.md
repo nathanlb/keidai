@@ -41,6 +41,26 @@ JWKS: `GET /.well-known/jwks.json` → `{ keys: [...] }` (unauthenticated; publi
 
 SQLite path defaults to `./data/fuda.db` (`FUDA_DB_PATH`). Migrations run at boot before the HTTP server starts, then structural integrity is checked (duplicate slugs, orphan grants).
 
+### Seed (one-way)
+
+Populate agents, bearers, and grants from a YAML file without starting the HTTP server:
+
+```bash
+# From apps/fuda (or with FUDA_DB_PATH set)
+pnpm exec tsx src/index.ts seed ./fuda.seed.example.yaml
+# after build: fuda seed ./fuda.seed.example.yaml
+```
+
+Idempotent and one-way: re-running the same file converges to the same state and does not delete rows absent from the file. Existing agent `id` / `slug` / `owner_id` are never rewritten; changed `name` / `groups` update in place; a changed `persona` appends a new version (same as the management API).
+
+Torii registration fields (`subject`, `inbound_token`, `gated_tools`) may appear in the seed file for copy-paste convenience and are ignored — credential → `bearer_id` mapping stays in the subject validator env.
+
+Demo reset (wipe + seed):
+
+```bash
+rm -f "${FUDA_DB_PATH:-./data/fuda.db}" && pnpm exec tsx src/index.ts seed ./fuda.seed.example.yaml
+```
+
 ### Management API
 
 Unauthenticated; intended for keidai-ui on localhost.

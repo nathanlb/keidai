@@ -20,6 +20,7 @@
     "jose": "^6.2.4",
     "reflect-metadata": "^0.2.2",
     "tsyringe": "^4.10.0",
+    "yaml": "^2.9.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
