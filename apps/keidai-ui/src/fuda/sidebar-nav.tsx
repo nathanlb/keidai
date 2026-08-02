@@ -1,5 +1,5 @@
 import { cn } from "@keidai/ui";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation } from "react-router";
 import { useFudaStatus } from "../shell/hooks/use-fuda-status.js";
 import {
   NavIcon,

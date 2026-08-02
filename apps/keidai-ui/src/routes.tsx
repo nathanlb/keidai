@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router";
 import { KeidaiLayout } from "./shell/keidai-layout.js";
 
 export const router = createBrowserRouter([

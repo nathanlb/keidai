@@ -12,7 +12,7 @@ import {
 } from "@keidai/ui";
 import { ListChecks, Plus } from "lucide-react";
 import { useCallback, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router";
 import { TablePaginationFooter } from "../../shell/components/table-pagination/table-pagination-footer.js";
 import { paginateItems } from "../../shell/components/table-pagination/paginate-items.js";
 import { useTablePageIndex } from "../../shell/components/table-pagination/use-table-page-index.js";

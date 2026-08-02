@@ -1,5 +1,5 @@
 import { cn } from "@keidai/ui";
-import { NavLink } from "react-router-dom";
+import { NavLink } from "react-router";
 import { useToriiStatus } from "../shell/hooks/use-torii-status.js";
 import { usePendingApprovalsCount } from "../shell/hooks/use-approvals.js";
 import {

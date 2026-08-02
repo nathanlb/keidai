@@ -1,5 +1,5 @@
 import { cn } from "@keidai/ui";
-import { NavLink } from "react-router-dom";
+import { NavLink } from "react-router";
 import { useShaidenStatus } from "../shell/hooks/use-shaiden-status.js";
 import {
   NavIcon,

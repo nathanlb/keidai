@@ -1,4 +1,4 @@
-import { useLocation } from "react-router-dom";
+import { useLocation } from "react-router";
 import { AppShell } from "./app-shell.js";
 import { AppProvider } from "./context/app-provider.js";
 import { PlatformSidebarNav } from "./components/sidebar/platform-sidebar-nav.js";

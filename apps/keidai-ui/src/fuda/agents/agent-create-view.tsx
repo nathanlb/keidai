@@ -1,7 +1,7 @@
 import { Button, Input, Spinner, Textarea } from "@keidai/ui";
 import { ArrowLeft, Check, Lock, TriangleAlert, User } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useSWRConfig } from "swr";
 import { checkSlugAvailability, createAgent } from "../api/fuda-client.js";
 import { AGENTS_KEY } from "../../shell/hooks/use-fetch-agents.js";

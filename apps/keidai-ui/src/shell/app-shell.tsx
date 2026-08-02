@@ -1,5 +1,5 @@
 import { Suspense, useCallback, useEffect, type ReactNode } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet } from "react-router";
 import { useSWRConfig } from "swr";
 import { cn, TooltipProvider } from "@keidai/ui";
 import { refreshToriiConfig } from "./hooks/refresh-torii-config.js";
