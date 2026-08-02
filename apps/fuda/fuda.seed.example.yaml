@@ -1,11 +1,13 @@
 # Fuda one-way seed file (NAT-121).
 #
+# Dev/demo setup utility — not part of the production fuda server bin.
+#
 # Apply with:
-#   pnpm --filter @keidai/fuda exec tsx src/index.ts seed ./fuda.seed.example.yaml
-#   # or after build: fuda seed ./fuda.seed.example.yaml
+#   pnpm --filter @keidai/fuda seed -- ./apps/fuda/fuda.seed.example.yaml
 #
 # Demo reset (DB wipe + seed):
-#   rm -f "${FUDA_DB_PATH:-./data/fuda.db}" && fuda seed ./fuda.seed.example.yaml
+#   rm -f "${FUDA_DB_PATH:-./apps/fuda/data/fuda.db}" && \
+#     pnpm --filter @keidai/fuda seed -- ./apps/fuda/fuda.seed.example.yaml
 #
 # Torii registration fields (subject, inbound_token, gated_tools) are accepted
 # and ignored — credential → bearer mapping stays in the subject validator env.

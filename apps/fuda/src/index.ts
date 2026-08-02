@@ -11,7 +11,6 @@ import {
 } from "./config/runtime-config.js";
 import { FudaHttpServer } from "./http/fuda-http-server.service.js";
 import { StructuredLoggerService } from "./logging/structured-logger.service.js";
-import { runSeedCommand } from "./seed/run-seed-command.js";
 
 function waitForShutdown(): Promise<void> {
   return new Promise((resolve) => {
@@ -53,16 +52,6 @@ export async function startServer(): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const [command, ...rest] = process.argv.slice(2);
-  if (command === "seed") {
-    await runSeedCommand(rest);
-    return;
-  }
-  if (command !== undefined) {
-    console.error(`Unknown command: ${command}`);
-    console.error("Usage: fuda | fuda seed <file.yaml>");
-    process.exit(1);
-  }
   await startServer();
 }
 
