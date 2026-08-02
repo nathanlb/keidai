@@ -16,12 +16,14 @@
     "shaiden:dev": "pnpm --filter @keidai/shaiden dev",
     "fuda": "pnpm --filter @keidai/fuda start",
     "fuda:dev": "pnpm --filter @keidai/fuda dev",
+    "ui": "pnpm --filter @keidai/keidai-ui dev",
+    "ui:dev": "pnpm --filter @keidai/keidai-ui dev",
     "docker:build": "docker compose build",
     "docker:up": "docker compose up",
     "docker:down": "docker compose down"
   },
   "devDependencies": {
-    "turbo": "^2.10.2",
+    "turbo": "^2.10.8",
     "typescript": "^5.9.3"
   },
   "packageManager": "pnpm@11.11.0"

@@ -17,6 +17,13 @@ import type {
   TracesResponse,
 } from "@keidai/shared";
 import { CONNECTION_SSE_EVENT, RUN_SSE_EVENT, TRACE_SSE_EVENT } from "@keidai/shared/dto";
+import type {
+  Bearer,
+  Grant,
+  ManagementAgent,
+  PersonaVersion,
+} from "../../src/fuda/api/fuda-client.js";
+import type { ToriiGroupDefinition } from "../../src/torii/api/torii-client.js";
 
 export interface MockToriiConfig {
   agents?: ConfigAgentsResponse;
@@ -40,6 +47,15 @@ export interface MockToriiConfig {
   shaidenHealthy?: boolean;
   toriiVersion?: string;
   shaidenVersion?: string;
+  /** Fuda's agent registry — the UI's only source of agent data. */
+  fudaAgents?: ManagementAgent[];
+  fudaBearers?: Bearer[];
+  fudaGrants?: Grant[];
+  /** Overrides the synthesized single-version history for an agent id. */
+  fudaPersonaVersions?: Record<string, PersonaVersion[]>;
+  /** NAT-124 (Torii group definitions) — defaults to an empty known set. */
+  toriiGroups?: ToriiGroupDefinition[];
+  fudaHealthy?: boolean;
 }
 
 export async function mockToriiConfig(
@@ -71,10 +87,33 @@ export async function mockToriiConfig(
     shaidenHealthy = healthy,
     toriiVersion = "0.0.0",
     shaidenVersion = "0.0.0",
+    fudaAgents = [],
+    fudaBearers = [],
+    fudaGrants = [],
+    fudaPersonaVersions = {},
+    toriiGroups = [],
+    fudaHealthy = healthy,
   }: MockToriiConfig = {},
 ): Promise<void> {
   const approvalState = [...approvals];
   const taskState: SavedTask[] = [...tasks.tasks];
+  const agentState: ManagementAgent[] = fudaAgents.map((agent) => ({
+    ...agent,
+  }));
+  const personaState = new Map<string, PersonaVersion[]>();
+  for (const agent of agentState) {
+    const versions = fudaPersonaVersions[agent.id] ?? [
+      {
+        agentId: agent.id,
+        version: agent.currentPersonaVersion,
+        content: agent.persona,
+        createdAt: agent.updatedAt,
+      },
+    ];
+    personaState.set(agent.id, [...versions]);
+  }
+  const bearerState: Bearer[] = fudaBearers.map((bearer) => ({ ...bearer }));
+  const grantState: Grant[] = fudaGrants.map((grant) => ({ ...grant }));
 
   await page.route("**/api/health", async (route) => {
     if (!healthy) {
@@ -497,5 +536,183 @@ export async function mockToriiConfig(
     }
 
     await route.fulfill({ json: approvalState[index] });
+  });
+
+  await page.route("**/api/fuda/health", async (route) => {
+    if (!fudaHealthy) {
+      await route.fulfill({ status: 503, body: "Fuda unavailable" });
+      return;
+    }
+
+    await route.fulfill({ json: { ok: true } });
+  });
+
+  await page.route("**/api/config/groups", async (route) => {
+    await route.fulfill({ json: { groups: toriiGroups } });
+  });
+
+  await page.route(/\/api\/agents\/slugs\/[^/]+\/availability$/, async (route) => {
+    const url = new URL(route.request().url());
+    const segments = url.pathname.split("/");
+    const slug = decodeURIComponent(segments.at(-2) ?? "");
+    const available = !agentState.some((agent) => agent.slug === slug);
+    await route.fulfill({ json: { available } });
+  });
+
+  await page.route(/\/api\/agents\/[^/]+\/personas$/, async (route) => {
+    const url = new URL(route.request().url());
+    const agentId = decodeURIComponent(url.pathname.split("/").at(-2) ?? "");
+    const versions = [...(personaState.get(agentId) ?? [])].sort(
+      (a, b) => b.version - a.version,
+    );
+    await route.fulfill({ json: { personas: versions } });
+  });
+
+  await page.route(/\/api\/agents\/[^/]+\/grants$/, async (route) => {
+    const url = new URL(route.request().url());
+    const agentId = decodeURIComponent(url.pathname.split("/").at(-2) ?? "");
+    await route.fulfill({
+      json: { grants: grantState.filter((grant) => grant.agentId === agentId) },
+    });
+  });
+
+  await page.route(/\/api\/agents(\?|$)/, async (route) => {
+    if (route.request().method() === "POST") {
+      const body = route.request().postDataJSON() as {
+        slug: string;
+        name: string;
+        ownerId: string;
+        groups?: string[];
+        persona: string;
+      };
+      const now = new Date().toISOString();
+      const agent: ManagementAgent = {
+        id: `agt-${agentState.length + 1}`,
+        slug: body.slug,
+        name: body.name,
+        ownerId: body.ownerId,
+        groups: body.groups ?? [],
+        persona: body.persona,
+        currentPersonaVersion: 1,
+        createdAt: now,
+        updatedAt: now,
+      };
+      agentState.push(agent);
+      personaState.set(agent.id, [
+        { agentId: agent.id, version: 1, content: body.persona, createdAt: now },
+      ]);
+      await route.fulfill({ status: 201, json: { agent } });
+      return;
+    }
+
+    await route.fulfill({ json: { agents: agentState } });
+  });
+
+  await page.route(/\/api\/agents\/[^/]+$/, async (route) => {
+    const url = new URL(route.request().url());
+    const agentId = decodeURIComponent(url.pathname.split("/").at(-1) ?? "");
+    const method = route.request().method();
+    const index = agentState.findIndex((agent) => agent.id === agentId);
+
+    if (method === "GET") {
+      if (index === -1) {
+        await route.fulfill({ status: 404, json: { error: "agent not found" } });
+        return;
+      }
+
+      await route.fulfill({ json: { agent: agentState[index] } });
+      return;
+    }
+
+    if (method === "PATCH") {
+      if (index === -1) {
+        await route.fulfill({ status: 404, json: { error: "agent not found" } });
+        return;
+      }
+
+      const body = route.request().postDataJSON() as {
+        name?: string;
+        groups?: string[];
+        persona?: string;
+      };
+      const current = agentState[index]!;
+      const updatedAt = new Date().toISOString();
+      const next: ManagementAgent = {
+        ...current,
+        name: body.name ?? current.name,
+        groups: body.groups ?? current.groups,
+        updatedAt,
+      };
+
+      if (body.persona !== undefined) {
+        next.persona = body.persona;
+        next.currentPersonaVersion = current.currentPersonaVersion + 1;
+        const versions = personaState.get(agentId) ?? [];
+        versions.push({
+          agentId,
+          version: next.currentPersonaVersion,
+          content: body.persona,
+          createdAt: updatedAt,
+        });
+        personaState.set(agentId, versions);
+      }
+
+      agentState[index] = next;
+      await route.fulfill({ json: { agent: next } });
+      return;
+    }
+
+    if (method === "DELETE") {
+      if (index === -1) {
+        await route.fulfill({ status: 404, json: { error: "agent not found" } });
+        return;
+      }
+
+      agentState.splice(index, 1);
+      personaState.delete(agentId);
+      for (let i = grantState.length - 1; i >= 0; i -= 1) {
+        if (grantState[i]!.agentId === agentId) {
+          grantState.splice(i, 1);
+        }
+      }
+      await route.fulfill({ status: 204, body: "" });
+      return;
+    }
+
+    await route.continue();
+  });
+
+  await page.route(/\/api\/bearers\/[^/]+\/grants(\/[^/]+)?$/, async (route) => {
+    const url = new URL(route.request().url());
+    const segments = url.pathname.split("/");
+    const method = route.request().method();
+
+    if (method === "POST") {
+      const bearerId = decodeURIComponent(segments.at(-2) ?? "");
+      const body = route.request().postDataJSON() as { agentId: string };
+      const grant: Grant = { bearerId, agentId: body.agentId };
+      grantState.push(grant);
+      await route.fulfill({ status: 201, json: { grant } });
+      return;
+    }
+
+    if (method === "DELETE") {
+      const agentId = decodeURIComponent(segments.at(-1) ?? "");
+      const bearerId = decodeURIComponent(segments.at(-3) ?? "");
+      const index = grantState.findIndex(
+        (grant) => grant.bearerId === bearerId && grant.agentId === agentId,
+      );
+      if (index !== -1) {
+        grantState.splice(index, 1);
+      }
+      await route.fulfill({ status: 204, body: "" });
+      return;
+    }
+
+    await route.continue();
+  });
+
+  await page.route(/\/api\/bearers(\?|$)/, async (route) => {
+    await route.fulfill({ json: { bearers: bearerState } });
   });
 }

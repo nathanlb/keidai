@@ -7,20 +7,14 @@ export interface ActingOwner {
   initials: string;
 }
 
-const fallbackOwner: ActingOwner = {
-  ownerId: "unknown",
-  initials: "??",
-};
+/** v0 has one implicit owner and no user auth. */
+const V0_FALLBACK_OWNER_ID = "nathanlb";
 
 export function useActingOwner() {
   const { data, refresh, isLoading } = useFetchAgents();
 
-  // This method is temporary for v0 as there is one implicit owner and no form of user auth.
   const owner = useMemo((): ActingOwner => {
-    const ownerId = data?.agents[0]?.owner_id;
-    if (!ownerId) {
-      return fallbackOwner;
-    }
+    const ownerId = data?.agents[0]?.ownerId ?? V0_FALLBACK_OWNER_ID;
 
     return {
       ownerId,

@@ -59,6 +59,7 @@ export class SqliteAgentRepository implements AgentRepository {
   private readonly updateGroupsStatement;
   private readonly updateCurrentPersonaStatement;
   private readonly getPersonaStatement;
+  private readonly listPersonasStatement;
   private readonly deleteGrantsStatement;
   private readonly deletePersonasStatement;
   private readonly deleteAgentStatement;
@@ -114,6 +115,12 @@ export class SqliteAgentRepository implements AgentRepository {
       SELECT agent_id, version, content, created_at
       FROM persona_versions
       WHERE agent_id = ? AND version = ?
+    `);
+    this.listPersonasStatement = db.prepare(`
+      SELECT agent_id, version, content, created_at
+      FROM persona_versions
+      WHERE agent_id = ?
+      ORDER BY version DESC
     `);
     this.deleteGrantsStatement = db.prepare(`
       DELETE FROM bearer_agent_grants WHERE agent_id = ?
@@ -281,6 +288,14 @@ export class SqliteAgentRepository implements AgentRepository {
       return null;
     }
     return this.getPersonaVersion(agentId, agent.currentPersonaVersion);
+  }
+
+  listPersonas(agentId: string): PersonaVersion[] {
+    if (!this.get(agentId)) {
+      return [];
+    }
+    const rows = this.listPersonasStatement.all(agentId) as unknown as PersonaRow[];
+    return rows.map(rowToPersona);
   }
 
   delete(agentId: string): boolean {

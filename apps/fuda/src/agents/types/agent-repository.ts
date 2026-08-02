@@ -56,6 +56,8 @@ export interface AgentRepository {
   appendPersona(agentId: string, content: string): PersonaVersion | null;
   getPersonaVersion(agentId: string, version: number): PersonaVersion | null;
   getCurrentPersona(agentId: string): PersonaVersion | null;
+  /** All persona versions for an agent, newest first. */
+  listPersonas(agentId: string): PersonaVersion[];
   /**
    * Deletes the agent and its persona versions / grants.
    * Returns false when the agent does not exist.

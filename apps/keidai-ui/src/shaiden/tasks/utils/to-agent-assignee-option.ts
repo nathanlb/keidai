@@ -1,6 +1,5 @@
-import type { PublicAgentConfig } from "@keidai/shared";
-import { deriveOwnerInitials } from "../../../shell/utils/derive-owner-initials.js";
-import { formatAgentSubject } from "../../../torii/agents/utils/format-agent-subject.js";
+import type { ManagementAgent } from "../../../fuda/api/fuda-client.js";
+import { deriveAgentInitials } from "../../../fuda/agents/utils/derive-agent-initials.js";
 
 export interface AgentAssigneeOption {
   agentId: string;
@@ -10,20 +9,15 @@ export interface AgentAssigneeOption {
 }
 
 export function toAgentAssigneeOption(
-  agent: PublicAgentConfig,
+  agent: ManagementAgent,
   runtimeAgentId?: string,
 ): AgentAssigneeOption {
-  const subjectLabel =
-    agent.subject.kind === "k8s_service_account"
-      ? agent.subject.service_account
-      : formatAgentSubject(agent.subject);
+  const displayName = agent.name || agent.slug;
 
   return {
-    agentId: agent.agent_id,
-    displayName: subjectLabel || agent.agent_id,
-    initials: deriveOwnerInitials(subjectLabel || agent.agent_id),
-    connected: runtimeAgentId
-      ? agent.agent_id === runtimeAgentId
-      : false,
+    agentId: agent.id,
+    displayName,
+    initials: deriveAgentInitials(displayName),
+    connected: runtimeAgentId ? agent.id === runtimeAgentId : false,
   };
 }

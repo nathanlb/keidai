@@ -4,7 +4,6 @@ import {
   Cable,
   KeyRound,
   ShieldCheck,
-  UsersRound,
 } from "lucide-react";
 
 export interface ToriiNavItem {
@@ -30,13 +29,6 @@ export const toriiNavItems: ToriiNavItem[] = [
     description:
       "Standing grants the owner links once. Torii stores, refreshes, and injects per call.",
     icon: KeyRound,
-  },
-  {
-    path: "/agents",
-    label: "Agents & owners",
-    title: "Agents & owners",
-    description: "Registered agents and the owner each one acts as.",
-    icon: UsersRound,
   },
   {
     path: "/approvals",

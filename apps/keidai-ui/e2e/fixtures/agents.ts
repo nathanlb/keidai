@@ -1,19 +1,18 @@
-import type { ConfigAgentsResponse } from "@keidai/shared";
+import type { ManagementAgent } from "../../src/fuda/api/fuda-client.js";
 import type { MockToriiConfig } from "../helpers/mock-torii.js";
 
-const alphaK8sSubject = {
-  kind: "k8s_service_account" as const,
-  namespace: "agents",
-  service_account: "alpha",
-};
-
-export const alphaAgent: ConfigAgentsResponse["agents"][number] = {
-  agent_id: "alpha",
-  owner_id: "owner-a",
-  subject: alphaK8sSubject,
+export const alphaAgent: ManagementAgent = {
+  id: "agt-alpha",
+  slug: "alpha",
+  name: "Alpha",
+  ownerId: "owner-a",
   groups: [],
+  persona: "You are Alpha, a demo agent used in end-to-end tests.",
+  currentPersonaVersion: 1,
+  createdAt: "2026-07-01T00:00:00.000Z",
+  updatedAt: "2026-07-01T00:00:00.000Z",
 };
 
-export const singleAlphaAgentConfig: Pick<MockToriiConfig, "agents"> = {
-  agents: { agents: [alphaAgent] },
+export const singleAlphaAgentConfig: Pick<MockToriiConfig, "fudaAgents"> = {
+  fudaAgents: [alphaAgent],
 };

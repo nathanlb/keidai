@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
-import type { PublicAgentConfig, RunReport, SavedTask } from "@keidai/shared";
+import type { RunReport, SavedTask } from "@keidai/shared";
 import { mockToriiConfig } from "./helpers/mock-torii.js";
+import type { ManagementAgent } from "../src/fuda/api/fuda-client.js";
 import {
   createAndRunTask,
   editTaskGoalInput,
@@ -8,22 +9,23 @@ import {
   waitForEditTaskFormReady,
 } from "./helpers/task-authoring.js";
 
-const shaidenAgent: PublicAgentConfig = {
-  agent_id: "shaiden-newsletter-01",
-  owner_id: "nathanlb",
-  subject: {
-    kind: "k8s_service_account",
-    namespace: "agents",
-    service_account: "shaiden",
-  },
+const shaidenAgent: ManagementAgent = {
+  id: "shaiden-newsletter-01",
+  slug: "shaiden-newsletter-01",
+  name: "Shaiden Newsletter",
+  ownerId: "nathanlb",
   groups: [],
+  persona: "Compose and send the weekly status newsletter.",
+  currentPersonaVersion: 1,
+  createdAt: "2026-07-01T00:00:00.000Z",
+  updatedAt: "2026-07-01T00:00:00.000Z",
 };
 
 const savedTask: SavedTask = {
   id: "task-saved-1",
   goal: "Compose weekly status report",
   trigger: { type: "now" },
-  assignee: shaidenAgent.agent_id,
+  assignee: shaidenAgent.id,
   createdAt: "2026-07-13T12:00:00.000Z",
   updatedAt: "2026-07-13T12:00:00.000Z",
 };
@@ -34,10 +36,10 @@ const runFromTask: RunReport = {
   task: {
     goal: "Compose weekly status report",
     trigger: { type: "now" },
-    assignee: shaidenAgent.agent_id,
+    assignee: shaidenAgent.id,
   },
   startedAt: "2026-07-13T12:00:00.000Z",
-  assignee: shaidenAgent.agent_id,
+  assignee: shaidenAgent.id,
   goalPreview: "Compose weekly status report",
   status: "running",
   stepCount: 0,
@@ -49,7 +51,7 @@ test.describe("Shaiden tasks", () => {
     page,
   }) => {
     await mockToriiConfig(page, {
-      agents: { agents: [shaidenAgent] },
+      fudaAgents: [shaidenAgent],
       runDetails: { "run-from-task": runFromTask },
     });
 
@@ -72,7 +74,7 @@ test.describe("Shaiden tasks", () => {
 
   test("lists saved tasks and re-runs one", async ({ page }) => {
     await mockToriiConfig(page, {
-      agents: { agents: [shaidenAgent] },
+      fudaAgents: [shaidenAgent],
       tasks: { tasks: [savedTask] },
       runDetails: { "run-from-task": runFromTask },
     });
@@ -92,7 +94,7 @@ test.describe("Shaiden tasks", () => {
     page,
   }) => {
     await mockToriiConfig(page, {
-      agents: { agents: [shaidenAgent] },
+      fudaAgents: [shaidenAgent],
     });
 
     await page.goto("/shaiden/runs?new_task=1");
@@ -105,7 +107,7 @@ test.describe("Shaiden tasks", () => {
 
   test("edits a saved task from the tasks deep link", async ({ page }) => {
     await mockToriiConfig(page, {
-      agents: { agents: [shaidenAgent] },
+      fudaAgents: [shaidenAgent],
       tasks: { tasks: [savedTask] },
     });
 
@@ -127,7 +129,7 @@ test.describe("Shaiden tasks", () => {
 
   test("edits a saved task from the list edit action", async ({ page }) => {
     await mockToriiConfig(page, {
-      agents: { agents: [shaidenAgent] },
+      fudaAgents: [shaidenAgent],
       tasks: { tasks: [savedTask] },
     });
 
@@ -152,7 +154,7 @@ test.describe("Shaiden tasks", () => {
 
   test("disables save when the edit form is unchanged", async ({ page }) => {
     await mockToriiConfig(page, {
-      agents: { agents: [shaidenAgent] },
+      fudaAgents: [shaidenAgent],
       tasks: { tasks: [savedTask] },
     });
 
@@ -179,7 +181,7 @@ test.describe("Shaiden tasks", () => {
     page,
   }) => {
     await mockToriiConfig(page, {
-      agents: { agents: [shaidenAgent] },
+      fudaAgents: [shaidenAgent],
       tasks: { tasks: [savedTask] },
     });
 
@@ -202,7 +204,7 @@ test.describe("Shaiden tasks", () => {
 
   test("confirms before discarding dirty edits", async ({ page }) => {
     await mockToriiConfig(page, {
-      agents: { agents: [shaidenAgent] },
+      fudaAgents: [shaidenAgent],
       tasks: { tasks: [savedTask] },
     });
 

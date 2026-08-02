@@ -23,6 +23,13 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm turbo run build test --filter=@keidai/torii...
 
+  fuda:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: pnpm turbo run build test --filter=@keidai/fuda...
+
   shaiden:
     runs-on: ubuntu-latest
     steps:

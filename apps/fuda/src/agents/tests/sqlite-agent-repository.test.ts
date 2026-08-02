@@ -139,4 +139,15 @@ describe("SqliteAgentRepository", () => {
       .get(created.id) as { n: number };
     assert.equal(grants.n, 0);
   });
+
+  it("lists persona versions newest first", () => {
+    const { repository } = createRepository();
+    const created = repository.create(sample);
+    repository.appendPersona(created.id, "Version two.");
+
+    const personas = repository.listPersonas(created.id);
+    assert.equal(personas.length, 2);
+    assert.equal(personas[0]?.version, 2);
+    assert.equal(personas[1]?.version, 1);
+  });
 });

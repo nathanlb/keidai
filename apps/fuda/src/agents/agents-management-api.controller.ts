@@ -28,6 +28,15 @@ export class AgentsManagementApiController {
       reply.send({ agents });
     });
 
+    /**
+     * Inline slug uniqueness probe for authoring UX. DB still enforces uniqueness
+     * on create; this is convenience only.
+     */
+    app.get("/api/agents/slugs/:slug/availability", async (request, reply) => {
+      const { slug } = request.params as { slug: string };
+      reply.send({ available: this.agents.getBySlug(slug) === null });
+    });
+
     app.post("/api/agents", async (request, reply) => {
       const parsed = createAgentBodySchema.safeParse(request.body);
       if (!parsed.success) {
@@ -68,6 +77,15 @@ export class AgentsManagementApiController {
         return;
       }
       reply.send({ agent });
+    });
+
+    app.get("/api/agents/:agentId/personas", async (request, reply) => {
+      const { agentId } = request.params as { agentId: string };
+      if (!this.agents.get(agentId)) {
+        reply.code(404).send({ error: "agent not found" });
+        return;
+      }
+      reply.send({ personas: this.agents.listPersonas(agentId) });
     });
 
     app.patch("/api/agents/:agentId", async (request, reply) => {

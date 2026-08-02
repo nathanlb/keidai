@@ -86,6 +86,29 @@ export async function fetchAgents(): Promise<ConfigAgentsResponse> {
   return fetchJson<ConfigAgentsResponse>("/api/config/agents");
 }
 
+export interface ToriiGroupDefinition {
+  name: string;
+  description: string;
+}
+
+export interface ToriiGroupsResponse {
+  groups: ToriiGroupDefinition[];
+}
+
+/**
+ * Soft join for group-authoring UX. NAT-124 (Torii group definitions
+ * endpoint) has not shipped yet, so a missing endpoint resolves to an empty
+ * known-group set rather than throwing — every group then renders as
+ * "unknown", which is the correct fail-closed default for authoring.
+ */
+export async function fetchToriiGroups(): Promise<ToriiGroupsResponse> {
+  try {
+    return await fetchJson<ToriiGroupsResponse>("/api/config/groups");
+  } catch {
+    return { groups: [] };
+  }
+}
+
 export async function fetchServers(): Promise<ConfigServersResponse> {
   return fetchJson<ConfigServersResponse>("/api/config/servers");
 }

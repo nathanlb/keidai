@@ -9,7 +9,7 @@ vi.mock("../use-fetch-agents.js", () => ({
 import { useFetchAgents } from "../use-fetch-agents.js";
 
 describe("useActingOwner", () => {
-  it("returns a fallback owner when no agents are loaded", () => {
+  it("returns the v0 fallback owner when no agents are loaded", () => {
     vi.mocked(useFetchAgents).mockReturnValue({
       data: undefined,
       error: undefined,
@@ -20,24 +20,25 @@ describe("useActingOwner", () => {
     const { result } = renderHook(() => useActingOwner());
 
     expect(result.current.owner).toEqual({
-      ownerId: "unknown",
-      initials: "??",
+      ownerId: "nathanlb",
+      initials: "NA",
     });
   });
 
-  it("derives initials from the first agent owner_id", () => {
+  it("derives initials from the first agent's ownerId", () => {
     vi.mocked(useFetchAgents).mockReturnValue({
       data: {
         agents: [
           {
-            agent_id: "demo",
-            owner_id: "demo-user",
-            subject: {
-              kind: "k8s_service_account",
-              namespace: "agents",
-              service_account: "demo",
-            },
+            id: "agt_1",
+            slug: "demo-agent",
+            name: "Demo Agent",
+            ownerId: "demo-user",
             groups: [],
+            persona: "You are a demo agent.",
+            currentPersonaVersion: 1,
+            createdAt: "2026-06-02T00:00:00.000Z",
+            updatedAt: "2026-06-02T00:00:00.000Z",
           },
         ],
       },
