@@ -11,7 +11,12 @@ import {
   type ApprovalResumeSignal,
 } from "../run/approval-resume-signal.js";
 import { enrichToolCallResult } from "./parse-tool-result.js";
-import type { DiscoveredTool, ToolCallResult, ToriiSession } from "./types/index.js";
+import { PolicyDeniedError } from "./types/policy-denied-error.js";
+import type {
+  DiscoveredTool,
+  ToriiSession,
+  ToriiSessionCredential,
+} from "./types/index.js";
 
 function extractToriiCallMeta(meta: unknown): ToriiCallMeta | undefined {
   if (!meta || typeof meta !== "object") {
@@ -54,24 +59,47 @@ function flattenToolContent(content: unknown): string {
     .join("\n");
 }
 
+function describeUnknownError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function toToolCallError(error: unknown): Error {
+  const message = describeUnknownError(error);
+  if (/(^|\b)policy_denied\b/i.test(message)) {
+    return new PolicyDeniedError(message);
+  }
+  return error instanceof Error ? error : new Error(message);
+}
+
 /**
  * Connect to Torii over MCP and keep the session open for the duration of a
  * run: tool discovery happens once at connect, tool calls dispatch through
  * the same session so they show up in Torii traces.
+ *
+ * Authorization uses a Fuda-minted agent JWT from `credential.ensureToken`.
+ * The header is refreshed before each tools/call (and on explicit remint) so
+ * short TTLs outlive long tasks without reconnecting.
  */
 export async function connectToriiSession(
   toriiMcpUrl: string,
-  bearerToken: string,
+  credential: ToriiSessionCredential,
 ): Promise<ToriiSession> {
+  const authHeaders: Record<string, string> = {
+    Authorization: `Bearer ${await credential.ensureToken()}`,
+  };
+
+  const applyToken = async (options?: { force?: boolean }): Promise<void> => {
+    const token = await credential.ensureToken(options);
+    authHeaders.Authorization = `Bearer ${token}`;
+  };
+
   const client = new Client({
     name: "shaiden",
     version: "0.1.0",
   });
   const transport = new StreamableHTTPClientTransport(new URL(toriiMcpUrl), {
     requestInit: {
-      headers: {
-        Authorization: `Bearer ${bearerToken}`,
-      },
+      headers: authHeaders,
     },
     reconnectionOptions: {
       maxReconnectionDelay: 1000,
@@ -94,22 +122,31 @@ export async function connectToriiSession(
   client.onerror = failParkedApprovals;
   client.onclose = failParkedApprovals;
 
-  const callTool = async (
-    name: string,
-    args: Record<string, unknown>,
-  ): Promise<ToolCallResult> => {
-    const response = await client.callTool({ name, arguments: args });
-    const result = enrichToolCallResult(
-      response.isError === true,
-      flattenToolContent(response.content),
-    );
-    const meta = extractToriiCallMeta(response._meta);
-    return meta ? { ...result, meta } : result;
+  const callTool: ToriiSession["callTool"] = async (name, args) => {
+    await applyToken();
+    try {
+      const response = await client.callTool({ name, arguments: args });
+      const result = enrichToolCallResult(
+        response.isError === true,
+        flattenToolContent(response.content),
+      );
+      const meta = extractToriiCallMeta(response._meta);
+      const withMeta = meta ? { ...result, meta } : result;
+      if (withMeta.isError && /(^|\b)policy_denied\b/i.test(withMeta.text)) {
+        return { ...withMeta, policyDenied: true };
+      }
+      return withMeta;
+    } catch (error) {
+      throw toToolCallError(error);
+    }
   };
 
   return {
     tools: result.tools.map(toDiscoveredTool),
     callTool,
+    remintCredentials: async () => {
+      await applyToken({ force: true });
+    },
     createApprovalResumeSignal: () => {
       if (activeResumeSignal) {
         activeResumeSignal.dispose();

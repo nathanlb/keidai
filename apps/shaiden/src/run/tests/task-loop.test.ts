@@ -178,6 +178,39 @@ describe("task loop", () => {
     assert.deepEqual(dispatched, ["gmail.create_draft", "gmail.create_draft:replay"]);
   });
 
+  it("terminates as failed when approval replay is denied by policy", async () => {
+    const approval = deferredApprovalDecision();
+
+    const loop = runGoalLoop("goal", limits, {
+      callModel: scriptedModel([
+        { text: "", toolCalls: [toolCall("gmail.create_draft")] },
+        { text: "should not run", toolCalls: [] },
+      ]),
+      dispatchToolCall: async (_call, options) => {
+        if (options?.approvalId) {
+          return {
+            isError: true,
+            text: "policy_denied: gmail.create_draft",
+            policyDenied: true,
+          };
+        }
+        return approvalRequiredDispatch("approval-1")(_call, options);
+      },
+      waitForApproval: approval.waitForApproval,
+    });
+
+    await approval.whenPending;
+    approval.resolve({ status: "approved" });
+    const result = await loop;
+
+    assert.equal(result.outcome.status, "failed");
+    if (result.outcome.status === "failed") {
+      assert.match(result.outcome.reason, /policy denied after approval resume/);
+      assert.match(result.outcome.reason, /policy_denied/);
+      assert.doesNotMatch(result.outcome.reason, /connection reset|unreachable/i);
+    }
+  });
+
   it("terminates as human_reject immediately when approval is rejected", async () => {
     const approval = deferredApprovalDecision();
     let modelCalls = 0;

@@ -25,6 +25,11 @@ export interface ToolDispatchResult {
   text: string;
   approvalRequired?: { approvalId: string; stepId?: string };
   approvalDenied?: boolean;
+  /**
+   * Torii group policy denied the call. Ordinary calls feed this back as an
+   * error tool result; approval-replay denials terminate as failed(reason).
+   */
+  policyDenied?: boolean;
   /** Out-of-band Torii metadata from MCP `_meta` (never model-facing). */
   meta?: ToriiCallMeta;
 }

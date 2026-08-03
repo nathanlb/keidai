@@ -4,10 +4,16 @@ import {
   type Logger,
   type Task,
 } from "@keidai/shared";
+import {
+  createHttpFudaClient,
+  TokenExchangeError,
+} from "@keidai/shared/clients";
 import type { RuntimeConfig } from "../config/runtime-config.js";
+import { createAgentTokenProvider } from "../fuda/agent-token-provider.js";
 import { defaultLogger } from "../logging/logger.js";
 import { createOpenRouterModel } from "../model/openrouter.js";
 import { connectToriiSession } from "../mcp/torii-client.js";
+import type { ToriiSessionCredential } from "../mcp/types/index.js";
 import {
   ActiveRunRegistry,
   createActiveRunHandle,
@@ -23,6 +29,37 @@ import { HarnessRunResult, LaunchedHarnessRun, LaunchHarnessRunInput, ResumeHarn
 import type { ConversationEntry } from "./types/conversation-history.js";
 import { runTaskLoop } from "./task-loop.js";
 import type { RunStore } from "../runs/run-store.js";
+
+function createToriiCredential(config: RuntimeConfig): ToriiSessionCredential {
+  if (!config.fudaBaseUrl) {
+    // Eval / test path: Torii accepts a fixed principal without Fuda minting.
+    return {
+      ensureToken: async () => config.bearerToken,
+    };
+  }
+
+  const provider = createAgentTokenProvider({
+    fuda: createHttpFudaClient({ baseUrl: config.fudaBaseUrl }),
+    subjectToken: config.bearerToken,
+    agentId: config.agentId,
+  });
+  return {
+    ensureToken: (options) => provider.ensureToken(options),
+  };
+}
+
+function describeTokenExchangeFailure(error: unknown): string {
+  if (error instanceof TokenExchangeError) {
+    if (error.kind === "grant_denied") {
+      return `agent grant revoked: ${error.message}`;
+    }
+    if (error.kind === "unreachable") {
+      return `Fuda unreachable: ${error.message}`;
+    }
+    return `token exchange failed (${error.kind}): ${error.message}`;
+  }
+  return error instanceof Error ? error.message : String(error);
+}
 
 /**
  * Registers a run in the store synchronously, then drives the harness in the
@@ -139,7 +176,7 @@ async function driveHarnessRun({
   try {
     const session = await connectToriiSession(
       config.toriiMcpUrl,
-      config.bearerToken,
+      createToriiCredential(config),
     );
     const resumeSignal = session.createApprovalResumeSignal();
 
@@ -194,7 +231,19 @@ async function driveHarnessRun({
         });
         activeHandle.setWaitingForApproval(true);
         try {
-          return await resumeSignal.waitForDecision(approvalId);
+          const decision = await resumeSignal.waitForDecision(approvalId);
+          // Re-mint on resume so revoked grants and group changes take effect
+          // before the approved call is replayed.
+          if (decision.status === "approved") {
+            try {
+              await session.remintCredentials();
+            } catch (error) {
+              throw new Error(
+                `failed to remint agent token on approval resume: ${describeTokenExchangeFailure(error)}`,
+              );
+            }
+          }
+          return decision;
         } finally {
           activeHandle.setWaitingForApproval(false);
         }
@@ -246,7 +295,12 @@ async function driveHarnessRun({
       await session.close();
     }
   } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
+    const reason =
+      error instanceof TokenExchangeError
+        ? describeTokenExchangeFailure(error)
+        : error instanceof Error
+          ? error.message
+          : String(error);
     const existing = runStore.getRun(runId);
     unregisterActiveRun();
     if (existing?.status === "running") {

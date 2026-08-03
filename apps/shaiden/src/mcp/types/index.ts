@@ -13,8 +13,14 @@ export interface ToolCallResult {
   text: string;
   approvalRequired?: { approvalId: string };
   approvalDenied?: boolean;
+  policyDenied?: boolean;
   /** Out-of-band Torii metadata from MCP `_meta` (never model-facing). */
   meta?: ToriiCallMeta;
+}
+
+/** Supplies the Fuda-minted agent JWT presented to Torii. */
+export interface ToriiSessionCredential {
+  ensureToken: (options?: { force?: boolean }) => Promise<string>;
 }
 
 export interface ToriiSession {
@@ -23,6 +29,8 @@ export interface ToriiSession {
     name: string,
     args: Record<string, unknown>,
   ) => Promise<ToolCallResult>;
+  /** Force a fresh mint (approval resume) and update the session Authorization header. */
+  remintCredentials: () => Promise<void>;
   createApprovalResumeSignal: () => ApprovalResumeSignal;
   close: () => Promise<void>;
 }
