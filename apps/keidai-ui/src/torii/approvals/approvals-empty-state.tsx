@@ -1,6 +1,6 @@
 import { Button, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@keidai/ui";
 import { CheckCheck, Play } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 export function ApprovalsEmptyState() {
   return (

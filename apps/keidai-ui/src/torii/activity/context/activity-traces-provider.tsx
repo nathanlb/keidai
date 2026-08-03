@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router";
 import { useActivityTraces } from "../../../shell/hooks/use-activity-traces.js";
 import { useFetchOAuthProviders } from "../../../shell/hooks/use-fetch-oauth-providers.js";
 import { useFetchServers } from "../../../shell/hooks/use-fetch-servers.js";

@@ -18,7 +18,7 @@ import {
 } from "@keidai/ui";
 import { Bot, ChevronRight, KeyRound, Plus, Search, TriangleAlert } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { PageEmptyState } from "../../shell/components/page-content/page-empty-state.js";
 import { useFetchAgents } from "../../shell/hooks/use-fetch-agents.js";
 import { useAgentListExtras } from "../hooks/use-agent-list-extras.js";

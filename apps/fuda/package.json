@@ -18,7 +18,7 @@
   "dependencies": {
     "@keidai/shared": "workspace:*",
     "fastify": "^5.11.0",
-    "jose": "^6.2.4",
+    "jose": "^6.2.7",
     "reflect-metadata": "^0.2.2",
     "tsyringe": "^4.10.0",
     "yaml": "^2.9.0",

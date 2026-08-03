@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import { Controller } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { fetchTask, startTaskRun, updateTask } from "../api/shaiden-client.js";
 import { useFetchTaskRuntime } from "../hooks/use-fetch-task-runtime.js";
 import { useActingOwner } from "../../shell/hooks/use-acting-owner.js";

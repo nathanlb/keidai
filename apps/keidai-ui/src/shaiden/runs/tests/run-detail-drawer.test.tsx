@@ -1,7 +1,7 @@
 import type { RunReport } from "@keidai/shared";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 import { RunDetailDrawer } from "../run-detail-drawer.js";
 

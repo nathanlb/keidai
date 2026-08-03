@@ -6,7 +6,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@keidai/ui";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import type { AppShellBreadcrumb } from "../../types/index.js";
 
 interface BreadcrumbProps {

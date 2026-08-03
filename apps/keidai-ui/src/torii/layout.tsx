@@ -1,4 +1,4 @@
-import { useLocation } from "react-router-dom";
+import { useLocation } from "react-router";
 import { AppShell } from "../shell/app-shell.js";
 import { AppProvider } from "../shell/context/app-provider.js";
 import { OAuthLinkProvider } from "./oauth/context/oauth-link-provider.js";
