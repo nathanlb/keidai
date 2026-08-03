@@ -12,12 +12,12 @@ import {
   parseToolArguments,
 } from "../utils/approval-tool-args.js";
 
-function createGate(agents: NonNullable<ToriiConfig["agents"]>) {
+function createGate(gatedTools: NonNullable<ToriiConfig["gated_tools"]>) {
   const configService = new ToriiConfigService({
     boot_owner_id: "test-owner",
     oauth_providers: {},
     servers: [],
-    agents,
+    gated_tools: gatedTools,
   });
   const store = new ApprovalStoreService();
   const gate = new ApprovalGateService(configService, store);
@@ -25,23 +25,13 @@ function createGate(agents: NonNullable<ToriiConfig["agents"]>) {
   return { gate, store, read };
 }
 
-const gatedAgent = [
-  {
-    subject: {
-      kind: "k8s_service_account" as const,
-      namespace: "torii-agents",
-      service_account: "demo",
-    },
-    agent_id: TEST_AGENT_PRINCIPAL.agentId,
-    owner_id: TEST_AGENT_PRINCIPAL.ownerId,
-    groups: [],
-    gated_tools: ["gmail.create_draft"],
-  },
-];
+const gatedTools = {
+  [TEST_AGENT_PRINCIPAL.agentId]: ["gmail.create_draft"],
+};
 
 describe("approval ledger", () => {
-  it("requires approval for tools listed on the agent registration", () => {
-    const { gate } = createGate(gatedAgent);
+  it("requires approval for tools listed under the agent id", () => {
+    const { gate } = createGate(gatedTools);
 
     assert.equal(
       gate.requiresApproval(TEST_AGENT_PRINCIPAL, "gmail.create_draft"),
@@ -54,7 +44,7 @@ describe("approval ledger", () => {
   });
 
   it("returns approval_required for gated calls", () => {
-    const { gate } = createGate(gatedAgent);
+    const { gate } = createGate(gatedTools);
 
     const result = gate.interceptGatedCall({
       principal: TEST_AGENT_PRINCIPAL,
@@ -72,7 +62,7 @@ describe("approval ledger", () => {
   });
 
   it("auto-denies repeat calls matching a recently rejected params hash", () => {
-    const { gate, store } = createGate(gatedAgent);
+    const { gate, store } = createGate(gatedTools);
 
     const params = { subject: "Hello" };
     const approval = store.createPendingApproval({
@@ -98,7 +88,7 @@ describe("approval ledger", () => {
   });
 
   it("round-trips opaque runId and stepId unmodified and uninterpreted", () => {
-    const { gate, read } = createGate(gatedAgent);
+    const { gate, read } = createGate(gatedTools);
     const runId = "opaque-run-ref-≠-uuid";
     const stepId = "opaque-step/ref with spaces";
 
@@ -138,7 +128,7 @@ describe("approval ledger", () => {
   });
 
   it("cancels a pending approval without adding rejection suppression", () => {
-    const { gate, store } = createGate(gatedAgent);
+    const { gate, store } = createGate(gatedTools);
     const params = { subject: "Hello" };
 
     const pending = store.createPendingApproval({
@@ -165,7 +155,7 @@ describe("approval ledger", () => {
   });
 
   it("validates params hash and single-use consumption on replay", () => {
-    const { gate, store } = createGate(gatedAgent);
+    const { gate, store } = createGate(gatedTools);
     const params = { subject: "Hello" };
 
     const pending = store.createPendingApproval({

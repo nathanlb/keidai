@@ -18,10 +18,6 @@ export class ConfigApiController {
       reply.send(this.configRead.listOAuthProviders());
     });
 
-    app.get("/api/config/agents", async (_request, reply) => {
-      reply.send(this.configRead.listAgents());
-    });
-
     app.get("/api/config/groups", async (_request, reply) => {
       reply.send(this.configRead.listGroups());
     });

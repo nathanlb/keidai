@@ -109,19 +109,6 @@ export async function startEvalToriiStack(
   const configService = new ToriiConfigService({
     boot_owner_id: EVAL_OWNER,
     oauth_providers: EVAL_OAUTH_PROVIDERS,
-    agents: [
-      {
-        subject: {
-          kind: "k8s_service_account",
-          namespace: "torii-agents",
-          service_account: "shaiden",
-        },
-        agent_id: EVAL_AGENT_ID,
-        owner_id: EVAL_OWNER,
-        groups: EVAL_PRINCIPAL.groups,
-        gated_tools: includeGmail ? ["gmail.create_draft"] : [],
-      },
-    ],
     servers: [
       {
         name: "linear",
@@ -147,6 +134,9 @@ export async function startEvalToriiStack(
         ...(includeGmail ? [{ server: "gmail", tools: ["create_draft"] }] : []),
       ]),
     ],
+    gated_tools: includeGmail
+      ? { [EVAL_AGENT_ID]: ["gmail.create_draft"] }
+      : {},
   });
 
   const connectionManager = new ConnectionManager(

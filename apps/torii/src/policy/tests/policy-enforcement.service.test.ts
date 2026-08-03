@@ -12,7 +12,6 @@ describe("PolicyEnforcementService", () => {
     const config: ToriiConfig = {
       boot_owner_id: "test-owner",
       oauth_providers: {},
-      agents: [],
       servers: [
         {
           name: "github",
@@ -64,7 +63,6 @@ describe("PolicyEnforcementService", () => {
     const config: ToriiConfig = {
       boot_owner_id: "test-owner",
       oauth_providers: {},
-      agents: [],
       servers: [
         {
           name: "github",

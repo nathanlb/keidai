@@ -127,7 +127,6 @@ export function createTestGatewayHttpServer(
       boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [],
-      agents: [],
     });
   const configRead = new ConfigReadService(configService);
   const connectionManager =

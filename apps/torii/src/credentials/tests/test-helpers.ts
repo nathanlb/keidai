@@ -69,7 +69,6 @@ export function createCredentialServices(
   const configService = new ToriiConfigService({
     boot_owner_id: "test-owner",
     oauth_providers: config.oauth_providers,
-    agents: [],
     servers: [],
   });
   const noneResolver = new NoneCredentialResolver();

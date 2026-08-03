@@ -42,7 +42,6 @@ describe("gateway log streams", () => {
         },
       ],
       groups: [testAgentsGroup([{ server: "demo", tools: ["ping"] }])],
-      agents: [],
     });
     const { credentialResolver } = createCredentialServices();
     const logger = createCapturingLogger();

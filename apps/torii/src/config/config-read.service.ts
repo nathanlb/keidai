@@ -1,13 +1,11 @@
 import { inject, injectable } from "tsyringe";
 import type {
-  ConfigAgentsResponse,
   ConfigGroupsResponse,
   ConfigOAuthProvidersResponse,
   ConfigServersResponse,
 } from "@keidai/shared";
 import { ToriiConfigService } from "./torii-config.service.js";
 import {
-  projectConfigAgents,
   projectConfigGroups,
   projectConfigOAuthProviders,
   projectConfigServers,
@@ -27,10 +25,6 @@ export class ConfigReadService {
 
   listOAuthProviders(): ConfigOAuthProvidersResponse {
     return projectConfigOAuthProviders(this.configService.get());
-  }
-
-  listAgents(): ConfigAgentsResponse {
-    return projectConfigAgents(this.configService.get());
   }
 
   listGroups(): ConfigGroupsResponse {

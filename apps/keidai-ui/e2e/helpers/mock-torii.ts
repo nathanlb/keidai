@@ -1,7 +1,6 @@
 import type { Page } from "@playwright/test";
 import type {
   ApprovalRecordView,
-  ConfigAgentsResponse,
   ConfigOAuthProvidersResponse,
   ConfigServersResponse,
   ConnectionsResponse,
@@ -26,7 +25,6 @@ import type {
 import type { ToriiGroupDefinition } from "../../src/torii/api/torii-client.js";
 
 export interface MockToriiConfig {
-  agents?: ConfigAgentsResponse;
   servers?: ConfigServersResponse;
   connections?: ConnectionsResponse;
   serverTools?: Record<string, ServerToolsResponse>;
@@ -61,7 +59,6 @@ export interface MockToriiConfig {
 export async function mockToriiConfig(
   page: Page,
   {
-    agents = { agents: [] },
     servers = { servers: [] },
     connections = { connections: [] },
     serverTools = {},
@@ -137,15 +134,6 @@ export async function mockToriiConfig(
         agentId: taskRuntime.agentId,
       },
     });
-  });
-
-  await page.route("**/api/config/agents", async (route) => {
-    if (!healthy) {
-      await route.fulfill({ status: 503, body: "Gateway unavailable" });
-      return;
-    }
-
-    await route.fulfill({ json: agents });
   });
 
   await page.route("**/api/config/servers", async (route) => {

@@ -1,7 +1,6 @@
 import type {
   ApprovalRecordStatus,
   ApprovalRecordView,
-  ConfigAgentsResponse,
   ConfigGroupsResponse,
   ConfigOAuthProvidersResponse,
   ConfigServersResponse,
@@ -83,10 +82,6 @@ export async function fetchToriiHealth(): Promise<ServiceHealth> {
 
 /** @deprecated Use fetchToriiHealth */
 export const fetchGatewayStatus = fetchToriiHealth;
-
-export async function fetchAgents(): Promise<ConfigAgentsResponse> {
-  return fetchJson<ConfigAgentsResponse>("/api/config/agents");
-}
 
 export type ToriiGroupDefinition = PublicGroupDefinition;
 

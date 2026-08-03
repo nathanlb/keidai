@@ -9,8 +9,9 @@
 #   rm -f "${FUDA_DB_PATH:-./apps/fuda/data/fuda.db}" && \
 #     pnpm --filter @keidai/fuda seed -- ./apps/fuda/fuda.seed.example.yaml
 #
-# Torii registration fields (subject, inbound_token, gated_tools) are accepted
-# and ignored — credential → bearer mapping stays in the subject validator env.
+# Legacy Torii registration fields (subject, inbound_token, gated_tools) may
+# appear for copy-paste convenience and are ignored — credential → bearer
+# mapping stays in the subject validator env; gated tools live in torii.yaml.
 
 agents:
   - agent_id: demo-agent-01
@@ -20,11 +21,6 @@ agents:
     groups: [agents]
     persona: |
       You are the demo agent for local Keidai walks.
-    subject:
-      kind: k8s_service_account
-      namespace: torii-agents
-      service_account: demo-agent
-    inbound_token: ${env:DEMO_AGENT_BEARER}
 
   - agent_id: shaiden-newsletter-01
     slug: shaiden-newsletter
@@ -33,13 +29,6 @@ agents:
     groups: [agents]
     persona: |
       You draft a short weekly newsletter from linked tools.
-    subject:
-      kind: k8s_service_account
-      namespace: torii-agents
-      service_account: shaiden
-    inbound_token: ${env:SHAIDEN_BEARER}
-    gated_tools:
-      - gmail.create_draft
 
 bearers:
   - bearer_id: local-dev

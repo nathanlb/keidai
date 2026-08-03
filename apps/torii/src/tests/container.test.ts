@@ -14,7 +14,6 @@ const MINIMAL_CONFIG: ToriiConfig = {
   boot_owner_id: "test-owner",
   oauth_providers: {},
   servers: [],
-  agents: [],
 };
 
 describe("createContainer", () => {

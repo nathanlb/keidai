@@ -5,7 +5,6 @@ import type { ToriiConfig } from "@keidai/shared";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
 import { ConfigReadService } from "../../config/config-read.service.js";
 import type {
-  ConfigAgentsResponse,
   ConfigGroupsResponse,
   ConfigOAuthProvidersResponse,
   ConfigServersResponse,
@@ -41,19 +40,6 @@ const sampleConfig: ToriiConfig = {
       name: "github",
       transport: { type: "http", url: "https://example.com/mcp" },
       credential: { strategy: "user_oauth", provider: "github" },
-    },
-  ],
-  agents: [
-    {
-      subject: {
-        kind: "k8s_service_account",
-        namespace: "torii-agents",
-        service_account: "demo-agent",
-      },
-      agent_id: "demo-agent-01",
-      owner_id: "demo-owner",
-      groups: ["agents"],
-      inbound_token: "bearer-secret",
     },
   ],
   groups: [
@@ -99,13 +85,12 @@ describe("Gateway /api/config endpoints", () => {
 
       assert.equal(serversRes.status, 200);
       assert.equal(providersRes.status, 200);
-      assert.equal(agentsRes.status, 200);
+      assert.equal(agentsRes.status, 404);
       assert.equal(groupsRes.status, 200);
 
       const servers = (await serversRes.json()) as ConfigServersResponse;
       const providers =
         (await providersRes.json()) as ConfigOAuthProvidersResponse;
-      const agents = (await agentsRes.json()) as ConfigAgentsResponse;
       const groups = (await groupsRes.json()) as ConfigGroupsResponse;
 
       assert.deepEqual(servers, {
@@ -123,27 +108,12 @@ describe("Gateway /api/config endpoints", () => {
         client_id: "gh-client",
         scopes: ["repo"],
       });
-      assert.deepEqual(agents, {
-        agents: [
-          {
-            agent_id: "demo-agent-01",
-            owner_id: "demo-owner",
-            subject: {
-              kind: "k8s_service_account",
-              namespace: "torii-agents",
-              service_account: "demo-agent",
-            },
-            groups: ["agents"],
-          },
-        ],
-      });
       assert.deepEqual(groups, {
         groups: [{ name: "agents", description: "Demo agent access" }],
       });
 
-      const body = JSON.stringify({ servers, providers, agents, groups });
+      const body = JSON.stringify({ servers, providers, groups });
       assert.equal(body.includes("gh-secret"), false);
-      assert.equal(body.includes("bearer-secret"), false);
     } finally {
       await gateway.close();
     }
@@ -190,16 +160,14 @@ describe("Gateway /api/config endpoints", () => {
     const gateway = await gatewayHttpServer.start();
 
     try {
-      const [serversRes, providersRes, agentsRes, groupsRes] = await Promise.all([
+      const [serversRes, providersRes, groupsRes] = await Promise.all([
         fetch(`${gateway.baseUrl}/api/config/servers`),
         fetch(`${gateway.baseUrl}/api/config/oauth-providers`),
-        fetch(`${gateway.baseUrl}/api/config/agents`),
         fetch(`${gateway.baseUrl}/api/config/groups`),
       ]);
 
       assert.deepEqual(await serversRes.json(), { servers: [] });
       assert.deepEqual(await providersRes.json(), { providers: {} });
-      assert.deepEqual(await agentsRes.json(), { agents: [] });
       assert.deepEqual(await groupsRes.json(), { groups: [] });
     } finally {
       await gateway.close();

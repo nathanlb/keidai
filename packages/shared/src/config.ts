@@ -56,32 +56,6 @@ export interface ServerConfig {
   credential: CredentialConfig;
 }
 
-/** Workload identity a registered agent is bound to — not read from inbound requests. */
-export type AgentSubjectConfig = {
-  kind: "k8s_service_account";
-  namespace: string;
-  service_account: string;
-};
-
-/**
- * Boot-time agent registration. Binds a validated credential subject to an
- * internal principal; `owner_id` is fixed here and never taken from requests.
- */
-export interface AgentRegistrationConfig {
-  subject: AgentSubjectConfig;
-  agent_id: string;
-  owner_id: string;
-  groups: string[];
-  /**
-   * Static bearer token this agent presents on inbound requests.
-   * Env refs (e.g. ${env:DEMO_AGENT_BEARER}) are resolved at config load.
-   * FOR DEMO USE.
-   */
-  inbound_token?: string;
-  /** Namespaced tools that require human approval before Torii proxies upstream. */
-  gated_tools?: string[];
-}
-
 /** Root torii.yaml shape — env refs are resolved before this type is populated. */
 export interface ToriiConfig {
   /**
@@ -102,6 +76,9 @@ export interface ToriiConfig {
    * A principal group absent from this list fails closed (grants nothing).
    */
   groups?: GroupDefinitionConfig[];
-  /** Boot-time agent registrations; omitted or empty when none are configured. */
-  agents?: AgentRegistrationConfig[];
+  /**
+   * Namespaced tools that require human approval before Torii proxies upstream,
+   * keyed by Fuda agent id. Operator-owned policy — not agent identity data.
+   */
+  gated_tools?: Record<string, string[]>;
 }

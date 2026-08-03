@@ -1,8 +1,10 @@
 # Torii gateway configuration — loaded at boot, no database required.
 #
 # Shapes match @keidai/shared (ToriiConfig, ServerConfig, CredentialConfig,
-# GroupDefinitionConfig, OAuthProviderConfig, AgentRegistrationConfig).
+# GroupDefinitionConfig, OAuthProviderConfig).
 # Env refs use ${env:VAR} and are resolved before validation.
+#
+# Agent identity lives in Fuda — this file is operator-owned deployment config only.
 
 oauth_providers:
   github:
@@ -75,15 +77,8 @@ groups:
 # Deployment config — not derived from agent declarations.
 boot_owner_id: user-alice
 
-# Agent registrations bind validated credential subjects to internal principals.
-# owner_id is fixed at registration — never taken from inbound requests.
-# Optional inbound_token enables Authorization: Bearer auth for local/demo agents.
-agents:
-  - subject:
-      kind: k8s_service_account
-      namespace: torii-agents
-      service_account: catalog-agent
-    agent_id: agent-catalog-01
-    owner_id: user-alice
-    groups:
-      - agents
+# Optional: tools that require human approval before Torii proxies upstream,
+# keyed by Fuda agent id.
+# gated_tools:
+#   agent-catalog-01:
+#     - github.create_issue

@@ -60,25 +60,6 @@ const credentialSchema = z.discriminatedUnion("strategy", [
     .strict(),
 ]);
 
-const k8sServiceAccountSubjectSchema = z
-  .object({
-    kind: z.literal("k8s_service_account"),
-    namespace: z.string().min(1, "namespace is required"),
-    service_account: z.string().min(1, "service_account is required"),
-  })
-  .strict();
-
-const agentRegistrationSchema = z
-  .object({
-    subject: k8sServiceAccountSubjectSchema,
-    agent_id: z.string().min(1, "agent_id is required"),
-    owner_id: z.string().min(1, "owner_id is required"),
-    groups: z.array(z.string()),
-    inbound_token: z.string().min(1).optional(),
-    gated_tools: z.array(z.string().min(1)).optional(),
-  })
-  .strict();
-
 const groupPermissionSchema = z
   .object({
     server: z.string().min(1, "server is required"),
@@ -112,41 +93,15 @@ export const toriiConfigSchema = z
     oauth_providers: z.record(z.string(), oauthProviderSchema),
     servers: z.array(serverSchema).min(1, "at least one server is required"),
     groups: z.array(groupDefinitionSchema).default([]),
-    agents: z.array(agentRegistrationSchema).default([]),
+    gated_tools: z
+      .record(z.string().min(1), z.array(z.string().min(1)))
+      .default({}),
   })
+  .strict()
   .superRefine((config, ctx) => {
     const seenNames = new Map<string, number>();
     const seenGroupNames = new Map<string, number>();
-    const seenAgentSubjects = new Map<string, number>();
-    const seenInboundTokens = new Map<string, number>();
     const serverNames = new Set(config.servers.map((server) => server.name));
-
-    config.agents.forEach((agent, index) => {
-      const subjectKey = `${agent.subject.namespace}/${agent.subject.service_account}`;
-      const firstSubjectIndex = seenAgentSubjects.get(subjectKey);
-      if (firstSubjectIndex !== undefined) {
-        ctx.addIssue({
-          code: "custom",
-          message: `duplicate agent subject "${subjectKey}" (also defined at agents[${firstSubjectIndex}])`,
-          path: ["agents", index, "subject"],
-        });
-      } else {
-        seenAgentSubjects.set(subjectKey, index);
-      }
-
-      if (agent.inbound_token) {
-        const firstTokenIndex = seenInboundTokens.get(agent.inbound_token);
-        if (firstTokenIndex !== undefined) {
-          ctx.addIssue({
-            code: "custom",
-            message: `duplicate agent inbound_token (also defined at agents[${firstTokenIndex}])`,
-            path: ["agents", index, "inbound_token"],
-          });
-        } else {
-          seenInboundTokens.set(agent.inbound_token, index);
-        }
-      }
-    });
 
     config.servers.forEach((server, index) => {
       const firstIndex = seenNames.get(server.name);

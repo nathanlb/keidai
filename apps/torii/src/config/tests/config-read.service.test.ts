@@ -21,19 +21,6 @@ const sampleConfig: ToriiConfig = {
       credential: { strategy: "user_oauth", provider: "github" },
     },
   ],
-  agents: [
-    {
-      subject: {
-        kind: "k8s_service_account",
-        namespace: "ns",
-        service_account: "sa",
-      },
-      agent_id: "agent-1",
-      owner_id: "owner-1",
-      groups: [],
-      inbound_token: "token",
-    },
-  ],
 };
 
 describe("ConfigReadService", () => {
@@ -55,7 +42,6 @@ describe("ConfigReadService", () => {
 
     const servers = service.listServers();
     const providers = service.listOAuthProviders();
-    const agents = service.listAgents();
     const groups = service.listGroups();
 
     assert.equal(servers.servers.length, 1);
@@ -65,12 +51,11 @@ describe("ConfigReadService", () => {
       allow: ["search_issues"],
     });
     assert.deepEqual(providers.providers.github?.scopes, ["repo"]);
-    assert.equal(agents.agents[0]?.owner_id, "owner-1");
     assert.deepEqual(groups, {
       groups: [{ name: "agents", description: "Test agents" }],
     });
     assert.equal(
-      JSON.stringify({ servers, providers, agents, groups }).includes("secret"),
+      JSON.stringify({ servers, providers, groups }).includes("secret"),
       false,
     );
   });
