@@ -169,18 +169,6 @@ describe("ConnectionManager", () => {
           provider: "github",
         }),
       ],
-      agents: [
-        {
-          subject: {
-            kind: "k8s_service_account",
-            namespace: "torii-agents",
-            service_account: "demo-agent",
-          },
-          agent_id: "demo-agent-01",
-          owner_id: ownerId,
-          groups: ["agents"],
-        },
-      ],
     });
     const manager = new ConnectionManager(
       configService,

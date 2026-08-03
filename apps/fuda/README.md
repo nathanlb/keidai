@@ -52,7 +52,7 @@ pnpm --filter @keidai/fuda seed -- ./apps/fuda/fuda.seed.example.yaml
 
 Idempotent and one-way: re-running the same file converges to the same state and does not delete rows absent from the file. Existing agent `id` / `slug` / `owner_id` are never rewritten; changed `name` / `groups` update in place; a changed `persona` appends a new version (same as the management API).
 
-Torii registration fields (`subject`, `inbound_token`, `gated_tools`) may appear in the seed file for copy-paste convenience and are ignored — credential → `bearer_id` mapping stays in the subject validator env.
+Torii registration fields (`subject`, `inbound_token`, `gated_tools`) may appear in the seed file for copy-paste convenience and are ignored — credential → `bearer_id` mapping stays in the subject validator env; gated tools belong in `torii.yaml`.
 
 Demo reset (wipe + seed):
 

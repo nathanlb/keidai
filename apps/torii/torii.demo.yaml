@@ -7,6 +7,7 @@
 # provider's developer console: {gateway_base}/oauth/callback/{provider}
 # (default local: http://127.0.0.1:3100/oauth/callback/github, etc.)
 #
+# Agent identity lives in Fuda (see apps/fuda/fuda.seed.example.yaml).
 # See docs/demo.md for the full walkthrough.
 
 oauth_providers:
@@ -86,23 +87,8 @@ groups:
 # Owner used for boot-time backend connections and catalog refresh.
 boot_owner_id: demo-owner
 
-agents:
-  - subject:
-      kind: k8s_service_account
-      namespace: torii-agents
-      service_account: demo-agent
-    agent_id: demo-agent-01
-    owner_id: demo-owner
-    groups: [agents]
-    inbound_token: ${env:DEMO_AGENT_BEARER}
-
-  - subject:
-      kind: k8s_service_account
-      namespace: torii-agents
-      service_account: shaiden
-    agent_id: shaiden-newsletter-01
-    owner_id: demo-owner
-    groups: [agents]
-    inbound_token: ${env:SHAIDEN_BEARER}
-    gated_tools:
-      - gmail.create_draft
+# Tools that require human approval before Torii proxies upstream,
+# keyed by Fuda agent id (see fuda.seed.example.yaml).
+gated_tools:
+  shaiden-newsletter-01:
+    - gmail.create_draft

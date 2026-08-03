@@ -1,5 +1,9 @@
 import type { ToriiConfig } from "@keidai/shared";
 
+/**
+ * Resolves the owner id for OAuth link/read flows.
+ * Explicit `?owner=` wins; otherwise falls back to deployment `boot_owner_id`.
+ */
 export function resolveOAuthOwnerId(
   config: ToriiConfig,
   ownerIdFlag: string | undefined,
@@ -8,18 +12,5 @@ export function resolveOAuthOwnerId(
     return ownerIdFlag;
   }
 
-  const agents = config.agents ?? [];
-  if (agents.length === 1) {
-    return agents[0]!.owner_id;
-  }
-
-  if (agents.length === 0) {
-    throw new Error(
-      "No agents configured. Pass ?owner=<owner_id> to specify the token owner.",
-    );
-  }
-
-  throw new Error(
-    `Multiple agents configured. Pass ?owner=<owner_id> (available: ${agents.map((agent) => agent.owner_id).join(", ")})`,
-  );
+  return config.boot_owner_id;
 }

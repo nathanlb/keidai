@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ToriiConfig } from "@keidai/shared";
 import {
-  projectConfigAgents,
   projectConfigGroups,
   projectConfigOAuthProviders,
   projectConfigServers,
@@ -38,19 +37,6 @@ const fullConfig: ToriiConfig = {
       name: "public",
       transport: { type: "http", url: "https://example.com/mcp" },
       credential: { strategy: "none" },
-    },
-  ],
-  agents: [
-    {
-      subject: {
-        kind: "k8s_service_account",
-        namespace: "torii-agents",
-        service_account: "demo-agent",
-      },
-      agent_id: "demo-agent-01",
-      owner_id: "demo-owner",
-      groups: ["agents"],
-      inbound_token: "bearer-secret",
     },
   ],
   groups: [
@@ -125,27 +111,6 @@ describe("project-config-api", () => {
     );
   });
 
-  it("projects agents without inbound_token", () => {
-    const result = projectConfigAgents(fullConfig);
-
-    assert.equal(result.agents.length, 1);
-    assert.deepEqual(result.agents[0], {
-      agent_id: "demo-agent-01",
-      owner_id: "demo-owner",
-      subject: {
-        kind: "k8s_service_account",
-        namespace: "torii-agents",
-        service_account: "demo-agent",
-      },
-      groups: ["agents"],
-    });
-    assert.equal(
-      JSON.stringify(result).includes("bearer-secret"),
-      false,
-      "inbound token must not leak",
-    );
-  });
-
   it("returns empty collections for empty config", () => {
     const empty: ToriiConfig = {
       boot_owner_id: "test-owner",
@@ -155,7 +120,7 @@ describe("project-config-api", () => {
 
     assert.deepEqual(projectConfigServers(empty), { servers: [] });
     assert.deepEqual(projectConfigOAuthProviders(empty), { providers: {} });
-    assert.deepEqual(projectConfigAgents(empty), { agents: [] });
+    assert.deepEqual(projectConfigGroups(empty), { groups: [] });
   });
 
   it("projects all credential strategies", () => {

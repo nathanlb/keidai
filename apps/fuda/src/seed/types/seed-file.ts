@@ -1,10 +1,10 @@
 import { z } from "zod";
 
 /**
- * One-way seed input for Fuda (NAT-121). Extends the Torii
- * `AgentRegistrationConfig` shape with `slug`, `name`, and `persona`.
- * Credential fields (`subject`, `inbound_token`, `gated_tools`) may appear
- * in the YAML for copy-paste from torii.yaml but are stripped before load —
+ * One-way seed input for Fuda (NAT-121). Extends the former Torii
+ * agent-registration shape with `slug`, `name`, and `persona`.
+ * Legacy fields (`subject`, `inbound_token`, `gated_tools`) may appear
+ * in the YAML for copy-paste convenience but are stripped before load —
  * they are not stored in Fuda.
  */
 export const seedAgentSchema = z

@@ -28,11 +28,12 @@ CI gate: `.github/workflows/shaiden-termination-eval.yml` runs `eval` on PRs tha
 
 ## Domain boundaries
 
-- **Torii** owns agent identity/registration (`agent_id`, `inbound_token`), tool catalog/dispatch, and the **approval ledger** — see `apps/torii/torii.demo.yaml`
+- **Torii** owns tool catalog/dispatch, group-based policy, and the **approval ledger** — see `apps/torii/torii.demo.yaml`
+- **Fuda** owns agent identity/registration — see `apps/fuda/fuda.seed.example.yaml`
 - **Shaiden** owns task execution, harness runtime, and **run visibility** (`POST /api/tasks/run`, `GET /api/runs`, SSE `/api/runs/events`)
 - **Shared** (`@keidai/shared`) owns cross-app Task/Run types, schemas, and structured logging
 
-Gated tools are declared per agent in Torii (`gated_tools` in `torii.yaml`). When the model calls a gated tool, Torii returns an `approval_required` sentinel. Shaiden parks the loop (wall-clock frozen) and waits for an MCP `notifications/approval_decided` push on the open Torii session, then replays the call with `approval_id` on approve. On reject, the harness records the denial in history and terminates as `human_reject` immediately — denials are not fed back to the model.
+Gated tools are declared in Torii operator config (`gated_tools` in `torii.yaml`, keyed by Fuda agent id). When the model calls a gated tool, Torii returns an `approval_required` sentinel. Shaiden parks the loop (wall-clock frozen) and waits for an MCP `notifications/approval_decided` push on the open Torii session, then replays the call with `approval_id` on approve. On reject, the harness records the denial in history and terminates as `human_reject` immediately — denials are not fed back to the model.
 
 If the MCP session drops while parked, the wait fails and the run terminates as `failed` (the approval decision may still be recorded in Torii's ledger for UI/audit).
 
@@ -58,7 +59,7 @@ pnpm install
 pnpm shaiden:dev
 ```
 
-Set `SHAIDEN_BEARER` in the repo root `.env` (or `apps/shaiden/.env`). Torii must register the same token under `agents[].inbound_token` in `torii.demo.yaml`.
+Set `SHAIDEN_BEARER` in the repo root `.env` (or `apps/shaiden/.env`). Present a Fuda-minted agent JWT to Torii (see Fuda token exchange); local demo seeds map the bearer through Fuda's subject validator.
 
 ## Task config (v0)
 

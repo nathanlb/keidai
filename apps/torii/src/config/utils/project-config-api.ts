@@ -1,6 +1,4 @@
 import type {
-  AgentRegistrationConfig,
-  ConfigAgentsResponse,
   ConfigGroupsResponse,
   ConfigOAuthProvidersResponse,
   ConfigServersResponse,
@@ -8,7 +6,6 @@ import type {
   GroupDefinitionConfig,
   OAuthProviderConfig,
   PolicyConfig,
-  PublicAgentConfig,
   PublicCredentialConfig,
   PublicGroupDefinition,
   PublicOAuthProviderConfig,
@@ -70,17 +67,6 @@ export function projectPublicOAuthProvider(
   return publicProvider;
 }
 
-export function projectPublicAgent(
-  agent: AgentRegistrationConfig,
-): PublicAgentConfig {
-  return {
-    agent_id: agent.agent_id,
-    owner_id: agent.owner_id,
-    subject: agent.subject,
-    groups: agent.groups,
-  };
-}
-
 export function projectPublicGroup(
   group: GroupDefinitionConfig,
 ): PublicGroupDefinition {
@@ -109,12 +95,6 @@ export function projectConfigOAuthProviders(
     providers[name] = projectPublicOAuthProvider(provider);
   }
   return { providers };
-}
-
-export function projectConfigAgents(config: ToriiConfig): ConfigAgentsResponse {
-  return {
-    agents: (config.agents ?? []).map(projectPublicAgent),
-  };
 }
 
 export function projectConfigGroups(config: ToriiConfig): ConfigGroupsResponse {

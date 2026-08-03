@@ -61,7 +61,7 @@ Playwright starts `pnpm exec tsx server/dev.ts` automatically (Fastify on port 3
 
 ## What to test
 
-- Pure utilities (`deriveOwnerInitials`, `groupAgentsByOwner`, `formatAgentSubject`)
+- Pure utilities (`deriveOwnerInitials`, `groupAgentsByOwner`)
 - Reducers and navigation helpers
 - Hooks with mocked data sources (`useActingOwner`)
 - Shell flows: routing, theme persistence, agents page empty and populated states

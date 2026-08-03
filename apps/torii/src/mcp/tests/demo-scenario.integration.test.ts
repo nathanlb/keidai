@@ -119,18 +119,6 @@ describe("Demo scenario — open-torii status digest", () => {
     const configService = new ToriiConfigService({
       boot_owner_id: DEMO_OWNER,
       oauth_providers: DEMO_OAUTH_PROVIDERS,
-      agents: [
-        {
-          subject: {
-            kind: "k8s_service_account",
-            namespace: "torii-agents",
-            service_account: "demo-agent",
-          },
-          agent_id: DEMO_PRINCIPAL.agentId,
-          owner_id: DEMO_OWNER,
-          groups: DEMO_PRINCIPAL.groups,
-        },
-      ],
       servers: [
         {
           name: "linear",

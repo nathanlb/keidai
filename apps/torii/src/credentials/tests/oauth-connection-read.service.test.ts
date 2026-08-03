@@ -8,7 +8,7 @@ import { MockTokenRepository } from "../../testing/mocks/mock-token-repository.j
 import { OAuthConnectionReadService } from "../oauth-connection-read.service.js";
 
 const sampleConfig: ToriiConfig = {
-  boot_owner_id: "test-owner",
+  boot_owner_id: "demo-owner",
   oauth_providers: {
     github: {
       token_url: "https://github.com/login/oauth/access_token",
@@ -24,18 +24,6 @@ const sampleConfig: ToriiConfig = {
     },
   },
   servers: [],
-  agents: [
-    {
-      subject: {
-        kind: "k8s_service_account",
-        namespace: "torii-agents",
-        service_account: "demo-agent",
-      },
-      agent_id: "demo-agent-01",
-      owner_id: "demo-owner",
-      groups: ["agents"],
-    },
-  ],
 };
 
 function createReadService(

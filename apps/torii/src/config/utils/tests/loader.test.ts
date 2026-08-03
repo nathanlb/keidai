@@ -105,62 +105,29 @@ describe("loadConfigFromDocument", () => {
         : undefined,
       "sk_test_123",
     );
-    assert.deepEqual(config.agents, []);
+    assert.deepEqual(config.gated_tools, {});
     assert.equal(config.boot_owner_id, "test-owner");
     assert.equal(config.groups?.length, 1);
     assert.equal(config.groups?.[0]?.name, "agents");
   });
 
-  it("loads agent registrations from config", () => {
+  it("loads gated_tools keyed by agent id", () => {
     const config = loadConfigFromDocument(
       {
         ...validDocument,
-        agents: [
-          {
-            subject: {
-              kind: "k8s_service_account",
-              namespace: "torii-agents",
-              service_account: "catalog-agent",
-            },
-            agent_id: "agent-catalog-01",
-            owner_id: "user-alice",
-            groups: ["agents"],
-          },
-        ],
+        gated_tools: {
+          "agent-catalog-01": ["github.create_issue"],
+        },
       },
       validEnv,
     );
 
-    assert.equal(config.agents?.length, 1);
-    assert.equal(config.agents?.[0]?.owner_id, "user-alice");
+    assert.deepEqual(config.gated_tools, {
+      "agent-catalog-01": ["github.create_issue"],
+    });
   });
 
-  it("fails on duplicate agent subjects", () => {
-    const duplicateAgent = {
-      subject: {
-        kind: "k8s_service_account",
-        namespace: "torii-agents",
-        service_account: "catalog-agent",
-      },
-      agent_id: "agent-2",
-      owner_id: "user-bob",
-      groups: [],
-    };
-
-    expectValidationError(
-      () =>
-        loadConfigFromDocument(
-          {
-            ...validDocument,
-            agents: [duplicateAgent, duplicateAgent],
-          },
-          validEnv,
-        ),
-      ['duplicate agent subject "torii-agents/catalog-agent"'],
-    );
-  });
-
-  it("rejects agent registrations that declare request-derived owner_id fields", () => {
+  it("rejects unrecognized agents key", () => {
     expectValidationError(
       () =>
         loadConfigFromDocument(
@@ -168,21 +135,15 @@ describe("loadConfigFromDocument", () => {
             ...validDocument,
             agents: [
               {
-                subject: {
-                  kind: "k8s_service_account",
-                  namespace: "torii-agents",
-                  service_account: "catalog-agent",
-                },
                 agent_id: "agent-catalog-01",
                 owner_id: "user-alice",
                 groups: [],
-                request_owner: "${request.user}",
               },
             ],
           },
           validEnv,
         ),
-      ["Unrecognized key(s) in object: 'request_owner'"],
+      ["Unrecognized key(s) in object: 'agents'"],
     );
   });
 

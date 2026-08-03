@@ -30,10 +30,7 @@ export class ApprovalGateService {
     private readonly approvalStore: ApprovalStoreService,
   ) {
     this.gatedToolsByAgentId = new Map(
-      (configService.get().agents ?? []).map((agent) => [
-        agent.agent_id,
-        agent.gated_tools ?? [],
-      ]),
+      Object.entries(configService.get().gated_tools ?? {}),
     );
   }
 

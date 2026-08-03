@@ -84,19 +84,6 @@ async function withGatedGateway(
   const configService = new ToriiConfigService({
     boot_owner_id: "test-owner",
     oauth_providers: {},
-    agents: [
-      {
-        subject: {
-          kind: "k8s_service_account",
-          namespace: "torii-agents",
-          service_account: "demo",
-        },
-        agent_id: TEST_AGENT_PRINCIPAL.agentId,
-        owner_id: TEST_AGENT_PRINCIPAL.ownerId,
-        groups: [],
-        gated_tools: ["gmail.create_draft"],
-      },
-    ],
     servers: [
       {
         name: "gmail",
@@ -105,6 +92,9 @@ async function withGatedGateway(
       },
     ],
     groups: [testAgentsGroup([{ server: "gmail", tools: ["create_draft"] }])],
+    gated_tools: {
+      [TEST_AGENT_PRINCIPAL.agentId]: ["gmail.create_draft"],
+    },
   });
   const sessionRegistry = new McpSessionRegistry();
   const approvalServices = createApprovalServices(configService, sessionRegistry);
@@ -289,7 +279,6 @@ describe("Gateway MCP approval notifications", () => {
     const configService = new ToriiConfigService({
       boot_owner_id: "test-owner",
       oauth_providers: {},
-      agents: [],
       servers: [
         {
           name: "gmail",

@@ -22,7 +22,6 @@ describe("Gateway HTTP access logging", () => {
       boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [],
-      agents: [],
     });
     const connectionManager = new ConnectionManager(
       configService,

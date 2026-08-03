@@ -125,7 +125,7 @@ Browse Torii's tools, resources, and prompts in the browser during development.
 pnpm --filter @keidai/torii dev:inspect
 ```
 
-This launches [@modelcontextprotocol/inspector](https://github.com/modelcontextprotocol/inspector) via a local auth shim that injects `Authorization: Bearer <DEMO_AGENT_BEARER>` on every request to Torii. Use the same bearer value as `agents[].inbound_token` in your `torii.yaml` (demo: `DEMO_AGENT_BEARER` in the repo root `.env`). Without it, Torii returns `401` and the Inspector incorrectly attempts MCP OAuth — you will see **OAuth Authentication Failed**.
+This launches [@modelcontextprotocol/inspector](https://github.com/modelcontextprotocol/inspector) via a local auth shim that injects `Authorization: Bearer <DEMO_AGENT_BEARER>` on every request to Torii. The bearer must be a Fuda-minted agent JWT (or a local demo token accepted by your Fuda subject validator). Without it, Torii returns `401` and the Inspector incorrectly attempts MCP OAuth — you will see **OAuth Authentication Failed**.
 
 The Inspector UI opens automatically at `http://localhost:6274` (or prints the URL with a session token). Torii's MCP endpoint defaults to `http://127.0.0.1:3100/mcp`; override with `TORII_HOST` / `TORII_PORT` if needed.
 

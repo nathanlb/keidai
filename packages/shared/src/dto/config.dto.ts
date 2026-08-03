@@ -1,5 +1,4 @@
 import type {
-  AgentSubjectConfig,
   GroupDefinitionConfig,
   PolicyConfig,
 } from "../config.js";
@@ -40,13 +39,6 @@ export interface PublicOAuthProviderConfig {
   pkce?: boolean;
 }
 
-export interface PublicAgentConfig {
-  agent_id: string;
-  owner_id: string;
-  subject: AgentSubjectConfig;
-  groups: string[];
-}
-
 /** Response body for `GET /api/config/servers`. */
 export interface ConfigServersResponse {
   servers: PublicServerConfig[];
@@ -55,11 +47,6 @@ export interface ConfigServersResponse {
 /** Response body for `GET /api/config/oauth-providers`. */
 export interface ConfigOAuthProvidersResponse {
   providers: Record<string, PublicOAuthProviderConfig>;
-}
-
-/** Response body for `GET /api/config/agents`. */
-export interface ConfigAgentsResponse {
-  agents: PublicAgentConfig[];
 }
 
 /** Response body for `GET /api/config/groups`. */
