@@ -9,3 +9,4 @@ allowBuilds:
 overrides:
   thread-stream: 4.1.0
   brace-expansion@1: 1.1.17
+  undici: ">=7.24.0"
