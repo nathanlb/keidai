@@ -107,6 +107,7 @@ describe("TraceEmitterService", () => {
       assert.deepEqual(allowed.principal, {
         agentId: "test-agent",
         ownerId: "test-owner",
+        bearerId: "test-bearer",
       });
       assert.equal(allowed.policyDecision, PolicyDecision.Allowed);
       assert.equal(allowed.durationMs, 15);

@@ -4,6 +4,12 @@ import type { PolicyDecision } from "./policy-decision.js";
 export interface CallTracePrincipal {
   agentId: string;
   ownerId: string;
+  /**
+   * Attested process that vouched for this agent.
+   * Present on newly emitted traces; may be absent on older SQLite rows until
+   * the trace store persists `bearer_id`.
+   */
+  bearerId?: string;
 }
 
 /** Structured audit record emitted on every gateway `tools/call`. */

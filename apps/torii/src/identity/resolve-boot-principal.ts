@@ -9,5 +9,6 @@ export function resolveBootPrincipal(config: ToriiConfig): AgentPrincipal {
     agentId: "boot",
     ownerId: config.boot_owner_id,
     groups: [],
+    bearerId: "boot",
   };
 }

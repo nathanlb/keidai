@@ -25,6 +25,7 @@ const DEMO_PRINCIPAL = {
   agentId: "demo-agent-01",
   ownerId: DEMO_OWNER,
   groups: ["agents"],
+  bearerId: "demo-bearer",
 };
 
 const DEMO_OAUTH_PROVIDERS: ToriiConfig["oauth_providers"] = {

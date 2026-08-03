@@ -19,7 +19,6 @@ import { runWithAgentPrincipal } from "../identity/agent-principal-context.js";
 import { InboundIdentityService } from "../identity/inbound-identity.service.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
 import type { Logger } from "@keidai/shared";
-import { IdentityDeniedError } from "../identity/types/identity-denied.js";
 import { IdentityResolutionError } from "../identity/types/identity-resolution-error.js";
 import {
   BackendUnavailableError,
@@ -382,9 +381,6 @@ export class GatewayMcpServer {
   private toMcpError(error: unknown): McpError {
     if (error instanceof McpError) {
       return error;
-    }
-    if (error instanceof IdentityDeniedError) {
-      return McpError.fromError(ErrorCode.InvalidRequest, error.message);
     }
     if (error instanceof PolicyDeniedError) {
       return McpError.fromError(ErrorCode.InvalidRequest, error.message);

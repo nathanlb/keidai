@@ -26,17 +26,13 @@ import { OAuthConnectionReadService } from "./credentials/oauth-connection-read.
 import { OAuthLinkService } from "./credentials/oauth-link.service.js";
 import { PENDING_OAUTH_LINK_STORE } from "./credentials/types/pending-oauth-link-store.js";
 import { ToolDispatchService } from "./dispatch/tool-dispatch.service.js";
-import { buildAgentRegistry } from "./identity/utils/build-agent-registry.js";
-import { buildBearerAgentRegistry } from "./identity/utils/build-bearer-agent-registry.js";
 import { InboundIdentityService } from "./identity/inbound-identity.service.js";
-import { CompositeAgentIdentityResolver } from "./identity/resolvers/composite-agent-identity-resolver.service.js";
-import { K8sSaOidcIdentityResolver } from "./identity/resolvers/k8s-sa-oidc-identity-resolver.service.js";
+import { FudaJwtIdentityResolver } from "./identity/resolvers/fuda-jwt-identity-resolver.service.js";
 import {
-  AGENT_BEARER_REGISTRY,
   AGENT_IDENTITY_RESOLVER,
-  AGENT_REGISTRY,
+  FUDA_JWT_CONFIG,
 } from "./identity/types/tokens.js";
-import { tryResolveK8sSaOidcConfig } from "./identity/utils/resolve-k8s-sa-oidc-config.js";
+import { resolveFudaJwtConfig } from "./identity/utils/resolve-fuda-jwt-config.js";
 import { GatewayHttpServer } from "./http/gateway-http-server.service.js";
 import { GatewayMcpServer } from "./mcp/gateway-mcp-server.service.js";
 import { McpSessionRegistry } from "./mcp/mcp-session-registry.service.js";
@@ -122,30 +118,11 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
       return pendingLinkStore;
     },
   });
-  appContainer.register(AGENT_REGISTRY, {
-    useFactory: (c) =>
-      buildAgentRegistry(c.resolve(ToriiConfigService).get().agents ?? []),
-  });
-  appContainer.register(AGENT_BEARER_REGISTRY, {
-    useFactory: (c) =>
-      buildBearerAgentRegistry(
-        c.resolve(ToriiConfigService).get().agents ?? [],
-      ),
+  appContainer.register(FUDA_JWT_CONFIG, {
+    useFactory: () => resolveFudaJwtConfig(),
   });
   appContainer.register(AGENT_IDENTITY_RESOLVER, {
-    useFactory: (c) => {
-      const k8sConfig = tryResolveK8sSaOidcConfig();
-      const k8sResolver = k8sConfig
-        ? new K8sSaOidcIdentityResolver(
-            c.resolve(AGENT_REGISTRY),
-            k8sConfig,
-          )
-        : null;
-      return new CompositeAgentIdentityResolver(
-        c.resolve(AGENT_BEARER_REGISTRY),
-        k8sResolver,
-      );
-    },
+    useClass: FudaJwtIdentityResolver,
   });
   appContainer.register(InboundIdentityService, {
     useClass: InboundIdentityService,

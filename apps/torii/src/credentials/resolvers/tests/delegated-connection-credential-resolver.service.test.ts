@@ -285,7 +285,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
     const resolver = createResolver(repository);
 
     const resolved = await runWithAgentPrincipal(
-      { agentId: "agent-1", ownerId: "context-owner", groups: [] },
+      { agentId: "agent-1", ownerId: "context-owner", groups: [], bearerId: "test-bearer" },
       () => resolver.resolve(userOAuthServer()),
     );
 
