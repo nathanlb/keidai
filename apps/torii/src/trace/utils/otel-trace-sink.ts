@@ -63,6 +63,9 @@ export function emitOtelSpan(callTrace: CallTrace): void {
       ? {
           "torii.agent_id": callTrace.principal.agentId,
           "torii.owner_id": callTrace.principal.ownerId,
+          ...(callTrace.principal.bearerId
+            ? { "torii.bearer_id": callTrace.principal.bearerId }
+            : {}),
         }
       : {}),
     ...(callTrace.credentialRef

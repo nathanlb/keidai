@@ -20,6 +20,7 @@ export function toTracePrincipal(
   return {
     agentId: principal.agentId,
     ownerId: principal.ownerId,
+    bearerId: principal.bearerId,
   };
 }
 

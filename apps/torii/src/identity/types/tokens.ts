@@ -1,4 +1,2 @@
-export const AGENT_REGISTRY = Symbol("AGENT_REGISTRY");
-export const AGENT_BEARER_REGISTRY = Symbol("AGENT_BEARER_REGISTRY");
 export const AGENT_IDENTITY_RESOLVER = Symbol("AGENT_IDENTITY_RESOLVER");
-export const K8S_SA_OIDC_CONFIG = Symbol("K8S_SA_OIDC_CONFIG");
+export const FUDA_JWT_CONFIG = Symbol("FUDA_JWT_CONFIG");

@@ -38,6 +38,7 @@ describe("resolveBootPrincipal", () => {
       agentId: "boot",
       ownerId: "ops-owner",
       groups: [],
+      bearerId: "boot",
     });
   });
 
@@ -46,6 +47,7 @@ describe("resolveBootPrincipal", () => {
       agentId: "boot",
       ownerId: "ops-owner",
       groups: [],
+      bearerId: "boot",
     });
   });
 });

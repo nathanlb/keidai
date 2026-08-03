@@ -11,35 +11,32 @@ import { startMockMcpServer } from "../../connections/tests/mock-mcp-server.js";
 import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
 import { createCredentialServices } from "../../credentials/tests/test-helpers.js";
 import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
-import { InMemoryAgentRegistry } from "../../identity/registry/in-memory-agent-registry.service.js";
-import { K8sSaOidcIdentityResolver } from "../../identity/resolvers/k8s-sa-oidc-identity-resolver.service.js";
-import type { K8sSaOidcConfig } from "../../identity/types/k8s-sa-oidc-config.js";
-import { createTestGatewayHttpServer } from "../../http/tests/test-helpers.js";
 import {
-  connectAgentToGateway,
-  createInboundIdentityService,
-  FixedIdentityResolver,
-  TEST_AGENT_BEARER,
-} from "../../identity/tests/test-helpers.js";
+  FudaJwtIdentityResolver,
+  FUDA_JWT_AUDIENCE,
+} from "../../identity/resolvers/fuda-jwt-identity-resolver.service.js";
+import type { FudaJwtConfig } from "../../identity/types/fuda-jwt-config.js";
+import { createTestGatewayHttpServer } from "../../http/tests/test-helpers.js";
+import { connectAgentToGateway } from "../../identity/tests/test-helpers.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
-import { createPolicyEnforcement, createApprovalServices } from "../../policy/tests/test-helpers.js";
+import {
+  createPolicyEnforcement,
+  createApprovalServices,
+} from "../../policy/tests/test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 
-const ISSUER = "https://kubernetes.default.svc.cluster.local";
-const AUDIENCE = "https://kubernetes.default.svc.cluster.local";
-const NAMESPACE = "torii-agents";
-const SERVICE_ACCOUNT = "catalog-agent";
+const ISSUER = "https://fuda.test";
 
 const EXPECTED_PRINCIPAL: AgentPrincipal = {
   agentId: "agent-catalog-01",
   ownerId: "user-alice",
   groups: ["agents"],
+  bearerId: "shaiden-runner-1",
 };
 
-const oidcConfig: K8sSaOidcConfig = {
+const jwtConfig: FudaJwtConfig = {
   issuer: ISSUER,
-  audience: AUDIENCE,
-  jwksUri: "https://kubernetes.default.svc/openid/v1/jwks",
+  jwksUri: "https://fuda.test/.well-known/jwks.json",
 };
 
 type PrivateKey = Awaited<ReturnType<typeof generateKeyPair>>["privateKey"];
@@ -61,10 +58,7 @@ async function createTestKeys(): Promise<TestKeys> {
   return { privateKey, publicJwk, otherPrivateKey };
 }
 
-function createIdentityResolver(): K8sSaOidcIdentityResolver {
-  const registry = new InMemoryAgentRegistry(
-    new Map([[`${NAMESPACE}/${SERVICE_ACCOUNT}`, EXPECTED_PRINCIPAL]]),
-  );
+function createIdentityResolver(): FudaJwtIdentityResolver {
   const verifyKey = async (header: { kid?: string }) => {
     if (header.kid && header.kid !== keys.publicJwk.kid) {
       throw new Error("Unknown key id");
@@ -78,15 +72,19 @@ function createIdentityResolver(): K8sSaOidcIdentityResolver {
     );
   };
 
-  return new K8sSaOidcIdentityResolver(registry, oidcConfig, verifyKey);
+  return new FudaJwtIdentityResolver(jwtConfig, verifyKey);
 }
 
 async function signToken(privateKey: PrivateKey): Promise<string> {
-  return new SignJWT({})
+  return new SignJWT({
+    agent_id: EXPECTED_PRINCIPAL.agentId,
+    owner_id: EXPECTED_PRINCIPAL.ownerId,
+    groups: EXPECTED_PRINCIPAL.groups,
+    bearer_id: EXPECTED_PRINCIPAL.bearerId,
+  })
     .setProtectedHeader({ alg: "RS256", kid: "test-key" })
-    .setSubject(`system:serviceaccount:${NAMESPACE}:${SERVICE_ACCOUNT}`)
     .setIssuer(ISSUER)
-    .setAudience(AUDIENCE)
+    .setAudience(FUDA_JWT_AUDIENCE)
     .setIssuedAt()
     .setExpirationTime("1h")
     .sign(privateKey);
@@ -120,7 +118,7 @@ describe("Gateway inbound identity", () => {
     keys = await createTestKeys();
   });
 
-  it("resolves a valid credential and flows end-to-end with the principal in context", async () => {
+  it("resolves a valid Fuda JWT and flows end-to-end with the principal in context", async () => {
     const backend = await startMockMcpServer({
       tools: [{ name: "read_wiki_structure", description: "Read wiki" }],
     });
@@ -128,23 +126,20 @@ describe("Gateway inbound identity", () => {
     const configService = new ToriiConfigService({
       boot_owner_id: "test-owner",
       oauth_providers: {},
-      agents: [
-        {
-          subject: {
-            kind: "k8s_service_account",
-            namespace: NAMESPACE,
-            service_account: SERVICE_ACCOUNT,
-          },
-          agent_id: EXPECTED_PRINCIPAL.agentId,
-          owner_id: EXPECTED_PRINCIPAL.ownerId,
-          groups: EXPECTED_PRINCIPAL.groups,
-        },
-      ],
       servers: [noneServer("deepwiki", backend.url)],
     });
     const { credentialResolver } = createCredentialServices();
-    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
-    const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
+    const toolCatalog = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+      createPolicyEnforcement(configService),
+      createNoopLogger(),
+    );
     const traceEmitter = new CapturingTraceEmitter();
     const toolDispatch = new ToolDispatchService(
       toolCatalog,
@@ -183,6 +178,7 @@ describe("Gateway inbound identity", () => {
         assert.deepEqual(trace.principal, {
           agentId: EXPECTED_PRINCIPAL.agentId,
           ownerId: EXPECTED_PRINCIPAL.ownerId,
+          bearerId: EXPECTED_PRINCIPAL.bearerId,
         });
         assert.equal(trace.policyDecision, PolicyDecision.Allowed);
       } finally {
@@ -206,8 +202,17 @@ describe("Gateway inbound identity", () => {
       servers: [noneServer("deepwiki", backend.url)],
     });
     const { credentialResolver } = createCredentialServices();
-    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
-    const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
+    const toolCatalog = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+      createPolicyEnforcement(configService),
+      createNoopLogger(),
+    );
     const traceEmitter = new CapturingTraceEmitter();
     const toolDispatch = new ToolDispatchService(
       toolCatalog,

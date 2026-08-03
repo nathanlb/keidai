@@ -28,6 +28,7 @@ const EVAL_PRINCIPAL = {
   agentId: EVAL_AGENT_ID,
   ownerId: EVAL_OWNER,
   groups: ["agents"],
+  bearerId: "eval-bearer",
 };
 
 const EVAL_OAUTH_PROVIDERS: ToriiConfig["oauth_providers"] = {

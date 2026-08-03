@@ -227,6 +227,7 @@ describe("ToolDispatchService", () => {
         assert.deepEqual(trace.principal, {
           agentId: TEST_AGENT_PRINCIPAL.agentId,
           ownerId: TEST_AGENT_PRINCIPAL.ownerId,
+          bearerId: TEST_AGENT_PRINCIPAL.bearerId,
         });
         assert.equal(trace.credentialRef, "none");
         assert.doesNotMatch(JSON.stringify(trace), /Bearer/);

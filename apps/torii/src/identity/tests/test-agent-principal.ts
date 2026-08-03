@@ -5,4 +5,5 @@ export const TEST_AGENT_PRINCIPAL: AgentPrincipal = {
   agentId: "test-agent",
   ownerId: "test-owner",
   groups: [],
+  bearerId: "test-bearer",
 };

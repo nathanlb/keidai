@@ -3,26 +3,25 @@ import assert from "node:assert/strict";
 import { generateKeyPair, exportJWK, SignJWT, type JWK } from "jose";
 import { describe, it, before } from "node:test";
 import type { AgentPrincipal } from "@keidai/shared";
-import { InMemoryAgentRegistry } from "../../registry/in-memory-agent-registry.service.js";
-import { K8sSaOidcIdentityResolver } from "../k8s-sa-oidc-identity-resolver.service.js";
+import {
+  FudaJwtIdentityResolver,
+  FUDA_JWT_AUDIENCE,
+} from "../fuda-jwt-identity-resolver.service.js";
 import { IdentityResolutionError } from "../../types/identity-resolution-error.js";
-import type { K8sSaOidcConfig } from "../../types/k8s-sa-oidc-config.js";
+import type { FudaJwtConfig } from "../../types/fuda-jwt-config.js";
 
-const ISSUER = "https://kubernetes.default.svc.cluster.local";
-const AUDIENCE = "https://kubernetes.default.svc.cluster.local";
-const NAMESPACE = "torii-agents";
-const SERVICE_ACCOUNT = "catalog-agent";
+const ISSUER = "https://fuda.test";
 
 const EXPECTED_PRINCIPAL: AgentPrincipal = {
   agentId: "agent-catalog-01",
   ownerId: "user-alice",
   groups: ["agents"],
+  bearerId: "shaiden-runner-1",
 };
 
-const oidcConfig: K8sSaOidcConfig = {
+const jwtConfig: FudaJwtConfig = {
   issuer: ISSUER,
-  audience: AUDIENCE,
-  jwksUri: "https://kubernetes.default.svc/openid/v1/jwks",
+  jwksUri: "https://fuda.test/.well-known/jwks.json",
 };
 
 type PrivateKey = Awaited<ReturnType<typeof generateKeyPair>>["privateKey"];
@@ -44,10 +43,7 @@ async function createTestKeys(): Promise<TestKeys> {
   return { privateKey, publicJwk, otherPrivateKey };
 }
 
-function createResolver(): K8sSaOidcIdentityResolver {
-  const registry = new InMemoryAgentRegistry(
-    new Map([[`${NAMESPACE}/${SERVICE_ACCOUNT}`, EXPECTED_PRINCIPAL]]),
-  );
+function createResolver(): FudaJwtIdentityResolver {
   const verifyKey = async (header: { kid?: string }) => {
     if (header.kid && header.kid !== keys.publicJwk.kid) {
       throw new Error("Unknown key id");
@@ -61,23 +57,41 @@ function createResolver(): K8sSaOidcIdentityResolver {
     );
   };
 
-  return new K8sSaOidcIdentityResolver(registry, oidcConfig, verifyKey);
+  return new FudaJwtIdentityResolver(jwtConfig, verifyKey);
 }
 
 async function signToken(
   privateKey: PrivateKey,
   claims: {
-    sub: string;
+    agent_id?: string;
+    owner_id?: string;
+    groups?: string[];
+    bearer_id?: string;
     aud?: string | string[];
     exp?: number;
     iss?: string;
-  },
+    omit?: Array<"agent_id" | "owner_id" | "groups" | "bearer_id">;
+  } = {},
 ): Promise<string> {
-  const builder = new SignJWT({})
+  const omit = new Set(claims.omit ?? []);
+  const payload: Record<string, unknown> = {};
+  if (!omit.has("agent_id")) {
+    payload.agent_id = claims.agent_id ?? EXPECTED_PRINCIPAL.agentId;
+  }
+  if (!omit.has("owner_id")) {
+    payload.owner_id = claims.owner_id ?? EXPECTED_PRINCIPAL.ownerId;
+  }
+  if (!omit.has("groups")) {
+    payload.groups = claims.groups ?? EXPECTED_PRINCIPAL.groups;
+  }
+  if (!omit.has("bearer_id")) {
+    payload.bearer_id = claims.bearer_id ?? EXPECTED_PRINCIPAL.bearerId;
+  }
+
+  const builder = new SignJWT(payload)
     .setProtectedHeader({ alg: "RS256", kid: "test-key" })
-    .setSubject(claims.sub)
     .setIssuer(claims.iss ?? ISSUER)
-    .setAudience(claims.aud ?? AUDIENCE)
+    .setAudience(claims.aud ?? FUDA_JWT_AUDIENCE)
     .setIssuedAt();
 
   if (claims.exp !== undefined) {
@@ -89,30 +103,23 @@ async function signToken(
   return builder.sign(privateKey);
 }
 
-describe("K8sSaOidcIdentityResolver", () => {
+describe("FudaJwtIdentityResolver", () => {
   before(async () => {
     keys = await createTestKeys();
   });
 
-  it("resolves a valid projected SA token to the correct internal principal", async () => {
+  it("resolves a valid Fuda JWT to a principal from claims only", async () => {
     const resolver = createResolver();
-    const token = await signToken(keys.privateKey, {
-      sub: `system:serviceaccount:${NAMESPACE}:${SERVICE_ACCOUNT}`,
-    });
+    const token = await signToken(keys.privateKey);
 
     const principal = await resolver.resolve(token);
 
     assert.deepEqual(principal, EXPECTED_PRINCIPAL);
-    assert.equal(typeof principal.agentId, "string");
-    assert.ok(!principal.agentId.includes("system:serviceaccount:"));
-    assert.ok(!principal.ownerId.includes("system:serviceaccount:"));
   });
 
   it("rejects a token with an invalid signature", async () => {
     const resolver = createResolver();
-    const token = await signToken(keys.otherPrivateKey, {
-      sub: `system:serviceaccount:${NAMESPACE}:${SERVICE_ACCOUNT}`,
-    });
+    const token = await signToken(keys.otherPrivateKey);
 
     await assert.rejects(
       () => resolver.resolve(token),
@@ -127,7 +134,6 @@ describe("K8sSaOidcIdentityResolver", () => {
   it("rejects a token with the wrong audience", async () => {
     const resolver = createResolver();
     const token = await signToken(keys.privateKey, {
-      sub: `system:serviceaccount:${NAMESPACE}:${SERVICE_ACCOUNT}`,
       aud: "https://wrong-audience.example",
     });
 
@@ -144,7 +150,6 @@ describe("K8sSaOidcIdentityResolver", () => {
   it("rejects an expired token", async () => {
     const resolver = createResolver();
     const token = await signToken(keys.privateKey, {
-      sub: `system:serviceaccount:${NAMESPACE}:${SERVICE_ACCOUNT}`,
       exp: Math.floor(Date.now() / 1000) - 60,
     });
 
@@ -158,45 +163,31 @@ describe("K8sSaOidcIdentityResolver", () => {
     );
   });
 
-  it("rejects a token for an unregistered service account", async () => {
+  it("rejects a token missing agent_id", async () => {
     const resolver = createResolver();
-    const token = await signToken(keys.privateKey, {
-      sub: "system:serviceaccount:torii-agents:unknown-agent",
-    });
+    const token = await signToken(keys.privateKey, { omit: ["agent_id"] });
 
     await assert.rejects(
       () => resolver.resolve(token),
       (error: unknown) => {
         assert.ok(error instanceof IdentityResolutionError);
-        assert.equal(error.message, "Agent is not registered");
+        assert.match(error.message, /agent_id/i);
         return true;
       },
     );
   });
 
-  it("rejects a token whose subject is not a Kubernetes service account", async () => {
+  it("rejects a token missing bearer_id", async () => {
     const resolver = createResolver();
-    const token = await signToken(keys.privateKey, {
-      sub: "spiffe://cluster.local/ns/torii/sa/catalog-agent",
-    });
+    const token = await signToken(keys.privateKey, { omit: ["bearer_id"] });
 
     await assert.rejects(
       () => resolver.resolve(token),
       (error: unknown) => {
         assert.ok(error instanceof IdentityResolutionError);
-        assert.match(error.message, /not a Kubernetes service account/i);
+        assert.match(error.message, /bearer_id/i);
         return true;
       },
     );
-  });
-
-  it("never exposes system:serviceaccount in returned AgentPrincipal", async () => {
-    const resolver = createResolver();
-    const token = await signToken(keys.privateKey, {
-      sub: `system:serviceaccount:${NAMESPACE}:${SERVICE_ACCOUNT}`,
-    });
-    const principal = await resolver.resolve(token);
-    const serialized = JSON.stringify(principal);
-    assert.ok(!serialized.includes("system:serviceaccount:"));
   });
 });

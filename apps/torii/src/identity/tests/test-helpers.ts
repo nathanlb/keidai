@@ -17,6 +17,7 @@ export class FixedIdentityResolver implements AgentIdentityResolver {
       agentId: this.principal.agentId,
       ownerId: this.principal.ownerId,
       groups: [...this.principal.groups],
+      bearerId: this.principal.bearerId,
     });
   }
 }

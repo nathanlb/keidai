@@ -6,16 +6,17 @@ export interface AgentPrincipal {
   ownerId: string;
   /** Group memberships for RBAC. */
   groups: string[];
+  /** Attested process that vouched for this agent (Fuda `bearer_id` claim). */
+  bearerId: string;
 }
 
 /**
  * Maps a verifiable agent credential to a normalized {@link AgentPrincipal}.
  *
- * The mapping from native subject to internal `agentId` lives inside the
- * resolver implementation. Nothing downstream may branch on the credential's
- * native form — policy, catalog, and trace speak internal ids only. This is
- * what makes the credential mechanism swappable (e.g. K8s SA token in v0,
- * SPIFFE/SVID later) without touching Torii's core.
+ * For Fuda-minted JWTs the principal is built from token claims only — no
+ * registry lookup after validation. Nothing downstream may branch on the
+ * credential's native form — policy, catalog, and trace speak internal ids
+ * only.
  */
 export interface AgentIdentityResolver {
   resolve(credential: string): Promise<AgentPrincipal>;

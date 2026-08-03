@@ -73,9 +73,8 @@ pnpm --filter @keidai/torii start
 | `TORII_UI_CLIENT_ROOT` | — | Path to built keidai-ui client (`dist/client`); when set, Torii serves the UI on the same origin as `/api` and `/mcp` |
 | `TORII_DB_PATH` | `./data/torii.db` | SQLite path for gateway persistent storage (OAuth tokens, provider clients, call traces) |
 | `TORII_GATEWAY_BASE_URL` | — | Stable public base URL for OAuth callbacks (overrides per-request Host derivation) |
-| `TORII_K8S_SA_OIDC_ISSUER` | — | K8s SA OIDC issuer (optional; enables JWT identity when set with audience + JWKS) |
-| `TORII_K8S_SA_OIDC_AUDIENCE` | — | Expected JWT audience |
-| `TORII_K8S_SA_OIDC_JWKS_URI` | — | JWKS endpoint for token verification |
+| `TORII_FUDA_ISSUER` | — | Expected `iss` on Fuda-minted agent JWTs (required) |
+| `TORII_FUDA_JWKS_URI` | — | Fuda JWKS URL, e.g. `http://127.0.0.1:3300/.well-known/jwks.json` (required) |
 
 See `torii.example.yaml` at the repo root for server list, policy, OAuth providers, and agent registration shapes. Demo config: [`torii.demo.yaml`](torii.demo.yaml) in this package.
 
@@ -83,12 +82,9 @@ Optional `gateway_base_url` in torii.yaml (or `TORII_GATEWAY_BASE_URL`) sets the
 
 ## Agent identity
 
-Inbound requests are authenticated via a single resolver wired at boot:
+Inbound requests present a Fuda-minted agent identity JWT (`Authorization: Bearer …`). Torii validates it offline against Fuda's JWKS (`TORII_FUDA_*`): issuer, `aud=torii`, expiry, and signature. The principal (`agentId`, `ownerId`, `groups`, `bearerId`) is taken from token claims only — no registry lookup.
 
-- **`agents[].inbound_token`** — static bearer declared in config (env refs resolved at load). Demo agents use this.
-- **K8s SA OIDC** — when `TORII_K8S_SA_OIDC_*` env vars are all set, projected service account JWTs are also accepted and mapped via `agents[].subject`.
-
-Backend OAuth for `user_oauth` servers is separate: tokens are persisted in SQLite via the keidai-ui OAuth providers screen, keyed by `(owner_id, provider)` from the resolved agent principal.
+Agent registration / subject validation lives in Fuda (token exchange). Torii calls Fuda for JWKS and nothing else.
 
 ## Trace feed API (UI)
 
