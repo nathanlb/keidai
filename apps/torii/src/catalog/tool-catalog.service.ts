@@ -60,31 +60,29 @@ export class ToolCatalogService {
         try {
           await this.credentialResolver.resolve(connection.config);
           const result = await connection.client.listTools();
-          const principal = getAgentPrincipal();
           const backendToolNames = result.tools.map((tool) => tool.name);
 
           this.policyEnforcement.warnUnknownPolicyTools(
-            connection.config,
+            connection.config.name,
             backendToolNames,
           );
 
           const toolsForServer: ServerToolView[] = [];
 
           for (const tool of result.tools) {
-            const allowed =
-              this.policyEnforcement.evaluate(
-                principal,
-                connection.config.name,
-                tool.name,
-              ) !== PolicyDecision.Denied;
+            const configured = this.policyEnforcement.isConfiguredGrant(
+              connection.config.name,
+              tool.name,
+            );
 
             toolsForServer.push({
               name: tool.name,
               description: tool.description,
-              allowed,
+              // Connections UI: configured grant surface across all groups.
+              allowed: configured,
             });
 
-            if (!allowed) {
+            if (!configured) {
               continue;
             }
 
@@ -131,6 +129,16 @@ export class ToolCatalogService {
   /** Agent-facing tool list with namespaced `name` fields. */
   async listToolsForAgent(): Promise<AgentTool[]> {
     const catalog = await this.refresh();
-    return catalog.map((entry) => entry.tool);
+    const principal = getAgentPrincipal();
+    return catalog
+      .filter(
+        (entry) =>
+          this.policyEnforcement.evaluate(
+            principal,
+            entry.server,
+            entry.bareName,
+          ).decision !== PolicyDecision.Denied,
+      )
+      .map((entry) => entry.tool);
   }
 }

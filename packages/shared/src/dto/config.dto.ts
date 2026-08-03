@@ -1,4 +1,8 @@
-import type { AgentSubjectConfig, PolicyConfig } from "../config.js";
+import type {
+  AgentSubjectConfig,
+  GroupDefinitionConfig,
+  PolicyConfig,
+} from "../config.js";
 
 /** Credential metadata exposed to the UI — no secret values. */
 export type PublicCredentialConfig =
@@ -10,8 +14,18 @@ export interface PublicServerConfig {
   name: string;
   transport: { type: "http"; url: string };
   credential: PublicCredentialConfig;
+  /**
+   * Derived allow-list: union of tools any group grants on this server.
+   * Always `default: "deny"` — live allow/deny is keyed on the principal's groups.
+   */
   policy: PolicyConfig;
 }
+
+/** Group definition exposed for authoring soft-join (name + description). */
+export type PublicGroupDefinition = Pick<
+  GroupDefinitionConfig,
+  "name" | "description"
+>;
 
 /** OAuth provider metadata exposed to the UI — no client_secret. */
 export interface PublicOAuthProviderConfig {
@@ -46,4 +60,9 @@ export interface ConfigOAuthProvidersResponse {
 /** Response body for `GET /api/config/agents`. */
 export interface ConfigAgentsResponse {
   agents: PublicAgentConfig[];
+}
+
+/** Response body for `GET /api/config/groups`. */
+export interface ConfigGroupsResponse {
+  groups: PublicGroupDefinition[];
 }

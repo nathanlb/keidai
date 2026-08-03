@@ -35,7 +35,6 @@ function userOAuthServer(
       strategy: "user_oauth",
       provider: "github",
     },
-    policy: { default: "deny" },
   };
 }
 

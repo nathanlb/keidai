@@ -14,6 +14,7 @@ import { createTestGatewayHttpServer } from "../../http/tests/test-helpers.js";
 import { connectAgentToGateway } from "../../identity/tests/test-helpers.js";
 import { createPolicyEnforcement, createApprovalServices } from "../../policy/tests/test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
+import { testAgentsGroup } from "../../testing/test-config.js";
 
 function serverConfig(
   name: string,
@@ -23,7 +24,6 @@ function serverConfig(
     name,
     transport: { type: "http", url },
     credential: { strategy: "none" },
-    policy: { default: "deny", allow: ["search_issues", "get_file_contents"] },
   };
 }
 
@@ -51,6 +51,11 @@ describe("Gateway MCP tools/list", () => {
       boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [serverConfig("github", backend.url)],
+      groups: [
+        testAgentsGroup([
+          { server: "github", tools: ["search_issues", "get_file_contents"] },
+        ]),
+      ],
     });
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());

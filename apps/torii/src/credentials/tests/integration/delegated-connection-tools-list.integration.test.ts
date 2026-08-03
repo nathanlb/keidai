@@ -11,6 +11,7 @@ import { createCredentialServices, withTestAgentPrincipal } from "../test-helper
 import { createPolicyEnforcement } from "../../../policy/tests/test-helpers.js";
 import { TEST_AGENT_PRINCIPAL } from "../../../identity/tests/test-helpers.js";
 import { createCapturingLogger, createNoopLogger } from "../../../logging/tests/test-helpers.js";
+import { testAgentsGroup } from "../../../testing/test-config.js";
 
 function userOAuthServer(
   name: string,
@@ -23,7 +24,6 @@ function userOAuthServer(
       strategy: "user_oauth",
       provider: "github",
     },
-    policy: { default: "deny", allow: ["search_issues"] },
   };
 }
 
@@ -61,6 +61,7 @@ describe("user_oauth credentials with tools/list", () => {
         },
       },
       servers: [userOAuthServer("github", mockServer.url)],
+      groups: [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])],
     });
     const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
     const catalogService = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
@@ -95,6 +96,7 @@ describe("user_oauth credentials with tools/list", () => {
         },
       },
       servers: [userOAuthServer("github", mockServer.url)],
+      groups: [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])],
     });
     const logger = createCapturingLogger();
     const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), logger);

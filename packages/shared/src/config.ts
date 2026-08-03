@@ -34,11 +34,26 @@ export interface PolicyConfig {
   deny?: string[];
 }
 
+/** Tool grants a group confers on one backend server. */
+export interface GroupPermissionConfig {
+  server: string;
+  tools: string[];
+}
+
+/**
+ * Operator-defined group: Torii's RBAC vocabulary.
+ * Fuda assigns group names to agents; Torii defines what each grants.
+ */
+export interface GroupDefinitionConfig {
+  name: string;
+  description: string;
+  permissions: GroupPermissionConfig[];
+}
+
 export interface ServerConfig {
   name: string;
   transport: { type: "http"; url: string };
   credential: CredentialConfig;
-  policy: PolicyConfig;
 }
 
 /** Workload identity a registered agent is bound to — not read from inbound requests. */
@@ -82,6 +97,11 @@ export interface ToriiConfig {
   boot_owner_id: string;
   oauth_providers: Record<string, OAuthProviderConfig>;
   servers: ServerConfig[];
+  /**
+   * Group definitions — the allow source for tool policy.
+   * A principal group absent from this list fails closed (grants nothing).
+   */
+  groups?: GroupDefinitionConfig[];
   /** Boot-time agent registrations; omitted or empty when none are configured. */
   agents?: AgentRegistrationConfig[];
 }

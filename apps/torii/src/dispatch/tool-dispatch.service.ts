@@ -135,13 +135,12 @@ export class ToolDispatchService {
   }
 
   private enforcePolicyOrThrow(ctx: DispatchCallContext): void {
-    if (
-      this.policyEnforcement.evaluate(
-        ctx.agentPrincipal,
-        ctx.parsed.server,
-        ctx.parsed.tool,
-      ) !== PolicyDecision.Denied
-    ) {
+    const evaluation = this.policyEnforcement.evaluate(
+      ctx.agentPrincipal,
+      ctx.parsed.server,
+      ctx.parsed.tool,
+    );
+    if (evaluation.decision !== PolicyDecision.Denied) {
       return;
     }
 
@@ -150,7 +149,7 @@ export class ToolDispatchService {
       tool: ctx.parsed.tool,
       principal: ctx.principal,
       policyDecision: PolicyDecision.Denied,
-      error: "policy denied",
+      error: evaluation.reason ?? "policy denied",
     });
     throw new PolicyDeniedError(ctx.namespacedName);
   }

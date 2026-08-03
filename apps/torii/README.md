@@ -76,13 +76,15 @@ pnpm --filter @keidai/torii start
 | `TORII_FUDA_ISSUER` | — | Expected `iss` on Fuda-minted agent JWTs (required) |
 | `TORII_FUDA_JWKS_URI` | — | Fuda JWKS URL, e.g. `http://127.0.0.1:3300/.well-known/jwks.json` (required) |
 
-See `torii.example.yaml` at the repo root for server list, policy, OAuth providers, and agent registration shapes. Demo config: [`torii.demo.yaml`](torii.demo.yaml) in this package.
+See `torii.example.yaml` at the repo root for server list, group definitions, OAuth providers, and agent registration shapes. Demo config: [`torii.demo.yaml`](torii.demo.yaml) in this package.
 
 Optional `gateway_base_url` in torii.yaml (or `TORII_GATEWAY_BASE_URL`) sets the stable public URL used to derive OAuth callback URIs: `{base}/oauth/callback/{provider}`.
 
 ## Agent identity
 
 Inbound requests present a Fuda-minted agent identity JWT (`Authorization: Bearer …`). Torii validates it offline against Fuda's JWKS (`TORII_FUDA_*`): issuer, `aud=torii`, expiry, and signature. The principal (`agentId`, `ownerId`, `groups`, `bearerId`) is taken from token claims only — no registry lookup.
+
+Tool allow/deny is keyed on the principal's `groups` against group definitions in `torii.yaml`. Unknown groups fail closed (deny + log `policy.unknown_group`).
 
 Agent registration / subject validation lives in Fuda (token exchange). Torii calls Fuda for JWKS and nothing else.
 

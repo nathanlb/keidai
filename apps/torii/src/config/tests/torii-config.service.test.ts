@@ -13,7 +13,6 @@ const sampleConfig: ToriiConfig = {
       name: "github",
       transport: { type: "http", url: "https://example.com/mcp" },
       credential: { strategy: "none" },
-      policy: { default: "deny" },
     },
   ],
 };

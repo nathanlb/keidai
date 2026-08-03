@@ -10,12 +10,14 @@ import { ToriiConfigService } from "../../config/torii-config.service.js";
 import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
 import { createCredentialServices, bootBackends, withTestAgentPrincipal } from "../../credentials/tests/test-helpers.js";
 import { LINKING_REQUIRED_CODE } from "../../credentials/types/credential-resolution.js";
+import { runWithAgentPrincipal } from "../../identity/agent-principal-context.js";
 import { TEST_AGENT_PRINCIPAL } from "../../identity/tests/test-helpers.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import type { CapturingTraceEmitter as CapturingTraceEmitterType } from "../../trace/tests/capturing-trace-emitter.js";
 import { PolicyDeniedError } from "../../policy/types/policy-denied.js";
 import { createPolicyEnforcement, createApprovalServices } from "../../policy/tests/test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
+import { testAgentsGroup } from "../../testing/test-config.js";
 import { ToolDispatchService } from "../tool-dispatch.service.js";
 import {
   BackendUnavailableError,
@@ -30,7 +32,6 @@ function noneServer(
     name,
     transport: { type: "http", url },
     credential: { strategy: "none" },
-    policy: { default: "deny", allow: ["read_wiki_structure"] },
   };
 }
 
@@ -45,7 +46,6 @@ function userOAuthServer(
       strategy: "user_oauth",
       provider: "github",
     },
-    policy: { default: "deny", allow: ["search_issues"] },
   };
 }
 
@@ -61,7 +61,6 @@ function serviceKeyServer(
       strategy: "service_key",
       key,
     },
-    policy: { default: "deny", allow: ["list_customers"] },
   };
 }
 
@@ -78,6 +77,7 @@ async function closeManagerConnections(
 
 async function createDispatchStack(
   servers: ToriiConfig["servers"][number][],
+  groups: ToriiConfig["groups"] = [],
 ): Promise<{
   connectionManager: ConnectionManager;
   toolCatalog: ToolCatalogService;
@@ -98,6 +98,7 @@ async function createDispatchStack(
       },
     },
     servers,
+    groups,
   });
   const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
   const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
@@ -126,9 +127,10 @@ describe("ToolDispatchService", () => {
     const mockServer = await startMockMcpServer({
       tools: [{ name: "read_wiki_structure", description: "Read wiki" }],
     });
-    const stack = await createDispatchStack([
-      noneServer("deepwiki", mockServer.url),
-    ]);
+    const stack = await createDispatchStack(
+      [noneServer("deepwiki", mockServer.url)],
+      [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])],
+    );
 
     try {
       await bootBackends(stack.connectionManager, stack.toolCatalog);
@@ -148,12 +150,18 @@ describe("ToolDispatchService", () => {
     const mockServer = await startMockMcpServer({
       tools: [{ name: "search_issues", description: "Search issues" }],
     });
-    const stack = await createDispatchStack([
-      {
-        ...noneServer("github", mockServer.url),
-        policy: { default: "deny", allow: ["search_issues", "missing_tool"] },
-      },
-    ]);
+    const stack = await createDispatchStack(
+      [
+        {
+          ...noneServer("github", mockServer.url),
+        },
+      ],
+      [
+        testAgentsGroup([
+          { server: "github", tools: ["search_issues", "missing_tool"] },
+        ]),
+      ],
+    );
 
     try {
       await bootBackends(stack.connectionManager, stack.toolCatalog);
@@ -177,9 +185,10 @@ describe("ToolDispatchService", () => {
         { name: "merge_pull_request", description: "Merge a pull request" },
       ],
     });
-    const stack = await createDispatchStack([
-      userOAuthServer("github", mockServer.url),
-    ]);
+    const stack = await createDispatchStack(
+      [userOAuthServer("github", mockServer.url)],
+      [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])],
+    );
 
     try {
       await withTestAgentPrincipal(async () => {
@@ -203,13 +212,47 @@ describe("ToolDispatchService", () => {
     }
   });
 
+  it("surfaces unknown_group denials on the call trace", async () => {
+    const mockServer = await startMockMcpServer({
+      tools: [{ name: "search_issues", description: "Search issues" }],
+    });
+    const stack = await createDispatchStack(
+      [userOAuthServer("github", mockServer.url)],
+      [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])],
+    );
+
+    try {
+      await runWithAgentPrincipal(
+        { ...TEST_AGENT_PRINCIPAL, groups: ["ops"] },
+        async () => {
+          await stack.connectionManager.connectAll();
+          await stack.toolCatalog.refresh();
+
+          await assert.rejects(
+            () => stack.toolDispatch.callTool("github.search_issues", {}),
+            PolicyDeniedError,
+          );
+
+          assert.equal(stack.traceEmitter.traces.length, 1);
+          const trace = stack.traceEmitter.traces[0]!;
+          assert.equal(trace.policyDecision, PolicyDecision.Denied);
+          assert.equal(trace.error, "unknown_group: ops");
+        },
+      );
+    } finally {
+      await stack.close();
+      await mockServer.close();
+    }
+  });
+
   it("emits a structured trace for allowed calls", async () => {
     const mockServer = await startMockMcpServer({
       tools: [{ name: "read_wiki_structure", description: "Read wiki" }],
     });
-    const stack = await createDispatchStack([
-      noneServer("deepwiki", mockServer.url),
-    ]);
+    const stack = await createDispatchStack(
+      [noneServer("deepwiki", mockServer.url)],
+      [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])],
+    );
 
     try {
       await withTestAgentPrincipal(async () => {
@@ -242,14 +285,16 @@ describe("ToolDispatchService", () => {
     const mockServer = await startMockMcpServer({
       tools: [{ name: "search_issues", description: "Search issues" }],
     });
-    const stack = await createDispatchStack([
-      {
-        name: "github",
-        transport: { type: "http", url: mockServer.url },
-        credential: { strategy: "none" },
-        policy: { default: "deny", allow: ["search_issues"] },
-      },
-    ]);
+    const stack = await createDispatchStack(
+      [
+        {
+          name: "github",
+          transport: { type: "http", url: mockServer.url },
+          credential: { strategy: "none" },
+        },
+      ],
+      [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])],
+    );
 
     try {
       await bootBackends(stack.connectionManager, stack.toolCatalog);
@@ -298,6 +343,7 @@ describe("ToolDispatchService", () => {
       boot_owner_id: "test-owner",
       oauth_providers: oauthProviders,
       servers: [userOAuthServer("github", mockServer.url)],
+      groups: [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])],
     });
     const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
     const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
@@ -350,9 +396,10 @@ describe("ToolDispatchService", () => {
       expectedBearer: secretKey,
       tools: [{ name: "list_customers", description: "List customers" }],
     });
-    const stack = await createDispatchStack([
-      serviceKeyServer("stripe", mockServer.url, secretKey),
-    ]);
+    const stack = await createDispatchStack(
+      [serviceKeyServer("stripe", mockServer.url, secretKey)],
+      [testAgentsGroup([{ server: "stripe", tools: ["list_customers"] }])],
+    );
 
     try {
       await bootBackends(stack.connectionManager, stack.toolCatalog);
@@ -372,9 +419,10 @@ describe("ToolDispatchService", () => {
     const mockServer = await startMockMcpServer({
       tools: [{ name: "read_wiki_structure", description: "Read wiki" }],
     });
-    const stack = await createDispatchStack([
-      noneServer("deepwiki", mockServer.url),
-    ]);
+    const stack = await createDispatchStack(
+      [noneServer("deepwiki", mockServer.url)],
+      [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])],
+    );
 
     try {
       await withTestAgentPrincipal(async () => {
@@ -407,9 +455,10 @@ describe("ToolDispatchService", () => {
     const mockServer = await startMockMcpServer({
       tools: [{ name: "read_wiki_structure", description: "Read wiki" }],
     });
-    const stack = await createDispatchStack([
-      noneServer("deepwiki", mockServer.url),
-    ]);
+    const stack = await createDispatchStack(
+      [noneServer("deepwiki", mockServer.url)],
+      [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])],
+    );
 
     try {
       await withTestAgentPrincipal(async () => {

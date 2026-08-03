@@ -9,6 +9,18 @@ export interface TracePolicyDetail {
   matchedRule: string | null;
 }
 
+function formatUnknownGroupReason(error: string | undefined): string | null {
+  if (!error?.startsWith("unknown_group:")) {
+    return null;
+  }
+  const groups = error.slice("unknown_group:".length).trim();
+  if (!groups) {
+    return "The calling principal includes a group Torii does not define, so the call was denied (fail closed).";
+  }
+  const label = groups.includes(",") ? "groups" : "group";
+  return `The calling principal includes unknown ${label} "${groups}". Torii fails closed on undefined groups, so the call was blocked before any credential or backend resolution.`;
+}
+
 export function formatTracePolicyDetail(
   trace: TraceListItem,
   server?: PublicServerConfig,
@@ -26,9 +38,12 @@ export function formatTracePolicyDetail(
           : null;
 
   if (denied) {
+    const unknownGroupReason = formatUnknownGroupReason(trace.error);
     return {
       headline: "Denied by policy",
-      reason: `"${trace.tool}" is not in the allow-list for server "${trace.server}". The default action is deny, so the call was blocked before any credential or backend resolution.`,
+      reason:
+        unknownGroupReason ??
+        `"${trace.tool}" is not granted to the calling principal's groups for server "${trace.server}". The call was blocked before any credential or backend resolution.`,
       variant: "denied",
       policyDefault,
       matchedRule: null,
@@ -49,7 +64,7 @@ export function formatTracePolicyDetail(
   return {
     headline: "Allowed by policy",
     reason: matchedRule
-      ? "Matched an explicit allow rule. The call proceeded to credential resolution and the backend."
+      ? "Matched a group grant for this server and tool. The call proceeded to credential resolution and the backend."
       : "Policy permitted the call. The call proceeded to credential resolution and the backend.",
     variant: "allowed",
     policyDefault,

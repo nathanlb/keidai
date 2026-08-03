@@ -11,6 +11,7 @@ import { ToolCatalogService } from "../../../catalog/tool-catalog.service.js";
 import { bootBackends, createCredentialServices, withTestAgentPrincipal } from "../test-helpers.js";
 import { createPolicyEnforcement } from "../../../policy/tests/test-helpers.js";
 import { createNoopLogger } from "../../../logging/tests/test-helpers.js";
+import { testAgentsGroup } from "../../../testing/test-config.js";
 
 function noneServer(
   name: string,
@@ -20,7 +21,6 @@ function noneServer(
     name,
     transport: { type: "http", url },
     credential: { strategy: "none" },
-    policy: { default: "deny", allow: ["read_wiki_structure"] },
   };
 }
 
@@ -61,6 +61,7 @@ describe("none credentials with tools/list", () => {
       boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [noneServer("deepwiki", mockServer.url)],
+      groups: [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])],
     });
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
@@ -138,9 +139,9 @@ describe("none credentials with DeepWiki MCP", () => {
             url: "https://mcp.deepwiki.com/mcp",
           },
           credential: { strategy: "none" },
-          policy: { default: "deny", allow: ["read_wiki_structure"] },
         },
       ],
+      groups: [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])],
     });
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());

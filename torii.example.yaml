@@ -1,8 +1,8 @@
 # Torii gateway configuration — loaded at boot, no database required.
 #
 # Shapes match @keidai/shared (ToriiConfig, ServerConfig, CredentialConfig,
-# PolicyConfig, OAuthProviderConfig, AgentRegistrationConfig). Env refs use ${env:VAR} and are resolved
-# before validation.
+# GroupDefinitionConfig, OAuthProviderConfig, AgentRegistrationConfig).
+# Env refs use ${env:VAR} and are resolved before validation.
 
 oauth_providers:
   github:
@@ -38,11 +38,6 @@ servers:
     credential:
       strategy: user_oauth
       provider: github
-    policy:
-      default: deny
-      allow:
-        - search_issues
-        - get_file_contents
 
   - name: stripe
     transport:
@@ -51,10 +46,6 @@ servers:
     credential:
       strategy: service_key
       key: ${env:STRIPE_RESTRICTED_KEY}
-    policy:
-      default: deny
-      allow:
-        - list_customers
 
   - name: deepwiki
     transport:
@@ -62,10 +53,23 @@ servers:
       url: https://mcp.deepwiki.com/mcp
     credential:
       strategy: none
-    policy:
-      default: deny
-      allow:
-        - read_wiki_structure
+
+# Group definitions are Torii's RBAC vocabulary. Fuda assigns group names to
+# agents; Torii defines what each grants. Unknown groups on a principal fail closed.
+groups:
+  - name: agents
+    description: Default agent access for registered workloads
+    permissions:
+      - server: github
+        tools:
+          - search_issues
+          - get_file_contents
+      - server: stripe
+        tools:
+          - list_customers
+      - server: deepwiki
+        tools:
+          - read_wiki_structure
 
 # Owner used for boot-time backend connections and catalog refresh.
 # Deployment config — not derived from agent declarations.

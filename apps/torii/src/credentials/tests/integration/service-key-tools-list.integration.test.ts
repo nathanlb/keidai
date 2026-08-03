@@ -10,6 +10,7 @@ import { ToolCatalogService } from "../../../catalog/tool-catalog.service.js";
 import { bootBackends, createCredentialServices, withTestAgentPrincipal } from "../test-helpers.js";
 import { createPolicyEnforcement } from "../../../policy/tests/test-helpers.js";
 import { createCapturingLogger } from "../../../logging/tests/test-helpers.js";
+import { testAgentsGroup } from "../../../testing/test-config.js";
 
 function serviceKeyServer(
   name: string,
@@ -23,7 +24,6 @@ function serviceKeyServer(
       strategy: "service_key",
       key,
     },
-    policy: { default: "deny", allow: ["list_customers"] },
   };
 }
 
@@ -51,6 +51,7 @@ describe("service_key credentials with tools/list", () => {
       boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [serviceKeyServer("stripe", mockServer.url, secretKey)],
+      groups: [testAgentsGroup([{ server: "stripe", tools: ["list_customers"] }])],
     });
     const { credentialResolver } = createCredentialServices();
     const logger = createCapturingLogger();
@@ -151,9 +152,9 @@ describe("service_key credentials with Stripe MCP", () => {
             strategy: "service_key",
             key: stripeKey,
           },
-          policy: { default: "deny", allow: ["list_customers"] },
         },
       ],
+      groups: [testAgentsGroup([{ server: "stripe", tools: ["list_customers"] }])],
     });
     const { credentialResolver } = createCredentialServices();
     const logger = createCapturingLogger();

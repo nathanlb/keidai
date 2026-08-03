@@ -2,11 +2,13 @@ import type {
   ApprovalRecordStatus,
   ApprovalRecordView,
   ConfigAgentsResponse,
+  ConfigGroupsResponse,
   ConfigOAuthProvidersResponse,
   ConfigServersResponse,
   ConnectionsResponse,
   OAuthConnectionsResponse,
   OAuthInitiateResponse,
+  PublicGroupDefinition,
   ServerToolsResponse,
   TraceListItem,
   TraceListQuery,
@@ -86,19 +88,13 @@ export async function fetchAgents(): Promise<ConfigAgentsResponse> {
   return fetchJson<ConfigAgentsResponse>("/api/config/agents");
 }
 
-export interface ToriiGroupDefinition {
-  name: string;
-  description: string;
-}
+export type ToriiGroupDefinition = PublicGroupDefinition;
 
-export interface ToriiGroupsResponse {
-  groups: ToriiGroupDefinition[];
-}
+export type ToriiGroupsResponse = ConfigGroupsResponse;
 
 /**
- * Soft join for group-authoring UX. NAT-124 (Torii group definitions
- * endpoint) has not shipped yet, so a missing endpoint resolves to an empty
- * known-group set rather than throwing — every group then renders as
+ * Soft join for group-authoring UX. Missing/unreachable endpoint resolves to
+ * an empty known-group set rather than throwing — every group then renders as
  * "unknown", which is the correct fail-closed default for authoring.
  */
 export async function fetchToriiGroups(): Promise<ToriiGroupsResponse> {

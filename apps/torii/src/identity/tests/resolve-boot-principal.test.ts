@@ -11,7 +11,6 @@ const baseConfig: ToriiConfig = {
       name: "linear",
       transport: { type: "http", url: "https://example.com/mcp" },
       credential: { strategy: "none" },
-      policy: { default: "deny" },
     },
   ],
 };

@@ -12,7 +12,7 @@ describe("formatTracePolicyDetail", () => {
     expect(formatTracePolicyDetail(deniedTrace, githubServer)).toEqual({
       headline: "Denied by policy",
       reason:
-        '"delete_repo" is not in the allow-list for server "github". The default action is deny, so the call was blocked before any credential or backend resolution.',
+        '"delete_repo" is not granted to the calling principal\'s groups for server "github". The call was blocked before any credential or backend resolution.',
       variant: "denied",
       policyDefault: "deny",
       matchedRule: null,
@@ -45,6 +45,22 @@ describe("formatTracePolicyDetail", () => {
     expect(formatTracePolicyDetail(deniedTrace)).toMatchObject({
       policyDefault: "deny",
       variant: "denied",
+    });
+  });
+
+  it("explains unknown-group denials from the trace error", () => {
+    expect(
+      formatTracePolicyDetail(
+        { ...deniedTrace, error: "unknown_group: ops" },
+        githubServer,
+      ),
+    ).toEqual({
+      headline: "Denied by policy",
+      reason:
+        'The calling principal includes unknown group "ops". Torii fails closed on undefined groups, so the call was blocked before any credential or backend resolution.',
+      variant: "denied",
+      policyDefault: "deny",
+      matchedRule: null,
     });
   });
 });
