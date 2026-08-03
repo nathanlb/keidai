@@ -21,7 +21,8 @@ Loaded automatically from the repo root `.env` then `apps/shaiden/.env` (same as
 | Variable | Required for `pnpm eval` | Notes |
 |----------|--------------------------|-------|
 | `OPEN_ROUTER_API_KEY` | yes | Real model calls |
-| `SHAIDEN_BEARER` | no | Eval stack uses `FixedIdentityResolver` |
+| `SHAIDEN_BEARER` | no | Eval stack uses `FixedIdentityResolver`; presented to Torii directly (no Fuda mint) |
+| `FUDA_URL` | no | Omitted in eval config so the harness skips token exchange |
 | `SHAIDEN_MODEL_ID` | no | Default `google/gemini-2.5-flash` |
 
 ## Layout

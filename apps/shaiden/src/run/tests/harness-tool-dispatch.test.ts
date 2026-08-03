@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { PolicyDeniedError } from "../../mcp/types/policy-denied-error.js";
 import { createTestPersistence, createTestRun } from "../../testing/persistence.js";
 import type { RunStore } from "../../runs/run-store.js";
 import { createHarnessToolDispatcher } from "../harness-tool-dispatch.js";
@@ -108,5 +109,29 @@ describe("harness tool dispatch", () => {
     assert.equal(steps[1]?.status, "error");
     assert.equal(steps[1]?.outputPreview, "policy denied");
     assert.equal(steps[1]?.toolCallId, "call-1");
+  });
+
+  it("records policyDenied when callTool throws PolicyDeniedError", async () => {
+    const { store, reporter } = createHarnessReporter();
+    const dispatch = createHarnessToolDispatcher({
+      runId: "run-1",
+      reporter,
+      availableToolNames: new Set(["notion_search"]),
+      callTool: async () => {
+        throw new PolicyDeniedError("policy_denied: notion_search");
+      },
+    });
+    const call = toolCall("notion_search", "call-1");
+
+    const result = await dispatch(call);
+
+    assert.equal(result.isError, true);
+    assert.equal(result.policyDenied, true);
+    assert.match(result.text, /policy_denied/);
+    const resultStep = latestSteps(store)[1];
+    assert.equal(resultStep?.kind, "tool_result");
+    if (resultStep?.kind === "tool_result") {
+      assert.equal(resultStep.status, "error");
+    }
   });
 });

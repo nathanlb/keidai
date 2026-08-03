@@ -13,7 +13,16 @@ const DEFAULT_HTTP_PORT = 3200;
 export interface RuntimeConfig {
   agentId: string;
   toriiMcpUrl: string;
+  /**
+   * Subject token for Fuda token exchange (static secret in v0). When
+   * `fudaBaseUrl` is unset (eval/tests), this value is presented to Torii directly.
+   */
   bearerToken: string;
+  /**
+   * Fuda base URL for `POST /token`. Required via `loadRuntimeConfig` /
+   * `FUDA_URL`; optional on the type so evals can omit minting.
+   */
+  fudaBaseUrl?: string;
   openRouterApiKey: string;
   modelId: string;
   httpHost: string;
@@ -32,6 +41,7 @@ export function loadRuntimeConfig(): RuntimeConfig {
     toriiMcpUrl:
       process.env.TORII_MCP_URL?.trim() ?? "http://127.0.0.1:3100/mcp",
     bearerToken: requiredEnv("SHAIDEN_BEARER"),
+    fudaBaseUrl: requiredEnv("FUDA_URL"),
     openRouterApiKey: requiredEnv("OPEN_ROUTER_API_KEY"),
     modelId: process.env.SHAIDEN_MODEL_ID?.trim() ?? DEFAULT_MODEL_ID,
     httpHost: process.env.SHAIDEN_HOST?.trim() ?? "127.0.0.1",

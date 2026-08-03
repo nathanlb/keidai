@@ -1,6 +1,6 @@
 # Shaiden
 
-Agent runtime for the Keidai ecosystem. Connects to Torii over MCP with an opaque bearer token, discovers tools dynamically, and drives the configured task to a typed termination outcome.
+Agent runtime for the Keidai ecosystem. Exchanges a subject token with Fuda for a short-lived agent JWT, connects to Torii over MCP with that JWT, discovers tools dynamically, and drives the configured task to a typed termination outcome.
 
 ## Task loop
 
@@ -11,10 +11,19 @@ The loop is deliberately thin: call the model (OpenRouter via the AI SDK) with T
 | `goal_met` | Agent called `report_step_assessment` with `status: goal_met`, or returned final text when assessment was omitted |
 | `iteration_exhausted` | Iteration cap reached (default 12) |
 | `timeout` | Wall-clock timeout reached (default 600s) |
-| `failed(reason)` | Harness-level failure (model unreachable, operator cancel, session/connect error), or agent self-assessed give-up (`status: cannot_complete`). Per-call tool errors are fed back to the model as tool results so the agent can retry or adapt. |
+| `failed(reason)` | Harness-level failure (model unreachable, operator cancel, session/connect error, Fuda token exchange failure, policy denial on approval resume), or agent self-assessed give-up (`status: cannot_complete`). Per-call tool errors are fed back to the model as tool results so the agent can retry or adapt. |
 | `human_reject` | Human denied a gated tool call — the harness terminates immediately; the model does not decide |
 
 Working steps continue implicitly when the model calls Torii tools. `report_step_assessment` is terminal-only (`goal_met` | `cannot_complete`) and should not be called alongside other tools.
+
+### Credentials
+
+| Call | Credential |
+|------|------------|
+| Shaiden → Fuda (`POST /token`) | Subject token (`SHAIDEN_BEARER`; static in v0) |
+| Shaiden → Torii (tools/list, tools/call) | Fuda-minted agent JWT (`aud=torii`, ~5 min TTL) |
+
+Tokens are minted when the harness needs Torii credentials and reminted when near expiry or on resume from `waiting_approval`, so a long-parked task picks up revoked grants and group changes. Fuda unreachable at first mint fails the run clearly; mid-run Fuda outages keep a still-valid cached JWT.
 
 ### Evals (NAT-112)
 
@@ -33,7 +42,7 @@ CI gate: `.github/workflows/shaiden-termination-eval.yml` runs `eval` on PRs tha
 - **Shaiden** owns task execution, harness runtime, and **run visibility** (`POST /api/tasks/run`, `GET /api/runs`, SSE `/api/runs/events`)
 - **Shared** (`@keidai/shared`) owns cross-app Task/Run types, schemas, and structured logging
 
-Gated tools are declared in Torii operator config (`gated_tools` in `torii.yaml`, keyed by Fuda agent id). When the model calls a gated tool, Torii returns an `approval_required` sentinel. Shaiden parks the loop (wall-clock frozen) and waits for an MCP `notifications/approval_decided` push on the open Torii session, then replays the call with `approval_id` on approve. On reject, the harness records the denial in history and terminates as `human_reject` immediately — denials are not fed back to the model.
+Gated tools are declared in Torii operator config (`gated_tools` in `torii.yaml`, keyed by Fuda agent id). When the model calls a gated tool, Torii returns an `approval_required` sentinel. Shaiden parks the loop (wall-clock frozen) and waits for an MCP `notifications/approval_decided` push on the open Torii session, then remints credentials and replays the call with `approval_id` on approve. On reject, the harness records the denial in history and terminates as `human_reject` immediately — denials are not fed back to the model. A replay that fails Torii policy after remint terminates as `failed(reason)` with a policy-denial message (distinct from transport failure).
 
 If the MCP session drops while parked, the wait fails and the run terminates as `failed` (the approval decision may still be recorded in Torii's ledger for UI/audit).
 
@@ -53,13 +62,13 @@ Local `pnpm shaiden:dev` output is JSON lines on stderr, not human-readable pros
 ## Local development
 
 ```bash
-# From repo root — requires Torii running (pnpm demo:torii) and SHAIDEN_BEARER set.
+# From repo root — requires Fuda + Torii running and SHAIDEN_BEARER / FUDA_URL set.
 cp apps/shaiden/.env.example apps/shaiden/.env
 pnpm install
 pnpm shaiden:dev
 ```
 
-Set `SHAIDEN_BEARER` in the repo root `.env` (or `apps/shaiden/.env`). Present a Fuda-minted agent JWT to Torii (see Fuda token exchange); local demo seeds map the bearer through Fuda's subject validator.
+Set `SHAIDEN_BEARER` (subject token) and `FUDA_URL` in the repo root `.env` (or `apps/shaiden/.env`). Shaiden exchanges the subject token for an agent JWT via Fuda `POST /token` before calling Torii. Local demo seeds map the bearer through Fuda's subject validator.
 
 ## Task config (v0)
 
@@ -85,18 +94,21 @@ A sample Task shape still lives in [`src/config/boot-task.ts`](src/config/boot-t
 ## Docker Compose
 
 ```bash
-# Requires SHAIDEN_BEARER and demo Torii secrets in the repo root .env
+# Requires SHAIDEN_BEARER, FUDA_ISSUER, apps/fuda/keys/dev.pem, and demo Torii
+# secrets in the repo root .env. Seed agents/grants after first boot (empty DB
+# otherwise fails token exchange):
+#   pnpm --filter @keidai/fuda seed -- ./apps/fuda/fuda.seed.example.yaml
+# (point FUDA_DB_PATH at the compose volume, or use the management API)
 docker compose up --build
 ```
 
-Starts Torii with `torii.demo.yaml` and the Shaiden HTTP server (awaiting task submissions from keidai-ui).
-
-## Environment
+Starts **Fuda** (identity / token exchange on `:3300`), **Torii** (`torii.demo.yaml`, JWKS from Fuda), and the **Shaiden** HTTP server (awaiting task submissions from keidai-ui).## Environment
 
 | Variable | Description |
 |----------|-------------|
-| `SHAIDEN_BEARER` | Opaque mock workload identity token (passed through to Torii unchanged) |
-| `SHAIDEN_AGENT_ID` | Agent id matching Torii registration (default: `shaiden-newsletter-01`) |
+| `SHAIDEN_BEARER` | Subject token for Fuda token exchange (static shared secret in v0) |
+| `FUDA_URL` | Fuda base URL for `POST /token` (e.g. `http://127.0.0.1:3300`) |
+| `SHAIDEN_AGENT_ID` | Agent id requested in token exchange (default: `shaiden-newsletter-01`) |
 | `TORII_MCP_URL` | Torii MCP endpoint (default: `http://127.0.0.1:3100/mcp`) |
 | `OPEN_ROUTER_API_KEY` | OpenRouter API key for the task-loop model |
 | `SHAIDEN_MODEL_ID` | OpenRouter model id (default: `google/gemini-2.5-flash`) |

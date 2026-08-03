@@ -1,15 +1,54 @@
 services:
+  fuda:
+    build:
+      context: .
+      dockerfile: apps/fuda/Dockerfile
+    env_file:
+      - .env
+      - apps/fuda/.env
+    environment:
+      FUDA_HOST: 0.0.0.0
+      FUDA_PORT: "3300"
+      FUDA_DB_PATH: /app/data/fuda.db
+      FUDA_ISSUER: ${FUDA_ISSUER:?FUDA_ISSUER is required}
+      # Mount apps/fuda/keys/dev.pem (see apps/fuda/README.md).
+      FUDA_SIGNING_KEYS: "dev=/app/keys/dev.pem"
+      FUDA_SIGNING_KID: "dev"
+      # Map Shaiden's subject token to the demo bearer_id from fuda.seed.example.yaml.
+      FUDA_STATIC_SUBJECT_MAPPINGS: ${SHAIDEN_BEARER:?SHAIDEN_BEARER is required}=local-dev
+    volumes:
+      - ./apps/fuda/keys:/app/keys:ro
+      - fuda-data:/app/data
+    ports:
+      - "3300:3300"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:' + (process.env.FUDA_PORT || 3300) + '/api/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
   torii:
     build:
       context: .
       dockerfile: apps/torii/Dockerfile
+    depends_on:
+      fuda:
+        condition: service_healthy
     env_file:
       - .env
       - apps/torii/.env
     environment:
-      SHAIDEN_BEARER: ${SHAIDEN_BEARER:?SHAIDEN_BEARER is required}
       TORII_CONFIG_PATH: /app/torii.demo.yaml
       TORII_DB_PATH: /app/data/torii.db
+      TORII_FUDA_ISSUER: ${FUDA_ISSUER:?FUDA_ISSUER is required}
+      TORII_FUDA_JWKS_URI: http://fuda:3300/.well-known/jwks.json
     volumes:
       - ./apps/torii/torii.demo.yaml:/app/torii.demo.yaml:ro
       - torii-data:/app/data
@@ -33,6 +72,8 @@ services:
       context: .
       dockerfile: apps/shaiden/Dockerfile
     depends_on:
+      fuda:
+        condition: service_healthy
       torii:
         condition: service_healthy
     env_file:
@@ -40,6 +81,7 @@ services:
       - apps/shaiden/.env
     environment:
       SHAIDEN_BEARER: ${SHAIDEN_BEARER:?SHAIDEN_BEARER is required}
+      FUDA_URL: http://fuda:3300
       TORII_MCP_URL: http://torii:3100/mcp
       SHAIDEN_HOST: 0.0.0.0
       SHAIDEN_PORT: "3200"
@@ -50,5 +92,6 @@ services:
       - "3200:3200"
 
 volumes:
+  fuda-data:
   torii-data:
   shaiden-data:

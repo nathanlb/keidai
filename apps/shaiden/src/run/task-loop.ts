@@ -130,6 +130,15 @@ export async function runTaskLoop(
         approvalId: result.approvalRequired.approvalId,
         stepId: result.approvalRequired.stepId,
       });
+
+      // Remint on resume can change groups/grants; a replayed call may fail
+      // policy that passed at request time. Treat as a real termination, not a
+      // model-retryable tool error.
+      if (result.policyDenied) {
+        throw new Error(
+          `policy denied after approval resume: ${result.text}`,
+        );
+      }
     }
 
     return result;

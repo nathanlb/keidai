@@ -5,6 +5,7 @@ import {
   TORII_STEP_ID_ARG,
   type Logger,
 } from "@keidai/shared";
+import { PolicyDeniedError } from "../mcp/types/policy-denied-error.js";
 import type { RunReporter } from "./run-reporter.js";
 import {
   describeError,
@@ -70,15 +71,27 @@ export function createHarnessToolDispatcher({
       result = await callTool(call.toolName, args);
     } catch (error) {
       const errorMessage = describeError(error);
+      const policyDenied = error instanceof PolicyDeniedError;
       logger?.info("run.tool_result", {
         runId,
         toolName: call.toolName,
         status: "error",
         error: errorMessage,
+        ...(policyDenied ? { policyDenied: true } : {}),
       });
-      const errorResult = { isError: true as const, text: errorMessage };
+      const errorResult = {
+        isError: true as const,
+        text: errorMessage,
+        ...(policyDenied ? { policyDenied: true as const } : {}),
+      };
       recordToolResult(reporter, call, errorResult);
       return errorResult;
+    }
+
+    if (result.isError && result.policyDenied !== true) {
+      if (/(^|\b)policy_denied\b/i.test(result.text)) {
+        result = { ...result, policyDenied: true };
+      }
     }
 
     logger?.info("run.tool_result", {
