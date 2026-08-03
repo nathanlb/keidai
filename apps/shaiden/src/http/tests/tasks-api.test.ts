@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Logger, Task } from "@keidai/shared";
+import { AgentDefinitionError } from "@keidai/shared/clients";
 import type { HarnessRunResult } from "../../run/types/harness.js";
 import type { LaunchedHarnessRun } from "../../run/types/harness.js";
 import { ActiveRunRegistry } from "../../run/active-run-registry.js";
@@ -42,7 +43,10 @@ function createTestServer({
   startTaskRun,
 }: {
   persistence?: TestPersistence;
-  startTaskRun?: (input: { task: Task; taskId: string }) => LaunchedHarnessRun;
+  startTaskRun?: (input: {
+    task: Task;
+    taskId: string;
+  }) => Promise<LaunchedHarnessRun>;
 } = {}) {
   const launched: Array<{ task: Task; taskId: string }> = [];
   const { runStore, taskRepository } = persistence;
@@ -63,7 +67,7 @@ function createTestServer({
       }),
     startTaskRun:
       startTaskRun ??
-      (({ task, taskId }) => {
+      (async ({ task, taskId }) => {
         launched.push({ task, taskId });
         runStore.createRun({
           id: "run-1",
@@ -325,6 +329,59 @@ describe("tasks API", () => {
       assert.deepEqual(await runtime.json(), {
         agentId: "shaiden-newsletter-01",
       });
+    } finally {
+      await handle.close();
+      persistence.close();
+    }
+  });
+
+  it("fails task start when Fuda agent is unknown", async () => {
+    const { server, persistence } = createTestServer({
+      startTaskRun: async () => {
+        throw new AgentDefinitionError("agent_not_found", "Fuda agent not found", {
+          status: 404,
+        });
+      },
+    });
+    const handle = await server.start({ host: "127.0.0.1", port: 0 });
+    try {
+      const response = await fetch(`${handle.baseUrl}/api/tasks/run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sampleTask),
+      });
+      assert.equal(response.status, 422);
+      const body = (await response.json()) as { error: string };
+      assert.match(body.error, /unknown agent/i);
+      assert.equal(persistence.runStore.listRuns().runs.length, 0);
+      assert.equal(persistence.taskRepository.list().tasks.length, 0);
+    } finally {
+      await handle.close();
+      persistence.close();
+    }
+  });
+
+  it("fails task start when Fuda is unreachable", async () => {
+    const { server, persistence } = createTestServer({
+      startTaskRun: async () => {
+        throw new AgentDefinitionError(
+          "unreachable",
+          "Fuda unreachable while fetching agent definition",
+        );
+      },
+    });
+    const handle = await server.start({ host: "127.0.0.1", port: 0 });
+    try {
+      const response = await fetch(`${handle.baseUrl}/api/tasks/run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sampleTask),
+      });
+      assert.equal(response.status, 503);
+      const body = (await response.json()) as { error: string };
+      assert.match(body.error, /Fuda unreachable/i);
+      assert.equal(persistence.runStore.listRuns().runs.length, 0);
+      assert.equal(persistence.taskRepository.list().tasks.length, 0);
     } finally {
       await handle.close();
       persistence.close();

@@ -29,6 +29,10 @@ function rowToSavedTask(row: TaskRow): SavedTask {
   };
 }
 
+const TASK_COLUMNS = `
+  id, goal, trigger_json, assignee, limits_json, created_at, updated_at
+`;
+
 export class SqliteTaskRepository implements TaskRepository {
   private readonly insertStatement;
   private readonly getStatement;
@@ -46,12 +50,12 @@ export class SqliteTaskRepository implements TaskRepository {
       )
     `);
     this.getStatement = db.prepare(`
-      SELECT id, goal, trigger_json, assignee, limits_json, created_at, updated_at
+      SELECT ${TASK_COLUMNS}
       FROM tasks
       WHERE id = ?
     `);
     this.listStatement = db.prepare(`
-      SELECT id, goal, trigger_json, assignee, limits_json, created_at, updated_at
+      SELECT ${TASK_COLUMNS}
       FROM tasks
       ORDER BY updated_at DESC, id DESC
       LIMIT ?

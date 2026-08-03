@@ -1,7 +1,9 @@
-export function taskSystemPrompt(agentId: string): string {
-  return `You are ${agentId}, an autonomous agent runtime worker.
-
-You are given a task goal and a set of tools. Work toward the goal by calling tools; each result is fed back to you.
+/**
+ * Runtime protocol the model must follow for Shaiden's task loop.
+ * Persona content (identity / behaviour) is composed in front of this.
+ */
+export function taskRuntimeProtocol(): string {
+  return `You are given a task goal and a set of tools. Work toward the goal by calling tools; each result is fed back to you.
 
 While working, call Torii tools only — no assessment tool needed. Progress continues automatically when you call tools.
 
@@ -28,6 +30,18 @@ Rules:
 - Do not call report_step_assessment while still calling other tools.
 - Always end by calling report_step_assessment. A plain text summary is NOT a substitute and will not be treated as your final assessment.
 - Human approval denials are handled by the runtime; you do not need to report them.`;
+}
+
+/** Compose Fuda persona content as the system prompt identity + runtime protocol. */
+export function systemPromptFromPersona(persona: string): string {
+  return `${persona.trim()}\n\n${taskRuntimeProtocol()}`;
+}
+
+/** Eval / no-Fuda fallback when agent definition cannot be fetched. */
+export function taskSystemPrompt(agentId: string): string {
+  return systemPromptFromPersona(
+    `You are ${agentId}, an autonomous agent runtime worker.`,
+  );
 }
 
 export function taskGoalPrompt(goal: string): string {

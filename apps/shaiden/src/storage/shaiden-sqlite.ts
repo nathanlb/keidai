@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS runs (
   status TEXT NOT NULL,
   outcome_json TEXT,
   step_count INTEGER NOT NULL DEFAULT 0,
+  persona_version INTEGER,
+  persona TEXT,
   FOREIGN KEY (task_id) REFERENCES tasks(id)
 );
 
@@ -43,13 +45,39 @@ CREATE INDEX IF NOT EXISTS idx_run_steps_run_id
   ON run_steps(run_id, timestamp ASC, id ASC);
 `;
 
-function ensureConversationHistoryColumn(db: DatabaseSync): void {
+function ensureColumn(
+  db: DatabaseSync,
+  table: string,
+  column: string,
+  ddl: string,
+): void {
   const columns = db
-    .prepare("PRAGMA table_info(runs)")
+    .prepare(`PRAGMA table_info(${table})`)
     .all() as Array<{ name: string }>;
-  if (!columns.some((column) => column.name === "conversation_history_json")) {
-    db.exec("ALTER TABLE runs ADD COLUMN conversation_history_json TEXT");
+  if (!columns.some((entry) => entry.name === column)) {
+    db.exec(ddl);
   }
+}
+
+function ensureSchemaMigrations(db: DatabaseSync): void {
+  ensureColumn(
+    db,
+    "runs",
+    "conversation_history_json",
+    "ALTER TABLE runs ADD COLUMN conversation_history_json TEXT",
+  );
+  ensureColumn(
+    db,
+    "runs",
+    "persona_version",
+    "ALTER TABLE runs ADD COLUMN persona_version INTEGER",
+  );
+  ensureColumn(
+    db,
+    "runs",
+    "persona",
+    "ALTER TABLE runs ADD COLUMN persona TEXT",
+  );
 }
 
 export function openShaidenDatabase(databasePath: string): DatabaseSync {
@@ -57,6 +85,6 @@ export function openShaidenDatabase(databasePath: string): DatabaseSync {
   db.exec("PRAGMA journal_mode = WAL");
   db.exec("PRAGMA foreign_keys = ON");
   db.exec(SCHEMA_SQL);
-  ensureConversationHistoryColumn(db);
+  ensureSchemaMigrations(db);
   return db;
 }

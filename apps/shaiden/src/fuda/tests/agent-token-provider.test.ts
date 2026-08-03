@@ -22,6 +22,9 @@ function scriptedFuda(tokens: ExchangedAgentToken[]): FudaClient & {
       index += 1;
       return next;
     },
+    async getAgentDefinition() {
+      throw new Error("getAgentDefinition not used in token provider tests");
+    },
   };
   return client;
 }
@@ -80,6 +83,9 @@ describe("createAgentTokenProvider", () => {
           expiresIn: 300,
         };
       },
+      async getAgentDefinition() {
+        throw new Error("unused");
+      },
     };
     const provider = createAgentTokenProvider({
       fuda,
@@ -100,6 +106,9 @@ describe("createAgentTokenProvider", () => {
     const fuda: FudaClient = {
       async exchangeToken() {
         throw new TokenExchangeError("unreachable", "Fuda unreachable");
+      },
+      async getAgentDefinition() {
+        throw new Error("unused");
       },
     };
     const provider = createAgentTokenProvider({
@@ -127,6 +136,9 @@ describe("createAgentTokenProvider", () => {
           { status: 403 },
         );
       },
+      async getAgentDefinition() {
+        throw new Error("unused");
+      },
     };
     // Seed a cache via a one-shot success then revoke on force.
     let calls = 0;
@@ -141,6 +153,9 @@ describe("createAgentTokenProvider", () => {
           };
         }
         return fuda.exchangeToken({ subjectToken: "s", agentId: "a" });
+      },
+      async getAgentDefinition() {
+        throw new Error("unused");
       },
     };
     const provider = createAgentTokenProvider({

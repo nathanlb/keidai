@@ -4,6 +4,7 @@ import {
   type StartTaskRunResponse,
   type Task,
 } from "@keidai/shared";
+import { AgentDefinitionError } from "@keidai/shared/clients";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { RunStore } from "../runs/run-store.js";
 import type { LaunchedHarnessRun } from "../run/types/harness.js";
@@ -21,10 +22,32 @@ function parseTaskListLimit(request: FastifyRequest): number {
     : DEFAULT_TASK_LIST_LIMIT;
 }
 
+function describeAgentDefinitionFailure(error: AgentDefinitionError): {
+  status: number;
+  error: string;
+} {
+  if (error.kind === "agent_not_found") {
+    return {
+      status: 422,
+      error: "unknown agent",
+    };
+  }
+  if (error.kind === "unreachable") {
+    return {
+      status: 503,
+      error: `Fuda unreachable at task start: ${error.message}`,
+    };
+  }
+  return {
+    status: 502,
+    error: `failed to fetch agent definition: ${error.message}`,
+  };
+}
+
 export type StartTaskRun = (input: {
   task: Task;
   taskId: string;
-}) => LaunchedHarnessRun;
+}) => Promise<LaunchedHarnessRun>;
 
 export interface TasksApiControllerOptions {
   agentId: string;
@@ -141,7 +164,7 @@ export class TasksApiController {
         return;
       }
 
-      const response = this.startRunForTask(saved, taskId);
+      const response = await this.startRunForTask(saved, taskId);
       if ("error" in response) {
         reply.code(response.status).send({ error: response.error });
         return;
@@ -167,7 +190,9 @@ export class TasksApiController {
       }
 
       const saved = this.taskRepository.create({ task: parsed.data });
-      const response = this.startRunForTask(saved, saved.id);
+      const response = await this.startRunForTask(saved, saved.id, {
+        deleteTaskOnStartFailure: true,
+      });
       if ("error" in response) {
         reply.code(response.status).send({ error: response.error });
         return;
@@ -190,12 +215,20 @@ export class TasksApiController {
       .runs.some((run) => run.status === "running");
   }
 
-  private startRunForTask(
-    saved: { id: string; goal: string; trigger: Task["trigger"]; assignee: string; limits?: Task["limits"] },
+  private async startRunForTask(
+    saved: {
+      id: string;
+      goal: string;
+      trigger: Task["trigger"];
+      assignee: string;
+      limits?: Task["limits"];
+    },
     taskId: string,
-  ):
+    options: { deleteTaskOnStartFailure?: boolean } = {},
+  ): Promise<
     | { body: StartTaskRunResponse }
-    | { error: string; status: number } {
+    | { error: string; status: number }
+  > {
     const task = taskSchema.parse({
       goal: saved.goal,
       trigger: saved.trigger,
@@ -212,7 +245,21 @@ export class TasksApiController {
       return { error: "a run is already in progress", status: 409 };
     }
 
-    const { runId, done } = this.startTaskRun({ task, taskId });
+    let runId: string;
+    let done: Promise<unknown>;
+    try {
+      ({ runId, done } = await this.startTaskRun({ task, taskId }));
+    } catch (error) {
+      if (options.deleteTaskOnStartFailure) {
+        this.taskRepository.delete(taskId);
+      }
+      if (error instanceof AgentDefinitionError) {
+        return describeAgentDefinitionFailure(error);
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      return { error: `task start failed: ${message}`, status: 500 };
+    }
+
     done.catch((error: unknown) => {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error("task.run_failed", { runId, taskId, error: message });
