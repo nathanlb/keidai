@@ -24,7 +24,7 @@ export interface ShaidenHttpServerDeps {
   startTaskRun: (input: {
     task: Task;
     taskId: string;
-  }) => LaunchedHarnessRun;
+  }) => Promise<LaunchedHarnessRun>;
   resumeHarnessRun: (
     input: Omit<ResumeHarnessRunInput, "config">,
   ) => LaunchedHarnessRun;

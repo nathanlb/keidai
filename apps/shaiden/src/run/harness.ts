@@ -5,8 +5,10 @@ import {
   type Task,
 } from "@keidai/shared";
 import {
+  AgentDefinitionError,
   createHttpFudaClient,
   TokenExchangeError,
+  type FudaClient,
 } from "@keidai/shared/clients";
 import type { RuntimeConfig } from "../config/runtime-config.js";
 import { createAgentTokenProvider } from "../fuda/agent-token-provider.js";
@@ -20,18 +22,45 @@ import {
 } from "./active-run-registry.js";
 import { createHarnessToolDispatcher } from "./harness-tool-dispatch.js";
 import { buildToolSet, createModelStepCaller } from "./model-step.js";
-import { taskGoalPrompt, taskSystemPrompt } from "./prompts.js";
+import {
+  systemPromptFromPersona,
+  taskGoalPrompt,
+  taskSystemPrompt,
+} from "./prompts.js";
 import { completeRunWithOutcomeStep } from "./run-completion.js";
 import { previewOf } from "./run-step-recording.js";
 import { createLocalRunReporter } from "./run-reporter.js";
 import { completeRun, createRun } from "./run-lifecycle.js";
-import { HarnessRunResult, LaunchedHarnessRun, LaunchHarnessRunInput, ResumeHarnessRunInput, HarnessRunOptions, DriveHarnessRunInput } from "./types/harness.js";
+import type {
+  DriveHarnessRunInput,
+  HarnessRunOptions,
+  HarnessRunResult,
+  LaunchedHarnessRun,
+  LaunchHarnessRunInput,
+  ResumeHarnessRunInput,
+} from "./types/harness.js";
 import type { ConversationEntry } from "./types/conversation-history.js";
 import { runTaskLoop } from "./task-loop.js";
 import type { RunStore } from "../runs/run-store.js";
 
-function createToriiCredential(config: RuntimeConfig): ToriiSessionCredential {
+function resolveFudaClient(
+  config: RuntimeConfig,
+  options: HarnessRunOptions,
+): FudaClient | undefined {
+  if (options.fudaClient) {
+    return options.fudaClient;
+  }
   if (!config.fudaBaseUrl) {
+    return undefined;
+  }
+  return createHttpFudaClient({ baseUrl: config.fudaBaseUrl });
+}
+
+function createToriiCredential(
+  config: RuntimeConfig,
+  fudaClient: FudaClient | undefined,
+): ToriiSessionCredential {
+  if (!fudaClient) {
     // Eval / test path: Torii accepts a fixed principal without Fuda minting.
     return {
       ensureToken: async () => config.bearerToken,
@@ -39,7 +68,7 @@ function createToriiCredential(config: RuntimeConfig): ToriiSessionCredential {
   }
 
   const provider = createAgentTokenProvider({
-    fuda: createHttpFudaClient({ baseUrl: config.fudaBaseUrl }),
+    fuda: fudaClient,
     subjectToken: config.bearerToken,
     agentId: config.agentId,
   });
@@ -62,17 +91,76 @@ function describeTokenExchangeFailure(error: unknown): string {
 }
 
 /**
- * Registers a run in the store synchronously, then drives the harness in the
- * background. Use this from HTTP so the client can observe the run immediately.
+ * Cold-path fetch of the agent definition at task start. Returns persona
+ * content (+ version) to stamp onto the run so resume keeps the same system
+ * prompt without re-fetching. When Fuda is not configured (evals), falls back
+ * to the local worker prompt.
  */
-export function launchHarnessRun({
+async function resolvePersonaAtTaskStart(input: {
+  config: RuntimeConfig;
+  fudaClient: FudaClient | undefined;
+}): Promise<{
+  systemPrompt: string;
+  personaVersion?: number;
+  persona?: string;
+}> {
+  const { config, fudaClient } = input;
+
+  if (!fudaClient) {
+    return { systemPrompt: taskSystemPrompt(config.agentId) };
+  }
+
+  const definition = await fudaClient.getAgentDefinition(config.agentId);
+  return {
+    systemPrompt: systemPromptFromPersona(definition.persona),
+    personaVersion: definition.personaVersion,
+    persona: definition.persona,
+  };
+}
+
+/**
+ * Resume must reuse the persona stamped on the run — never re-fetch current
+ * from Fuda. When Fuda is configured, a missing stamp is a hard failure.
+ */
+function resolveSystemPromptForResume(input: {
+  config: RuntimeConfig;
+  runId: string;
+  runStore: RunStore;
+  fudaClient: FudaClient | undefined;
+}): string {
+  const saved = input.runStore.getRun(input.runId);
+  if (saved?.persona) {
+    return systemPromptFromPersona(saved.persona);
+  }
+  if (input.fudaClient) {
+    throw new AgentDefinitionError(
+      "unexpected",
+      `Run ${input.runId} has no stamped persona; cannot resume with a Fuda-backed agent`,
+    );
+  }
+  return taskSystemPrompt(input.config.agentId);
+}
+
+/**
+ * Registers a run in the store after fetching the agent definition, then
+ * drives the harness in the background. Definition fetch failures reject
+ * before a run row is created.
+ */
+export async function launchHarnessRun({
   task,
   taskId,
   config,
   runStore,
   options = {},
-}: LaunchHarnessRunInput): LaunchedHarnessRun {
+}: LaunchHarnessRunInput): Promise<LaunchedHarnessRun> {
   const logger = options.logger ?? defaultLogger;
+  const fudaClient = resolveFudaClient(config, options);
+  const { systemPrompt, personaVersion, persona } =
+    await resolvePersonaAtTaskStart({
+      config,
+      fudaClient,
+    });
+
   const limits = resolveTaskLimits(task);
   const runDraft = createRun(randomUUID(), {
     ...task,
@@ -86,6 +174,8 @@ export function launchHarnessRun({
     assignee: task.assignee,
     goal: task.goal,
     startedAt: runDraft.startedAt,
+    personaVersion,
+    persona,
   });
 
   const initialHistory: ConversationEntry[] = [
@@ -102,6 +192,8 @@ export function launchHarnessRun({
     runStore,
     initialHistory,
     activeRunRegistry: options.activeRunRegistry ?? new ActiveRunRegistry(),
+    systemPrompt,
+    fudaClient,
   }).then((result) => result);
 
   return { runId: runDraft.id, done };
@@ -114,7 +206,13 @@ export async function startHarnessRun(
   runStore: RunStore,
   options: HarnessRunOptions = {},
 ): Promise<HarnessRunResult> {
-  const { done } = launchHarnessRun({ task, taskId, config, runStore, options });
+  const { done } = await launchHarnessRun({
+    task,
+    taskId,
+    config,
+    runStore,
+    options,
+  });
   return done;
 }
 
@@ -128,6 +226,13 @@ export function resumeHarnessRun({
 }: ResumeHarnessRunInput): LaunchedHarnessRun {
   const logger = options.logger ?? defaultLogger;
   const reporter = createLocalRunReporter(runStore, runId);
+  const fudaClient = resolveFudaClient(config, options);
+  const systemPrompt = resolveSystemPromptForResume({
+    config,
+    runId,
+    runStore,
+    fudaClient,
+  });
 
   const done = driveHarnessRun({
     runId,
@@ -138,6 +243,8 @@ export function resumeHarnessRun({
     runStore,
     initialHistory,
     activeRunRegistry: options.activeRunRegistry ?? new ActiveRunRegistry(),
+    systemPrompt,
+    fudaClient,
   }).catch((error) => {
     const reason = error instanceof Error ? error.message : String(error);
     const existing = runStore.getRun(runId);
@@ -162,6 +269,8 @@ async function driveHarnessRun({
   runStore,
   initialHistory,
   activeRunRegistry,
+  systemPrompt,
+  fudaClient,
 }: DriveHarnessRunInput): Promise<HarnessRunResult> {
   const limits = resolveTaskLimits(task);
   const activeHandle = createActiveRunHandle(runId);
@@ -176,7 +285,7 @@ async function driveHarnessRun({
   try {
     const session = await connectToriiSession(
       config.toriiMcpUrl,
-      createToriiCredential(config),
+      createToriiCredential(config, fudaClient),
     );
     const resumeSignal = session.createApprovalResumeSignal();
 
@@ -199,7 +308,7 @@ async function driveHarnessRun({
 
       const baseCallModel = createModelStepCaller(
         createOpenRouterModel(config.openRouterApiKey, config.modelId),
-        taskSystemPrompt(config.agentId),
+        systemPrompt,
         buildToolSet(session.tools),
       );
 

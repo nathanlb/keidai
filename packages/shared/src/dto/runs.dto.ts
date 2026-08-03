@@ -75,6 +75,16 @@ export interface RunListItem {
   status: RunStatus;
   outcome?: TerminationOutcome;
   stepCount: number;
+  /**
+   * Persona version fetched from Fuda at this run's start. Immutable for the
+   * life of the run so traces resolve to the exact persona that produced them.
+   */
+  personaVersion?: number;
+  /**
+   * Persona content stamped with `personaVersion` at run start. Resume and
+   * mid-flight continuation reuse this without re-fetching from Fuda.
+   */
+  persona?: string;
 }
 
 export interface RunReport extends RunListItem {
@@ -93,6 +103,8 @@ export interface CreateRunRequest {
   assignee: string;
   goal: string;
   startedAt?: string;
+  personaVersion?: number;
+  persona?: string;
 }
 
 export interface AppendRunStepRequest {

@@ -88,6 +88,44 @@ describe("SqliteRunRepository", () => {
     }
   });
 
+  it("stamps persona version and content onto the run at create", () => {
+    const databasePath = path.join(
+      mkdtempSync(path.join(tmpdir(), "shaiden-run-store-")),
+      "shaiden.db",
+    );
+    const db = openShaidenDatabase(databasePath);
+    db.prepare(`
+      INSERT INTO tasks (
+        id, goal, trigger_json, assignee, limits_json, created_at, updated_at
+      ) VALUES (
+        'task-1', @goal, @trigger_json, @assignee, @limits_json, @created_at, @updated_at
+      )
+    `).run({
+      goal: sampleTask.goal,
+      trigger_json: JSON.stringify(sampleTask.trigger),
+      assignee: sampleTask.assignee,
+      limits_json: JSON.stringify(sampleTask.limits),
+      created_at: "2026-07-08T12:00:00.000Z",
+      updated_at: "2026-07-08T12:00:00.000Z",
+    });
+
+    const repository = createRepository(databasePath);
+    repository.create({
+      id: "run-1",
+      taskId: "task-1",
+      task: sampleTask,
+      assignee: sampleTask.assignee,
+      goal: sampleTask.goal,
+      personaVersion: 2,
+      persona: "You are a careful newsletter author.",
+    });
+
+    const loaded = createRepository(databasePath).get("run-1");
+    assert.equal(loaded?.personaVersion, 2);
+    assert.equal(loaded?.persona, "You are a careful newsletter author.");
+    assert.equal(loaded?.task.goal, sampleTask.goal);
+  });
+
   it("allows tool_dispatch and tool_result as separate steps for one tool call", () => {
     const databasePath = path.join(
       mkdtempSync(path.join(tmpdir(), "shaiden-run-store-")),

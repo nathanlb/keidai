@@ -43,7 +43,7 @@ async function createServer(persistence: TestPersistence) {
     agentId: testRuntimeConfig.agentId,
     runtimeConfig: testRuntimeConfig,
     activeRunRegistry,
-    startTaskRun: ({ task, taskId }) => {
+    startTaskRun: async ({ task, taskId }) => {
       persistence.runStore.createRun({
         id: "run-ignored",
         taskId,

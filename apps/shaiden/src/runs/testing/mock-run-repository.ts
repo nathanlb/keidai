@@ -48,6 +48,10 @@ export class MockRunRepository implements RunRepository {
       status: "running",
       stepCount: 0,
       steps: [],
+      ...(input.personaVersion !== undefined
+        ? { personaVersion: input.personaVersion }
+        : {}),
+      ...(input.persona !== undefined ? { persona: input.persona } : {}),
     };
     this.runs.set(run.id, run);
     this.trim();
@@ -101,6 +105,10 @@ export class MockRunRepository implements RunRepository {
         status: run.status,
         outcome: run.outcome,
         stepCount: run.steps.length,
+        ...(run.personaVersion !== undefined
+          ? { personaVersion: run.personaVersion }
+          : {}),
+        ...(run.persona !== undefined ? { persona: run.persona } : {}),
       }));
 
     return { runs };

@@ -9,6 +9,8 @@ export interface RunReporter {
     assignee: string;
     goal: string;
     startedAt: string;
+    personaVersion?: number;
+    persona?: string;
   }): void;
   recordStep(step: {
     id?: string;

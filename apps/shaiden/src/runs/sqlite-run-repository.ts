@@ -35,6 +35,8 @@ interface RunRow {
   outcome_json: string | null;
   step_count: number;
   conversation_history_json: string | null;
+  persona_version: number | null;
+  persona: string | null;
 }
 
 interface RunStepRow {
@@ -98,21 +100,25 @@ export class SqliteRunRepository implements RunRepository {
     this.insertRunStatement = db.prepare(`
       INSERT INTO runs (
         id, task_id, task_snapshot_json, started_at, assignee, goal_preview,
-        status, outcome_json, step_count, conversation_history_json
+        status, outcome_json, step_count, conversation_history_json,
+        persona_version, persona
       ) VALUES (
         @id, @task_id, @task_snapshot_json, @started_at, @assignee, @goal_preview,
-        @status, @outcome_json, @step_count, @conversation_history_json
+        @status, @outcome_json, @step_count, @conversation_history_json,
+        @persona_version, @persona
       )
     `);
     this.getRunStatement = db.prepare(`
       SELECT id, task_id, task_snapshot_json, started_at, assignee, goal_preview,
-             status, outcome_json, step_count, conversation_history_json
+             status, outcome_json, step_count, conversation_history_json,
+             persona_version, persona
       FROM runs
       WHERE id = ?
     `);
     this.listRunsStatement = db.prepare(`
       SELECT id, task_id, task_snapshot_json, started_at, assignee, goal_preview,
-             status, outcome_json, step_count, conversation_history_json
+             status, outcome_json, step_count, conversation_history_json,
+             persona_version, persona
       FROM runs
       ORDER BY started_at DESC, id DESC
       LIMIT ?
@@ -162,6 +168,8 @@ export class SqliteRunRepository implements RunRepository {
 
   create(input: CreateRunRequest): RunReport {
     const startedAt = input.startedAt ?? new Date().toISOString();
+    const personaVersion = input.personaVersion ?? null;
+    const persona = input.persona ?? null;
     this.insertRunStatement.run({
       id: input.id,
       task_id: input.taskId,
@@ -173,6 +181,8 @@ export class SqliteRunRepository implements RunRepository {
       outcome_json: null,
       step_count: 0,
       conversation_history_json: null,
+      persona_version: personaVersion,
+      persona,
     });
     this.trim();
     return this.rowToRunReport(
@@ -187,6 +197,8 @@ export class SqliteRunRepository implements RunRepository {
         outcome_json: null,
         step_count: 0,
         conversation_history_json: null,
+        persona_version: personaVersion,
+        persona,
       },
       [],
     );
@@ -255,6 +267,10 @@ export class SqliteRunRepository implements RunRepository {
       status: row.status as RunReport["status"],
       outcome: parseOutcome(row.outcome_json),
       stepCount: row.step_count,
+      ...(row.persona_version != null
+        ? { personaVersion: row.persona_version }
+        : {}),
+      ...(row.persona != null ? { persona: row.persona } : {}),
     }));
     return { runs };
   }
@@ -356,6 +372,10 @@ export class SqliteRunRepository implements RunRepository {
       outcome: parseOutcome(row.outcome_json),
       stepCount: row.step_count,
       steps,
+      ...(row.persona_version != null
+        ? { personaVersion: row.persona_version }
+        : {}),
+      ...(row.persona != null ? { persona: row.persona } : {}),
     };
   }
 
