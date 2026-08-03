@@ -13,8 +13,8 @@ import {
 } from "../../types/credential-resolution.js";
 import type { OAuthFetch } from "../../utils/oauth-token-refresh.js";
 import { runWithAgentPrincipal } from "../../../identity/agent-principal-context.js";
-import { STUB_AGENT_PRINCIPAL } from "../../../identity/stub-agent-principal.js";
-import { withMockFetch, withStubAgentPrincipal } from "../../tests/test-helpers.js";
+import { TEST_AGENT_PRINCIPAL } from "../../../identity/tests/test-helpers.js";
+import { withMockFetch, withTestAgentPrincipal } from "../../tests/test-helpers.js";
 
 const oauthProviders: ToriiConfig["oauth_providers"] = {
   github: {
@@ -43,6 +43,7 @@ function createResolver(
   repository = new MockTokenRepository(),
 ): UserOAuthCredentialResolver {
   const configService = new ToriiConfigService({
+    boot_owner_id: "test-owner",
     oauth_providers: oauthProviders,
     servers: [],
   });
@@ -76,12 +77,12 @@ function mockRefreshFetch(options: {
 describe("DelegatedConnectionCredentialResolver", () => {
   it("injects a bearer token when one is stored for the principal owner", async () => {
     const repository = new MockTokenRepository();
-    await repository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
+    await repository.set(TEST_AGENT_PRINCIPAL.ownerId, "github", {
       accessToken: "gho_secret_token",
     });
     const resolver = createResolver(repository);
 
-    const resolved = await withStubAgentPrincipal(() =>
+    const resolved = await withTestAgentPrincipal(() =>
       resolver.resolve(userOAuthServer()),
     );
 
@@ -89,7 +90,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
       resolved.headers.Authorization,
       "Bearer gho_secret_token",
     );
-    assert.equal(resolved.credentialRef, "github:stub-user");
+    assert.equal(resolved.credentialRef, "github:test-owner");
   });
 
   it("returns linking_required when no token is stored", async () => {
@@ -97,13 +98,13 @@ describe("DelegatedConnectionCredentialResolver", () => {
 
     await assert.rejects(
       () =>
-        withStubAgentPrincipal(() => resolver.resolve(userOAuthServer())),
+        withTestAgentPrincipal(() => resolver.resolve(userOAuthServer())),
       (error: unknown) => {
         assert.ok(error instanceof LinkingRequiredError);
         assert.equal(error.code, LINKING_REQUIRED_CODE);
         assert.equal(error.payload.code, LINKING_REQUIRED_CODE);
         assert.equal(error.payload.provider, "github");
-        assert.equal(error.payload.ownerId, STUB_AGENT_PRINCIPAL.ownerId);
+        assert.equal(error.payload.ownerId, TEST_AGENT_PRINCIPAL.ownerId);
         assert.equal(error.payload.backend, "github");
         assert.match(error.payload.linkUrl, /client_id=test-client-id/);
         assert.match(error.payload.linkUrl, /scope=repo/);
@@ -116,7 +117,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
 
   it("returns linking_required when the stored access token is expired and cannot be refreshed", async () => {
     const repository = new MockTokenRepository();
-    await repository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
+    await repository.set(TEST_AGENT_PRINCIPAL.ownerId, "github", {
       accessToken: "gho_expired",
       expiresAt: new Date(Date.now() - 60_000),
     });
@@ -124,7 +125,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
 
     await assert.rejects(
       () =>
-        withStubAgentPrincipal(() => resolver.resolve(userOAuthServer())),
+        withTestAgentPrincipal(() => resolver.resolve(userOAuthServer())),
       (error: unknown) => {
         assert.ok(error instanceof LinkingRequiredError);
         assert.equal(error.payload.code, LINKING_REQUIRED_CODE);
@@ -136,7 +137,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
 
   it("refreshes a stale access token using the stored refresh token", async () => {
     const repository = new MockTokenRepository();
-    await repository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
+    await repository.set(TEST_AGENT_PRINCIPAL.ownerId, "github", {
       accessToken: "gho_stale",
       refreshToken: "ghr_stale",
       expiresAt: new Date(Date.now() - 60_000),
@@ -151,14 +152,14 @@ describe("DelegatedConnectionCredentialResolver", () => {
         },
       }),
       () =>
-        withStubAgentPrincipal(() => resolver.resolve(userOAuthServer())),
+        withTestAgentPrincipal(() => resolver.resolve(userOAuthServer())),
     );
 
     assert.equal(
       resolved.headers.Authorization,
       "Bearer gho_refreshed",
     );
-    const stored = await repository.get(STUB_AGENT_PRINCIPAL.ownerId, "github");
+    const stored = await repository.get(TEST_AGENT_PRINCIPAL.ownerId, "github");
     assert.equal(stored?.accessToken, "gho_refreshed");
     assert.equal(stored?.refreshToken, "ghr_stale");
     assert.ok(stored?.expiresAt && stored.expiresAt.getTime() > Date.now());
@@ -166,7 +167,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
 
   it("persists a rotated refresh token before returning credentials", async () => {
     const repository = new MockTokenRepository();
-    await repository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
+    await repository.set(TEST_AGENT_PRINCIPAL.ownerId, "github", {
       accessToken: "gho_stale",
       refreshToken: "ghr_old",
       expiresAt: new Date(Date.now() - 60_000),
@@ -181,16 +182,16 @@ describe("DelegatedConnectionCredentialResolver", () => {
           expires_in: 3600,
         },
       }),
-      () => withStubAgentPrincipal(() => resolver.resolve(userOAuthServer())),
+      () => withTestAgentPrincipal(() => resolver.resolve(userOAuthServer())),
     );
 
-    const stored = await repository.get(STUB_AGENT_PRINCIPAL.ownerId, "github");
+    const stored = await repository.get(TEST_AGENT_PRINCIPAL.ownerId, "github");
     assert.equal(stored?.refreshToken, "ghr_rotated");
   });
 
   it("single-flights concurrent refresh for the same owner and backend", async () => {
     const repository = new MockTokenRepository();
-    await repository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
+    await repository.set(TEST_AGENT_PRINCIPAL.ownerId, "github", {
       accessToken: "gho_stale",
       refreshToken: "ghr_stale",
       expiresAt: new Date(Date.now() - 60_000),
@@ -212,7 +213,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
         },
       }),
       () =>
-        withStubAgentPrincipal(() =>
+        withTestAgentPrincipal(() =>
           Promise.all([
             resolver.resolve(userOAuthServer()),
             resolver.resolve(userOAuthServer()),
@@ -233,7 +234,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
 
   it("returns linking_required when refresh fails with a terminal provider error", async () => {
     const repository = new MockTokenRepository();
-    await repository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
+    await repository.set(TEST_AGENT_PRINCIPAL.ownerId, "github", {
       accessToken: "gho_stale",
       refreshToken: "ghr_revoked",
       expiresAt: new Date(Date.now() - 60_000),
@@ -251,7 +252,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
       () =>
         assert.rejects(
           () =>
-            withStubAgentPrincipal(() => resolver.resolve(userOAuthServer())),
+            withTestAgentPrincipal(() => resolver.resolve(userOAuthServer())),
           (error: unknown) => {
             assert.ok(error instanceof LinkingRequiredError);
             assert.equal(error.payload.code, LINKING_REQUIRED_CODE);
@@ -271,7 +272,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
 
     await assert.rejects(
       () =>
-        withStubAgentPrincipal(() => resolver.resolve(userOAuthServer())),
+        withTestAgentPrincipal(() => resolver.resolve(userOAuthServer())),
       LinkingRequiredError,
     );
   });

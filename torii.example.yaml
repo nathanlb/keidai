@@ -67,6 +67,10 @@ servers:
       allow:
         - read_wiki_structure
 
+# Owner used for boot-time backend connections and catalog refresh.
+# Deployment config — not derived from agent declarations.
+boot_owner_id: user-alice
+
 # Agent registrations bind validated credential subjects to internal principals.
 # owner_id is fixed at registration — never taken from inbound requests.
 # Optional inbound_token enables Authorization: Bearer auth for local/demo agents.

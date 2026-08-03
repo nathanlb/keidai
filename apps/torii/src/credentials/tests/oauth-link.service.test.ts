@@ -13,6 +13,7 @@ import {
 } from "../../logging/tests/test-helpers.js";
 
 const sampleConfig: ToriiConfig = {
+  boot_owner_id: "test-owner",
   oauth_providers: {
     github: {
       token_url: "https://github.com/login/oauth/access_token",

@@ -8,9 +8,9 @@ import { DefaultMcpClientConnector } from "../../connections/mcp-client-connecto
 import { startMockMcpServer } from "../../connections/tests/mock-mcp-server.js";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
 import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
-import { createCredentialServices, bootBackends, withStubAgentPrincipal } from "../../credentials/tests/test-helpers.js";
+import { createCredentialServices, bootBackends, withTestAgentPrincipal } from "../../credentials/tests/test-helpers.js";
 import { LINKING_REQUIRED_CODE } from "../../credentials/types/credential-resolution.js";
-import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
+import { TEST_AGENT_PRINCIPAL } from "../../identity/tests/test-helpers.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import type { CapturingTraceEmitter as CapturingTraceEmitterType } from "../../trace/tests/capturing-trace-emitter.js";
 import { PolicyDeniedError } from "../../policy/types/policy-denied.js";
@@ -88,6 +88,7 @@ async function createDispatchStack(
   const { credentialResolver } = createCredentialServices();
 
   const configService = new ToriiConfigService({
+    boot_owner_id: "test-owner",
     oauth_providers: {
       github: {
         token_url: "https://github.com/login/oauth/access_token",
@@ -132,7 +133,7 @@ describe("ToolDispatchService", () => {
     try {
       await bootBackends(stack.connectionManager, stack.toolCatalog);
 
-      const result = await withStubAgentPrincipal(() =>
+      const result = await withTestAgentPrincipal(() =>
         stack.toolDispatch.callTool("deepwiki.read_wiki_structure", {}),
       );
 
@@ -157,7 +158,7 @@ describe("ToolDispatchService", () => {
     try {
       await bootBackends(stack.connectionManager, stack.toolCatalog);
 
-      await withStubAgentPrincipal(() =>
+      await withTestAgentPrincipal(() =>
         assert.rejects(
           () => stack.toolDispatch.callTool("github.missing_tool", {}),
           ToolNotFoundError,
@@ -181,7 +182,7 @@ describe("ToolDispatchService", () => {
     ]);
 
     try {
-      await withStubAgentPrincipal(async () => {
+      await withTestAgentPrincipal(async () => {
         await stack.connectionManager.connectAll();
         await stack.toolCatalog.refresh();
 
@@ -211,7 +212,7 @@ describe("ToolDispatchService", () => {
     ]);
 
     try {
-      await withStubAgentPrincipal(async () => {
+      await withTestAgentPrincipal(async () => {
         await stack.connectionManager.connectAll();
         await stack.toolCatalog.refresh();
 
@@ -224,8 +225,8 @@ describe("ToolDispatchService", () => {
         assert.equal(trace.policyDecision, PolicyDecision.Allowed);
         assert.equal(typeof trace.durationMs, "number");
         assert.deepEqual(trace.principal, {
-          agentId: STUB_AGENT_PRINCIPAL.agentId,
-          ownerId: STUB_AGENT_PRINCIPAL.ownerId,
+          agentId: TEST_AGENT_PRINCIPAL.agentId,
+          ownerId: TEST_AGENT_PRINCIPAL.ownerId,
         });
         assert.equal(trace.credentialRef, "none");
         assert.doesNotMatch(JSON.stringify(trace), /Bearer/);
@@ -258,7 +259,7 @@ describe("ToolDispatchService", () => {
       connection.client = null;
       connection.error = new Error("connection lost");
 
-      await withStubAgentPrincipal(() =>
+      await withTestAgentPrincipal(() =>
         assert.rejects(
           () => stack.toolDispatch.callTool("github.search_issues", {}),
           BackendUnavailableError,
@@ -293,6 +294,7 @@ describe("ToolDispatchService", () => {
       oauth_providers: oauthProviders,
     });
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: oauthProviders,
       servers: [userOAuthServer("github", mockServer.url)],
     });
@@ -310,13 +312,13 @@ describe("ToolDispatchService", () => {
     );
 
     try {
-      await withStubAgentPrincipal(async () => {
-        await tokenRepository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
+      await withTestAgentPrincipal(async () => {
+        await tokenRepository.set(TEST_AGENT_PRINCIPAL.ownerId, "github", {
           accessToken: "gho_valid",
         });
         await connectionManager.connectAll();
         await toolCatalog.refresh();
-        await tokenRepository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
+        await tokenRepository.set(TEST_AGENT_PRINCIPAL.ownerId, "github", {
           accessToken: "gho_valid",
           expiresAt: new Date(0),
         });
@@ -327,7 +329,7 @@ describe("ToolDispatchService", () => {
         assert.deepEqual(result.structuredContent, {
           code: LINKING_REQUIRED_CODE,
           provider: "github",
-          ownerId: STUB_AGENT_PRINCIPAL.ownerId,
+          ownerId: TEST_AGENT_PRINCIPAL.ownerId,
           backend: "github",
           linkUrl: result.structuredContent?.linkUrl,
         });
@@ -354,7 +356,7 @@ describe("ToolDispatchService", () => {
     try {
       await bootBackends(stack.connectionManager, stack.toolCatalog);
 
-      const result = await withStubAgentPrincipal(() =>
+      const result = await withTestAgentPrincipal(() =>
         stack.toolDispatch.callTool("stripe.list_customers", {}),
       );
 
@@ -374,7 +376,7 @@ describe("ToolDispatchService", () => {
     ]);
 
     try {
-      await withStubAgentPrincipal(async () => {
+      await withTestAgentPrincipal(async () => {
         await stack.connectionManager.connectAll();
         await stack.toolCatalog.refresh();
 
@@ -409,7 +411,7 @@ describe("ToolDispatchService", () => {
     ]);
 
     try {
-      await withStubAgentPrincipal(async () => {
+      await withTestAgentPrincipal(async () => {
         await stack.connectionManager.connectAll();
         await stack.toolCatalog.refresh();
 

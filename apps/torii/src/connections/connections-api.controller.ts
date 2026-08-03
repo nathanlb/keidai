@@ -4,7 +4,7 @@ import { inject, injectable } from "tsyringe";
 import { ToolCatalogService } from "../catalog/tool-catalog.service.js";
 import { ToriiConfigService } from "../config/torii-config.service.js";
 import { runWithAgentPrincipal } from "../identity/agent-principal-context.js";
-import { resolveBootAgentPrincipal } from "../identity/stub-agent-principal.js";
+import { resolveBootPrincipal } from "../identity/resolve-boot-principal.js";
 import { ConnectionManager } from "./connection-manager.service.js";
 import { ConnectionReadService } from "./connection-read.service.js";
 
@@ -73,7 +73,7 @@ export class ConnectionsApiController {
   }
 
   private async refreshCatalogAndBroadcast(name?: string): Promise<void> {
-    const principal = resolveBootAgentPrincipal(this.configService.get());
+    const principal = resolveBootPrincipal(this.configService.get());
     await runWithAgentPrincipal(principal, () => this.toolCatalog.refresh());
     this.connectionManager.rebroadcast(name);
   }

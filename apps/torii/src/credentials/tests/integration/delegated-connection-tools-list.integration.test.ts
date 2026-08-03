@@ -7,9 +7,9 @@ import { DefaultMcpClientConnector } from "../../../connections/mcp-client-conne
 import { startMockMcpServer } from "../../../connections/tests/mock-mcp-server.js";
 import { ToriiConfigService } from "../../../config/torii-config.service.js";
 import { ToolCatalogService } from "../../../catalog/tool-catalog.service.js";
-import { createCredentialServices, withStubAgentPrincipal } from "../test-helpers.js";
+import { createCredentialServices, withTestAgentPrincipal } from "../test-helpers.js";
 import { createPolicyEnforcement } from "../../../policy/tests/test-helpers.js";
-import { STUB_AGENT_PRINCIPAL } from "../../../identity/stub-agent-principal.js";
+import { TEST_AGENT_PRINCIPAL } from "../../../identity/tests/test-helpers.js";
 import { createCapturingLogger, createNoopLogger } from "../../../logging/tests/test-helpers.js";
 
 function userOAuthServer(
@@ -41,7 +41,7 @@ async function closeManagerConnections(
 describe("user_oauth credentials with tools/list", () => {
   it("lists tools when a valid token is stored", async () => {
     const { tokenRepository, credentialResolver } = createCredentialServices();
-    await tokenRepository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
+    await tokenRepository.set(TEST_AGENT_PRINCIPAL.ownerId, "github", {
       accessToken: "gho_valid",
     });
 
@@ -51,6 +51,7 @@ describe("user_oauth credentials with tools/list", () => {
     });
 
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {
         github: {
           token_url: "https://github.com/login/oauth/access_token",
@@ -65,7 +66,7 @@ describe("user_oauth credentials with tools/list", () => {
     const catalogService = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
 
     try {
-      await withStubAgentPrincipal(async () => {
+      await withTestAgentPrincipal(async () => {
         await connectionManager.connectAll();
         const tools = await catalogService.listToolsForAgent();
 
@@ -84,6 +85,7 @@ describe("user_oauth credentials with tools/list", () => {
     });
 
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {
         github: {
           token_url: "https://github.com/login/oauth/access_token",
@@ -99,7 +101,7 @@ describe("user_oauth credentials with tools/list", () => {
     const catalogService = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), logger);
 
     try {
-      await withStubAgentPrincipal(async () => {
+      await withTestAgentPrincipal(async () => {
         await connectionManager.connectAll();
         const tools = await catalogService.listToolsForAgent();
 

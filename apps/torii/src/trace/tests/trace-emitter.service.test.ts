@@ -9,7 +9,7 @@ import {
   finalizeCallTrace,
   toTracePrincipal,
 } from "../utils/build-call-trace.js";
-import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
+import { TEST_AGENT_PRINCIPAL } from "../../identity/tests/test-helpers.js";
 
 describe("finalizeCallTrace", () => {
   it("strips durationMs from denied traces", () => {
@@ -17,8 +17,8 @@ describe("finalizeCallTrace", () => {
       {
         server: "github",
         tool: "search_issues",
-        principal: toTracePrincipal(STUB_AGENT_PRINCIPAL),
-        credentialRef: "github:stub-user",
+        principal: toTracePrincipal(TEST_AGENT_PRINCIPAL),
+        credentialRef: "github:test-owner",
         policyDecision: PolicyDecision.Denied,
         durationMs: 42,
         error: "policy denied",
@@ -35,7 +35,7 @@ describe("finalizeCallTrace", () => {
       {
         server: "deepwiki",
         tool: "read_wiki_structure",
-        principal: toTracePrincipal(STUB_AGENT_PRINCIPAL),
+        principal: toTracePrincipal(TEST_AGENT_PRINCIPAL),
         credentialRef: "none",
         policyDecision: PolicyDecision.Allowed,
         durationMs: 12,
@@ -63,7 +63,7 @@ describe("TraceEmitterService", () => {
           {
             server: "deepwiki",
             tool: "read_wiki_structure",
-            principal: toTracePrincipal(STUB_AGENT_PRINCIPAL),
+            principal: toTracePrincipal(TEST_AGENT_PRINCIPAL),
             credentialRef: "none",
             policyDecision: PolicyDecision.Allowed,
             durationMs: 15,
@@ -74,8 +74,8 @@ describe("TraceEmitterService", () => {
           {
             server: "github",
             tool: "delete_repo",
-            principal: toTracePrincipal(STUB_AGENT_PRINCIPAL),
-            credentialRef: "github:stub-user",
+            principal: toTracePrincipal(TEST_AGENT_PRINCIPAL),
+            credentialRef: "github:test-owner",
             policyDecision: PolicyDecision.Denied,
             error: "policy denied",
           },
@@ -85,7 +85,7 @@ describe("TraceEmitterService", () => {
           {
             server: "stripe",
             tool: "list_customers",
-            principal: toTracePrincipal(STUB_AGENT_PRINCIPAL),
+            principal: toTracePrincipal(TEST_AGENT_PRINCIPAL),
             credentialRef: "service_key:stripe",
             policyDecision: PolicyDecision.Allowed,
             durationMs: 40,
@@ -105,8 +105,8 @@ describe("TraceEmitterService", () => {
       assert.equal(allowed.recordType, "call_trace");
       assert.equal(allowed.traceId, "allowed-trace");
       assert.deepEqual(allowed.principal, {
-        agentId: "stub-agent",
-        ownerId: "stub-user",
+        agentId: "test-agent",
+        ownerId: "test-owner",
       });
       assert.equal(allowed.policyDecision, PolicyDecision.Allowed);
       assert.equal(allowed.durationMs, 15);

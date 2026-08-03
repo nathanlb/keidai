@@ -7,10 +7,10 @@ import { ConnectionManager } from "../../connections/connection-manager.service.
 import { DefaultMcpClientConnector } from "../../connections/mcp-client-connector.service.js";
 import { startMockMcpServer } from "../../connections/tests/mock-mcp-server.js";
 import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
-import { createCredentialServices, withStubAgentPrincipal } from "../../credentials/tests/test-helpers.js";
+import { createCredentialServices, withTestAgentPrincipal } from "../../credentials/tests/test-helpers.js";
 import { createTestGatewayHttpServer } from "../../http/tests/test-helpers.js";
 import { connectAgentToGateway } from "../../identity/tests/test-helpers.js";
-import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
+import { TEST_AGENT_PRINCIPAL } from "../../identity/tests/test-helpers.js";
 import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import { createPolicyEnforcement, createApprovalServices } from "../../policy/tests/test-helpers.js";
@@ -89,11 +89,12 @@ describe("Gateway MCP tools/call", () => {
     });
 
     const { tokenRepository, credentialResolver } = createCredentialServices();
-    await tokenRepository.set(STUB_AGENT_PRINCIPAL.ownerId, "github", {
+    await tokenRepository.set(TEST_AGENT_PRINCIPAL.ownerId, "github", {
       accessToken: githubToken,
     });
 
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {
         github: {
           token_url: "https://github.com/login/oauth/access_token",
@@ -121,7 +122,7 @@ describe("Gateway MCP tools/call", () => {
     const gatewayHttpServer = createTestGatewayHttpServer(toolCatalog, toolDispatch);
 
     try {
-      await withStubAgentPrincipal(async () => {
+      await withTestAgentPrincipal(async () => {
         await connectionManager.connectAll();
       });
       const gateway = await gatewayHttpServer.start();
@@ -170,6 +171,7 @@ describe("Gateway MCP tools/call", () => {
     });
 
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         {
@@ -234,6 +236,7 @@ describe("Gateway MCP tools/call", () => {
     });
 
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         {

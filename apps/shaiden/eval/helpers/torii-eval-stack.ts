@@ -105,6 +105,7 @@ export async function startEvalToriiStack(
   });
 
   const configService = new ToriiConfigService({
+    boot_owner_id: EVAL_OWNER,
     oauth_providers: EVAL_OAUTH_PROVIDERS,
     agents: [
       {

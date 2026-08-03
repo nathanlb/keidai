@@ -11,6 +11,7 @@ import { ToolCatalogService } from "../catalog/tool-catalog.service.js";
 import { createContainer } from "../container.js";
 
 const MINIMAL_CONFIG: ToriiConfig = {
+  boot_owner_id: "test-owner",
   oauth_providers: {},
   servers: [],
   agents: [],

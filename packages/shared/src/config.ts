@@ -75,6 +75,11 @@ export interface ToriiConfig {
    * request from Host / X-Forwarded-* headers (local dev) or TORII_HOST/TORII_PORT.
    */
   gateway_base_url?: string;
+  /**
+   * Owner used for boot-time backend connections and catalog refresh.
+   * OAuth tokens are keyed by owner_id; this is deployment config, not agent data.
+   */
+  boot_owner_id: string;
   oauth_providers: Record<string, OAuthProviderConfig>;
   servers: ServerConfig[];
   /** Boot-time agent registrations; omitted or empty when none are configured. */

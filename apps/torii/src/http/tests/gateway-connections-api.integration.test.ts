@@ -19,7 +19,7 @@ import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
 import {
   createCredentialServices,
-  withStubAgentPrincipal,
+  withTestAgentPrincipal,
 } from "../../credentials/tests/test-helpers.js";
 
 function serverConfig(
@@ -135,6 +135,7 @@ describe("Gateway /api/connections endpoints", () => {
     const goodServer = await startMockMcpServer();
     const badServer = await startMockMcpServer({ rejectConnections: true });
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         serverConfig("good", goodServer.url),
@@ -149,7 +150,7 @@ describe("Gateway /api/connections endpoints", () => {
     );
 
     try {
-      await withStubAgentPrincipal(() => connectionManager.connectAll());
+      await withTestAgentPrincipal(() => connectionManager.connectAll());
       const gateway = await gatewayHttpServer.start();
       try {
         const response = await fetch(`${gateway.baseUrl}/api/connections`);
@@ -182,6 +183,7 @@ describe("Gateway /api/connections endpoints", () => {
       ],
     });
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         serverConfig("gmail", mockServer.url, {
@@ -209,7 +211,7 @@ describe("Gateway /api/connections endpoints", () => {
     );
 
     try {
-      await withStubAgentPrincipal(() => connectionManager.connectAll());
+      await withTestAgentPrincipal(() => connectionManager.connectAll());
       // Catalog left empty on purpose — reconnect must refresh it.
       assert.deepEqual(toolCatalog.getServerTools("gmail"), []);
 
@@ -253,6 +255,7 @@ describe("Gateway /api/connections endpoints", () => {
   it("streams connection state changes over SSE", async () => {
     const mockServer = await startMockMcpServer();
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [serverConfig("alpha", mockServer.url)],
     });
@@ -272,7 +275,7 @@ describe("Gateway /api/connections endpoints", () => {
             events.some((entry) => entry.connection.state === "connected"),
         );
 
-        await withStubAgentPrincipal(() => connectionManager.connectAll());
+        await withTestAgentPrincipal(() => connectionManager.connectAll());
         const events = await eventsPromise;
 
         assert.ok(

@@ -7,17 +7,17 @@ import { NoneCredentialResolver } from "../resolvers/none-credential-resolver.se
 import { UserOAuthCredentialResolver } from "../resolvers/user_oauth_credential-resolver.service.js";
 import { ServiceKeyCredentialResolver } from "../resolvers/service-key-credential-resolver.service.js";
 import { runWithAgentPrincipal } from "../../identity/agent-principal-context.js";
-import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
+import { TEST_AGENT_PRINCIPAL } from "../../identity/tests/test-agent-principal.js";
 import type { OAuthFetch } from "../utils/oauth-token-refresh.js";
 import {
   createTestGatewayPersistence,
   type TestGatewayPersistence,
 } from "../../testing/gateway-persistence.js";
 
-export function withStubAgentPrincipal<T>(fn: () => T): T;
-export function withStubAgentPrincipal<T>(fn: () => Promise<T>): Promise<T>;
-export function withStubAgentPrincipal<T>(fn: () => T | Promise<T>): T | Promise<T> {
-  return runWithAgentPrincipal(STUB_AGENT_PRINCIPAL, fn);
+export function withTestAgentPrincipal<T>(fn: () => T): T;
+export function withTestAgentPrincipal<T>(fn: () => Promise<T>): Promise<T>;
+export function withTestAgentPrincipal<T>(fn: () => T | Promise<T>): T | Promise<T> {
+  return runWithAgentPrincipal(TEST_AGENT_PRINCIPAL, fn);
 }
 
 export async function withMockFetch<T>(
@@ -37,7 +37,7 @@ export async function bootBackends(
   connectionManager: { connectAll(): Promise<void> },
   toolCatalog?: { refresh(): Promise<unknown> },
 ): Promise<void> {
-  await withStubAgentPrincipal(async () => {
+  await withTestAgentPrincipal(async () => {
     await connectionManager.connectAll();
     if (toolCatalog) {
       await toolCatalog.refresh();
@@ -67,6 +67,7 @@ export function createCredentialServices(
 } {
   const tokenRepository = persistence.tokenRepository;
   const configService = new ToriiConfigService({
+    boot_owner_id: "test-owner",
     oauth_providers: config.oauth_providers,
     agents: [],
     servers: [],

@@ -123,7 +123,12 @@ export function createTestGatewayHttpServer(
   const persistence = options.persistence ?? createTestGatewayPersistence();
   const configService =
     options.configService ??
-    new ToriiConfigService({ oauth_providers: {}, servers: [], agents: [] });
+    new ToriiConfigService({
+      boot_owner_id: "test-owner",
+      oauth_providers: {},
+      servers: [],
+      agents: [],
+    });
   const configRead = new ConfigReadService(configService);
   const connectionManager =
     options.connectionManager ??

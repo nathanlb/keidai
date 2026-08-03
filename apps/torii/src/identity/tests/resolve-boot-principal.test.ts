@@ -1,12 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ToriiConfig } from "@keidai/shared";
-import {
-  resolveBootAgentPrincipal,
-  STUB_AGENT_PRINCIPAL,
-} from "../stub-agent-principal.js";
+import { resolveBootPrincipal } from "../resolve-boot-principal.js";
 
 const baseConfig: ToriiConfig = {
+  boot_owner_id: "ops-owner",
   oauth_providers: {},
   servers: [
     {
@@ -18,12 +16,8 @@ const baseConfig: ToriiConfig = {
   ],
 };
 
-describe("resolveBootAgentPrincipal", () => {
-  it("returns the stub principal when no agents are registered", () => {
-    assert.deepEqual(resolveBootAgentPrincipal(baseConfig), STUB_AGENT_PRINCIPAL);
-  });
-
-  it("returns the first registered agent principal for OAuth token lookup", () => {
+describe("resolveBootPrincipal", () => {
+  it("builds a principal from boot_owner_id without reading agents", () => {
     const config: ToriiConfig = {
       ...baseConfig,
       agents: [
@@ -40,10 +34,18 @@ describe("resolveBootAgentPrincipal", () => {
       ],
     };
 
-    assert.deepEqual(resolveBootAgentPrincipal(config), {
-      agentId: "demo-agent-01",
-      ownerId: "demo-owner",
-      groups: ["agents"],
+    assert.deepEqual(resolveBootPrincipal(config), {
+      agentId: "boot",
+      ownerId: "ops-owner",
+      groups: [],
+    });
+  });
+
+  it("works when no agents are registered", () => {
+    assert.deepEqual(resolveBootPrincipal(baseConfig), {
+      agentId: "boot",
+      ownerId: "ops-owner",
+      groups: [],
     });
   });
 });

@@ -8,7 +8,7 @@ import { DefaultMcpClientConnector } from "../../../connections/mcp-client-conne
 import { startMockMcpServer } from "../../../connections/tests/mock-mcp-server.js";
 import { ToriiConfigService } from "../../../config/torii-config.service.js";
 import { ToolCatalogService } from "../../../catalog/tool-catalog.service.js";
-import { bootBackends, createCredentialServices, withStubAgentPrincipal } from "../test-helpers.js";
+import { bootBackends, createCredentialServices, withTestAgentPrincipal } from "../test-helpers.js";
 import { createPolicyEnforcement } from "../../../policy/tests/test-helpers.js";
 import { createNoopLogger } from "../../../logging/tests/test-helpers.js";
 
@@ -58,6 +58,7 @@ describe("none credentials with tools/list", () => {
     });
 
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [noneServer("deepwiki", mockServer.url)],
     });
@@ -67,7 +68,7 @@ describe("none credentials with tools/list", () => {
 
     try {
       await bootBackends(connectionManager, catalogService);
-      const tools = await withStubAgentPrincipal(() =>
+      const tools = await withTestAgentPrincipal(() =>
         catalogService.listToolsForAgent(),
       );
 
@@ -98,6 +99,7 @@ describe("none credentials with tools/call", () => {
     });
 
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [noneServer("deepwiki", mockServer.url)],
     });
@@ -126,6 +128,7 @@ describe("none credentials with tools/call", () => {
 describe("none credentials with DeepWiki MCP", () => {
   it("lists and calls tools from DeepWiki", async () => {
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         {
@@ -145,7 +148,7 @@ describe("none credentials with DeepWiki MCP", () => {
 
     try {
       await bootBackends(connectionManager, catalogService);
-      const tools = await withStubAgentPrincipal(() =>
+      const tools = await withTestAgentPrincipal(() =>
         catalogService.listToolsForAgent(),
       );
 

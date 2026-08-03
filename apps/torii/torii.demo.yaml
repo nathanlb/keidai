@@ -82,6 +82,9 @@ servers:
       default: deny
       allow: [create_draft, list_drafts]
 
+# Owner used for boot-time backend connections and catalog refresh.
+boot_owner_id: demo-owner
+
 agents:
   - subject:
       kind: k8s_service_account

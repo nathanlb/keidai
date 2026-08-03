@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ToriiConfig } from "@keidai/shared";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
-import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
+import { TEST_AGENT_PRINCIPAL } from "../../identity/tests/test-helpers.js";
 import { ApprovalGateService, ApprovalReplayError } from "../approval-gate.service.js";
 import { ApprovalStoreService } from "../approval-store.service.js";
 import { ApprovalReadService } from "../approval-read.service.js";
@@ -14,6 +14,7 @@ import {
 
 function createGate(agents: NonNullable<ToriiConfig["agents"]>) {
   const configService = new ToriiConfigService({
+    boot_owner_id: "test-owner",
     oauth_providers: {},
     servers: [],
     agents,
@@ -31,8 +32,8 @@ const gatedAgent = [
       namespace: "torii-agents",
       service_account: "demo",
     },
-    agent_id: STUB_AGENT_PRINCIPAL.agentId,
-    owner_id: STUB_AGENT_PRINCIPAL.ownerId,
+    agent_id: TEST_AGENT_PRINCIPAL.agentId,
+    owner_id: TEST_AGENT_PRINCIPAL.ownerId,
     groups: [],
     gated_tools: ["gmail.create_draft"],
   },
@@ -43,11 +44,11 @@ describe("approval ledger", () => {
     const { gate } = createGate(gatedAgent);
 
     assert.equal(
-      gate.requiresApproval(STUB_AGENT_PRINCIPAL, "gmail.create_draft"),
+      gate.requiresApproval(TEST_AGENT_PRINCIPAL, "gmail.create_draft"),
       true,
     );
     assert.equal(
-      gate.requiresApproval(STUB_AGENT_PRINCIPAL, "gmail.search"),
+      gate.requiresApproval(TEST_AGENT_PRINCIPAL, "gmail.search"),
       false,
     );
   });
@@ -56,7 +57,7 @@ describe("approval ledger", () => {
     const { gate } = createGate(gatedAgent);
 
     const result = gate.interceptGatedCall({
-      principal: STUB_AGENT_PRINCIPAL,
+      principal: TEST_AGENT_PRINCIPAL,
       toolName: "gmail.create_draft",
       upstreamArgs: { subject: "Hello" },
     });
@@ -75,7 +76,7 @@ describe("approval ledger", () => {
 
     const params = { subject: "Hello" };
     const approval = store.createPendingApproval({
-      principal: STUB_AGENT_PRINCIPAL,
+      principal: TEST_AGENT_PRINCIPAL,
       toolName: "gmail.create_draft",
       params,
       paramsHash: hashToolParams(params),
@@ -83,7 +84,7 @@ describe("approval ledger", () => {
     store.reject(approval.id, "not now");
 
     const result = gate.interceptGatedCall({
-      principal: STUB_AGENT_PRINCIPAL,
+      principal: TEST_AGENT_PRINCIPAL,
       toolName: "gmail.create_draft",
       upstreamArgs: params,
     });
@@ -102,7 +103,7 @@ describe("approval ledger", () => {
     const stepId = "opaque-step/ref with spaces";
 
     const result = gate.interceptGatedCall({
-      principal: STUB_AGENT_PRINCIPAL,
+      principal: TEST_AGENT_PRINCIPAL,
       toolName: "gmail.create_draft",
       upstreamArgs: { subject: "Hello" },
       runId,
@@ -141,7 +142,7 @@ describe("approval ledger", () => {
     const params = { subject: "Hello" };
 
     const pending = store.createPendingApproval({
-      principal: STUB_AGENT_PRINCIPAL,
+      principal: TEST_AGENT_PRINCIPAL,
       toolName: "gmail.create_draft",
       params,
       paramsHash: hashToolParams(params),
@@ -151,7 +152,7 @@ describe("approval ledger", () => {
     assert.equal(cancelled?.status, "cancelled");
 
     const repeat = gate.interceptGatedCall({
-      principal: STUB_AGENT_PRINCIPAL,
+      principal: TEST_AGENT_PRINCIPAL,
       toolName: "gmail.create_draft",
       upstreamArgs: params,
     });
@@ -168,7 +169,7 @@ describe("approval ledger", () => {
     const params = { subject: "Hello" };
 
     const pending = store.createPendingApproval({
-      principal: STUB_AGENT_PRINCIPAL,
+      principal: TEST_AGENT_PRINCIPAL,
       toolName: "gmail.create_draft",
       params,
       paramsHash: hashToolParams(params),
@@ -179,7 +180,7 @@ describe("approval ledger", () => {
       () =>
         gate.validateReplay({
           approvalId: pending.id,
-          principal: STUB_AGENT_PRINCIPAL,
+          principal: TEST_AGENT_PRINCIPAL,
           toolName: "gmail.create_draft",
           upstreamArgs: { subject: "Different" },
         }),
@@ -190,7 +191,7 @@ describe("approval ledger", () => {
 
     gate.validateReplay({
       approvalId: pending.id,
-      principal: STUB_AGENT_PRINCIPAL,
+      principal: TEST_AGENT_PRINCIPAL,
       toolName: "gmail.create_draft",
       upstreamArgs: params,
     });
@@ -200,7 +201,7 @@ describe("approval ledger", () => {
       () =>
         gate.validateReplay({
           approvalId: pending.id,
-          principal: STUB_AGENT_PRINCIPAL,
+          principal: TEST_AGENT_PRINCIPAL,
           toolName: "gmail.create_draft",
           upstreamArgs: params,
         }),

@@ -6,7 +6,7 @@ import { openGatewayDatabase } from "../../storage/gateway-sqlite.js";
 import { SqliteTraceRepository } from "../sqlite-trace-repository.service.js";
 import type { TraceRepository } from "../types/trace-repository.js";
 import { finalizeCallTrace } from "../utils/build-call-trace.js";
-import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
+import { TEST_AGENT_PRINCIPAL } from "../../identity/tests/test-helpers.js";
 import { toTracePrincipal } from "../utils/build-call-trace.js";
 import {
   createTestGatewayPersistence,
@@ -25,8 +25,8 @@ function sampleTrace(
     {
       server: "github",
       tool: "search_issues",
-      principal: toTracePrincipal(STUB_AGENT_PRINCIPAL),
-      credentialRef: "github:stub-user",
+      principal: toTracePrincipal(TEST_AGENT_PRINCIPAL),
+      credentialRef: "github:test-owner",
       policyDecision: PolicyDecision.Allowed,
       durationMs: 12,
       ...overrides,

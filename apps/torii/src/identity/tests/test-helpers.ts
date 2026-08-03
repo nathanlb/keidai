@@ -5,10 +5,12 @@ import type {
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { InboundIdentityService } from "../inbound-identity.service.js";
-import { STUB_AGENT_PRINCIPAL } from "../stub-agent-principal.js";
+import { TEST_AGENT_PRINCIPAL } from "./test-agent-principal.js";
+
+export { TEST_AGENT_PRINCIPAL } from "./test-agent-principal.js";
 
 export class FixedIdentityResolver implements AgentIdentityResolver {
-  constructor(private readonly principal: AgentPrincipal = STUB_AGENT_PRINCIPAL) {}
+  constructor(private readonly principal: AgentPrincipal = TEST_AGENT_PRINCIPAL) {}
 
   async resolve(_credential: string): Promise<AgentPrincipal> {
     return Object.freeze({

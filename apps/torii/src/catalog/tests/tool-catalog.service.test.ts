@@ -8,7 +8,7 @@ import { DefaultMcpClientConnector } from "../../connections/mcp-client-connecto
 import { startMockMcpServer } from "../../connections/tests/mock-mcp-server.js";
 import { ToolCatalogService } from "../tool-catalog.service.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
-import { createCredentialServices, bootBackends, withStubAgentPrincipal } from "../../credentials/tests/test-helpers.js";
+import { createCredentialServices, bootBackends, withTestAgentPrincipal } from "../../credentials/tests/test-helpers.js";
 import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
 
 function serverConfig(
@@ -43,6 +43,7 @@ describe("ToolCatalogService", () => {
       ],
     });
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [serverConfig("github", mockServer.url)],
     });
@@ -61,7 +62,7 @@ describe("ToolCatalogService", () => {
 
     try {
       await bootBackends(connectionManager, catalogService);
-      const tools = await withStubAgentPrincipal(() =>
+      const tools = await withTestAgentPrincipal(() =>
         catalogService.listToolsForAgent(),
       );
 
@@ -93,6 +94,7 @@ describe("ToolCatalogService", () => {
       ],
     });
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         {
@@ -118,7 +120,7 @@ describe("ToolCatalogService", () => {
 
     try {
       await bootBackends(connectionManager, catalogService);
-      const tools = await withStubAgentPrincipal(() =>
+      const tools = await withTestAgentPrincipal(() =>
         catalogService.listToolsForAgent(),
       );
 
@@ -153,6 +155,7 @@ describe("ToolCatalogService", () => {
     });
 
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         {
@@ -192,7 +195,7 @@ describe("ToolCatalogService", () => {
 
     try {
       await bootBackends(connectionManager, catalogService);
-      const tools = await withStubAgentPrincipal(() =>
+      const tools = await withTestAgentPrincipal(() =>
         catalogService.listToolsForAgent(),
       );
 
@@ -212,6 +215,7 @@ describe("ToolCatalogService", () => {
     await mockServer.close();
 
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         {
@@ -234,7 +238,7 @@ describe("ToolCatalogService", () => {
     );
 
     await bootBackends(connectionManager, catalogService);
-    const tools = await withStubAgentPrincipal(() =>
+    const tools = await withTestAgentPrincipal(() =>
       catalogService.listToolsForAgent(),
     );
 

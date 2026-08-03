@@ -11,7 +11,7 @@ import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import {
   bootBackends,
   createCredentialServices,
-  withStubAgentPrincipal,
+  withTestAgentPrincipal,
 } from "../../credentials/tests/test-helpers.js";
 import { createPolicyEnforcement, createApprovalServices } from "../../policy/tests/test-helpers.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
@@ -23,7 +23,7 @@ import {
   finalizeCallTrace,
   toTracePrincipal,
 } from "../../trace/utils/build-call-trace.js";
-import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
+import { TEST_AGENT_PRINCIPAL } from "../../identity/tests/test-helpers.js";
 
 describe("gateway log streams", () => {
   it("keeps CallTrace on stdout and operational logs on stderr", async () => {
@@ -31,6 +31,7 @@ describe("gateway log streams", () => {
       tools: [{ name: "ping", description: "Ping" }],
     });
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         {
@@ -83,7 +84,7 @@ describe("gateway log streams", () => {
       const structuredLogger = new StructuredLoggerService();
       structuredLogger.info("boot.config_loaded", { serverCount: 1 });
 
-      await withStubAgentPrincipal(async () => {
+      await withTestAgentPrincipal(async () => {
         await bootBackends(connectionManager, toolCatalog);
         await toolDispatch.callTool("demo.ping");
       });
@@ -97,7 +98,7 @@ describe("gateway log streams", () => {
           {
             server: "demo",
             tool: "ping",
-            principal: toTracePrincipal(STUB_AGENT_PRINCIPAL),
+            principal: toTracePrincipal(TEST_AGENT_PRINCIPAL),
             credentialRef: "none",
             policyDecision: PolicyDecision.Allowed,
             durationMs: 1,

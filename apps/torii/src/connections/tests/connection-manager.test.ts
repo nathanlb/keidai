@@ -7,7 +7,7 @@ import { ConnectionManager } from "../connection-manager.service.js";
 import type { McpClientConnector } from "../types/mcp-client-connector.js";
 import { DefaultMcpClientConnector } from "../mcp-client-connector.service.js";
 import { startMockMcpServer } from "./mock-mcp-server.js";
-import { createCredentialServices, withStubAgentPrincipal } from "../../credentials/tests/test-helpers.js";
+import { createCredentialServices, withTestAgentPrincipal } from "../../credentials/tests/test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 
 function serverConfig(
@@ -40,6 +40,7 @@ describe("ConnectionManager", () => {
   it("connects to a mock MCP server and tracks connected state", async () => {
     const mockServer = await startMockMcpServer();
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [serverConfig("alpha", mockServer.url)],
     });
@@ -47,7 +48,7 @@ describe("ConnectionManager", () => {
     const manager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
 
     try {
-      await withStubAgentPrincipal(() => manager.connectAll());
+      await withTestAgentPrincipal(() => manager.connectAll());
 
       const connection = manager.get("alpha");
       assert.equal(connection?.state, "connected");
@@ -64,6 +65,7 @@ describe("ConnectionManager", () => {
     const goodServer = await startMockMcpServer();
     const badServer = await startMockMcpServer({ rejectConnections: true });
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         serverConfig("good", goodServer.url, { strategy: "service_key", key: "sk_test" }),
@@ -74,7 +76,7 @@ describe("ConnectionManager", () => {
     const manager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
 
     try {
-      await withStubAgentPrincipal(() => manager.connectAll());
+      await withTestAgentPrincipal(() => manager.connectAll());
 
       const good = manager.get("good");
       const bad = manager.get("bad");
@@ -99,6 +101,7 @@ describe("ConnectionManager", () => {
     const unreachableUrl = closedServer.url;
     await closedServer.close();
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         serverConfig("reachable", reachable.url),
@@ -109,7 +112,7 @@ describe("ConnectionManager", () => {
     const manager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
 
     try {
-      await withStubAgentPrincipal(() => manager.connectAll());
+      await withTestAgentPrincipal(() => manager.connectAll());
 
       const states = new Map(
         manager.list().map((connection) => [connection.config.name, connection.state]),
@@ -126,6 +129,7 @@ describe("ConnectionManager", () => {
 
   it("exposes the registry by server name", async () => {
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [serverConfig("github", "http://127.0.0.1:9/mcp")],
     });
@@ -144,13 +148,14 @@ describe("ConnectionManager", () => {
     assert.equal(manager.get("github")?.config.name, "github");
   });
 
-  it("connects user_oauth backends using boot agent principal without caller context", async () => {
+  it("connects user_oauth backends using boot_owner_id without caller context", async () => {
     const mockServer = await startMockMcpServer({ requireAuth: true });
     const ownerId = "demo-owner";
     const { credentialResolver, tokenRepository } = createCredentialServices();
     await tokenRepository.set(ownerId, "github", { accessToken: "gho_valid" });
 
     const configService = new ToriiConfigService({
+      boot_owner_id: ownerId,
       oauth_providers: {
         github: {
           token_url: "https://github.com/login/oauth/access_token",

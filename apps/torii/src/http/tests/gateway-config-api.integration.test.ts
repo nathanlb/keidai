@@ -26,6 +26,7 @@ import { createOAuthApiController, createStubToolCatalog, createTestGatewayHttpS
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 
 const sampleConfig: ToriiConfig = {
+  boot_owner_id: "test-owner",
   oauth_providers: {
     github: {
       token_url: "https://github.com/login/oauth/access_token",
@@ -137,6 +138,7 @@ describe("Gateway /api/config endpoints", () => {
 
   it("returns empty collections when config has no entries", async () => {
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [],
     });

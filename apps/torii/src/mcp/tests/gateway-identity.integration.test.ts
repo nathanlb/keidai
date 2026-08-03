@@ -126,6 +126,7 @@ describe("Gateway inbound identity", () => {
     });
 
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {},
       agents: [
         {
@@ -200,6 +201,7 @@ describe("Gateway inbound identity", () => {
     });
 
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [noneServer("deepwiki", backend.url)],
     });

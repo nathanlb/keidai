@@ -9,6 +9,7 @@ const validEnv = {
 };
 
 const validDocument = {
+  boot_owner_id: "test-owner",
   oauth_providers: {
     github: {
       token_url: "https://github.com/login/oauth/access_token",
@@ -106,6 +107,7 @@ describe("loadConfigFromDocument", () => {
       "sk_test_123",
     );
     assert.deepEqual(config.agents, []);
+    assert.equal(config.boot_owner_id, "test-owner");
   });
 
   it("loads agent registrations from config", () => {
@@ -207,6 +209,28 @@ describe("loadConfigFromDocument", () => {
           validEnv,
         ),
       ['user_oauth provider "github" is not defined in oauth_providers'],
+    );
+  });
+
+  it("fails when boot_owner_id is missing", () => {
+    const { boot_owner_id: _omit, ...withoutBootOwner } = validDocument;
+    expectValidationError(
+      () => loadConfigFromDocument(withoutBootOwner, validEnv),
+      ["boot_owner_id: Required"],
+    );
+  });
+
+  it("fails when boot_owner_id is empty", () => {
+    expectValidationError(
+      () =>
+        loadConfigFromDocument(
+          {
+            ...validDocument,
+            boot_owner_id: "",
+          },
+          validEnv,
+        ),
+      ["boot_owner_id: boot_owner_id is required"],
     );
   });
 

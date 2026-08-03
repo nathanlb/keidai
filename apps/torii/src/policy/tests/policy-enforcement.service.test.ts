@@ -9,6 +9,7 @@ import { PolicyEnforcementService } from "../policy-enforcement.service.js";
 describe("PolicyEnforcementService", () => {
   it("warns when policy references tools absent from the backend catalog", () => {
     const config: ToriiConfig = {
+      boot_owner_id: "test-owner",
       oauth_providers: {},
       agents: [],
       servers: [
