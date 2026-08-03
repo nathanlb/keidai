@@ -115,6 +115,7 @@ describe("Demo scenario — open-torii status digest", () => {
     await tokenRepository.set(DEMO_OWNER, "google", { accessToken: googleToken });
 
     const configService = new ToriiConfigService({
+      boot_owner_id: DEMO_OWNER,
       oauth_providers: DEMO_OAUTH_PROVIDERS,
       agents: [
         {

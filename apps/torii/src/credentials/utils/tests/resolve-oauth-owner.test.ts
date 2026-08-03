@@ -15,6 +15,7 @@ const agent = {
 };
 
 const baseConfig: ToriiConfig = {
+  boot_owner_id: "test-owner",
   oauth_providers: {},
   servers: [],
 };

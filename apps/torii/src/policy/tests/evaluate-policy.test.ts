@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { AgentPrincipal, PolicyConfig } from "@keidai/shared";
 import { PolicyDecision } from "@keidai/shared";
-import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
+import { TEST_AGENT_PRINCIPAL } from "../../identity/tests/test-agent-principal.js";
 import { evaluatePolicy } from "../utils/evaluate-policy.js";
 
-const principal: AgentPrincipal = STUB_AGENT_PRINCIPAL;
+const principal: AgentPrincipal = TEST_AGENT_PRINCIPAL;
 
 describe("evaluatePolicy", () => {
   it("allows tools in allow-list when default is deny", () => {

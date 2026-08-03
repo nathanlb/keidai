@@ -51,6 +51,7 @@ describe("NoneCredentialResolver", () => {
 
 describe("CredentialResolverService none dispatch", () => {
   const configService = new ToriiConfigService({
+    boot_owner_id: "test-owner",
     oauth_providers: {},
     servers: [],
   });

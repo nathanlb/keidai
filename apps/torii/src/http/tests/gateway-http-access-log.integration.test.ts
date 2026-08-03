@@ -19,6 +19,7 @@ describe("Gateway HTTP access logging", () => {
   it("emits structured access logs without secrets", async () => {
     const logger = createCapturingLogger();
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [],
       agents: [],

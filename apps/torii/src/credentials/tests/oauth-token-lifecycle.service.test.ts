@@ -26,6 +26,7 @@ function createLifecycle(
   providers: ToriiConfig["oauth_providers"] = oauthProviders,
 ): OAuthTokenLifecycleService {
   const configService = new ToriiConfigService({
+    boot_owner_id: "test-owner",
     oauth_providers: providers,
     servers: [],
   });

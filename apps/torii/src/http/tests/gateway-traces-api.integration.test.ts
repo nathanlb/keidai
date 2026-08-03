@@ -14,7 +14,7 @@ import {
   finalizeCallTrace,
   toTracePrincipal,
 } from "../../trace/utils/build-call-trace.js";
-import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
+import { TEST_AGENT_PRINCIPAL } from "../../identity/tests/test-helpers.js";
 import type { GatewayHttpServer } from "../gateway-http-server.service.js";
 import {
   createStubToolCatalog,
@@ -119,8 +119,8 @@ describe("Gateway /api/traces endpoints", () => {
         {
           server: "github",
           tool: "search_issues",
-          principal: toTracePrincipal(STUB_AGENT_PRINCIPAL),
-          credentialRef: "github:stub-user",
+          principal: toTracePrincipal(TEST_AGENT_PRINCIPAL),
+          credentialRef: "github:test-owner",
           policyDecision: PolicyDecision.Allowed,
           durationMs: 10,
         },
@@ -132,7 +132,7 @@ describe("Gateway /api/traces endpoints", () => {
         {
           server: "stripe",
           tool: "list_customers",
-          principal: toTracePrincipal(STUB_AGENT_PRINCIPAL),
+          principal: toTracePrincipal(TEST_AGENT_PRINCIPAL),
           credentialRef: "service_key:stripe",
           policyDecision: PolicyDecision.Allowed,
           durationMs: 20,
@@ -186,7 +186,7 @@ describe("Gateway /api/traces endpoints", () => {
         {
           server: "github",
           tool: "search_issues",
-          principal: toTracePrincipal(STUB_AGENT_PRINCIPAL),
+          principal: toTracePrincipal(TEST_AGENT_PRINCIPAL),
           policyDecision: PolicyDecision.Denied,
           error: "policy denied",
         },
@@ -236,7 +236,7 @@ describe("Gateway /api/traces endpoints", () => {
           {
             server: "deepwiki",
             tool: "read_wiki_structure",
-            principal: toTracePrincipal(STUB_AGENT_PRINCIPAL),
+            principal: toTracePrincipal(TEST_AGENT_PRINCIPAL),
             credentialRef: "none",
             policyDecision: PolicyDecision.Allowed,
             durationMs: 8,

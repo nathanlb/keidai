@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { PolicyDecision } from "@keidai/shared";
 import { finalizeCallTrace, toTracePrincipal } from "../utils/build-call-trace.js";
 import { deriveTraceOutcome } from "../utils/derive-trace-outcome.js";
-import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
+import { TEST_AGENT_PRINCIPAL } from "../../identity/tests/test-agent-principal.js";
 
 describe("deriveTraceOutcome", () => {
   it("maps policy, linking, error, and success traces", () => {
@@ -11,7 +11,7 @@ describe("deriveTraceOutcome", () => {
       {
         server: "github",
         tool: "delete_repo",
-        principal: toTracePrincipal(STUB_AGENT_PRINCIPAL),
+        principal: toTracePrincipal(TEST_AGENT_PRINCIPAL),
         policyDecision: PolicyDecision.Denied,
         error: "policy denied",
       },
@@ -21,7 +21,7 @@ describe("deriveTraceOutcome", () => {
       {
         server: "notion",
         tool: "search",
-        principal: toTracePrincipal(STUB_AGENT_PRINCIPAL),
+        principal: toTracePrincipal(TEST_AGENT_PRINCIPAL),
         policyDecision: PolicyDecision.Allowed,
         error:
           'OAuth connection required for provider "notion" (backend "notion")',
@@ -32,7 +32,7 @@ describe("deriveTraceOutcome", () => {
       {
         server: "stripe",
         tool: "list_customers",
-        principal: toTracePrincipal(STUB_AGENT_PRINCIPAL),
+        principal: toTracePrincipal(TEST_AGENT_PRINCIPAL),
         policyDecision: PolicyDecision.Allowed,
         durationMs: 10,
         error: "backend unavailable",
@@ -43,7 +43,7 @@ describe("deriveTraceOutcome", () => {
       {
         server: "deepwiki",
         tool: "read_wiki_structure",
-        principal: toTracePrincipal(STUB_AGENT_PRINCIPAL),
+        principal: toTracePrincipal(TEST_AGENT_PRINCIPAL),
         policyDecision: PolicyDecision.Allowed,
         durationMs: 5,
       },

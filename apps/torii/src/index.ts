@@ -10,7 +10,7 @@ import { ConnectionManager } from "./connections/connection-manager.service.js";
 import { ToolCatalogService } from "./catalog/tool-catalog.service.js";
 import { ToriiConfigService } from "./config/torii-config.service.js";
 import { runWithAgentPrincipal } from "./identity/agent-principal-context.js";
-import { resolveBootAgentPrincipal } from "./identity/stub-agent-principal.js";
+import { resolveBootPrincipal } from "./identity/resolve-boot-principal.js";
 import { GatewayHttpServer } from "./http/gateway-http-server.service.js";
 import { StructuredLoggerService } from "./logging/structured-logger.service.js";
 
@@ -36,7 +36,7 @@ export async function startServer(): Promise<void> {
     serverCount: configService.get().servers.length,
   });
 
-  const bootPrincipal = resolveBootAgentPrincipal(config);
+  const bootPrincipal = resolveBootPrincipal(config);
 
   await runWithAgentPrincipal(bootPrincipal, async () => {
     await connectionManager.connectAll();

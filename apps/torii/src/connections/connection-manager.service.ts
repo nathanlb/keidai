@@ -2,7 +2,7 @@ import type { ServerConfig } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
 import { ToriiConfigService } from "../config/torii-config.service.js";
 import { runWithAgentPrincipal } from "../identity/agent-principal-context.js";
-import { resolveBootAgentPrincipal } from "../identity/stub-agent-principal.js";
+import { resolveBootPrincipal } from "../identity/resolve-boot-principal.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
 import type { Logger } from "@keidai/shared";
 import { DefaultMcpClientConnector } from "./mcp-client-connector.service.js";
@@ -109,7 +109,7 @@ export class ConnectionManager {
   }
 
   private async connectServer(server: ServerConfig): Promise<void> {
-    const principal = resolveBootAgentPrincipal(this.configService.get());
+    const principal = resolveBootPrincipal(this.configService.get());
 
     await runWithAgentPrincipal(principal, async () => {
       try {

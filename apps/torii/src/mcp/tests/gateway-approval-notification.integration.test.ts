@@ -11,14 +11,14 @@ import { ConnectionManager } from "../../connections/connection-manager.service.
 import { DefaultMcpClientConnector } from "../../connections/mcp-client-connector.service.js";
 import { startMockMcpServer } from "../../connections/tests/mock-mcp-server.js";
 import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
-import { createCredentialServices, withStubAgentPrincipal } from "../../credentials/tests/test-helpers.js";
+import { createCredentialServices, withTestAgentPrincipal } from "../../credentials/tests/test-helpers.js";
 import { createTestGatewayHttpServer } from "../../http/tests/test-helpers.js";
 import type { GatewayHttpServerHandle } from "../../http/types/gateway-http-server.js";
 import {
   connectAgentToGateway,
   TEST_AGENT_BEARER,
 } from "../../identity/tests/test-helpers.js";
-import { STUB_AGENT_PRINCIPAL } from "../../identity/stub-agent-principal.js";
+import { TEST_AGENT_PRINCIPAL } from "../../identity/tests/test-helpers.js";
 import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import {
@@ -81,6 +81,7 @@ async function withGatedGateway(
   });
 
   const configService = new ToriiConfigService({
+    boot_owner_id: "test-owner",
     oauth_providers: {},
     agents: [
       {
@@ -89,8 +90,8 @@ async function withGatedGateway(
           namespace: "torii-agents",
           service_account: "demo",
         },
-        agent_id: STUB_AGENT_PRINCIPAL.agentId,
-        owner_id: STUB_AGENT_PRINCIPAL.ownerId,
+        agent_id: TEST_AGENT_PRINCIPAL.agentId,
+        owner_id: TEST_AGENT_PRINCIPAL.ownerId,
         groups: [],
         gated_tools: ["gmail.create_draft"],
       },
@@ -133,7 +134,7 @@ async function withGatedGateway(
   );
 
   try {
-    await withStubAgentPrincipal(async () => {
+    await withTestAgentPrincipal(async () => {
       await connectionManager.connectAll();
     });
     const gateway = await gatewayHttpServer.start();
@@ -153,7 +154,7 @@ describe("Gateway MCP approval notifications", () => {
     await withGatedGateway(async ({ gateway, approvalServices }) => {
       assert.equal(
         approvalServices.approvalGate.requiresApproval(
-          STUB_AGENT_PRINCIPAL,
+          TEST_AGENT_PRINCIPAL,
           "gmail.create_draft",
         ),
         true,
@@ -285,6 +286,7 @@ describe("Gateway MCP approval notifications", () => {
     });
 
     const configService = new ToriiConfigService({
+      boot_owner_id: "test-owner",
       oauth_providers: {},
       agents: [],
       servers: [
@@ -322,7 +324,7 @@ describe("Gateway MCP approval notifications", () => {
     );
 
     try {
-      await withStubAgentPrincipal(async () => {
+      await withTestAgentPrincipal(async () => {
         await connectionManager.connectAll();
       });
       const gateway = await gatewayHttpServer.start();
