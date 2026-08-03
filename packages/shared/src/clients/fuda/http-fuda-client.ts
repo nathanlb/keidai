@@ -4,7 +4,7 @@ import {
   type ExchangedAgentToken,
   type FudaClient,
   type TokenExchangeFailureKind,
-} from "./types/fuda-client.js";
+} from "./types.js";
 
 export interface HttpFudaClientOptions {
   baseUrl: string;

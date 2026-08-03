@@ -1,7 +1,7 @@
 import {
   TokenExchangeError,
   type FudaClient,
-} from "./types/fuda-client.js";
+} from "@keidai/shared/clients";
 
 /** Refresh a bit before wall-clock expiry so mid-call expiry is unlikely. */
 const DEFAULT_REFRESH_SKEW_MS = 30_000;

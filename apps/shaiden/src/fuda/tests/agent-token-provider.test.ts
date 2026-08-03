@@ -5,7 +5,7 @@ import {
   TokenExchangeError,
   type ExchangedAgentToken,
   type FudaClient,
-} from "../types/fuda-client.js";
+} from "@keidai/shared/clients";
 
 function scriptedFuda(tokens: ExchangedAgentToken[]): FudaClient & {
   calls: number;

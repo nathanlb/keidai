@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { createHttpFudaClient } from "../fuda-client.js";
-import { TokenExchangeError } from "../types/fuda-client.js";
+import { createHttpFudaClient } from "../http-fuda-client.js";
+import { TokenExchangeError } from "../types.js";
 
 describe("createHttpFudaClient.exchangeToken", () => {
   it("POSTs subject_token and agent_id and returns the minted JWT", async () => {

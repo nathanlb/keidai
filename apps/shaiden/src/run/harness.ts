@@ -4,10 +4,12 @@ import {
   type Logger,
   type Task,
 } from "@keidai/shared";
+import {
+  createHttpFudaClient,
+  TokenExchangeError,
+} from "@keidai/shared/clients";
 import type { RuntimeConfig } from "../config/runtime-config.js";
 import { createAgentTokenProvider } from "../fuda/agent-token-provider.js";
-import { createHttpFudaClient } from "../fuda/fuda-client.js";
-import { TokenExchangeError } from "../fuda/types/fuda-client.js";
 import { defaultLogger } from "../logging/logger.js";
 import { createOpenRouterModel } from "../model/openrouter.js";
 import { connectToriiSession } from "../mcp/torii-client.js";

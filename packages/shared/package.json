@@ -16,6 +16,10 @@
     "./load-env": {
       "types": "./dist/load-env.d.ts",
       "import": "./dist/load-env.js"
+    },
+    "./clients": {
+      "types": "./dist/clients/index.d.ts",
+      "import": "./dist/clients/index.js"
     }
   },
   "main": "./dist/index.js",
