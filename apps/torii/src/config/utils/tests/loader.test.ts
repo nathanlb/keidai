@@ -29,10 +29,6 @@ const validDocument = {
         strategy: "user_oauth",
         provider: "github",
       },
-      policy: {
-        default: "deny",
-        allow: ["search_issues"],
-      },
     },
     {
       name: "stripe",
@@ -44,10 +40,6 @@ const validDocument = {
         strategy: "service_key",
         key: "${env:STRIPE_RESTRICTED_KEY}",
       },
-      policy: {
-        default: "deny",
-        allow: ["list_customers"],
-      },
     },
     {
       name: "deepwiki",
@@ -58,10 +50,17 @@ const validDocument = {
       credential: {
         strategy: "none",
       },
-      policy: {
-        default: "deny",
-        allow: ["read_wiki_structure"],
-      },
+    },
+  ],
+  groups: [
+    {
+      name: "agents",
+      description: "Test agents group",
+      permissions: [
+        { server: "github", tools: ["search_issues"] },
+        { server: "stripe", tools: ["list_customers"] },
+        { server: "deepwiki", tools: ["read_wiki_structure"] },
+      ],
     },
   ],
 };
@@ -108,6 +107,8 @@ describe("loadConfigFromDocument", () => {
     );
     assert.deepEqual(config.agents, []);
     assert.equal(config.boot_owner_id, "test-owner");
+    assert.equal(config.groups?.length, 1);
+    assert.equal(config.groups?.[0]?.name, "agents");
   });
 
   it("loads agent registrations from config", () => {
@@ -257,6 +258,51 @@ describe("loadConfigFromDocument", () => {
     );
   });
 
+  it("fails on duplicate group names", () => {
+    expectValidationError(
+      () =>
+        loadConfigFromDocument(
+          {
+            ...validDocument,
+            groups: [
+              {
+                name: "agents",
+                description: "First agents group",
+                permissions: [{ server: "github", tools: ["search_issues"] }],
+              },
+              {
+                name: "agents",
+                description: "Duplicate agents group",
+                permissions: [{ server: "stripe", tools: ["list_customers"] }],
+              },
+            ],
+          },
+          validEnv,
+        ),
+      ['duplicate group name "agents"'],
+    );
+  });
+
+  it("fails when a group permission references an unknown server", () => {
+    expectValidationError(
+      () =>
+        loadConfigFromDocument(
+          {
+            ...validDocument,
+            groups: [
+              {
+                name: "agents",
+                description: "Test agents group",
+                permissions: [{ server: "unknown-server", tools: ["do_thing"] }],
+              },
+            ],
+          },
+          validEnv,
+        ),
+      ['permission server "unknown-server" is not defined in servers'],
+    );
+  });
+
   it("fails when none credential declares extra fields", () => {
     expectValidationError(
       () =>
@@ -273,9 +319,6 @@ describe("loadConfigFromDocument", () => {
                 credential: {
                   strategy: "none",
                   key: "should-not-be-here",
-                },
-                policy: {
-                  default: "deny",
                 },
               },
             ],
@@ -325,9 +368,6 @@ describe("loadConfigFromDocument", () => {
                 credential: {
                   strategy: "service_key",
                 },
-                policy: {
-                  default: "deny",
-                },
               },
             ],
           },
@@ -353,9 +393,9 @@ describe("loadConfigFromDocument", () => {
               key: "${env:STRIPE_RESTRICTED_KEY}",
               inject: { header: "X-Api-Key" },
             },
-            policy: { default: "deny" },
           },
         ],
+        groups: [],
       },
       validEnv,
     );

@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import type { ToriiConfig } from "@keidai/shared";
 import {
   projectConfigAgents,
+  projectConfigGroups,
   projectConfigOAuthProviders,
   projectConfigServers,
   projectPublicCredential,
@@ -27,19 +28,16 @@ const fullConfig: ToriiConfig = {
         key: "sk-secret",
         inject: { header: "Authorization" },
       },
-      policy: { default: "deny" },
     },
     {
       name: "github",
       transport: { type: "http", url: "https://api.githubcopilot.com/mcp/" },
       credential: { strategy: "user_oauth", provider: "github" },
-      policy: { default: "deny" },
     },
     {
       name: "public",
       transport: { type: "http", url: "https://example.com/mcp" },
       credential: { strategy: "none" },
-      policy: { default: "allow" },
     },
   ],
   agents: [
@@ -53,6 +51,15 @@ const fullConfig: ToriiConfig = {
       owner_id: "demo-owner",
       groups: ["agents"],
       inbound_token: "bearer-secret",
+    },
+  ],
+  groups: [
+    {
+      name: "agents",
+      description: "Full access agents group",
+      permissions: [
+        { server: "linear", tools: ["list_issues", "get_issue"] },
+      ],
     },
   ],
 };
@@ -69,17 +76,32 @@ describe("project-config-api", () => {
         strategy: "service_key",
         inject: { header: "Authorization" },
       },
-      policy: { default: "deny" },
+      policy: { default: "deny", allow: ["get_issue", "list_issues"] },
     });
     assert.deepEqual(result.servers[1]!.credential, {
       strategy: "user_oauth",
       provider: "github",
     });
+    assert.deepEqual(result.servers[1]!.policy, { default: "deny", allow: [] });
     assert.deepEqual(result.servers[2]!.credential, { strategy: "none" });
+    assert.deepEqual(result.servers[2]!.policy, { default: "deny", allow: [] });
     assert.equal(
       JSON.stringify(result).includes("sk-secret"),
       false,
       "service key must not leak",
+    );
+  });
+
+  it("projects group definitions without exposing permissions", () => {
+    const result = projectConfigGroups(fullConfig);
+
+    assert.deepEqual(result.groups, [
+      { name: "agents", description: "Full access agents group" },
+    ]);
+    assert.equal(
+      JSON.stringify(result).includes("list_issues"),
+      false,
+      "permissions must not leak in the group projection",
     );
   });
 

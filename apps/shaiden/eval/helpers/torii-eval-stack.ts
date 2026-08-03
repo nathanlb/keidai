@@ -19,6 +19,7 @@ import {
 } from "../../../torii/src/policy/tests/test-helpers.js";
 import { createNoopLogger } from "../../../torii/src/logging/tests/test-helpers.js";
 import { CapturingTraceEmitter } from "../../../torii/src/trace/tests/capturing-trace-emitter.js";
+import { testAgentsGroup } from "../../../torii/src/testing/test-config.js";
 
 export const EVAL_AGENT_ID = "shaiden-newsletter-01";
 export const EVAL_OWNER = "eval-owner";
@@ -126,10 +127,6 @@ export async function startEvalToriiStack(
         name: "linear",
         transport: { type: "http", url: linearBackend.url },
         credential: { strategy: "service_key", key: linearKey },
-        policy: {
-          default: "deny",
-          allow: ["list_issues", "get_issue"],
-        },
       },
       ...(includeGmail && gmailBackend
         ? [
@@ -140,10 +137,15 @@ export async function startEvalToriiStack(
                 strategy: "user_oauth" as const,
                 provider: "google",
               },
-              policy: { default: "deny" as const, allow: ["create_draft"] },
             },
           ]
         : []),
+    ],
+    groups: [
+      testAgentsGroup([
+        { server: "linear", tools: ["list_issues", "get_issue"] },
+        ...(includeGmail ? [{ server: "gmail", tools: ["create_draft"] }] : []),
+      ]),
     ],
   });
 

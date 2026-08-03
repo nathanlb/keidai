@@ -16,7 +16,6 @@ function serviceKeyServer(
       key: "sk_test_secret_key",
       ...overrides,
     },
-    policy: { default: "deny" },
   };
 }
 
@@ -55,7 +54,6 @@ describe("ServiceKeyCredentialResolver", () => {
           name: "github",
           transport: { type: "http", url: "https://example.com/mcp" },
           credential: { strategy: "none" },
-          policy: { default: "deny" },
         }),
       /cannot handle strategy "none"/,
     );

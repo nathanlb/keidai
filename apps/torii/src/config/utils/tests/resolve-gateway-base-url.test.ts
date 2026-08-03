@@ -14,7 +14,6 @@ describe("resolveGatewayBaseUrl", () => {
           name: "x",
           transport: { type: "http", url: "https://example.com/mcp" },
           credential: { strategy: "none" },
-          policy: { default: "allow" },
         },
       ],
     };
@@ -32,7 +31,6 @@ describe("resolveGatewayBaseUrl", () => {
           name: "x",
           transport: { type: "http", url: "https://example.com/mcp" },
           credential: { strategy: "none" },
-          policy: { default: "allow" },
         },
       ],
     };

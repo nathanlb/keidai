@@ -18,7 +18,6 @@ function noneServer(
     name,
     transport: { type: "http", url: "https://mcp.deepwiki.com/mcp" },
     credential: { strategy: "none" },
-    policy: { default: "deny", allow: ["read_wiki_structure"] },
   };
 }
 
@@ -42,7 +41,6 @@ describe("NoneCredentialResolver", () => {
             strategy: "service_key",
             key: "sk_test",
           },
-          policy: { default: "deny" },
         }),
       /cannot handle strategy "service_key"/,
     );

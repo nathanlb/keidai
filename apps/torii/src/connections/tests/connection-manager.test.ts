@@ -21,7 +21,6 @@ function serverConfig(
     name,
     transport: { type: "http", url },
     credential,
-    policy: { default: "deny" },
   };
 }
 

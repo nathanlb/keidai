@@ -15,6 +15,7 @@ import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import { createPolicyEnforcement, createApprovalServices } from "../../policy/tests/test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
+import { testAgentsGroup } from "../../testing/test-config.js";
 
 function userOAuthServer(
   name: string,
@@ -27,7 +28,6 @@ function userOAuthServer(
       strategy: "user_oauth",
       provider: "github",
     },
-    policy: { default: "deny", allow: ["search_issues"] },
   };
 }
 
@@ -43,7 +43,6 @@ function serviceKeyServer(
       strategy: "service_key",
       key,
     },
-    policy: { default: "deny", allow: ["list_customers"] },
   };
 }
 
@@ -55,7 +54,6 @@ function noneServer(
     name,
     transport: { type: "http", url },
     credential: { strategy: "none" },
-    policy: { default: "deny", allow: ["read_wiki_structure"] },
   };
 }
 
@@ -107,6 +105,13 @@ describe("Gateway MCP tools/call", () => {
         userOAuthServer("github", githubBackend.url),
         serviceKeyServer("stripe", stripeBackend.url, stripeKey),
         noneServer("deepwiki", deepwikiBackend.url),
+      ],
+      groups: [
+        testAgentsGroup([
+          { server: "github", tools: ["search_issues"] },
+          { server: "stripe", tools: ["list_customers"] },
+          { server: "deepwiki", tools: ["read_wiki_structure"] },
+        ]),
       ],
     });
     const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
@@ -178,9 +183,9 @@ describe("Gateway MCP tools/call", () => {
           name: "github",
           transport: { type: "http", url: backend.url },
           credential: { strategy: "none" },
-          policy: { default: "deny", allow: ["search_issues"] },
         },
       ],
+      groups: [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])],
     });
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
@@ -241,8 +246,12 @@ describe("Gateway MCP tools/call", () => {
       servers: [
         {
           ...noneServer("github", backend.url),
-          policy: { default: "deny", allow: ["search_issues", "missing_tool"] },
         },
+      ],
+      groups: [
+        testAgentsGroup([
+          { server: "github", tools: ["search_issues", "missing_tool"] },
+        ]),
       ],
     });
     const { credentialResolver } = createCredentialServices();

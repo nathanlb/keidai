@@ -6,7 +6,7 @@ export type AgentTool = Tool;
 /** One tool entry in the in-memory catalog (bare + namespaced names). */
 export interface CatalogTool {
   server: string;
-  /** Backend-local tool name — matches `policy.allow` / `policy.deny` in torii.yaml. */
+  /** Backend-local tool name — matches group permission tool lists in torii.yaml. */
   bareName: string;
   /** Agent-facing name: `<server>.<bareName>`. */
   namespacedName: string;

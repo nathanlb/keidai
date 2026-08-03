@@ -24,6 +24,7 @@ import {
   toTracePrincipal,
 } from "../../trace/utils/build-call-trace.js";
 import { TEST_AGENT_PRINCIPAL } from "../../identity/tests/test-helpers.js";
+import { testAgentsGroup } from "../../testing/test-config.js";
 
 describe("gateway log streams", () => {
   it("keeps CallTrace on stdout and operational logs on stderr", async () => {
@@ -38,9 +39,9 @@ describe("gateway log streams", () => {
           name: "demo",
           transport: { type: "http", url: mockServer.url },
           credential: { strategy: "none" },
-          policy: { default: "deny", allow: ["ping"] },
         },
       ],
+      groups: [testAgentsGroup([{ server: "demo", tools: ["ping"] }])],
       agents: [],
     });
     const { credentialResolver } = createCredentialServices();

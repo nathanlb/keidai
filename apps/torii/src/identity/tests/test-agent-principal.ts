@@ -4,6 +4,6 @@ import type { AgentPrincipal } from "@keidai/shared";
 export const TEST_AGENT_PRINCIPAL: AgentPrincipal = {
   agentId: "test-agent",
   ownerId: "test-owner",
-  groups: [],
+  groups: ["agents"],
   bearerId: "test-bearer",
 };

@@ -19,6 +19,7 @@ import { createTestGatewayHttpServer } from "../../http/tests/test-helpers.js";
 import { createPolicyEnforcement, createApprovalServices } from "../../policy/tests/test-helpers.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
+import { testAgentsGroup } from "../../testing/test-config.js";
 
 const DEMO_OWNER = "demo-owner";
 const DEMO_PRINCIPAL = {
@@ -135,29 +136,30 @@ describe("Demo scenario — open-torii status digest", () => {
           name: "linear",
           transport: { type: "http", url: linearBackend.url },
           credential: { strategy: "service_key", key: linearKey },
-          policy: {
-            default: "deny",
-            allow: ["list_issues", "get_issue", "list_projects"],
-          },
         },
         {
           name: "github",
           transport: { type: "http", url: githubBackend.url },
           credential: { strategy: "user_oauth", provider: "github" },
-          policy: { default: "deny", allow: ["search_issues", "get_file_contents"] },
         },
         {
           name: "notion",
           transport: { type: "http", url: notionBackend.url },
           credential: { strategy: "user_oauth", provider: "notion" },
-          policy: { default: "deny", allow: ["notion-search", "notion-fetch"] },
         },
         {
           name: "gmail",
           transport: { type: "http", url: gmailBackend.url },
           credential: { strategy: "user_oauth", provider: "google" },
-          policy: { default: "deny", allow: ["create_draft"] },
         },
+      ],
+      groups: [
+        testAgentsGroup([
+          { server: "linear", tools: ["list_issues", "get_issue", "list_projects"] },
+          { server: "github", tools: ["search_issues", "get_file_contents"] },
+          { server: "notion", tools: ["notion-search", "notion-fetch"] },
+          { server: "gmail", tools: ["create_draft"] },
+        ]),
       ],
     });
 

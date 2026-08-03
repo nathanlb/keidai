@@ -60,12 +60,6 @@ const credentialSchema = z.discriminatedUnion("strategy", [
     .strict(),
 ]);
 
-const policySchema = z.object({
-  default: z.enum(["allow", "deny"]),
-  allow: z.array(z.string()).optional(),
-  deny: z.array(z.string()).optional(),
-});
-
 const k8sServiceAccountSubjectSchema = z
   .object({
     kind: z.literal("k8s_service_account"),
@@ -85,15 +79,31 @@ const agentRegistrationSchema = z
   })
   .strict();
 
-const serverSchema = z.object({
-  name: z.string().min(1, "name is required"),
-  transport: z.object({
-    type: z.literal("http"),
-    url: z.string().min(1, "url is required"),
-  }),
-  credential: credentialSchema,
-  policy: policySchema,
-});
+const groupPermissionSchema = z
+  .object({
+    server: z.string().min(1, "server is required"),
+    tools: z.array(z.string().min(1)),
+  })
+  .strict();
+
+const groupDefinitionSchema = z
+  .object({
+    name: z.string().min(1, "name is required"),
+    description: z.string().min(1, "description is required"),
+    permissions: z.array(groupPermissionSchema),
+  })
+  .strict();
+
+const serverSchema = z
+  .object({
+    name: z.string().min(1, "name is required"),
+    transport: z.object({
+      type: z.literal("http"),
+      url: z.string().min(1, "url is required"),
+    }),
+    credential: credentialSchema,
+  })
+  .strict();
 
 export const toriiConfigSchema = z
   .object({
@@ -101,12 +111,15 @@ export const toriiConfigSchema = z
     boot_owner_id: z.string().min(1, "boot_owner_id is required"),
     oauth_providers: z.record(z.string(), oauthProviderSchema),
     servers: z.array(serverSchema).min(1, "at least one server is required"),
+    groups: z.array(groupDefinitionSchema).default([]),
     agents: z.array(agentRegistrationSchema).default([]),
   })
   .superRefine((config, ctx) => {
     const seenNames = new Map<string, number>();
+    const seenGroupNames = new Map<string, number>();
     const seenAgentSubjects = new Map<string, number>();
     const seenInboundTokens = new Map<string, number>();
+    const serverNames = new Set(config.servers.map((server) => server.name));
 
     config.agents.forEach((agent, index) => {
       const subjectKey = `${agent.subject.namespace}/${agent.subject.service_account}`;
@@ -156,6 +169,29 @@ export const toriiConfigSchema = z
           });
         }
       }
+    });
+
+    config.groups.forEach((group, index) => {
+      const firstGroupIndex = seenGroupNames.get(group.name);
+      if (firstGroupIndex !== undefined) {
+        ctx.addIssue({
+          code: "custom",
+          message: `duplicate group name "${group.name}" (also defined at groups[${firstGroupIndex}])`,
+          path: ["groups", index, "name"],
+        });
+      } else {
+        seenGroupNames.set(group.name, index);
+      }
+
+      group.permissions.forEach((permission, permissionIndex) => {
+        if (!serverNames.has(permission.server)) {
+          ctx.addIssue({
+            code: "custom",
+            message: `group "${group.name}": permission server "${permission.server}" is not defined in servers`,
+            path: ["groups", index, "permissions", permissionIndex, "server"],
+          });
+        }
+      });
     });
   });
 

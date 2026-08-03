@@ -24,6 +24,7 @@ import {
   createApprovalServices,
 } from "../../policy/tests/test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
+import { testAgentsGroup } from "../../testing/test-config.js";
 
 const ISSUER = "https://fuda.test";
 
@@ -98,7 +99,6 @@ function noneServer(
     name,
     transport: { type: "http", url },
     credential: { strategy: "none" },
-    policy: { default: "deny", allow: ["read_wiki_structure"] },
   };
 }
 
@@ -127,6 +127,7 @@ describe("Gateway inbound identity", () => {
       boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [noneServer("deepwiki", backend.url)],
+      groups: [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])],
     });
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(
@@ -200,6 +201,7 @@ describe("Gateway inbound identity", () => {
       boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [noneServer("deepwiki", backend.url)],
+      groups: [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])],
     });
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(

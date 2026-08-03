@@ -21,17 +21,16 @@ import {
   createCredentialServices,
   withTestAgentPrincipal,
 } from "../../credentials/tests/test-helpers.js";
+import { testAgentsGroup } from "../../testing/test-config.js";
 
 function serverConfig(
   name: string,
   url: string,
-  policy: ToriiConfig["servers"][number]["policy"] = { default: "deny" },
 ): ToriiConfig["servers"][number] {
   return {
     name,
     transport: { type: "http", url },
     credential: { strategy: "none" },
-    policy,
   };
 }
 
@@ -185,11 +184,11 @@ describe("Gateway /api/connections endpoints", () => {
     const configService = new ToriiConfigService({
       boot_owner_id: "test-owner",
       oauth_providers: {},
-      servers: [
-        serverConfig("gmail", mockServer.url, {
-          default: "deny",
-          allow: ["create_draft", "list_drafts"],
-        }),
+      servers: [serverConfig("gmail", mockServer.url)],
+      groups: [
+        testAgentsGroup([
+          { server: "gmail", tools: ["create_draft", "list_drafts"] },
+        ]),
       ],
     });
     const { credentialResolver } = createCredentialServices();

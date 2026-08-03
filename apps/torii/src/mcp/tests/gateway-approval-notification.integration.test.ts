@@ -28,6 +28,7 @@ import {
 } from "../../policy/tests/test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 import { McpSessionRegistry } from "../mcp-session-registry.service.js";
+import { testAgentsGroup } from "../../testing/test-config.js";
 
 function parseApprovalRequired(result: unknown): { approval_id: string } {
   const content = (result as { content?: Array<{ type: string; text?: string }> })
@@ -101,9 +102,9 @@ async function withGatedGateway(
         name: "gmail",
         transport: { type: "http", url: backend.url },
         credential: { strategy: "none" },
-        policy: { default: "deny", allow: ["create_draft"] },
       },
     ],
+    groups: [testAgentsGroup([{ server: "gmail", tools: ["create_draft"] }])],
   });
   const sessionRegistry = new McpSessionRegistry();
   const approvalServices = createApprovalServices(configService, sessionRegistry);
@@ -294,9 +295,9 @@ describe("Gateway MCP approval notifications", () => {
           name: "gmail",
           transport: { type: "http", url: backend.url },
           credential: { strategy: "none" },
-          policy: { default: "deny", allow: ["create_draft"] },
         },
       ],
+      groups: [testAgentsGroup([{ server: "gmail", tools: ["create_draft"] }])],
     });
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(

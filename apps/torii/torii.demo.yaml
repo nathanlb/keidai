@@ -44,9 +44,6 @@ servers:
     credential:
       strategy: service_key
       key: ${env:LINEAR_API_KEY}
-    policy:
-      default: deny
-      allow: [list_issues, get_issue, list_projects, list_initiatives]
 
   - name: github
     transport:
@@ -55,9 +52,6 @@ servers:
     credential:
       strategy: user_oauth
       provider: github
-    policy:
-      default: deny
-      allow: [search_issues, get_file_contents]
 
   - name: notion
     transport:
@@ -66,9 +60,6 @@ servers:
     credential:
       strategy: user_oauth
       provider: notion
-    policy:
-      default: deny
-      allow: [notion-search, notion-fetch]
 
   - name: gmail
     # Google managed Gmail MCP (developer preview) — no local sidecar required.
@@ -78,9 +69,19 @@ servers:
     credential:
       strategy: user_oauth
       provider: google
-    policy:
-      default: deny
-      allow: [create_draft, list_drafts]
+
+groups:
+  - name: agents
+    description: Demo agent access for the open-torii digest scenario
+    permissions:
+      - server: linear
+        tools: [list_issues, get_issue, list_projects, list_initiatives]
+      - server: github
+        tools: [search_issues, get_file_contents]
+      - server: notion
+        tools: [notion-search, notion-fetch]
+      - server: gmail
+        tools: [create_draft, list_drafts]
 
 # Owner used for boot-time backend connections and catalog refresh.
 boot_owner_id: demo-owner

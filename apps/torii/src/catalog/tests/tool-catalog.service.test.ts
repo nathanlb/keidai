@@ -10,6 +10,7 @@ import { ToolCatalogService } from "../tool-catalog.service.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 import { createCredentialServices, bootBackends, withTestAgentPrincipal } from "../../credentials/tests/test-helpers.js";
 import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
+import { testAgentsGroup } from "../../testing/test-config.js";
 
 function serverConfig(
   name: string,
@@ -19,7 +20,6 @@ function serverConfig(
     name,
     transport: { type: "http", url },
     credential: { strategy: "none" },
-    policy: { default: "deny", allow: ["search_issues", "get_file_contents"] },
   };
 }
 
@@ -46,6 +46,11 @@ describe("ToolCatalogService", () => {
       boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [serverConfig("github", mockServer.url)],
+      groups: [
+        testAgentsGroup([
+          { server: "github", tools: ["search_issues", "get_file_contents"] },
+        ]),
+      ],
     });
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(
@@ -101,9 +106,9 @@ describe("ToolCatalogService", () => {
           name: "github",
           transport: { type: "http", url: mockServer.url },
           credential: { strategy: "none" },
-          policy: { default: "deny", allow: ["search_issues"] },
         },
       ],
+      groups: [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])],
     });
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(
@@ -160,12 +165,16 @@ describe("ToolCatalogService", () => {
       servers: [
         {
           ...serverConfig("stripe", goodServer.url),
-          policy: { default: "deny", allow: ["list_customers"] },
         },
         {
           ...serverConfig("deepwiki", badServer.url),
-          policy: { default: "deny", allow: ["read_wiki_structure"] },
         },
+      ],
+      groups: [
+        testAgentsGroup([
+          { server: "stripe", tools: ["list_customers"] },
+          { server: "deepwiki", tools: ["read_wiki_structure"] },
+        ]),
       ],
     });
     const { credentialResolver } = createCredentialServices();
@@ -220,9 +229,9 @@ describe("ToolCatalogService", () => {
       servers: [
         {
           ...serverConfig("offline", closedUrl),
-          policy: { default: "deny", allow: ["ping"] },
         },
       ],
+      groups: [testAgentsGroup([{ server: "offline", tools: ["ping"] }])],
     });
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(
