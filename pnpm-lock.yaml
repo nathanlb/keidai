@@ -7,6 +7,7 @@ settings:
 overrides:
   thread-stream: 4.1.0
   brace-expansion@1: 1.1.17
+  undici: '>=7.24.0'
 
 importers:
 
@@ -3526,7 +3527,7 @@ snapshots:
       '@ai-sdk/provider': 2.0.3
       '@standard-schema/spec': 1.1.0
       eventsource-parser: 3.1.0
-      undici: 5.29.0
+      undici: 7.29.0
       zod: 3.25.76
 
   '@ai-sdk/provider@2.0.3':
