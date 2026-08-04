@@ -13,6 +13,7 @@ export interface ActivityTracesContextValue {
   outcomeCounts: OutcomeCounts;
   filters: TraceFilters;
   serverOptions: readonly string[];
+  agentSlugById: ReadonlyMap<string, string>;
   pageIndex: number;
   isLive: boolean;
   selectedTrace: TraceListItem | null;

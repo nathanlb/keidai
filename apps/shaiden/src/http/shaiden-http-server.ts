@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import type { Logger, Task } from "@keidai/shared";
+import type { FudaClient } from "@keidai/shared/clients";
 import { RunsApiController } from "./runs-api.controller.js";
 import { TasksApiController } from "./tasks-api.controller.js";
 import type { RunStore } from "../runs/run-store.js";
@@ -30,6 +31,8 @@ export interface ShaidenHttpServerDeps {
   ) => LaunchedHarnessRun;
   activeRunRegistry: ActiveRunRegistry;
   runtimeConfig: import("../config/runtime-config.js").RuntimeConfig;
+  /** When set, task create/patch validate assignee against Fuda. */
+  fudaClient?: FudaClient;
 }
 
 export class ShaidenHttpServer {
@@ -53,6 +56,7 @@ export class ShaidenHttpServer {
       taskRepository: deps.taskRepository,
       startTaskRun: deps.startTaskRun,
       logger: deps.logger,
+      fudaClient: deps.fudaClient,
     });
   }
 

@@ -96,6 +96,7 @@ export function ActivityTracesView() {
     outcomeCounts,
     filters,
     serverOptions,
+    agentSlugById,
     pageIndex,
     isLive,
     setFilters,
@@ -191,6 +192,7 @@ export function ActivityTracesView() {
                     <ActivityTraceRow
                       key={trace.traceId}
                       trace={trace}
+                      agentSlugById={agentSlugById}
                       onOpen={onOpenTrace}
                     />
                   ))}

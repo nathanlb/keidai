@@ -14,6 +14,7 @@ import { useCallback, useEffect, useState } from "react";
 import { DetailDrawer, DetailDrawerSectionLabel } from "../../shell/components/detail-drawer/detail-drawer.js";
 import { useActivityTracesPage } from "./context/use-activity-traces.js";
 import { buildLinkingResolutionKey } from "../linking/format-linking-required-prompt.js";
+import { deriveAgentInitials } from "../../fuda/agents/utils/derive-agent-initials.js";
 import { deriveOwnerInitials } from "../../shell/utils/derive-owner-initials.js";
 import { OwnerAvatar } from "../../shell/components/owner-avatar/owner-avatar.js";
 import { buildTraceSpans } from "./utils/build-trace-spans.js";
@@ -26,25 +27,16 @@ import {
   formatLinkingReason,
   resolveLinkProviderId,
 } from "../linking/format-linking-required-prompt.js";
+import {
+  formatAgentPrincipalLabel,
+  resolveAgentSlug,
+} from "./utils/format-agent-principal.js";
 import { TRACE_OUTCOME_META } from "./utils/format-trace-outcome.js";
 import { formatTracePolicyDetail } from "./utils/format-trace-policy-detail.js";
 import {
   formatTraceClock,
   formatTraceRelative,
 } from "./utils/format-trace-time.js";
-
-function deriveAgentMonogram(agentId: string): string {
-  const parts = agentId
-    .split(/[-_]/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-
-  if (parts.length >= 2) {
-    return `${parts[0]![0] ?? ""}${parts[1]![0] ?? ""}`.toUpperCase();
-  }
-
-  return agentId.slice(0, 2).toUpperCase();
-}
 
 function SectionLabel({
   children,
@@ -68,6 +60,7 @@ export function TraceDetailDrawer() {
     onDrawerOpenChange: onOpenChange,
     linkProvider,
     linkingResolvedKeys,
+    agentSlugById,
   } = useActivityTracesPage();
   const [copied, setCopied] = useState(false);
 
@@ -106,6 +99,8 @@ export function TraceDetailDrawer() {
   const showLinkingCta =
     linkingReason && linkProviderId && ownerId && !linkingResolved;
   const agentId = trace.principal?.agentId;
+  const agentSlug = resolveAgentSlug(agentId, agentSlugById);
+  const agentLabel = formatAgentPrincipalLabel(agentId, agentSlugById);
   const policyDenied = policy.variant === "denied";
 
   return (
@@ -213,16 +208,23 @@ export function TraceDetailDrawer() {
             <div className="grid grid-cols-2 gap-2.5">
               <div className="rounded-lg border border-border p-3">
                 <div className="font-mono text-[11px] text-muted-foreground">
-                  agentId
+                  agent
                 </div>
                 <div className="mt-1.5 flex items-center gap-2">
                   <OwnerAvatar
-                    initials={agentId ? deriveAgentMonogram(agentId) : "—"}
+                    initials={agentLabel ? deriveAgentInitials(agentLabel) : "—"}
                     className="size-[22px] bg-secondary text-[9px] text-secondary-foreground"
                   />
-                  <span className="font-mono text-[13px] font-semibold">
-                    {agentId ?? "—"}
-                  </span>
+                  <div className="min-w-0 leading-tight">
+                    <div className="font-mono text-[13px] font-semibold">
+                      {agentSlug ?? agentId ?? "—"}
+                    </div>
+                    {agentSlug && agentId ? (
+                      <div className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
+                        {agentId}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               </div>
               <div className="rounded-lg border border-border p-3">

@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Logger, Task } from "@keidai/shared";
-import { AgentDefinitionError } from "@keidai/shared/clients";
+import {
+  AgentDefinitionError,
+  type FudaClient,
+} from "@keidai/shared/clients";
 import type { HarnessRunResult } from "../../run/types/harness.js";
 import type { LaunchedHarnessRun } from "../../run/types/harness.js";
 import { ActiveRunRegistry } from "../../run/active-run-registry.js";
@@ -41,12 +44,14 @@ const testRuntimeConfig: RuntimeConfig = {
 function createTestServer({
   persistence = createTestPersistence(),
   startTaskRun,
+  fudaClient,
 }: {
   persistence?: TestPersistence;
   startTaskRun?: (input: {
     task: Task;
     taskId: string;
   }) => Promise<LaunchedHarnessRun>;
+  fudaClient?: FudaClient;
 } = {}) {
   const launched: Array<{ task: Task; taskId: string }> = [];
   const { runStore, taskRepository } = persistence;
@@ -58,6 +63,7 @@ function createTestServer({
     logger: silentLogger,
     agentId: "shaiden-newsletter-01",
     runtimeConfig,
+    fudaClient,
     activeRunRegistry,
     resumeHarnessRun: (input) =>
       resumeHarnessRun({
@@ -329,6 +335,39 @@ describe("tasks API", () => {
       assert.deepEqual(await runtime.json(), {
         agentId: "shaiden-newsletter-01",
       });
+    } finally {
+      await handle.close();
+      persistence.close();
+    }
+  });
+
+  it("rejects create when Fuda does not know the assignee", async () => {
+    const { server, persistence } = createTestServer({
+      fudaClient: {
+        exchangeToken: async () => {
+          throw new Error("unused");
+        },
+        getAgentDefinition: async () => {
+          throw new AgentDefinitionError("agent_not_found", "Fuda agent not found", {
+            status: 404,
+          });
+        },
+      },
+      startTaskRun: () => {
+        throw new Error("should not start");
+      },
+    });
+    const handle = await server.start({ host: "127.0.0.1", port: 0 });
+    try {
+      const response = await fetch(`${handle.baseUrl}/api/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sampleTask),
+      });
+      assert.equal(response.status, 422);
+      const body = (await response.json()) as { error: string };
+      assert.match(body.error, /unknown agent/i);
+      assert.equal(persistence.taskRepository.list().tasks.length, 0);
     } finally {
       await handle.close();
       persistence.close();
