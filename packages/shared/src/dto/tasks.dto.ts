@@ -5,6 +5,7 @@ export interface SavedTask extends Task {
   id: string;
   createdAt: string;
   updatedAt: string;
+  archivedAt?: string;
 }
 
 export interface TasksResponse {

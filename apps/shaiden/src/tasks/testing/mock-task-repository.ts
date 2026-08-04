@@ -19,7 +19,6 @@ function compareTasks(left: SavedTask, right: SavedTask): number {
 /** @internal Test-only. Not for production use. */
 export class MockTaskRepository implements TaskRepository {
   private readonly tasks = new Map<string, SavedTask>();
-  private readonly runCounts = new Map<string, number>();
 
   create(input: CreateTaskInput): SavedTask {
     const now = new Date().toISOString();
@@ -38,7 +37,10 @@ export class MockTaskRepository implements TaskRepository {
   }
 
   list(limit = DEFAULT_TASK_LIST_LIMIT) {
-    const tasks = [...this.tasks.values()].sort(compareTasks).slice(0, limit);
+    const tasks = [...this.tasks.values()]
+      .filter((task) => !task.archivedAt)
+      .sort(compareTasks)
+      .slice(0, limit);
     return { tasks };
   }
 
@@ -64,17 +66,23 @@ export class MockTaskRepository implements TaskRepository {
     return updated;
   }
 
+  archive(taskId: string): boolean {
+    const existing = this.tasks.get(taskId);
+    if (!existing || existing.archivedAt) {
+      return false;
+    }
+
+    const now = new Date().toISOString();
+    this.tasks.set(taskId, {
+      ...existing,
+      archivedAt: now,
+      updatedAt: now,
+    });
+    return true;
+  }
+
   delete(taskId: string): boolean {
     return this.tasks.delete(taskId);
-  }
-
-  hasRuns(taskId: string): boolean {
-    return (this.runCounts.get(taskId) ?? 0) > 0;
-  }
-
-  /** Test helper for mock run linkage. */
-  recordRunForTask(taskId: string): void {
-    this.runCounts.set(taskId, (this.runCounts.get(taskId) ?? 0) + 1);
   }
 }
 

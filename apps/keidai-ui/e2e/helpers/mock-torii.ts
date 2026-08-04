@@ -327,7 +327,8 @@ export async function mockToriiConfig(
     }
 
     if (route.request().method() === "GET") {
-      await route.fulfill({ json: { tasks: taskState } });
+      const activeTasks = taskState.filter((task) => !task.archivedAt);
+      await route.fulfill({ json: { tasks: activeTasks } });
       return;
     }
 
@@ -384,8 +385,13 @@ export async function mockToriiConfig(
         return;
       }
 
-      const body = route.request().postDataJSON() as Partial<SavedTask>;
       const current = taskState[index]!;
+      if (current.archivedAt) {
+        await route.fulfill({ status: 409, json: { error: "task is archived" } });
+        return;
+      }
+
+      const body = route.request().postDataJSON() as Partial<SavedTask>;
       const updated: SavedTask = {
         ...current,
         ...body,
@@ -395,6 +401,28 @@ export async function mockToriiConfig(
       };
       taskState[index] = updated;
       await route.fulfill({ json: { task: updated } });
+      return;
+    }
+
+    if (route.request().method() === "DELETE") {
+      if (index === -1) {
+        await route.fulfill({ status: 404, json: { error: "task not found" } });
+        return;
+      }
+
+      const current = taskState[index]!;
+      if (current.archivedAt) {
+        await route.fulfill({ status: 404, json: { error: "task not found" } });
+        return;
+      }
+
+      const archived: SavedTask = {
+        ...current,
+        archivedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      taskState[index] = archived;
+      await route.fulfill({ status: 204, body: "" });
       return;
     }
 
@@ -422,6 +450,15 @@ export async function mockToriiConfig(
     const url = new URL(route.request().url());
     const segments = url.pathname.split("/");
     const taskId = segments.at(-2) ?? "task-unknown";
+    const task = taskState.find((entry) => entry.id === taskId);
+    if (!task) {
+      await route.fulfill({ status: 404, json: { error: "task not found" } });
+      return;
+    }
+    if (task.archivedAt) {
+      await route.fulfill({ status: 409, json: { error: "task is archived" } });
+      return;
+    }
 
     await route.fulfill({
       status: 202,

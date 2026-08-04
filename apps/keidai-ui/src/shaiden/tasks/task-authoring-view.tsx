@@ -12,6 +12,7 @@ import { DEFAULT_TASK_LIMITS, taskSchema, type Task } from "@keidai/shared";
 import type { ManagementAgent } from "../../fuda/api/fuda-client.js";
 import {
   Bot,
+  Archive,
   Calendar,
   GitBranch,
   Info,
@@ -167,6 +168,7 @@ interface TaskAuthoringViewProps {
   onCancel?: () => void;
   onTaskSaved?: () => void;
   onDirtyChange?: (dirty: boolean) => void;
+  onArchiveRequest?: () => void;
 }
 
 export function TaskAuthoringView({
@@ -174,6 +176,7 @@ export function TaskAuthoringView({
   onCancel,
   onTaskSaved,
   onDirtyChange,
+  onArchiveRequest,
 }: TaskAuthoringViewProps) {
   const isEditMode = Boolean(taskId);
   const navigate = useNavigate();
@@ -208,6 +211,7 @@ export function TaskAuthoringView({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isLoadingTask, setIsLoadingTask] = useState(isEditMode);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isArchived, setIsArchived] = useState(false);
 
   const {
     control,
@@ -231,6 +235,7 @@ export function TaskAuthoringView({
     if (!taskId) {
       reset(EMPTY_FORM_VALUES);
       setLoadError(null);
+      setIsArchived(false);
       setIsLoadingTask(false);
       return;
     }
@@ -244,6 +249,7 @@ export function TaskAuthoringView({
         if (cancelled) {
           return;
         }
+        setIsArchived(Boolean(task.archivedAt));
         reset({ goal: task.goal, assignee: task.assignee });
       })
       .catch((error) => {
@@ -288,6 +294,7 @@ export function TaskAuthoringView({
     !isSubmitting &&
     !isLoadingTask &&
     !loadError &&
+    !isArchived &&
     !agentsLoading &&
     !runtimeLoading &&
     !agentsError &&
@@ -350,6 +357,12 @@ export function TaskAuthoringView({
           <p className="py-8 text-sm text-destructive">{loadError}</p>
         ) : isLoadingTask ? null : (
           <>
+        {isArchived ? (
+          <p className="border-b border-border py-4 text-sm text-muted-foreground">
+            This task is archived. Past runs are preserved, but the definition
+            can no longer be edited or run.
+          </p>
+        ) : null}
         <section className="border-b border-border py-5">
           <FieldHeader
             icon={<Target className="size-4" aria-hidden />}
@@ -365,6 +378,7 @@ export function TaskAuthoringView({
             {...register("goal")}
             placeholder={`Describe what "done" looks like…  e.g. "Draft and send the weekly newsletter, but pause for my approval before sending."`}
             required
+            disabled={isArchived}
             className="min-h-[118px] text-[13.5px] leading-relaxed focus-visible:ring-[3px] focus-visible:ring-ring/30"
           />
         </section>
@@ -438,6 +452,7 @@ export function TaskAuthoringView({
                 <Select
                   value={field.value || undefined}
                   onValueChange={field.onChange}
+                  disabled={isArchived}
                 >
                   <SelectTrigger
                     className={cn(
@@ -540,31 +555,47 @@ export function TaskAuthoringView({
       </div>
 
       <div className="flex shrink-0 flex-col gap-3 border-t border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-          <Info className="size-3.5 shrink-0" aria-hidden />
-          <span className="truncate">
-            Executes on the assigned agent · runs as{" "}
-            <span className="font-mono text-foreground">{owner.ownerId}</span>
-          </span>
-        </div>
+        {isEditMode && !isArchived ? (
+          <Button
+            type="button"
+            variant="ghost"
+            className="text-destructive hover:text-destructive"
+            onClick={onArchiveRequest}
+          >
+            <Archive className="size-4" aria-hidden />
+            Archive
+          </Button>
+        ) : !isEditMode ? (
+          <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+            <Info className="size-3.5 shrink-0" aria-hidden />
+            <span className="truncate">
+              Executes on the assigned agent · runs as{" "}
+              <span className="font-mono text-foreground">{owner.ownerId}</span>
+            </span>
+          </div>
+        ) : (
+          <div />
+        )}
         <div className="flex shrink-0 gap-2.5 sm:ml-auto">
           <Button type="button" variant="ghost" onClick={handleCancel}>
-            Cancel
+            {isArchived ? "Close" : "Cancel"}
           </Button>
-          <Button
-            type="submit"
-            disabled={!canSubmit}
-            className={cn(!canSubmit && "opacity-45 grayscale")}
-          >
-            {isSubmitting ? (
-              <Loader2 className="size-4 animate-spin" aria-hidden />
-            ) : isEditMode ? (
-              <Save className="size-4" aria-hidden />
-            ) : (
-              <Play className="size-4" aria-hidden />
-            )}
-            {isEditMode ? "Save changes" : "Create & run"}
-          </Button>
+          {!isArchived ? (
+            <Button
+              type="submit"
+              disabled={!canSubmit}
+              className={cn(!canSubmit && "opacity-45 grayscale")}
+            >
+              {isSubmitting ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : isEditMode ? (
+                <Save className="size-4" aria-hidden />
+              ) : (
+                <Play className="size-4" aria-hidden />
+              )}
+              {isEditMode ? "Save changes" : "Create & run"}
+            </Button>
+          ) : null}
         </div>
       </div>
     </form>

@@ -163,7 +163,7 @@ describe("tasks API", () => {
     }
   });
 
-  it("lists, gets, updates, and deletes saved tasks", async () => {
+  it("lists, gets, updates, and archives saved tasks", async () => {
     const { server, persistence } = createTestServer({
       startTaskRun: () => {
         throw new Error("should not start");
@@ -209,13 +209,30 @@ describe("tasks API", () => {
       };
       assert.equal(updated.task.goal, "Updated newsletter goal");
 
-      const deleteResponse = await fetch(`${handle.baseUrl}/api/tasks/${taskId}`, {
+      const archiveResponse = await fetch(`${handle.baseUrl}/api/tasks/${taskId}`, {
         method: "DELETE",
       });
-      assert.equal(deleteResponse.status, 204);
+      assert.equal(archiveResponse.status, 204);
 
-      const missingResponse = await fetch(`${handle.baseUrl}/api/tasks/${taskId}`);
-      assert.equal(missingResponse.status, 404);
+      const archivedListResponse = await fetch(`${handle.baseUrl}/api/tasks`);
+      const archivedList = (await archivedListResponse.json()) as {
+        tasks: Array<{ id: string }>;
+      };
+      assert.equal(archivedList.tasks.length, 0);
+
+      const archivedGetResponse = await fetch(
+        `${handle.baseUrl}/api/tasks/${taskId}`,
+      );
+      assert.equal(archivedGetResponse.status, 200);
+      const archivedTask = (await archivedGetResponse.json()) as {
+        task: { archivedAt?: string };
+      };
+      assert.ok(archivedTask.task.archivedAt);
+
+      const rearchiveResponse = await fetch(`${handle.baseUrl}/api/tasks/${taskId}`, {
+        method: "DELETE",
+      });
+      assert.equal(rearchiveResponse.status, 404);
     } finally {
       await handle.close();
       persistence.close();
@@ -297,7 +314,7 @@ describe("tasks API", () => {
     }
   });
 
-  it("rejects deleting a task that has runs", async () => {
+  it("archives a task that has runs", async () => {
     const persistence = createTestPersistence();
     const taskId = createTestRun(persistence, { runId: "run-1", task: sampleTask });
 
@@ -307,7 +324,51 @@ describe("tasks API", () => {
       const response = await fetch(`${handle.baseUrl}/api/tasks/${taskId}`, {
         method: "DELETE",
       });
-      assert.equal(response.status, 409);
+      assert.equal(response.status, 204);
+
+      const listResponse = await fetch(`${handle.baseUrl}/api/tasks`);
+      const listed = (await listResponse.json()) as {
+        tasks: Array<{ id: string }>;
+      };
+      assert.equal(listed.tasks.length, 0);
+
+      const getResponse = await fetch(`${handle.baseUrl}/api/tasks/${taskId}`);
+      assert.equal(getResponse.status, 200);
+      const archived = (await getResponse.json()) as {
+        task: { archivedAt?: string };
+      };
+      assert.ok(archived.task.archivedAt);
+    } finally {
+      await handle.close();
+      persistence.close();
+    }
+  });
+
+  it("rejects patch and run for archived tasks", async () => {
+    const { server, taskRepository, persistence } = createTestServer({
+      startTaskRun: () => {
+        throw new Error("should not start");
+      },
+    });
+    const saved = taskRepository.create({ task: sampleTask });
+    assert.equal(taskRepository.archive(saved.id), true);
+    const handle = await server.start({ host: "127.0.0.1", port: 0 });
+    try {
+      const patchResponse = await fetch(`${handle.baseUrl}/api/tasks/${saved.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ goal: "Should not apply" }),
+      });
+      assert.equal(patchResponse.status, 409);
+      const patchBody = (await patchResponse.json()) as { error: string };
+      assert.equal(patchBody.error, "task is archived");
+
+      const runResponse = await fetch(`${handle.baseUrl}/api/tasks/${saved.id}/run`, {
+        method: "POST",
+      });
+      assert.equal(runResponse.status, 409);
+      const runBody = (await runResponse.json()) as { error: string };
+      assert.equal(runBody.error, "task is archived");
     } finally {
       await handle.close();
       persistence.close();

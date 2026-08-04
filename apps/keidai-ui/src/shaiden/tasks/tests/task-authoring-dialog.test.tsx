@@ -30,6 +30,7 @@ const savedTask: SavedTask = {
 vi.mock("../../api/shaiden-client.js", () => ({
   fetchTask: vi.fn(),
   updateTask: vi.fn(),
+  archiveTask: vi.fn(),
   startTaskRun: vi.fn(),
 }));
 
@@ -212,5 +213,44 @@ describe("TaskAuthoringDialog edit mode", () => {
     });
     expect(onTaskSaved).toHaveBeenCalled();
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("archives a task after confirmation", async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    const onTaskSaved = vi.fn();
+    vi.mocked(shaidenClient.archiveTask).mockResolvedValue();
+    renderEditDialog({ onOpenChange, onTaskSaved });
+    await waitForGoalInput();
+
+    await user.click(screen.getByRole("button", { name: "Archive" }));
+    expect(
+      screen.getByRole("dialog", { name: "Archive task?" }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Archive task" }));
+
+    await waitFor(() => {
+      expect(shaidenClient.archiveTask).toHaveBeenCalledWith(savedTask.id);
+    });
+    expect(onTaskSaved).toHaveBeenCalled();
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("shows archived tasks as read-only", async () => {
+    vi.mocked(shaidenClient.fetchTask).mockResolvedValue({
+      task: {
+        ...savedTask,
+        archivedAt: "2026-07-14T12:00:00.000Z",
+      },
+    });
+    renderEditDialog();
+    const goalInput = await waitForGoalInput();
+
+    expect(goalInput).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Archive" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save changes" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+    expect(screen.getByText(/this task is archived/i)).toBeInTheDocument();
   });
 });

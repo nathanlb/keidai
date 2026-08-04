@@ -128,6 +128,16 @@ export class TasksApiController {
 
     app.patch("/api/tasks/:taskId", async (request, reply) => {
       const { taskId } = request.params as { taskId: string };
+      const existing = this.taskRepository.get(taskId);
+      if (!existing) {
+        reply.code(404).send({ error: "task not found" });
+        return;
+      }
+      if (existing.archivedAt) {
+        reply.code(409).send({ error: "task is archived" });
+        return;
+      }
+
       const body = request.body as Record<string, unknown>;
       const parsed = taskSchema.partial().safeParse(body);
       if (!parsed.success) {
@@ -162,12 +172,11 @@ export class TasksApiController {
         return;
       }
 
-      if (this.taskRepository.hasRuns(taskId)) {
-        reply.code(409).send({ error: "task has runs and cannot be deleted" });
+      if (!this.taskRepository.archive(taskId)) {
+        reply.code(404).send({ error: "task not found" });
         return;
       }
 
-      this.taskRepository.delete(taskId);
       reply.code(204).send();
     });
 
@@ -176,6 +185,10 @@ export class TasksApiController {
       const saved = this.taskRepository.get(taskId);
       if (!saved) {
         reply.code(404).send({ error: "task not found" });
+        return;
+      }
+      if (saved.archivedAt) {
+        reply.code(409).send({ error: "task is archived" });
         return;
       }
 

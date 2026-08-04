@@ -1,13 +1,19 @@
 import {
   Badge,
   Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Spinner,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@keidai/ui";
 import { Activity, ArrowLeft, KeyRound, Lock, Trash2, User } from "lucide-react";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   useLocation,
   useNavigate,
@@ -50,6 +56,9 @@ export function AgentDetailView() {
   const { mutate } = useSWRConfig();
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = parseTab(searchParams.get(TAB_PARAM));
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const navigationToast =
     (location.state as { toast?: string } | null)?.toast ?? null;
@@ -94,6 +103,13 @@ export function AgentDetailView() {
     },
     [setSearchParams],
   );
+
+  const handleDeleteConfirmOpenChange = useCallback((open: boolean) => {
+    if (!open) {
+      setDeleteError(null);
+    }
+    setDeleteConfirmOpen(open);
+  }, []);
 
   if (isLoading && !data) {
     return (
@@ -171,19 +187,30 @@ export function AgentDetailView() {
     await mutate(AGENTS_KEY);
   }
 
-  async function handleDelete() {
-    if (
-      !window.confirm(
-        `Delete ${agent.name}? This revokes all bearer access and cannot be undone.`,
-      )
-    ) {
+  async function handleDeleteConfirm() {
+    if (!data) {
       return;
     }
-    await deleteAgent(agent.id);
-    await mutate(AGENTS_KEY);
-    void mutate(personaVersionsKey(agent.id), undefined, { revalidate: false });
-    void mutate(agentGrantsKey(agent.id), undefined, { revalidate: false });
-    navigate("/agents");
+
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteAgent(data.agent.id);
+      await mutate(AGENTS_KEY);
+      void mutate(personaVersionsKey(data.agent.id), undefined, {
+        revalidate: false,
+      });
+      void mutate(agentGrantsKey(data.agent.id), undefined, {
+        revalidate: false,
+      });
+      navigate("/agents");
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error ? error.message : "Failed to delete agent",
+      );
+    } finally {
+      setIsDeleting(false);
+    }
   }
 
   const bearerLabel =
@@ -253,7 +280,7 @@ export function AgentDetailView() {
             variant="ghost"
             size="sm"
             className="text-destructive hover:text-destructive"
-            onClick={() => void handleDelete()}
+            onClick={() => setDeleteConfirmOpen(true)}
           >
             <Trash2 className="size-3.5" aria-hidden />
             Delete agent
@@ -323,6 +350,39 @@ export function AgentDetailView() {
       ) : null}
 
       <AgentsToast message={toastMessage} />
+
+      <Dialog open={deleteConfirmOpen} onOpenChange={handleDeleteConfirmOpenChange}>
+        <DialogContent className="max-w-[420px] sm:rounded-xl">
+          <DialogHeader>
+            <DialogTitle>Delete agent?</DialogTitle>
+            <DialogDescription>
+              Delete {agent.name}? This revokes all bearer access and cannot be
+              undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError ? (
+            <p className="text-sm text-destructive">{deleteError}</p>
+          ) : null}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeleteConfirmOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => void handleDeleteConfirm()}
+              disabled={isDeleting}
+            >
+              Delete agent
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
