@@ -240,4 +240,32 @@ test.describe("Shaiden tasks", () => {
       page.getByRole("cell", { name: "Compose weekly status report" }),
     ).toBeVisible();
   });
+
+  test("archives a saved task from the edit dialog", async ({ page }) => {
+    await mockToriiConfig(page, {
+      fudaAgents: [shaidenAgent],
+      tasks: { tasks: [savedTask] },
+    });
+
+    await page.goto("/shaiden/tasks?task=task-saved-1");
+
+    const dialog = page.getByRole("dialog", { name: "Edit task" });
+    await expect(dialog).toBeVisible();
+
+    await waitForEditTaskFormReady(dialog, {
+      expectedGoal: savedTask.goal,
+    });
+
+    await dialog.getByRole("button", { name: "Archive" }).click();
+
+    const confirmDialog = page.getByRole("dialog", { name: "Archive task?" });
+    await expect(confirmDialog).toBeVisible();
+    await confirmDialog.getByRole("button", { name: "Archive task" }).click();
+
+    await expect(dialog).toBeHidden();
+    await expect(
+      page.getByRole("cell", { name: "Compose weekly status report" }),
+    ).toHaveCount(0);
+    await expect(page.getByText("No saved tasks yet")).toBeVisible();
+  });
 });

@@ -18,7 +18,7 @@ function createRepository(databasePath: string): SqliteTaskRepository {
 }
 
 describe("SqliteTaskRepository", () => {
-  it("creates, lists, updates, and deletes tasks", () => {
+  it("creates, lists, updates, archives, and hard-deletes tasks", () => {
     const databasePath = path.join(
       mkdtempSync(path.join(tmpdir(), "shaiden-task-store-")),
       "shaiden.db",
@@ -38,6 +38,12 @@ describe("SqliteTaskRepository", () => {
     });
     assert.equal(updated?.goal, "Updated goal");
 
+    assert.equal(repository.archive(created.id), true);
+    assert.equal(repository.list().tasks.length, 0);
+    const archived = repository.get(created.id);
+    assert.ok(archived?.archivedAt);
+
+    assert.equal(repository.archive(created.id), false);
     assert.equal(repository.delete(created.id), true);
     assert.equal(repository.get(created.id), null);
   });

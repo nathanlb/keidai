@@ -157,7 +157,7 @@ export async function updateTask(
   );
 }
 
-export async function deleteTask(taskId: string): Promise<void> {
+export async function archiveTask(taskId: string): Promise<void> {
   const response = await fetch(
     shaidenApiPath(`/api/tasks/${encodeURIComponent(taskId)}`),
     { method: "DELETE" },
@@ -166,7 +166,7 @@ export async function deleteTask(taskId: string): Promise<void> {
     const body = (await response.json().catch(() => null)) as {
       error?: string;
     } | null;
-    throw new Error(body?.error ?? `Delete task failed: ${response.status}`);
+    throw new Error(body?.error ?? `Archive task failed: ${response.status}`);
   }
 }
 

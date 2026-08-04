@@ -12,6 +12,7 @@ interface TaskRow {
   limits_json: string | null;
   created_at: string;
   updated_at: string;
+  archived_at: string | null;
 }
 
 function rowToSavedTask(row: TaskRow): SavedTask {
@@ -26,11 +27,12 @@ function rowToSavedTask(row: TaskRow): SavedTask {
     ...task,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    ...(row.archived_at ? { archivedAt: row.archived_at } : {}),
   };
 }
 
 const TASK_COLUMNS = `
-  id, goal, trigger_json, assignee, limits_json, created_at, updated_at
+  id, goal, trigger_json, assignee, limits_json, created_at, updated_at, archived_at
 `;
 
 export class SqliteTaskRepository implements TaskRepository {
@@ -38,15 +40,15 @@ export class SqliteTaskRepository implements TaskRepository {
   private readonly getStatement;
   private readonly listStatement;
   private readonly updateStatement;
+  private readonly archiveStatement;
   private readonly deleteStatement;
-  private readonly hasRunsStatement;
 
   constructor(private readonly db: DatabaseSync) {
     this.insertStatement = db.prepare(`
       INSERT INTO tasks (
-        id, goal, trigger_json, assignee, limits_json, created_at, updated_at
+        id, goal, trigger_json, assignee, limits_json, created_at, updated_at, archived_at
       ) VALUES (
-        @id, @goal, @trigger_json, @assignee, @limits_json, @created_at, @updated_at
+        @id, @goal, @trigger_json, @assignee, @limits_json, @created_at, @updated_at, NULL
       )
     `);
     this.getStatement = db.prepare(`
@@ -57,6 +59,7 @@ export class SqliteTaskRepository implements TaskRepository {
     this.listStatement = db.prepare(`
       SELECT ${TASK_COLUMNS}
       FROM tasks
+      WHERE archived_at IS NULL
       ORDER BY updated_at DESC, id DESC
       LIMIT ?
     `);
@@ -69,10 +72,13 @@ export class SqliteTaskRepository implements TaskRepository {
           updated_at = @updated_at
       WHERE id = @id
     `);
-    this.deleteStatement = db.prepare(`DELETE FROM tasks WHERE id = ?`);
-    this.hasRunsStatement = db.prepare(`
-      SELECT 1 AS found FROM runs WHERE task_id = ? LIMIT 1
+    this.archiveStatement = db.prepare(`
+      UPDATE tasks
+      SET archived_at = @archived_at,
+          updated_at = @updated_at
+      WHERE id = @id AND archived_at IS NULL
     `);
+    this.deleteStatement = db.prepare(`DELETE FROM tasks WHERE id = ?`);
   }
 
   create(input: CreateTaskInput): SavedTask {
@@ -133,13 +139,18 @@ export class SqliteTaskRepository implements TaskRepository {
     };
   }
 
-  delete(taskId: string): boolean {
-    const result = this.deleteStatement.run(taskId);
+  archive(taskId: string): boolean {
+    const now = new Date().toISOString();
+    const result = this.archiveStatement.run({
+      id: taskId,
+      archived_at: now,
+      updated_at: now,
+    });
     return result.changes > 0;
   }
 
-  hasRuns(taskId: string): boolean {
-    const row = this.hasRunsStatement.get(taskId) as { found: number } | undefined;
-    return row !== undefined;
+  delete(taskId: string): boolean {
+    const result = this.deleteStatement.run(taskId);
+    return result.changes > 0;
   }
 }

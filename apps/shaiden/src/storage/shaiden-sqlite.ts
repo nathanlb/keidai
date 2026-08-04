@@ -78,6 +78,12 @@ function ensureSchemaMigrations(db: DatabaseSync): void {
     "persona",
     "ALTER TABLE runs ADD COLUMN persona TEXT",
   );
+  ensureColumn(
+    db,
+    "tasks",
+    "archived_at",
+    "ALTER TABLE tasks ADD COLUMN archived_at TEXT",
+  );
 }
 
 export function openShaidenDatabase(databasePath: string): DatabaseSync {

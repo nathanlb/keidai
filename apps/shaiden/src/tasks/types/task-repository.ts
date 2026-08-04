@@ -12,6 +12,7 @@ export interface TaskRepository {
   get(taskId: string): SavedTask | null;
   list(limit?: number): { tasks: SavedTask[] };
   update(taskId: string, input: UpdateTaskRequest): SavedTask | null;
+  archive(taskId: string): boolean;
+  /** Hard delete for internal rollback only (e.g. failed create-and-run). */
   delete(taskId: string): boolean;
-  hasRuns(taskId: string): boolean;
 }

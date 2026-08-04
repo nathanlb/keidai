@@ -10,6 +10,7 @@ import {
 } from "@keidai/ui";
 import { X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { archiveTask } from "../api/shaiden-client.js";
 import { TaskAuthoringView } from "./task-authoring-view.js";
 
 interface TaskAuthoringDialogProps {
@@ -28,12 +29,18 @@ export function TaskAuthoringDialog({
   const isEditMode = Boolean(taskId);
   const [isDirty, setIsDirty] = useState(false);
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
+  const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
+  const [archiveError, setArchiveError] = useState<string | null>(null);
   const ignoreParentCloseRef = useRef(false);
 
   useEffect(() => {
     if (!open) {
       setIsDirty(false);
       setDiscardConfirmOpen(false);
+      setArchiveConfirmOpen(false);
+      setIsArchiving(false);
+      setArchiveError(null);
     }
   }, [open]);
 
@@ -47,6 +54,7 @@ export function TaskAuthoringDialog({
   const forceClose = useCallback(() => {
     suppressParentClose();
     setDiscardConfirmOpen(false);
+    setArchiveConfirmOpen(false);
     onOpenChange(false);
   }, [onOpenChange, suppressParentClose]);
 
@@ -82,6 +90,17 @@ export function TaskAuthoringDialog({
     [suppressParentClose],
   );
 
+  const handleArchiveConfirmOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) {
+        suppressParentClose();
+        setArchiveError(null);
+      }
+      setArchiveConfirmOpen(nextOpen);
+    },
+    [suppressParentClose],
+  );
+
   const handleKeepEditing = useCallback(() => {
     suppressParentClose();
     setDiscardConfirmOpen(false);
@@ -91,6 +110,31 @@ export function TaskAuthoringDialog({
     onTaskSaved?.();
     forceClose();
   }, [forceClose, onTaskSaved]);
+
+  const handleArchiveRequest = useCallback(() => {
+    setArchiveError(null);
+    setArchiveConfirmOpen(true);
+  }, []);
+
+  const handleArchiveConfirm = useCallback(async () => {
+    if (!taskId) {
+      return;
+    }
+
+    setIsArchiving(true);
+    setArchiveError(null);
+    try {
+      await archiveTask(taskId);
+      onTaskSaved?.();
+      forceClose();
+    } catch (error) {
+      setArchiveError(
+        error instanceof Error ? error.message : "Failed to archive task",
+      );
+    } finally {
+      setIsArchiving(false);
+    }
+  }, [forceClose, onTaskSaved, taskId]);
 
   return (
     <>
@@ -123,6 +167,7 @@ export function TaskAuthoringDialog({
             onCancel={requestClose}
             onTaskSaved={handleTaskSaved}
             onDirtyChange={setIsDirty}
+            onArchiveRequest={isEditMode ? handleArchiveRequest : undefined}
           />
         </DialogContent>
       </Dialog>
@@ -144,6 +189,42 @@ export function TaskAuthoringDialog({
             </Button>
             <Button type="button" variant="destructive" onClick={forceClose}>
               Discard changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={archiveConfirmOpen}
+        onOpenChange={handleArchiveConfirmOpenChange}
+      >
+        <DialogContent className="max-w-[420px] sm:rounded-xl">
+          <DialogHeader>
+            <DialogTitle>Archive task?</DialogTitle>
+            <DialogDescription>
+              This removes the task from your saved list. Past runs are kept, but
+              you cannot restore the task from the UI.
+            </DialogDescription>
+          </DialogHeader>
+          {archiveError ? (
+            <p className="text-sm text-destructive">{archiveError}</p>
+          ) : null}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setArchiveConfirmOpen(false)}
+              disabled={isArchiving}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => void handleArchiveConfirm()}
+              disabled={isArchiving}
+            >
+              Archive task
             </Button>
           </DialogFooter>
         </DialogContent>
