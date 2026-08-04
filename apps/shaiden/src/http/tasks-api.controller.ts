@@ -4,7 +4,10 @@ import {
   type StartTaskRunResponse,
   type Task,
 } from "@keidai/shared";
-import { AgentDefinitionError } from "@keidai/shared/clients";
+import {
+  AgentDefinitionError,
+  type FudaClient,
+} from "@keidai/shared/clients";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { RunStore } from "../runs/run-store.js";
 import type { LaunchedHarnessRun } from "../run/types/harness.js";
@@ -22,7 +25,12 @@ function parseTaskListLimit(request: FastifyRequest): number {
     : DEFAULT_TASK_LIST_LIMIT;
 }
 
-function describeAgentDefinitionFailure(error: AgentDefinitionError): {
+type AgentDefinitionPhase = "creation" | "start";
+
+function describeAgentDefinitionFailure(
+  error: AgentDefinitionError,
+  phase: AgentDefinitionPhase,
+): {
   status: number;
   error: string;
 } {
@@ -35,7 +43,7 @@ function describeAgentDefinitionFailure(error: AgentDefinitionError): {
   if (error.kind === "unreachable") {
     return {
       status: 503,
-      error: `Fuda unreachable at task start: ${error.message}`,
+      error: `Fuda unreachable at task ${phase}: ${error.message}`,
     };
   }
   return {
@@ -55,6 +63,11 @@ export interface TasksApiControllerOptions {
   taskRepository: TaskRepository;
   startTaskRun: StartTaskRun;
   logger: Logger;
+  /**
+   * When set, create/patch validate `assignee` against Fuda's opaque agent id
+   * via `GET /agents/{id}` before persisting. Optional so evals/tests can omit.
+   */
+  fudaClient?: FudaClient;
 }
 
 export class TasksApiController {
@@ -63,6 +76,7 @@ export class TasksApiController {
   private readonly taskRepository: TaskRepository;
   private readonly startTaskRun: StartTaskRun;
   private readonly logger: Logger;
+  private readonly fudaClient: FudaClient | undefined;
 
   constructor(options: TasksApiControllerOptions) {
     this.agentId = options.agentId;
@@ -70,6 +84,7 @@ export class TasksApiController {
     this.taskRepository = options.taskRepository;
     this.startTaskRun = options.startTaskRun;
     this.logger = options.logger;
+    this.fudaClient = options.fudaClient;
   }
 
   registerRoutes(app: FastifyInstance): void {
@@ -91,9 +106,9 @@ export class TasksApiController {
         return;
       }
 
-      const assigneeError = this.validateAssignee(parsed.data.assignee);
+      const assigneeError = await this.validateAssignee(parsed.data.assignee);
       if (assigneeError) {
-        reply.code(400).send({ error: assigneeError });
+        reply.code(assigneeError.status).send({ error: assigneeError.error });
         return;
       }
 
@@ -124,9 +139,9 @@ export class TasksApiController {
       }
 
       if (parsed.data.assignee !== undefined) {
-        const assigneeError = this.validateAssignee(parsed.data.assignee);
+        const assigneeError = await this.validateAssignee(parsed.data.assignee);
         if (assigneeError) {
-          reply.code(400).send({ error: assigneeError });
+          reply.code(assigneeError.status).send({ error: assigneeError.error });
           return;
         }
       }
@@ -183,9 +198,9 @@ export class TasksApiController {
         return;
       }
 
-      const assigneeError = this.validateAssignee(parsed.data.assignee);
+      const assigneeError = await this.validateAssignee(parsed.data.assignee);
       if (assigneeError) {
-        reply.code(400).send({ error: assigneeError });
+        reply.code(assigneeError.status).send({ error: assigneeError.error });
         return;
       }
 
@@ -202,11 +217,33 @@ export class TasksApiController {
     });
   }
 
-  private validateAssignee(assignee: string): string | null {
+  private async validateAssignee(
+    assignee: string,
+  ): Promise<{ error: string; status: number } | null> {
     if (assignee !== this.agentId) {
-      return `assignee must match the Shaiden agent (${this.agentId})`;
+      return {
+        error: `assignee must match the Shaiden agent (${this.agentId})`,
+        status: 400,
+      };
     }
-    return null;
+
+    if (!this.fudaClient) {
+      return null;
+    }
+
+    try {
+      await this.fudaClient.getAgentDefinition(assignee);
+      return null;
+    } catch (error) {
+      if (error instanceof AgentDefinitionError) {
+        return describeAgentDefinitionFailure(error, "creation");
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        error: `failed to fetch agent definition: ${message}`,
+        status: 502,
+      };
+    }
   }
 
   private hasRunningRun(): boolean {
@@ -236,9 +273,9 @@ export class TasksApiController {
       limits: saved.limits,
     });
 
-    const assigneeError = this.validateAssignee(task.assignee);
+    const assigneeError = await this.validateAssignee(task.assignee);
     if (assigneeError) {
-      return { error: assigneeError, status: 400 };
+      return assigneeError;
     }
 
     if (this.hasRunningRun()) {
@@ -254,7 +291,7 @@ export class TasksApiController {
         this.taskRepository.delete(taskId);
       }
       if (error instanceof AgentDefinitionError) {
-        return describeAgentDefinitionFailure(error);
+        return describeAgentDefinitionFailure(error, "start");
       }
       const message = error instanceof Error ? error.message : String(error);
       return { error: `task start failed: ${message}`, status: 500 };

@@ -2,6 +2,7 @@ import { loadEnvForPackage } from "@keidai/shared/load-env";
 
 loadEnvForPackage(import.meta.url);
 
+import { createHttpFudaClient } from "@keidai/shared/clients";
 import { getShaidenPersistence } from "./boot/persistence.js";
 import { loadRuntimeConfig } from "./config/runtime-config.js";
 import { ShaidenHttpServer } from "./http/shaiden-http-server.js";
@@ -20,6 +21,8 @@ function waitForShutdown(): Promise<void> {
 async function main(): Promise<void> {
   const config = loadRuntimeConfig();
   const { runStore, taskRepository } = getShaidenPersistence();
+  // `loadRuntimeConfig` requires FUDA_URL; optional on the type for evals/tests.
+  const fudaClient = createHttpFudaClient({ baseUrl: config.fudaBaseUrl! });
   const activeRunRegistry = new ActiveRunRegistry();
 
   const httpServer = new ShaidenHttpServer({
@@ -28,6 +31,7 @@ async function main(): Promise<void> {
     logger: defaultLogger,
     agentId: config.agentId,
     runtimeConfig: config,
+    fudaClient,
     activeRunRegistry,
     startTaskRun: ({ task, taskId }) =>
       launchHarnessRun({
@@ -35,7 +39,7 @@ async function main(): Promise<void> {
         taskId,
         config,
         runStore,
-        options: { activeRunRegistry },
+        options: { activeRunRegistry, fudaClient },
       }),
     resumeHarnessRun: (input) =>
       resumeHarnessRun({
@@ -44,6 +48,7 @@ async function main(): Promise<void> {
         options: {
           activeRunRegistry,
           logger: defaultLogger,
+          fudaClient,
           ...input.options,
         },
       }),

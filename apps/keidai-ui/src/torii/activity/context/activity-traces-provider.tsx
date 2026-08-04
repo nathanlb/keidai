@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useSearchParams } from "react-router";
 import { useActivityTraces } from "../../../shell/hooks/use-activity-traces.js";
+import { useFetchAgents } from "../../../shell/hooks/use-fetch-agents.js";
 import { useFetchOAuthProviders } from "../../../shell/hooks/use-fetch-oauth-providers.js";
 import { useFetchServers } from "../../../shell/hooks/use-fetch-servers.js";
 import { useFetchTrace } from "../../../shell/hooks/use-fetch-trace.js";
@@ -76,6 +77,8 @@ export function ActivityTracesProvider({
     isLoading: providersLoading,
   } = useFetchOAuthProviders();
 
+  const { data: agentsData } = useFetchAgents();
+
   const {
     traces,
     bufferCount,
@@ -89,6 +92,12 @@ export function ActivityTracesProvider({
   } = useFetchTrace(requestedTraceId);
 
   const linkDialog = useOAuthLink();
+
+  const agentSlugById = useMemo(() => {
+    return new Map(
+      (agentsData?.agents ?? []).map((agent) => [agent.id, agent.slug]),
+    );
+  }, [agentsData?.agents]);
 
   const handleLinkCompleted = useCallback(
     (ownerId: string, connections: OAuthConnectionStatus[]) => {
@@ -144,8 +153,8 @@ export function ActivityTracesProvider({
   const outcomeCounts = useMemo(() => countTraceOutcomes(traces), [traces]);
 
   const filteredTraces = useMemo(
-    () => filterTraces(traces, filters),
-    [filters, traces],
+    () => filterTraces(traces, filters, agentSlugById),
+    [agentSlugById, filters, traces],
   );
 
   useEffect(() => {
@@ -251,6 +260,7 @@ export function ActivityTracesProvider({
       outcomeCounts,
       filters,
       serverOptions,
+      agentSlugById,
       pageIndex,
       isLive,
       selectedTrace,
@@ -274,6 +284,7 @@ export function ActivityTracesProvider({
     outcomeCounts,
     filters,
     serverOptions,
+    agentSlugById,
     pageIndex,
     isLive,
     selectedTrace,

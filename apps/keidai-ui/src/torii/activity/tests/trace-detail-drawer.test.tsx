@@ -18,6 +18,7 @@ describe("TraceDetailDrawer", () => {
       selectedTrace: deniedTrace,
       selectedTraceServer: githubServer,
       drawerOpen: true,
+      agentSlugById: new Map([["demo-agent", "demo"]]),
     });
 
     expect(screen.getByText("delete_repo")).toBeInTheDocument();
@@ -27,6 +28,8 @@ describe("TraceDetailDrawer", () => {
     expect(
       screen.getByText("Credential resolution", { exact: true }),
     ).toBeInTheDocument();
+    expect(screen.getByText("demo")).toBeInTheDocument();
+    expect(screen.getByText("demo-agent")).toBeInTheDocument();
   });
 
   it("invokes linkProvider for linking_required traces", async () => {

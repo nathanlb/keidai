@@ -1,5 +1,6 @@
 import type { TraceListItem } from "@keidai/shared";
 import type { OutcomeFilter } from "./format-trace-outcome.js";
+import { resolveAgentSlug } from "./format-agent-principal.js";
 
 export interface TraceFilters {
   query: string;
@@ -13,16 +14,22 @@ export const EMPTY_TRACE_FILTERS: TraceFilters = {
   outcome: "all",
 };
 
-function matchesQuery(trace: TraceListItem, query: string): boolean {
+function matchesQuery(
+  trace: TraceListItem,
+  query: string,
+  agentSlugById: ReadonlyMap<string, string>,
+): boolean {
   const normalized = query.trim().toLowerCase();
   if (!normalized) {
     return true;
   }
 
+  const agentId = trace.principal?.agentId;
   const haystack = [
     trace.tool,
     trace.server,
-    trace.principal?.agentId,
+    agentId,
+    resolveAgentSlug(agentId, agentSlugById),
     trace.principal?.ownerId,
   ]
     .filter(Boolean)
@@ -35,6 +42,7 @@ function matchesQuery(trace: TraceListItem, query: string): boolean {
 export function filterTraces(
   traces: readonly TraceListItem[],
   filters: TraceFilters,
+  agentSlugById: ReadonlyMap<string, string> = new Map(),
 ): TraceListItem[] {
   return traces.filter((trace) => {
     if (filters.server !== "all" && trace.server !== filters.server) {
@@ -43,7 +51,7 @@ export function filterTraces(
     if (filters.outcome !== "all" && trace.outcome !== filters.outcome) {
       return false;
     }
-    return matchesQuery(trace, filters.query);
+    return matchesQuery(trace, filters.query, agentSlugById);
   });
 }
 

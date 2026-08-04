@@ -6,7 +6,9 @@ import {
   Link2,
   TriangleAlert,
 } from "lucide-react";
+import { deriveAgentInitials } from "../../fuda/agents/utils/derive-agent-initials.js";
 import { OwnerAvatar } from "../../shell/components/owner-avatar/owner-avatar.js";
+import { formatAgentPrincipalLabel } from "./utils/format-agent-principal.js";
 import { TRACE_OUTCOME_META } from "./utils/format-trace-outcome.js";
 import {
   formatTracePolicyShort,
@@ -17,14 +19,6 @@ import {
   formatTraceClock,
   formatTraceRelative,
 } from "./utils/format-trace-time.js";
-
-function agentInitials(agentId: string): string {
-  const parts = agentId.split(/[-_]/).filter(Boolean);
-  if (parts.length >= 2) {
-    return `${parts[0]![0] ?? ""}${parts[1]![0] ?? ""}`.toUpperCase();
-  }
-  return agentId.slice(0, 2).toUpperCase();
-}
 
 function OutcomeIcon({ outcome }: { outcome: TraceListItem["outcome"] }) {
   switch (outcome) {
@@ -41,12 +35,18 @@ function OutcomeIcon({ outcome }: { outcome: TraceListItem["outcome"] }) {
 
 export function ActivityTraceRow({
   trace,
+  agentSlugById,
   onOpen,
 }: {
   trace: TraceListItem;
+  agentSlugById: ReadonlyMap<string, string>;
   onOpen: (trace: TraceListItem) => void;
 }) {
   const meta = TRACE_OUTCOME_META[trace.outcome];
+  const agentLabel = formatAgentPrincipalLabel(
+    trace.principal?.agentId,
+    agentSlugById,
+  );
 
   return (
     <TableRow
@@ -83,14 +83,14 @@ export function ActivityTraceRow({
         </div>
       </TableCell>
       <TableCell className="py-3">
-        {trace.principal ? (
+        {trace.principal && agentLabel ? (
           <div className="flex items-center gap-2">
             <OwnerAvatar
-              initials={agentInitials(trace.principal.agentId)}
+              initials={deriveAgentInitials(agentLabel)}
               className="size-[22px] bg-secondary text-[9px] text-secondary-foreground"
             />
             <div className="min-w-0 leading-tight">
-              <div className="font-mono text-xs">{trace.principal.agentId}</div>
+              <div className="font-mono text-xs">{agentLabel}</div>
               <div className="text-[11px] text-muted-foreground">
                 as {trace.principal.ownerId}
               </div>
