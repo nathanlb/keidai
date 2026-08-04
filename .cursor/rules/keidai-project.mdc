@@ -5,17 +5,27 @@ alwaysApply: true
 
 # Keidai project context
 
-Keidai is the agent ecosystem monorepo.
-Ecosystem components:
+Keidai is the agent ecosystem monorepo. All four components are built and run together under Docker Compose; there is no Kubernetes deployment.
 
-- **Torii — MCP Gateway** is the gateway and control plane. It exposes servers and tools to agents, enforces tool-level access policy, and brokers downstream credentials so they never reach the agent. The only component built in v0, and tracked as its own project.
-- **Fuda — Agent Identity Provider (AIdP)** is the identity provider and registry for agents. It catalogs agents, who owns them, and how they prove who they are. May be co-located inside Torii in v0; still a distinct responsibility.
-- **Shaiden — Agent Runtime** is the execution infrastructure: where agents run, sandboxing, lifecycle. Lightly sketched.
+## Ecosystem components
+
+- **Torii — MCP Gateway** (`apps/torii`, `:3100`) is the gateway and control plane. One MCP endpoint fronting N backends; resolves credentials per server (`user_oauth` / `service_key` / `none`) so they never reach the agent; enforces group-based tool policy that fails closed on unknown groups; gates selected tools behind human approval (`gated_tools`); emits `CallTrace` records. Also serves keidai-ui when `TORII_UI_CLIENT_ROOT` is set.
+- **Fuda — Agent Identity Provider (AIdP)** (`apps/fuda`, `:3300`) is a standalone service with its own SQLite registry of agents, bearers, grants, and versioned personas. Exchanges a subject token for a short-lived agent JWT (`POST /token`) and publishes JWKS. Torii validates those JWTs offline and calls Fuda for nothing else.
+- **Shaiden — Agent Runtime** (`apps/shaiden`, `:3200`) drives tasks to a typed termination outcome via a thin model/tool loop over Torii's MCP session, persists tasks and runs in SQLite, and parks a run while it waits on an approval decision.
+- **keidai-ui** (`apps/keidai-ui`) is the React + Vite operator frontend, with one module per service.
+
+Naming and boundary details that are easy to get wrong:
+
+- The user-OAuth credential strategy is **`user_oauth`**, not `delegated_connection`.
+- Policy is authored as top-level `groups[]` in `torii.yaml`, **not** per-server `policy` blocks. Per-server allow-lists are derived for the UI only.
+- Torii has exactly **one** identity resolver, `FudaJwtIdentityResolver`, permanently. Platform swappability lives in Fuda's `SubjectTokenValidator`.
+- **Torii owns the approval gate and ledger**; Shaiden only parks and resumes.
+- v0 attestation is a static shared secret. Nothing is actually attested.
 
 ## Implementation tasks (Linear)
 
 Stories and acceptance criteria live in the following Linear projects:
-- **[Ttorii](https://linear.app/nathanlb/project/torii-c257f2b8953d/issues)**
+- **[Torii](https://linear.app/nathanlb/project/torii-c257f2b8953d/issues)**
 - **[Shaiden](https://linear.app/nathanlb/project/shaiden-7568ee5d79af/issues)**
 - **[Fuda](https://linear.app/nathanlb/project/fuda-d1656834a613/issues)**
 
@@ -37,12 +47,24 @@ Do not skip the branch step or invent a branch name.
 
 Platform vision and component boundaries:
 
-https://app.notion.com/p/Keidai-Agent-Platform-38307ec181ff815b8276d59d005fd612
+https://app.notion.com/p/38307ec181ff815b8276d59d005fd612
 
-Torii gateway architecture, credential resolution, policy, and other design notes:
+Torii gateway — product doc, plus child pages for architecture, credential resolution, and stack:
 
-https://app.notion.com/p/Torii-MCP-Gateway-36c07ec181ff813d8f34f9b0e617de34
+https://app.notion.com/p/38307ec181ff80e49dd8ff384139f8b2
+
+Fuda agent identity provider:
+
+https://app.notion.com/p/38307ec181ff81529d0dee3c0c09238f
 
 Shaiden agent runtime:
 
-https://app.notion.com/p/Shaiden-Agent-Runtime-38307ec181ff81d8833cf4e05f6b8437
+https://app.notion.com/p/38307ec181ff81d8833cf4e05f6b8437
+
+keidai-ui frontend:
+
+https://app.notion.com/p/38507ec181ff81b38d8df7349de05381
+
+Torii project card (strategy, positioning, landscape scan — not architecture):
+
+https://app.notion.com/p/36c07ec181ff813d8f34f9b0e617de34

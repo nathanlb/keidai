@@ -19,7 +19,7 @@ Keidai (境内) is a self-hostable ecosystem for securely configuring, running, 
 
 ```
 apps/
-  keidai-ui/        # Web UI for managing and controling the Keidai ecosystem
+  keidai-ui/        # Web UI for managing and controlling the Keidai ecosystem
   fuda/             # Fuda - Agent Identity Provider (AIdP)
   shaiden/          # Shaiden - Agent runtime for the ecosystem
   torii/            # Torii - MCP gateway (see apps/torii/README.md)
@@ -27,8 +27,9 @@ packages/
   shared/           # @keidai/shared - Torii config, catalog, trace types, loadEnv
   ui/               # @keidai/ui - Shared shadcn-based UI component library
 docs/
-  demo.md           # how to run the open-torii demo end-to-end
-torii.example.yaml  # example server list + policy
+  testing.md        # testing strategy and layout
+torii.example.yaml  # example server list + groups
+docker-compose.yml  # Fuda + Torii + Shaiden
 ```
 
 ## Getting started
@@ -42,17 +43,28 @@ pnpm --filter @keidai/torii dev
 
 ## Demo
 
-Full walkthrough (env setup, OAuth linking, three-terminal run): **[docs/demo.md](docs/demo.md)**
+The whole stack runs under Docker Compose: Fuda on `:3300`, Torii on `:3100` (also serving keidai-ui), Shaiden on `:3200`.
 
 ```bash
-pnpm demo:torii   # terminal 1 (+ Gmail MCP — see docs)
-pnpm demo           # terminal 2
+docker compose up --build
 ```
+
+Fuda starts with an empty registry, so seed agents and grants before submitting a task — otherwise token exchange fails:
+
+```bash
+pnpm --filter @keidai/fuda seed -- ./apps/fuda/fuda.seed.example.yaml
+```
+
+Requires a signing key at `apps/fuda/keys/dev.pem` plus `SHAIDEN_BEARER`, `FUDA_ISSUER`, and the demo backend secrets in the repo root `.env` (see [`.env.example`](.env.example)). Per-service setup: [`apps/fuda/README.md`](apps/fuda/README.md), [`apps/torii/README.md`](apps/torii/README.md), [`apps/shaiden/README.md`](apps/shaiden/README.md).
 
 ## Docs
 
-- [Keidai — Agent Ecosystem](https://app.notion.com/p/Keidai-Agent-Platform-38307ec181ff815b8276d59d005fd612) — ecosystem vision, component boundaries, v0 vs vX
-- [Torii — MCP Gateway](https://app.notion.com/p/Torii-MCP-Gateway-36c07ec181ff813d8f34f9b0e617de34) — gateway contracts and implementation
+- [Keidai — Agent Ecosystem](https://app.notion.com/p/38307ec181ff815b8276d59d005fd612) — ecosystem vision, component boundaries, v0 vs vX
+- [Torii — MCP Gateway](https://app.notion.com/p/38307ec181ff80e49dd8ff384139f8b2) — gateway contracts, config, policy, and approval gates
+- [Fuda — Agent Identity Provider](https://app.notion.com/p/38307ec181ff81529d0dee3c0c09238f) — token exchange, registry, and the subject-token seam
+- [Shaiden — Agent Runtime](https://app.notion.com/p/38307ec181ff81d8833cf4e05f6b8437) — task loop, termination outcomes, approval parking
+- [keidai-ui — Frontend](https://app.notion.com/p/38507ec181ff81b38d8df7349de05381) — operator surface and module boundaries
+- [docs/testing.md](docs/testing.md) — testing strategy and layout
 
 ## License
 
