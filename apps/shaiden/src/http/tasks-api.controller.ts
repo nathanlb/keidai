@@ -58,7 +58,6 @@ export type StartTaskRun = (input: {
 }) => Promise<LaunchedHarnessRun>;
 
 export interface TasksApiControllerOptions {
-  agentId: string;
   runStore: RunStore;
   taskRepository: TaskRepository;
   startTaskRun: StartTaskRun;
@@ -71,7 +70,6 @@ export interface TasksApiControllerOptions {
 }
 
 export class TasksApiController {
-  private readonly agentId: string;
   private readonly runStore: RunStore;
   private readonly taskRepository: TaskRepository;
   private readonly startTaskRun: StartTaskRun;
@@ -79,7 +77,6 @@ export class TasksApiController {
   private readonly fudaClient: FudaClient | undefined;
 
   constructor(options: TasksApiControllerOptions) {
-    this.agentId = options.agentId;
     this.runStore = options.runStore;
     this.taskRepository = options.taskRepository;
     this.startTaskRun = options.startTaskRun;
@@ -89,7 +86,7 @@ export class TasksApiController {
 
   registerRoutes(app: FastifyInstance): void {
     app.get("/api/tasks/runtime", async (_request, reply) => {
-      reply.send({ agentId: this.agentId });
+      reply.send({ ready: true });
     });
 
     app.get("/api/tasks", async (request, reply) => {
@@ -233,13 +230,6 @@ export class TasksApiController {
   private async validateAssignee(
     assignee: string,
   ): Promise<{ error: string; status: number } | null> {
-    if (assignee !== this.agentId) {
-      return {
-        error: `assignee must match the Shaiden agent (${this.agentId})`,
-        status: 400,
-      };
-    }
-
     if (!this.fudaClient) {
       return null;
     }

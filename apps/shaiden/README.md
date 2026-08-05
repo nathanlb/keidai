@@ -108,7 +108,6 @@ Starts **Fuda** (identity / token exchange on `:3300`), **Torii** (`torii.demo.y
 |----------|-------------|
 | `SHAIDEN_BEARER` | Subject token for Fuda token exchange (static shared secret in v0) |
 | `FUDA_URL` | Fuda base URL for `POST /token` (e.g. `http://127.0.0.1:3300`) |
-| `SHAIDEN_AGENT_ID` | Agent id requested in token exchange (default: `shaiden-newsletter-01`) |
 | `TORII_MCP_URL` | Torii MCP endpoint (default: `http://127.0.0.1:3100/mcp`) |
 | `OPEN_ROUTER_API_KEY` | OpenRouter API key for the task-loop model |
 | `SHAIDEN_MODEL_ID` | OpenRouter model id (default: `google/gemini-2.5-flash`) |

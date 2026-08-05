@@ -21,7 +21,6 @@ export interface ShaidenHttpServerDeps {
   runStore: RunStore;
   taskRepository: TaskRepository;
   logger: Logger;
-  agentId: string;
   startTaskRun: (input: {
     task: Task;
     taskId: string;
@@ -39,10 +38,8 @@ export class ShaidenHttpServer {
   private app: FastifyInstance | null = null;
   private readonly runsApi: RunsApiController;
   private readonly tasksApi: TasksApiController;
-  private readonly agentId: string;
 
   constructor(private readonly deps: ShaidenHttpServerDeps) {
-    this.agentId = deps.agentId;
     this.runsApi = new RunsApiController({
       runStore: deps.runStore,
       activeRunRegistry: deps.activeRunRegistry,
@@ -51,7 +48,6 @@ export class ShaidenHttpServer {
       logger: deps.logger,
     });
     this.tasksApi = new TasksApiController({
-      agentId: deps.agentId,
       runStore: deps.runStore,
       taskRepository: deps.taskRepository,
       startTaskRun: deps.startTaskRun,
@@ -95,7 +91,6 @@ export class ShaidenHttpServer {
       reply.send({
         ok: true,
         version: readPackageVersion(),
-        agentId: this.agentId,
       });
     });
 

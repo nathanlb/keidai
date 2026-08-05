@@ -31,5 +31,5 @@ export interface StartTaskRunResponse {
 }
 
 export interface TaskRuntimeResponse {
-  agentId: string;
+  ready: boolean;
 }

@@ -39,7 +39,7 @@ export interface MockToriiConfig {
   runs?: RunsResponse;
   runDetails?: Record<string, RunReport>;
   tasks?: TasksResponse;
-  taskRuntime?: { agentId: string };
+  taskRuntime?: { ready: boolean };
   approvals?: ApprovalRecordView[];
   healthy?: boolean;
   shaidenHealthy?: boolean;
@@ -78,7 +78,7 @@ export async function mockToriiConfig(
     runs = { runs: [] },
     runDetails = {},
     tasks = { tasks: [] },
-    taskRuntime = { agentId: "shaiden-newsletter-01" },
+    taskRuntime = { ready: true },
     approvals = [],
     healthy = true,
     shaidenHealthy = healthy,
@@ -131,7 +131,6 @@ export async function mockToriiConfig(
       json: {
         ok: true,
         version: shaidenVersion,
-        agentId: taskRuntime.agentId,
       },
     });
   });

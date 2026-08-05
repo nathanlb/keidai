@@ -16,7 +16,7 @@ const agent: ManagementAgent = {
 
 describe("toAgentAssigneeOption", () => {
   it("uses the agent's display name and derives initials from it", () => {
-    expect(toAgentAssigneeOption(agent, "shaiden-newsletter-01")).toEqual({
+    expect(toAgentAssigneeOption(agent, true)).toEqual({
       agentId: "shaiden-newsletter-01",
       displayName: "Newsletter Writer",
       initials: "NW",
@@ -30,11 +30,11 @@ describe("toAgentAssigneeOption", () => {
     );
   });
 
-  it("marks mismatched runtime agents as not connected", () => {
-    expect(toAgentAssigneeOption(agent, "other-agent").connected).toBe(false);
+  it("marks agents as not connected when runtime is not ready", () => {
+    expect(toAgentAssigneeOption(agent, false).connected).toBe(false);
   });
 
-  it("marks agents as not connected when runtime is unknown", () => {
+  it("marks agents as not connected when runtime readiness is unknown", () => {
     expect(toAgentAssigneeOption(agent).connected).toBe(false);
   });
 });

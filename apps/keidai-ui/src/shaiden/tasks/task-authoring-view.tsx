@@ -194,7 +194,7 @@ export function TaskAuthoringView({
   } = useFetchTaskRuntime();
   const { owner } = useActingOwner();
 
-  const runtimeAgentId = runtime?.agentId;
+  const runtimeReady = runtime?.ready === true;
 
   const options = useMemo(() => {
     const agents = agentsData?.agents;
@@ -203,10 +203,10 @@ export function TaskAuthoringView({
     }
     return agents
       .map((agent: ManagementAgent) =>
-        toAgentAssigneeOption(agent, runtimeAgentId),
+        toAgentAssigneeOption(agent, runtimeReady),
       )
       .sort((a, b) => a.agentId.localeCompare(b.agentId));
-  }, [agentsData?.agents, runtimeAgentId]);
+  }, [agentsData?.agents, runtimeReady]);
 
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isLoadingTask, setIsLoadingTask] = useState(isEditMode);
@@ -272,24 +272,22 @@ export function TaskAuthoringView({
   }, [taskId, reset]);
 
   useEffect(() => {
-    if (isEditMode || assignee || !runtimeAgentId) {
+    if (isEditMode || assignee || !runtimeReady) {
       return;
     }
-    const connected = options.find(
-      (option) => option.agentId === runtimeAgentId && option.connected,
-    );
-    if (connected) {
-      setValue("assignee", connected.agentId);
+    const first = options[0];
+    if (first) {
+      setValue("assignee", first.agentId);
     }
-  }, [assignee, isEditMode, options, runtimeAgentId, setValue]);
+  }, [assignee, isEditMode, options, runtimeReady, setValue]);
 
   const selectedOption =
     options.find((option) => option.agentId === assignee) ?? null;
 
   const canSubmit =
     isValid &&
-    Boolean(runtimeAgentId) &&
-    assignee === runtimeAgentId &&
+    Boolean(runtimeReady) &&
+    Boolean(assignee) &&
     (!isEditMode || isDirty) &&
     !isSubmitting &&
     !isLoadingTask &&
@@ -341,10 +339,7 @@ export function TaskAuthoringView({
   }
 
   return (
-    <form
-      className="flex min-h-0 flex-1 flex-col"
-      onSubmit={onSubmit}
-    >
+    <form className="flex min-h-0 flex-1 flex-col" onSubmit={onSubmit}>
       <div className="min-h-0 flex-1 overflow-y-auto px-6">
         {isLoadingTask ? (
           <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
@@ -357,199 +352,192 @@ export function TaskAuthoringView({
           <p className="py-8 text-sm text-destructive">{loadError}</p>
         ) : isLoadingTask ? null : (
           <>
-        {isArchived ? (
-          <p className="border-b border-border py-4 text-sm text-muted-foreground">
-            This task is archived. Past runs are preserved, but the definition
-            can no longer be edited or run.
-          </p>
-        ) : null}
-        <section className="border-b border-border py-5">
-          <FieldHeader
-            icon={<Target className="size-4" aria-hidden />}
-            label="Goal"
-            required
-          />
-          <p className="mt-1 mb-2.5 text-[12.5px] leading-normal text-muted-foreground">
-            Natural-language definition of done. The agent self-assesses
-            completion against it.
-          </p>
-          <Textarea
-            id={goalId}
-            {...register("goal")}
-            placeholder={`Describe what "done" looks like…  e.g. "Draft and send the weekly newsletter, but pause for my approval before sending."`}
-            required
-            disabled={isArchived}
-            className="min-h-[118px] text-[13.5px] leading-relaxed focus-visible:ring-[3px] focus-visible:ring-ring/30"
-          />
-        </section>
+            {isArchived ? (
+              <p className="border-b border-border py-4 text-sm text-muted-foreground">
+                This task is archived. Past runs are preserved, but the
+                definition can no longer be edited or run.
+              </p>
+            ) : null}
+            <section className="border-b border-border py-5">
+              <FieldHeader
+                icon={<Target className="size-4" aria-hidden />}
+                label="Goal"
+                required
+              />
+              <p className="mt-1 mb-2.5 text-[12.5px] leading-normal text-muted-foreground">
+                Natural-language definition of done. The agent self-assesses
+                completion against it.
+              </p>
+              <Textarea
+                id={goalId}
+                {...register("goal")}
+                placeholder={`Describe what "done" looks like…  e.g. "Draft and send the weekly newsletter, but pause for my approval before sending."`}
+                required
+                disabled={isArchived}
+                className="min-h-[118px] text-[13.5px] leading-relaxed focus-visible:ring-[3px] focus-visible:ring-ring/30"
+              />
+            </section>
 
-        <section className="border-b border-border py-5">
-          <FieldHeader
-            icon={<Zap className="size-3.5" aria-hidden />}
-            label="Trigger"
-          />
-          <p className="mt-1 mb-2.5 text-[12.5px] leading-normal text-muted-foreground">
-            v0 runs immediately. Scheduled and event triggers are planned.
-          </p>
-          <div className="flex gap-2">
-            <TriggerChip
-              selected
-              icon={<Zap className="size-3.5" aria-hidden />}
-              label="Now"
-            />
-            <TriggerChip
-              disabled
-              icon={<Calendar className="size-3.5" aria-hidden />}
-              label="Scheduled"
-            />
-            <TriggerChip
-              disabled
-              icon={<GitBranch className="size-3.5" aria-hidden />}
-              label="On event"
-            />
-          </div>
-        </section>
+            <section className="border-b border-border py-5">
+              <FieldHeader
+                icon={<Zap className="size-3.5" aria-hidden />}
+                label="Trigger"
+              />
+              <p className="mt-1 mb-2.5 text-[12.5px] leading-normal text-muted-foreground">
+                v0 runs immediately. Scheduled and event triggers are planned.
+              </p>
+              <div className="flex gap-2">
+                <TriggerChip
+                  selected
+                  icon={<Zap className="size-3.5" aria-hidden />}
+                  label="Now"
+                />
+                <TriggerChip
+                  disabled
+                  icon={<Calendar className="size-3.5" aria-hidden />}
+                  label="Scheduled"
+                />
+                <TriggerChip
+                  disabled
+                  icon={<GitBranch className="size-3.5" aria-hidden />}
+                  label="On event"
+                />
+              </div>
+            </section>
 
-        <section className="border-b border-border py-5">
-          <FieldHeader
-            icon={<Bot className="size-3.5" aria-hidden />}
-            label="Assignee"
-            required
-          />
-          <p className="mt-1 mb-2.5 text-[12.5px] leading-normal text-muted-foreground">
-            Runs on exactly one agent in v0.
-          </p>
-          {agentsLoading || runtimeLoading ? (
-            <p className="text-sm text-muted-foreground">
-              {agentsLoading ? "Loading agents…" : "Loading runtime…"}
-            </p>
-          ) : agentsError ? (
-            <p className="text-sm text-destructive">
-              Could not load agents from the gateway.
-            </p>
-          ) : runtimeError ? (
-            <p className="text-sm text-destructive">
-              Could not load Shaiden runtime.
-            </p>
-          ) : options.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No agents registered yet.
-            </p>
-          ) : !runtimeAgentId ? (
-            <p className="text-sm text-muted-foreground">
-              Shaiden runtime is unavailable.
-            </p>
-          ) : !options.some((option) => option.connected) ? (
-            <p className="text-sm text-muted-foreground">
-              No agent connected to this Shaiden runtime (
-              <span className="font-mono">{runtimeAgentId}</span>).
-            </p>
-          ) : (
-            <Controller
-              name="assignee"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  value={field.value || undefined}
-                  onValueChange={field.onChange}
-                  disabled={isArchived}
-                >
-                  <SelectTrigger
-                    className={cn(
-                      "h-auto min-h-11 w-full items-center gap-2.5 border-input px-3 py-2",
-                    )}
-                  >
-                    <AssigneeTriggerContent option={selectedOption} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {options.map((option) => (
-                      <SelectItem
-                        key={option.agentId}
-                        value={option.agentId}
-                        disabled={!option.connected}
+            <section className="border-b border-border py-5">
+              <FieldHeader
+                icon={<Bot className="size-3.5" aria-hidden />}
+                label="Assignee"
+                required
+              />
+
+              {agentsLoading || runtimeLoading ? (
+                <p className="text-sm text-muted-foreground">
+                  {agentsLoading ? "Loading agents…" : "Loading runtime…"}
+                </p>
+              ) : agentsError ? (
+                <p className="text-sm text-destructive">
+                  Could not load agents from the gateway.
+                </p>
+              ) : runtimeError ? (
+                <p className="text-sm text-destructive">
+                  Could not load Shaiden runtime.
+                </p>
+              ) : options.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No agents registered yet.
+                </p>
+              ) : !runtimeReady ? (
+                <p className="text-sm text-muted-foreground">
+                  Shaiden runtime is unavailable.
+                </p>
+              ) : (
+                <Controller
+                  name="assignee"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value || undefined}
+                      onValueChange={field.onChange}
+                      disabled={isArchived}
+                    >
+                      <SelectTrigger
+                        className={cn(
+                          "h-auto min-h-11 w-full items-center gap-2.5 border-input px-3 py-2",
+                        )}
                       >
-                        <span className="flex items-center gap-2.5">
-                          <span className="inline-flex size-7 items-center justify-center rounded-md bg-secondary text-[11px] font-medium text-secondary-foreground">
-                            {option.initials}
-                          </span>
-                          <span className="flex flex-row items-center gap-2">
-                            <span className="text-[13px] font-semibold">
-                              {option.displayName}
+                        <AssigneeTriggerContent option={selectedOption} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {options.map((option) => (
+                          <SelectItem
+                            key={option.agentId}
+                            value={option.agentId}
+                            disabled={!option.connected}
+                          >
+                            <span className="flex items-center gap-2.5">
+                              <span className="inline-flex size-7 items-center justify-center rounded-md bg-secondary text-[11px] font-medium text-secondary-foreground">
+                                {option.initials}
+                              </span>
+                              <span className="flex flex-row items-center gap-2">
+                                <span className="text-[13px] font-semibold">
+                                  {option.displayName}
+                                </span>
+                                <span className="font-mono text-[11.5px] text-muted-foreground">
+                                  {option.agentId}
+                                </span>
+                              </span>
                             </span>
-                            <span className="font-mono text-[11.5px] text-muted-foreground">
-                              {option.agentId}
-                            </span>
-                          </span>
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               )}
-            />
-          )}
-        </section>
+            </section>
 
-        <section className="py-5">
-          <FieldHeader
-            icon={<SlidersHorizontal className="size-3.5" aria-hidden />}
-            label="Limits"
-            badge={
-              <Badge
-                variant="secondary"
-                className="gap-1.5 text-[10.5px] font-normal"
-              >
-                <Lock className="size-3" aria-hidden />
-                Defaults · locked in v0
-              </Badge>
-            }
-          />
-          <p className="mt-1 mb-2.5 text-[12.5px] leading-normal text-muted-foreground">
-            Fixed in v0. A run terminates{" "}
-            <span className="font-mono">iteration_exhausted</span> or{" "}
-            <span className="font-mono">timeout</span> if it hits these.
-          </p>
-          <div className="flex gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="mb-1.5 text-xs text-muted-foreground">
-                Iteration cap
+            <section className="py-5">
+              <FieldHeader
+                icon={<SlidersHorizontal className="size-3.5" aria-hidden />}
+                label="Limits"
+                badge={
+                  <Badge
+                    variant="secondary"
+                    className="gap-1.5 text-[10.5px] font-normal"
+                  >
+                    <Lock className="size-3" aria-hidden />
+                    Defaults · locked in v0
+                  </Badge>
+                }
+              />
+              <p className="mt-1 mb-2.5 text-[12.5px] leading-normal text-muted-foreground">
+                A run terminates{" "}
+                <span className="font-mono">iteration_exhausted</span> or{" "}
+                <span className="font-mono">timeout</span> if it hits these.
+              </p>
+              <div className="flex gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1.5 text-xs text-muted-foreground">
+                    Iteration cap
+                  </div>
+                  <div className="flex items-center gap-2.5 rounded-md border border-border bg-muted px-3 py-2.5 opacity-75">
+                    <Repeat
+                      className="size-3.5 shrink-0 text-muted-foreground"
+                      aria-hidden
+                    />
+                    <span className="font-mono text-[13.5px] font-semibold">
+                      {V0_LOCKED_LIMITS.max_iterations}
+                    </span>
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      iterations
+                    </span>
+                  </div>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1.5 text-xs text-muted-foreground">
+                    Wall-clock timeout
+                  </div>
+                  <div className="flex items-center gap-2.5 rounded-md border border-border bg-muted px-3 py-2.5 opacity-75">
+                    <Timer
+                      className="size-3.5 shrink-0 text-muted-foreground"
+                      aria-hidden
+                    />
+                    <span className="font-mono text-[13.5px] font-semibold">
+                      {WALL_CLOCK_MINUTES}
+                    </span>
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      minutes
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2.5 rounded-md border border-border bg-muted px-3 py-2.5 opacity-75">
-                <Repeat
-                  className="size-3.5 shrink-0 text-muted-foreground"
-                  aria-hidden
-                />
-                <span className="font-mono text-[13.5px] font-semibold">
-                  {V0_LOCKED_LIMITS.max_iterations}
-                </span>
-                <span className="ml-auto text-xs text-muted-foreground">
-                  iterations
-                </span>
-              </div>
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="mb-1.5 text-xs text-muted-foreground">
-                Wall-clock timeout
-              </div>
-              <div className="flex items-center gap-2.5 rounded-md border border-border bg-muted px-3 py-2.5 opacity-75">
-                <Timer
-                  className="size-3.5 shrink-0 text-muted-foreground"
-                  aria-hidden
-                />
-                <span className="font-mono text-[13.5px] font-semibold">
-                  {WALL_CLOCK_MINUTES}
-                </span>
-                <span className="ml-auto text-xs text-muted-foreground">
-                  minutes
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
+            </section>
 
-        {submitError ? (
-          <p className="pb-5 text-sm text-destructive">{submitError}</p>
-        ) : null}
+            {submitError ? (
+              <p className="pb-5 text-sm text-destructive">{submitError}</p>
+            ) : null}
           </>
         )}
       </div>

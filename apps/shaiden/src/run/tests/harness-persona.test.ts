@@ -20,7 +20,6 @@ const sampleTask: Task = {
 };
 
 const baseConfig: RuntimeConfig = {
-  agentId: "shaiden-newsletter-01",
   toriiMcpUrl: "http://127.0.0.1:9/mcp",
   bearerToken: "subject",
   fudaBaseUrl: "http://fuda.test",
@@ -32,13 +31,16 @@ const baseConfig: RuntimeConfig = {
 
 function stubFuda(definition: AgentDefinition): FudaClient & {
   definitionCalls: number;
+  requestedAgentIds: string[];
   currentDefinition: AgentDefinition;
 } {
   const client = {
     definitionCalls: 0,
+    requestedAgentIds: [] as string[],
     currentDefinition: definition,
-    async getAgentDefinition(): Promise<AgentDefinition> {
+    async getAgentDefinition(agentId: string): Promise<AgentDefinition> {
       client.definitionCalls += 1;
+      client.requestedAgentIds.push(agentId);
       return client.currentDefinition;
     },
     async exchangeToken(): Promise<ExchangedAgentToken> {
@@ -71,6 +73,7 @@ describe("launchHarnessRun persona fetch", () => {
 
     const saved = persistence.runStore.getRun(launched.runId);
     assert.equal(fuda.definitionCalls, 1);
+    assert.deepEqual(fuda.requestedAgentIds, [sampleTask.assignee]);
     assert.equal(saved?.personaVersion, 4);
     assert.equal(saved?.persona, "You are a concise newsletter author.");
     assert.equal(
@@ -88,6 +91,38 @@ describe("launchHarnessRun persona fetch", () => {
         return true;
       },
     );
+    persistence.close();
+  });
+
+  it("fetches persona for task.assignee, not a process-global agent id", async () => {
+    const persistence = createTestPersistence();
+    const otherTask: Task = {
+      ...sampleTask,
+      assignee: "other-agent-02",
+    };
+    const taskId = persistence.taskRepository.create({ task: otherTask }).id;
+    const fuda = stubFuda({
+      name: "Other",
+      slug: "other",
+      persona: "You are another agent.",
+      personaVersion: 2,
+    });
+
+    const launched = await launchHarnessRun({
+      task: otherTask,
+      taskId,
+      config: baseConfig,
+      runStore: persistence.runStore,
+      options: { fudaClient: fuda },
+    });
+
+    assert.deepEqual(fuda.requestedAgentIds, ["other-agent-02"]);
+    assert.equal(
+      persistence.runStore.getRun(launched.runId)?.persona,
+      "You are another agent.",
+    );
+
+    await assert.rejects(() => launched.done);
     persistence.close();
   });
 

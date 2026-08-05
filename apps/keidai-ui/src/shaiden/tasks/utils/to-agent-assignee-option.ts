@@ -10,7 +10,7 @@ export interface AgentAssigneeOption {
 
 export function toAgentAssigneeOption(
   agent: ManagementAgent,
-  runtimeAgentId?: string,
+  runtimeReady?: boolean,
 ): AgentAssigneeOption {
   const displayName = agent.name || agent.slug;
 
@@ -18,6 +18,6 @@ export function toAgentAssigneeOption(
     agentId: agent.id,
     displayName,
     initials: deriveAgentInitials(displayName),
-    connected: runtimeAgentId ? agent.id === runtimeAgentId : false,
+    connected: runtimeReady === true,
   };
 }
