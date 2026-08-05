@@ -54,6 +54,31 @@ export const router = createBrowserRouter([
         },
       },
       {
+        path: "bearers",
+        lazy: async () => {
+          const { BearersPage } = await import("./fuda/pages/bearers-page.js");
+          return { Component: BearersPage };
+        },
+      },
+      {
+        path: "bearers/new",
+        lazy: async () => {
+          const { BearerCreatePage } = await import(
+            "./fuda/pages/bearer-create-page.js"
+          );
+          return { Component: BearerCreatePage };
+        },
+      },
+      {
+        path: "bearers/:bearerId",
+        lazy: async () => {
+          const { BearerDetailPage } = await import(
+            "./fuda/pages/bearer-detail-page.js"
+          );
+          return { Component: BearerDetailPage };
+        },
+      },
+      {
         path: "approvals",
         lazy: async () => {
           const { ApprovalsPage } = await import(

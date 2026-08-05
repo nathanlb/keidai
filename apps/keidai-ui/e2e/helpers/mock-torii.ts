@@ -737,7 +737,88 @@ export async function mockToriiConfig(
     await route.continue();
   });
 
+  await page.route(/\/api\/bearers\/[^/]+$/, async (route) => {
+    const url = new URL(route.request().url());
+    const bearerId = decodeURIComponent(url.pathname.split("/").at(-1) ?? "");
+    const method = route.request().method();
+    const index = bearerState.findIndex(
+      (bearer) => bearer.bearerId === bearerId,
+    );
+
+    if (method === "GET") {
+      if (index === -1) {
+        await route.fulfill({
+          status: 404,
+          json: { error: "bearer not found" },
+        });
+        return;
+      }
+
+      await route.fulfill({
+        json: {
+          bearer: bearerState[index],
+          grants: grantState.filter((grant) => grant.bearerId === bearerId),
+        },
+      });
+      return;
+    }
+
+    if (method === "PATCH") {
+      if (index === -1) {
+        await route.fulfill({
+          status: 404,
+          json: { error: "bearer not found" },
+        });
+        return;
+      }
+
+      const body = route.request().postDataJSON() as { displayName: string };
+      const next = {
+        ...bearerState[index]!,
+        displayName: body.displayName,
+      };
+      bearerState[index] = next;
+      await route.fulfill({ json: { bearer: next } });
+      return;
+    }
+
+    if (method === "DELETE") {
+      if (index === -1) {
+        await route.fulfill({
+          status: 404,
+          json: { error: "bearer not found" },
+        });
+        return;
+      }
+
+      bearerState.splice(index, 1);
+      for (let i = grantState.length - 1; i >= 0; i -= 1) {
+        if (grantState[i]!.bearerId === bearerId) {
+          grantState.splice(i, 1);
+        }
+      }
+      await route.fulfill({ status: 204, body: "" });
+      return;
+    }
+
+    await route.continue();
+  });
+
   await page.route(/\/api\/bearers(\?|$)/, async (route) => {
+    if (route.request().method() === "POST") {
+      const body = route.request().postDataJSON() as {
+        bearerId: string;
+        displayName: string;
+      };
+      const bearer: Bearer = {
+        bearerId: body.bearerId,
+        displayName: body.displayName,
+      };
+      bearerState.push(bearer);
+      await route.fulfill({ status: 201, json: { bearer } });
+      return;
+    }
+
     await route.fulfill({ json: { bearers: bearerState } });
   });
 }

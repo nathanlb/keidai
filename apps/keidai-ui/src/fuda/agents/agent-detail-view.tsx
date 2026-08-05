@@ -28,6 +28,7 @@ import {
 } from "../api/fuda-client.js";
 import { agentGrantsKey, useFetchAgentGrants } from "../hooks/use-fetch-agent-grants.js";
 import { AGENTS_KEY } from "../../shell/hooks/use-fetch-agents.js";
+import { invalidateGrantCaches } from "../hooks/invalidate-grant-caches.js";
 import { useFetchAgent } from "../hooks/use-fetch-agent.js";
 import { useFetchBearers } from "../hooks/use-fetch-bearers.js";
 import { personaVersionsKey, useFetchPersonaVersions } from "../hooks/use-fetch-persona-versions.js";
@@ -171,12 +172,14 @@ export function AgentDetailView() {
 
   async function handleGrant(bearerId: string) {
     await grantBearer(bearerId, agent.id);
+    await invalidateGrantCaches(mutate, { bearerId, agentId: agent.id });
     await refreshGrants();
     showToast(`Bearer granted. It can now act as ${agent.slug}.`);
   }
 
   async function handleRevoke(bearerId: string) {
     await revokeBearerGrant(bearerId, agent.id);
+    await invalidateGrantCaches(mutate, { bearerId, agentId: agent.id });
     await refreshGrants();
     showToast("Grant revoked.");
   }
