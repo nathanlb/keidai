@@ -1,5 +1,6 @@
 import { cn } from "@keidai/ui";
 import { NavLink, useLocation } from "react-router";
+import { useFetchAgents } from "../shell/hooks/use-fetch-agents.js";
 import { useFudaStatus } from "../shell/hooks/use-fuda-status.js";
 import {
   NavIcon,
@@ -7,7 +8,25 @@ import {
   navItemClassName,
   sidebarNavLinkTestId,
 } from "../shell/components/sidebar/nav-primitives.js";
-import { AGENTS_PATH, fudaNavItems, isFudaAgentsRoute } from "./navigation.js";
+import {
+  AGENTS_PATH,
+  BEARERS_PATH,
+  fudaNavItems,
+  isFudaAgentsRoute,
+  isFudaBearersRoute,
+} from "./navigation.js";
+
+function NavCount({ count }: { count: number | undefined }) {
+  if (count === undefined) {
+    return null;
+  }
+
+  return (
+    <span className="ml-auto font-mono text-[11px] text-muted-foreground">
+      {count}
+    </span>
+  );
+}
 
 export function FudaSidebarNav() {
   const { status } = useFudaStatus();
@@ -35,7 +54,8 @@ export function FudaSidebarNav() {
             cn(
               navItemClassName,
               (isActive ||
-                (item.path === AGENTS_PATH && isFudaAgentsRoute(pathname))) &&
+                (item.path === AGENTS_PATH && isFudaAgentsRoute(pathname)) ||
+                (item.path === BEARERS_PATH && isFudaBearersRoute(pathname))) &&
                 "bg-sidebar-accent font-semibold text-sidebar-accent-foreground",
             )
           }

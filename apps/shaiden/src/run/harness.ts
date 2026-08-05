@@ -59,6 +59,7 @@ function resolveFudaClient(
 function createToriiCredential(
   config: RuntimeConfig,
   fudaClient: FudaClient | undefined,
+  agentId: string,
 ): ToriiSessionCredential {
   if (!fudaClient) {
     // Eval / test path: Torii accepts a fixed principal without Fuda minting.
@@ -70,7 +71,7 @@ function createToriiCredential(
   const provider = createAgentTokenProvider({
     fuda: fudaClient,
     subjectToken: config.bearerToken,
-    agentId: config.agentId,
+    agentId,
   });
   return {
     ensureToken: (options) => provider.ensureToken(options),
@@ -97,20 +98,20 @@ function describeTokenExchangeFailure(error: unknown): string {
  * to the local worker prompt.
  */
 async function resolvePersonaAtTaskStart(input: {
-  config: RuntimeConfig;
+  assignee: string;
   fudaClient: FudaClient | undefined;
 }): Promise<{
   systemPrompt: string;
   personaVersion?: number;
   persona?: string;
 }> {
-  const { config, fudaClient } = input;
+  const { assignee, fudaClient } = input;
 
   if (!fudaClient) {
-    return { systemPrompt: taskSystemPrompt(config.agentId) };
+    return { systemPrompt: taskSystemPrompt(assignee) };
   }
 
-  const definition = await fudaClient.getAgentDefinition(config.agentId);
+  const definition = await fudaClient.getAgentDefinition(assignee);
   return {
     systemPrompt: systemPromptFromPersona(definition.persona),
     personaVersion: definition.personaVersion,
@@ -123,8 +124,8 @@ async function resolvePersonaAtTaskStart(input: {
  * from Fuda. When Fuda is configured, a missing stamp is a hard failure.
  */
 function resolveSystemPromptForResume(input: {
-  config: RuntimeConfig;
   runId: string;
+  task: Task;
   runStore: RunStore;
   fudaClient: FudaClient | undefined;
 }): string {
@@ -138,7 +139,7 @@ function resolveSystemPromptForResume(input: {
       `Run ${input.runId} has no stamped persona; cannot resume with a Fuda-backed agent`,
     );
   }
-  return taskSystemPrompt(input.config.agentId);
+  return taskSystemPrompt(input.task.assignee);
 }
 
 /**
@@ -157,7 +158,7 @@ export async function launchHarnessRun({
   const fudaClient = resolveFudaClient(config, options);
   const { systemPrompt, personaVersion, persona } =
     await resolvePersonaAtTaskStart({
-      config,
+      assignee: task.assignee,
       fudaClient,
     });
 
@@ -228,8 +229,8 @@ export function resumeHarnessRun({
   const reporter = createLocalRunReporter(runStore, runId);
   const fudaClient = resolveFudaClient(config, options);
   const systemPrompt = resolveSystemPromptForResume({
-    config,
     runId,
+    task,
     runStore,
     fudaClient,
   });
@@ -285,14 +286,14 @@ async function driveHarnessRun({
   try {
     const session = await connectToriiSession(
       config.toriiMcpUrl,
-      createToriiCredential(config, fudaClient),
+      createToriiCredential(config, fudaClient, task.assignee),
     );
     const resumeSignal = session.createApprovalResumeSignal();
 
     try {
       logger.info("run.tools_discovered", {
         runId,
-        agentId: config.agentId,
+        assignee: task.assignee,
         toolCount: session.tools.length,
         tools: session.tools.map((tool) => tool.name),
       });

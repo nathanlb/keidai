@@ -12,6 +12,7 @@ import {
 } from "@keidai/ui";
 import { KeyRound, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Link } from "react-router";
 import type { Bearer, Grant, ManagementAgent } from "../api/fuda-client.js";
 
 export interface AgentAccessPanelProps {
@@ -155,7 +156,10 @@ export function AgentAccessPanel({
                 {grantedBearers.map((bearer) => (
                   <TableRow key={bearer.bearerId}>
                     <TableCell className="py-3 pl-[18px]">
-                      <div className="flex items-center gap-2.5">
+                      <Link
+                        to={`/bearers/${encodeURIComponent(bearer.bearerId)}`}
+                        className="flex items-center gap-2.5 hover:opacity-90"
+                      >
                         <span className="flex size-[26px] shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
                           <KeyRound className="size-3.5" aria-hidden />
                         </span>
@@ -167,7 +171,7 @@ export function AgentAccessPanel({
                             {bearer.bearerId}
                           </div>
                         </div>
-                      </div>
+                      </Link>
                     </TableCell>
                     <TableCell className="py-3 font-mono text-[12.5px] text-muted-foreground">
                       —

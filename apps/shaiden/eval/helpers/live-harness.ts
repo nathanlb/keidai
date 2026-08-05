@@ -3,7 +3,7 @@ import type { Task, TerminationOutcome } from "@keidai/shared";
 import type { RuntimeConfig } from "../../src/config/runtime-config.js";
 import { startHarnessRun } from "../../src/run/harness.js";
 import { createEvalPersistence } from "../../src/testing/persistence.js";
-import { EVAL_AGENT_ID, EVAL_BEARER } from "./torii-eval-stack.js";
+import { EVAL_BEARER } from "./torii-eval-stack.js";
 import type { EvalToriiStack } from "./torii-eval-stack.js";
 
 function requiredEnv(name: string): string {
@@ -18,7 +18,6 @@ function requiredEnv(name: string): string {
 
 export function loadLiveEvalConfig(stack: EvalToriiStack): RuntimeConfig {
   return {
-    agentId: process.env.SHAIDEN_AGENT_ID?.trim() ?? EVAL_AGENT_ID,
     toriiMcpUrl: stack.mcpUrl,
     bearerToken: process.env.SHAIDEN_BEARER?.trim() ?? EVAL_BEARER,
     openRouterApiKey: requiredEnv("OPEN_ROUTER_API_KEY"),

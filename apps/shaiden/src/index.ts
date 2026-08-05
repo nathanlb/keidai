@@ -29,7 +29,6 @@ async function main(): Promise<void> {
     runStore,
     taskRepository,
     logger: defaultLogger,
-    agentId: config.agentId,
     runtimeConfig: config,
     fudaClient,
     activeRunRegistry,
@@ -59,7 +58,6 @@ async function main(): Promise<void> {
   });
   defaultLogger.info("boot.http_listening", {
     baseUrl: http.baseUrl,
-    agentId: config.agentId,
   });
 
   try {

@@ -23,7 +23,6 @@ const shaidenDisplayUrl =
 export interface ShaidenHealthResponse {
   ok: boolean;
   version: string;
-  agentId: string;
 }
 
 function shaidenApiPath(path: string): string {

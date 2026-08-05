@@ -45,6 +45,15 @@ export interface Grant {
   agentId: string;
 }
 
+export interface CreateBearerRequest {
+  bearerId: string;
+  displayName: string;
+}
+
+export interface UpdateBearerRequest {
+  displayName: string;
+}
+
 export interface CreateAgentRequest {
   slug: string;
   name: string;
@@ -179,6 +188,45 @@ export async function checkSlugAvailability(
 
 export async function fetchBearers(): Promise<{ bearers: Bearer[] }> {
   return fetchJson(fudaApiPath("/api/bearers"));
+}
+
+export async function fetchBearer(
+  bearerId: string,
+): Promise<{ bearer: Bearer; grants: Grant[] }> {
+  return fetchJson(
+    fudaApiPath(`/api/bearers/${encodeURIComponent(bearerId)}`),
+  );
+}
+
+export async function createBearer(
+  bearer: CreateBearerRequest,
+): Promise<{ bearer: Bearer }> {
+  return fetchJsonWithBody(fudaApiPath("/api/bearers"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(bearer),
+  });
+}
+
+export async function updateBearer(
+  bearerId: string,
+  update: UpdateBearerRequest,
+): Promise<{ bearer: Bearer }> {
+  return fetchJsonWithBody(
+    fudaApiPath(`/api/bearers/${encodeURIComponent(bearerId)}`),
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(update),
+    },
+  );
+}
+
+export async function deleteBearer(bearerId: string): Promise<void> {
+  return sendNoContent(
+    fudaApiPath(`/api/bearers/${encodeURIComponent(bearerId)}`),
+    { method: "DELETE" },
+  );
 }
 
 export async function fetchAgentGrants(

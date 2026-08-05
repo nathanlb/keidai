@@ -25,7 +25,6 @@ const sampleTask: Task = {
 };
 
 const testRuntimeConfig: RuntimeConfig = {
-  agentId: "shaiden-newsletter-01",
   toriiMcpUrl: "http://127.0.0.1:3100/mcp",
   bearerToken: "test-bearer",
   openRouterApiKey: "test-openrouter",
@@ -40,7 +39,6 @@ async function createServer(persistence: TestPersistence) {
     runStore: persistence.runStore,
     taskRepository: persistence.taskRepository,
     logger: silentLogger,
-    agentId: testRuntimeConfig.agentId,
     runtimeConfig: testRuntimeConfig,
     activeRunRegistry,
     startTaskRun: async ({ task, taskId }) => {

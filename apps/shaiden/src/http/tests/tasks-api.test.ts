@@ -32,7 +32,6 @@ const sampleTask: Task = {
 };
 
 const testRuntimeConfig: RuntimeConfig = {
-  agentId: "shaiden-newsletter-01",
   toriiMcpUrl: "http://127.0.0.1:3100/mcp",
   bearerToken: "test-bearer",
   openRouterApiKey: "test-openrouter",
@@ -61,7 +60,6 @@ function createTestServer({
     runStore,
     taskRepository,
     logger: silentLogger,
-    agentId: "shaiden-newsletter-01",
     runtimeConfig,
     fudaClient,
     activeRunRegistry,
@@ -261,8 +259,18 @@ describe("tasks API", () => {
     }
   });
 
-  it("rejects assignee mismatch", async () => {
+  it("rejects unknown assignee when Fuda does not know the agent", async () => {
     const { server, persistence } = createTestServer({
+      fudaClient: {
+        exchangeToken: async () => {
+          throw new Error("unused");
+        },
+        getAgentDefinition: async () => {
+          throw new AgentDefinitionError("agent_not_found", "Fuda agent not found", {
+            status: 404,
+          });
+        },
+      },
       startTaskRun: () => {
         throw new Error("should not start");
       },
@@ -277,9 +285,9 @@ describe("tasks API", () => {
           assignee: "other-agent",
         }),
       });
-      assert.equal(response.status, 400);
+      assert.equal(response.status, 422);
       const body = (await response.json()) as { error: string };
-      assert.match(body.error, /assignee must match/);
+      assert.match(body.error, /unknown agent/i);
     } finally {
       await handle.close();
       persistence.close();
@@ -375,7 +383,7 @@ describe("tasks API", () => {
     }
   });
 
-  it("exposes agentId on health and runtime", async () => {
+  it("exposes health and runtime readiness", async () => {
     const { server, persistence } = createTestServer({
       startTaskRun: () => {
         throw new Error("unused");
@@ -388,14 +396,61 @@ describe("tasks API", () => {
       assert.deepEqual(await health.json(), {
         ok: true,
         version: "0.0.0",
-        agentId: "shaiden-newsletter-01",
       });
 
       const runtime = await fetch(`${handle.baseUrl}/api/tasks/runtime`);
       assert.equal(runtime.status, 200);
       assert.deepEqual(await runtime.json(), {
-        agentId: "shaiden-newsletter-01",
+        ready: true,
       });
+    } finally {
+      await handle.close();
+      persistence.close();
+    }
+  });
+
+  it("accepts different assignees when Fuda knows both agents", async () => {
+    const otherTask: Task = {
+      ...sampleTask,
+      assignee: "other-agent-02",
+      goal: "Run as a different agent.",
+    };
+    const { server, launched, persistence } = createTestServer({
+      fudaClient: {
+        exchangeToken: async () => {
+          throw new Error("unused");
+        },
+        getAgentDefinition: async (agentId: string) => ({
+          name: agentId,
+          slug: agentId,
+          persona: `Persona for ${agentId}`,
+          personaVersion: 1,
+        }),
+      },
+    });
+    const handle = await server.start({ host: "127.0.0.1", port: 0 });
+    try {
+      const first = await fetch(`${handle.baseUrl}/api/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sampleTask),
+      });
+      assert.equal(first.status, 201);
+
+      const second = await fetch(`${handle.baseUrl}/api/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(otherTask),
+      });
+      assert.equal(second.status, 201);
+
+      const runResponse = await fetch(`${handle.baseUrl}/api/tasks/run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(otherTask),
+      });
+      assert.equal(runResponse.status, 202);
+      assert.equal(launched.at(-1)?.task.assignee, "other-agent-02");
     } finally {
       await handle.close();
       persistence.close();

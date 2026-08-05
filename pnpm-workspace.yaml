@@ -8,5 +8,5 @@ allowBuilds:
 # agent sandbox blocks during pnpm install (EPERM on .claude paths).
 overrides:
   thread-stream: 4.1.0
-  brace-expansion@1: 1.1.17
+  brace-expansion@1: 1.1.18
   undici: ">=7.24.0"

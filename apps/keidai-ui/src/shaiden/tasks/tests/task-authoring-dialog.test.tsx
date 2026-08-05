@@ -36,7 +36,7 @@ vi.mock("../../api/shaiden-client.js", () => ({
 
 vi.mock("../../hooks/use-fetch-task-runtime.js", () => ({
   useFetchTaskRuntime: () => ({
-    data: { agentId: shaidenAgent.id },
+    data: { ready: true },
     error: undefined,
     isLoading: false,
   }),

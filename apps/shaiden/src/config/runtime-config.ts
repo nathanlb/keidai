@@ -6,12 +6,10 @@ function requiredEnv(name: string): string {
   return value;
 }
 
-const DEFAULT_AGENT_ID = "shaiden-newsletter-01";
 const DEFAULT_MODEL_ID = "google/gemini-2.5-flash";
 const DEFAULT_HTTP_PORT = 3200;
 
 export interface RuntimeConfig {
-  agentId: string;
   toriiMcpUrl: string;
   /**
    * Subject token for Fuda token exchange (static secret in v0). When
@@ -37,7 +35,6 @@ export function loadRuntimeConfig(): RuntimeConfig {
   }
 
   return {
-    agentId: process.env.SHAIDEN_AGENT_ID?.trim() ?? DEFAULT_AGENT_ID,
     toriiMcpUrl:
       process.env.TORII_MCP_URL?.trim() ?? "http://127.0.0.1:3100/mcp",
     bearerToken: requiredEnv("SHAIDEN_BEARER"),
