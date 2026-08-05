@@ -4,7 +4,7 @@ Torii is the MCP gateway component of [Keidai](https://app.notion.com/p/Keidai-A
 
 **Keidai** (境内) is the umbrella; **Torii** (鳥居, the gate) is this service. Torii owns access control and credential lifecycle at the MCP boundary. Agent identity (Fuda/AIdP) and execution (Shaiden/Runtime) live elsewhere in Keidai.
 
-Design docs: [Torii — MCP Gateway](https://app.notion.com/p/Torii-MCP-Gateway-36c07ec181ff813d8f34f9b0e617de34) · [Keidai — Agent Ecosystem](https://app.notion.com/p/Keidai-Agent-Platform-38307ec181ff815b8276d59d005fd612)
+Design docs: [Torii — MCP Gateway](https://app.notion.com/p/38307ec181ff80e49dd8ff384139f8b2) · [Keidai — Agent Ecosystem](https://app.notion.com/p/38307ec181ff815b8276d59d005fd612)
 
 ## Stack
 
@@ -18,14 +18,16 @@ Design docs: [Torii — MCP Gateway](https://app.notion.com/p/Torii-MCP-Gateway-
 ```
 src/
   config/       # boot-time load, env resolution, ToriiConfigService
-  backends/     # backend registry, MCP client connector
+  connections/  # backend registry, connection state, MCP client connector
   catalog/      # fan-out tools/list, namespacing (server.tool)
-  credentials/  # user_oauth / service_key / none credential resolvers
+  credentials/  # user_oauth / service_key / none credential resolvers + OAuth linking
   dispatch/     # route tools/call to the correct backend
-  policy/       # list-level and call-level policy enforcement
-  trace/        # structured CallTrace emission
+  policy/       # group policy enforcement + approval gate, store, and API
+  trace/        # structured CallTrace emission + SQLite trace buffer
   logging/      # structured operational logs (stderr)
-  identity/     # inbound agent identity (k8s SA OIDC in v0)
+  identity/     # inbound agent identity (Fuda JWT, validated offline against JWKS)
+  storage/      # SQLite schema and connection
+  http/         # Fastify server assembly, health, keidai-ui static serving
   mcp/          # inbound gateway MCP server (Fastify + SDK)
   container.ts  # tsyringe registrations
   index.ts      # process entry / boot sequence
@@ -119,7 +121,7 @@ sqlite3 ./data/torii.db \
 
 Browse Torii's tools, resources, and prompts in the browser during development.
 
-**Prerequisite:** Torii must be running (e.g. `pnpm --filter @keidai/torii dev` or `pnpm demo:torii` from the repo root).
+**Prerequisite:** Torii must be running (e.g. `pnpm --filter @keidai/torii dev`, or `docker compose up` from the repo root).
 
 ```bash
 pnpm --filter @keidai/torii dev:inspect
@@ -131,11 +133,16 @@ The Inspector UI opens automatically at `http://localhost:6274` (or prints the U
 
 ## Demo harness
 
-See **[docs/demo.md](../../docs/demo.md)** for the full open-torii demo walkthrough.
+Torii runs alongside Fuda and Shaiden under Docker Compose from the repo root:
 
 ```bash
-pnpm demo:torii   # from repo root
-pnpm demo
+docker compose up --build
+```
+
+Torii reads [`torii.demo.yaml`](torii.demo.yaml) and takes JWKS from Fuda. Seed Fuda before submitting a task:
+
+```bash
+pnpm --filter @keidai/fuda seed -- ./apps/fuda/fuda.seed.example.yaml
 ```
 
 ## Docker

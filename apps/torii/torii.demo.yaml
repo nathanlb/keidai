@@ -8,7 +8,7 @@
 # (default local: http://127.0.0.1:3100/oauth/callback/github, etc.)
 #
 # Agent identity lives in Fuda (see apps/fuda/fuda.seed.example.yaml).
-# See docs/demo.md for the full walkthrough.
+# See the Demo section in the repo root README.md for the full walkthrough.
 
 oauth_providers:
   github:
