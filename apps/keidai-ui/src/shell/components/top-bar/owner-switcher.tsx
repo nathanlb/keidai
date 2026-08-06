@@ -33,20 +33,20 @@ export function OwnerSwitcher() {
           <ChevronsUpDown className="size-3.5 text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[236px]">
+      <DropdownMenuContent align="end" className="min-w-60">
         <DropdownMenuLabel>Acting owner</DropdownMenuLabel>
         <DropdownMenuItem className="gap-2">
           <OwnerAvatar
             initials={owner.initials}
             size="sm"
-            className="size-[22px] text-[10px]"
+            className="size-5.5 text-[10px]"
           />
           {owner.ownerId}
-          <Check className="ml-auto size-[15px] text-success" />
+          <Check className="ml-auto size-3.75 text-success" />
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem disabled className="gap-2">
-          <UserPlus className="size-[15px] text-muted-foreground" />
+          <UserPlus className="size-3.75 text-muted-foreground" />
           Add owner
         </DropdownMenuItem>
         {status === "authenticated" ? (
@@ -60,7 +60,7 @@ export function OwnerSwitcher() {
             <form method="post" action="/auth/logout">
               <DropdownMenuItem asChild className="gap-2">
                 <button type="submit">
-                  <LogOut className="size-[15px] text-muted-foreground" />
+                  <LogOut className="size-3.75 text-muted-foreground" />
                   Sign out
                 </button>
               </DropdownMenuItem>
