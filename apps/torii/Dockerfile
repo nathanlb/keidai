@@ -8,16 +8,10 @@ WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json turbo.json torii.example.yaml ./
 COPY packages/shared packages/shared
-COPY packages/ui packages/ui
 COPY apps/torii apps/torii
-COPY apps/keidai-ui apps/keidai-ui
 
 RUN pnpm install --frozen-lockfile
-
-# UI is served from Torii; run reads go to Shaiden (browser-reachable URL).
-ENV VITE_SHAIDEN_URL=http://127.0.0.1:3200
 RUN pnpm --filter @keidai/shared build
-RUN pnpm --filter @keidai/keidai-ui build
 RUN pnpm --filter @keidai/torii build
 RUN pnpm --filter @keidai/torii deploy --prod --legacy /out \
   && rm -rf /out/node_modules/@keidai/shared \
@@ -36,14 +30,12 @@ RUN addgroup -g 1001 torii \
 ENV NODE_ENV=production \
     TORII_HOST=0.0.0.0 \
     TORII_PORT=3100 \
-    TORII_UI_CLIENT_ROOT=/app/ui \
     TORII_CONFIG_PATH=/app/torii.yaml \
     TORII_DB_PATH=/app/data/torii.db
 
 COPY --from=build --chown=torii:torii /out/dist ./dist
 COPY --from=build --chown=torii:torii /out/node_modules ./node_modules
 COPY --from=build --chown=torii:torii /out/package.json ./package.json
-COPY --from=build --chown=torii:torii /app/apps/keidai-ui/dist/client /app/ui
 COPY --from=build --chown=torii:torii /app/torii.example.yaml /app/torii.yaml
 
 USER torii

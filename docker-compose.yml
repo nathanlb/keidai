@@ -21,8 +21,6 @@ services:
     volumes:
       - ./apps/fuda/keys:/app/keys:ro
       - fuda-data:/app/data
-    ports:
-      - "3300:3300"
     healthcheck:
       test:
         [
@@ -54,8 +52,6 @@ services:
     volumes:
       - ./apps/torii/torii.demo.yaml:/app/torii.demo.yaml:ro
       - torii-data:/app/data
-    ports:
-      - "3100:3100"
     healthcheck:
       test:
         [
@@ -90,8 +86,38 @@ services:
       SHAIDEN_DB_PATH: /app/data/shaiden.db
     volumes:
       - shaiden-data:/app/data
+
+  keidai-ui:
+    build:
+      context: .
+      dockerfile: apps/keidai-ui/Dockerfile
+    depends_on:
+      fuda:
+        condition: service_healthy
+      torii:
+        condition: service_healthy
+      shaiden:
+        condition: service_started
+    environment:
+      KEIDAI_UI_HOST: 0.0.0.0
+      KEIDAI_UI_PORT: "3000"
+      KEIDAI_UI_TORII_URL: http://torii:3100
+      KEIDAI_UI_FUDA_URL: http://fuda:3300
+      KEIDAI_UI_SHAIDEN_URL: http://shaiden:3200
     ports:
-      - "3200:3200"
+      - "3000:3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:' + (process.env.KEIDAI_UI_PORT || 3000) + '/').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
 
 volumes:
   fuda-data:

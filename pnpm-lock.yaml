@@ -56,6 +56,9 @@ importers:
 
   apps/keidai-ui:
     dependencies:
+      '@fastify/http-proxy':
+        specifier: ^11.6.0
+        version: 11.6.0
       '@fastify/static':
         specifier: ^10.1.2
         version: 10.1.2
@@ -190,9 +193,6 @@ importers:
 
   apps/torii:
     dependencies:
-      '@fastify/static':
-        specifier: ^10.1.2
-        version: 10.1.2
       '@keidai/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -692,11 +692,17 @@ packages:
   '@fastify/forwarded@3.0.2':
     resolution: {integrity: sha512-NE8HgKLgYejV9lDpqkEFaDKMLYelJBVfHekhB0UKvX0ghagXRJqg68feg8er1NPXxG4N9i6vPxzt8E+3wHfcmA==}
 
+  '@fastify/http-proxy@11.6.0':
+    resolution: {integrity: sha512-S5Ntqs2Elurxik+OmTUUHEAxYMHTef6UexPfPj9QqOT3S6MnJuZREGUWRxkxRTHFEO7hBTtyAbzKO36NO7L5FQ==}
+
   '@fastify/merge-json-schemas@0.2.1':
     resolution: {integrity: sha512-OA3KGBCy6KtIvLf8DINC5880o5iBlDX4SxzLQS8HorJAbqluzLRn80UXU0bxZn7UOFhFgpRJDasfwn9nG4FG4A==}
 
   '@fastify/proxy-addr@5.1.0':
     resolution: {integrity: sha512-INS+6gh91cLUjB+PVHfu1UqcB76Sqtpyp7bnL+FYojhjygvOPA9ctiD/JDKsyD9Xgu4hUhCSJBPig/w7duNajw==}
+
+  '@fastify/reply-from@12.6.4':
+    resolution: {integrity: sha512-WpHqGNRKzEraRQwBFK64g2HijN0ZuDuiiwWg06r5LY0lv1iu0qYg1BfVM0iYcCMiovrM8kKXsKm5GDH9JH9aPA==}
 
   '@fastify/send@4.1.0':
     resolution: {integrity: sha512-TMYeQLCBSy2TOFmV95hQWkiTYgC/SEx7vMdV+wnZVX4tt8VBLKzmH8vV9OzJehV0+XBfg+WxPMt5wp+JBUKsVw==}
@@ -2185,6 +2191,9 @@ packages:
     resolution: {integrity: sha512-Q0n9HRi4m6JuGIV1eFlmvJB7ZEVxu93IrMyiMsGC0lrMJMWzRgx6WGquyfQgZVb31vhGgXnfmPNNXmxnOkRBrg==}
     engines: {node: '>= 0.8'}
 
+  end-of-stream@1.4.5:
+    resolution: {integrity: sha512-ooEGc6HP26xXq/N+GCGOT0JKCLDGrq2bQUZrQ7gyrJiZANJ/8YDTxTpQBXGMn+WbIQXNVpyWymm7KYVICQnyOg==}
+
   enhanced-resolve@5.24.5:
     resolution: {integrity: sha512-L1l8TNvomm6UVW5B253AGxQagSQr+vGwhMlrrfRS2qmhx46AMpMVJKQYLvWYbysTMY8VoicOvzHzoHMbyzB+4A==}
     engines: {node: '>=10.13.0'}
@@ -2248,6 +2257,9 @@ packages:
   express@5.2.1:
     resolution: {integrity: sha512-hIS4idWWai69NezIdRt2xFVofaF4j+6INOpJlVOLDO8zXGpUVEVzIYk12UUi2JzjEzWL3IOAxcTubgz9Po0yXw==}
     engines: {node: '>= 18'}
+
+  fast-content-type-parse@3.0.0:
+    resolution: {integrity: sha512-ZvLdcY8P+N8mGQJahJV5G4U88CSvT1rP8ApL6uETe88MBXrBHAkZlSEySdUlyztF7ccb+Znos3TFqaepHxdhBg==}
 
   fast-decode-uri-component@1.0.1:
     resolution: {integrity: sha512-WKgKWg5eUxvRZGwW8FvfbaH7AXSh2cL+3j5fMGzUMCxWBJ3dV3a7Wz8y2f/uQ0e3B6WmodD3oS54jTQ9HVTIIg==}
@@ -3792,6 +3804,16 @@ snapshots:
 
   '@fastify/forwarded@3.0.2': {}
 
+  '@fastify/http-proxy@11.6.0':
+    dependencies:
+      '@fastify/reply-from': 12.6.4
+      fast-querystring: 1.1.2
+      fastify-plugin: 6.0.0
+      ws: 8.21.1
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
   '@fastify/merge-json-schemas@0.2.1':
     dependencies:
       dequal: 2.0.3
@@ -3800,6 +3822,16 @@ snapshots:
     dependencies:
       '@fastify/forwarded': 3.0.2
       ipaddr.js: 2.4.0
+
+  '@fastify/reply-from@12.6.4':
+    dependencies:
+      '@fastify/error': 4.2.0
+      end-of-stream: 1.4.5
+      fast-content-type-parse: 3.0.0
+      fast-querystring: 1.1.2
+      fastify-plugin: 6.0.0
+      toad-cache: 3.7.4
+      undici: 7.29.0
 
   '@fastify/send@4.1.0':
     dependencies:
@@ -5542,6 +5574,10 @@ snapshots:
 
   encodeurl@2.0.0: {}
 
+  end-of-stream@1.4.5:
+    dependencies:
+      once: 1.4.0
+
   enhanced-resolve@5.24.5:
     dependencies:
       graceful-fs: 4.2.11
@@ -5646,6 +5682,8 @@ snapshots:
       vary: 1.1.2
     transitivePeerDependencies:
       - supports-color
+
+  fast-content-type-parse@3.0.0: {}
 
   fast-decode-uri-component@1.0.1: {}
 

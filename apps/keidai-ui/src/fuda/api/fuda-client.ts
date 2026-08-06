@@ -1,12 +1,8 @@
 import type { ServiceHealth } from "../../shell/types/service-health.js";
 
-/** Fuda API origin. Empty = same-origin (vite proxy or reverse proxy). */
-const fudaOrigin = (
-  import.meta.env.VITE_FUDA_URL as string | undefined
-)?.replace(/\/$/, "") ?? "";
-
+/** Display-only backend address for the health footer (API calls are same-origin `/api/*`). */
 const fudaDisplayUrl =
-  fudaOrigin || import.meta.env.VITE_FUDA_URL || "http://127.0.0.1:3300";
+  import.meta.env.VITE_FUDA_URL || "http://127.0.0.1:3300";
 
 export interface FudaHealthResponse {
   ok: boolean;
@@ -69,18 +65,6 @@ export interface UpdateAgentRequest {
   persona?: string;
 }
 
-function fudaApiPath(path: string): string {
-  return `${fudaOrigin}${path}`;
-}
-
-function fudaHealthPath(): string {
-  if (fudaOrigin) {
-    return `${fudaOrigin}/api/health`;
-  }
-
-  return "/api/fuda/health";
-}
-
 function parseDisplayAddress(url: string): string {
   try {
     const parsed = new URL(url);
@@ -130,19 +114,19 @@ async function sendNoContent(path: string, init: RequestInit): Promise<void> {
 }
 
 export async function fetchAgents(): Promise<{ agents: ManagementAgent[] }> {
-  return fetchJson(fudaApiPath("/api/agents"));
+  return fetchJson("/api/agents");
 }
 
 export async function fetchAgent(
   agentId: string,
 ): Promise<{ agent: ManagementAgent }> {
-  return fetchJson(fudaApiPath(`/api/agents/${encodeURIComponent(agentId)}`));
+  return fetchJson(`/api/agents/${encodeURIComponent(agentId)}`);
 }
 
 export async function createAgent(
   agent: CreateAgentRequest,
 ): Promise<{ agent: ManagementAgent }> {
-  return fetchJsonWithBody(fudaApiPath("/api/agents"), {
+  return fetchJsonWithBody("/api/agents", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(agent),
@@ -153,55 +137,47 @@ export async function updateAgent(
   agentId: string,
   update: UpdateAgentRequest,
 ): Promise<{ agent: ManagementAgent }> {
-  return fetchJsonWithBody(
-    fudaApiPath(`/api/agents/${encodeURIComponent(agentId)}`),
-    {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(update),
-    },
-  );
+  return fetchJsonWithBody(`/api/agents/${encodeURIComponent(agentId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(update),
+  });
 }
 
 export async function deleteAgent(agentId: string): Promise<void> {
-  return sendNoContent(
-    fudaApiPath(`/api/agents/${encodeURIComponent(agentId)}`),
-    { method: "DELETE" },
-  );
+  return sendNoContent(`/api/agents/${encodeURIComponent(agentId)}`, {
+    method: "DELETE",
+  });
 }
 
 export async function fetchPersonaVersions(
   agentId: string,
 ): Promise<{ personas: PersonaVersion[] }> {
-  return fetchJson(
-    fudaApiPath(`/api/agents/${encodeURIComponent(agentId)}/personas`),
-  );
+  return fetchJson(`/api/agents/${encodeURIComponent(agentId)}/personas`);
 }
 
 export async function checkSlugAvailability(
   slug: string,
 ): Promise<{ available: boolean }> {
   return fetchJson(
-    fudaApiPath(`/api/agents/slugs/${encodeURIComponent(slug)}/availability`),
+    `/api/agents/slugs/${encodeURIComponent(slug)}/availability`,
   );
 }
 
 export async function fetchBearers(): Promise<{ bearers: Bearer[] }> {
-  return fetchJson(fudaApiPath("/api/bearers"));
+  return fetchJson("/api/bearers");
 }
 
 export async function fetchBearer(
   bearerId: string,
 ): Promise<{ bearer: Bearer; grants: Grant[] }> {
-  return fetchJson(
-    fudaApiPath(`/api/bearers/${encodeURIComponent(bearerId)}`),
-  );
+  return fetchJson(`/api/bearers/${encodeURIComponent(bearerId)}`);
 }
 
 export async function createBearer(
   bearer: CreateBearerRequest,
 ): Promise<{ bearer: Bearer }> {
-  return fetchJsonWithBody(fudaApiPath("/api/bearers"), {
+  return fetchJsonWithBody("/api/bearers", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(bearer),
@@ -212,29 +188,23 @@ export async function updateBearer(
   bearerId: string,
   update: UpdateBearerRequest,
 ): Promise<{ bearer: Bearer }> {
-  return fetchJsonWithBody(
-    fudaApiPath(`/api/bearers/${encodeURIComponent(bearerId)}`),
-    {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(update),
-    },
-  );
+  return fetchJsonWithBody(`/api/bearers/${encodeURIComponent(bearerId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(update),
+  });
 }
 
 export async function deleteBearer(bearerId: string): Promise<void> {
-  return sendNoContent(
-    fudaApiPath(`/api/bearers/${encodeURIComponent(bearerId)}`),
-    { method: "DELETE" },
-  );
+  return sendNoContent(`/api/bearers/${encodeURIComponent(bearerId)}`, {
+    method: "DELETE",
+  });
 }
 
 export async function fetchAgentGrants(
   agentId: string,
 ): Promise<{ grants: Grant[] }> {
-  return fetchJson(
-    fudaApiPath(`/api/agents/${encodeURIComponent(agentId)}/grants`),
-  );
+  return fetchJson(`/api/agents/${encodeURIComponent(agentId)}/grants`);
 }
 
 export async function grantBearer(
@@ -242,7 +212,7 @@ export async function grantBearer(
   agentId: string,
 ): Promise<{ grant: Grant }> {
   return fetchJsonWithBody(
-    fudaApiPath(`/api/bearers/${encodeURIComponent(bearerId)}/grants`),
+    `/api/bearers/${encodeURIComponent(bearerId)}/grants`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -256,9 +226,7 @@ export async function revokeBearerGrant(
   agentId: string,
 ): Promise<void> {
   return sendNoContent(
-    fudaApiPath(
-      `/api/bearers/${encodeURIComponent(bearerId)}/grants/${encodeURIComponent(agentId)}`,
-    ),
+    `/api/bearers/${encodeURIComponent(bearerId)}/grants/${encodeURIComponent(agentId)}`,
     { method: "DELETE" },
   );
 }
@@ -267,7 +235,7 @@ export async function fetchFudaHealth(): Promise<ServiceHealth> {
   const displayAddress = getFudaDisplayAddress();
 
   try {
-    const response = await fetch(fudaHealthPath());
+    const response = await fetch("/api/fuda/health");
     if (!response.ok) {
       throw new Error(`Fuda health request failed: ${response.status}`);
     }

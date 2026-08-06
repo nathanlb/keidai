@@ -9,10 +9,10 @@ Keidai is the agent ecosystem monorepo. All four components are built and run to
 
 ## Ecosystem components
 
-- **Torii — MCP Gateway** (`apps/torii`, `:3100`) is the gateway and control plane. One MCP endpoint fronting N backends; resolves credentials per server (`user_oauth` / `service_key` / `none`) so they never reach the agent; enforces group-based tool policy that fails closed on unknown groups; gates selected tools behind human approval (`gated_tools`); emits `CallTrace` records. Also serves keidai-ui when `TORII_UI_CLIENT_ROOT` is set.
+- **Torii — MCP Gateway** (`apps/torii`, `:3100`) is the gateway and control plane. One MCP endpoint fronting N backends; resolves credentials per server (`user_oauth` / `service_key` / `none`) so they never reach the agent; enforces group-based tool policy that fails closed on unknown groups; gates selected tools behind human approval (`gated_tools`); emits `CallTrace` records.
 - **Fuda — Agent Identity Provider (AIdP)** (`apps/fuda`, `:3300`) is a standalone service with its own SQLite registry of agents, bearers, grants, and versioned personas. Exchanges a subject token for a short-lived agent JWT (`POST /token`) and publishes JWKS. Torii validates those JWTs offline and calls Fuda for nothing else.
 - **Shaiden — Agent Runtime** (`apps/shaiden`, `:3200`) drives tasks to a typed termination outcome via a thin model/tool loop over Torii's MCP session, persists tasks and runs in SQLite, and parks a run while it waits on an approval decision.
-- **keidai-ui** (`apps/keidai-ui`) is the React + Vite operator frontend, with one module per service.
+- **keidai-ui** (`apps/keidai-ui`, `:3000`) is the React + Vite operator frontend and BFF: serves the SPA and reverse-proxies `/api/*` to Torii/Fuda/Shaiden. In Docker Compose it is the sole published operator entry.
 
 Naming and boundary details that are easy to get wrong:
 

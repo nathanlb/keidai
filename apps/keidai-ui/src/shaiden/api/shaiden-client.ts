@@ -12,29 +12,13 @@ import type {
   UpdateTaskRequest,
 } from "@keidai/shared";
 
-/** Shaiden API origin. Empty = same-origin (vite proxy or reverse proxy). */
-const shaidenOrigin = (
-  import.meta.env.VITE_SHAIDEN_URL as string | undefined
-)?.replace(/\/$/, "") ?? "";
-
+/** Display-only backend address for the health footer (API calls are same-origin `/api/*`). */
 const shaidenDisplayUrl =
-  shaidenOrigin || import.meta.env.VITE_SHAIDEN_URL || "http://127.0.0.1:3200";
+  import.meta.env.VITE_SHAIDEN_URL || "http://127.0.0.1:3200";
 
 export interface ShaidenHealthResponse {
   ok: boolean;
   version: string;
-}
-
-function shaidenApiPath(path: string): string {
-  return `${shaidenOrigin}${path}`;
-}
-
-function shaidenHealthPath(): string {
-  if (shaidenOrigin) {
-    return `${shaidenOrigin}/api/health`;
-  }
-
-  return "/api/shaiden/health";
 }
 
 function parseDisplayAddress(url: string): string {
@@ -81,14 +65,12 @@ export async function fetchRuns(
   }
   const serialized = params.toString();
   return fetchJson<RunsResponse>(
-    shaidenApiPath(`/api/runs${serialized ? `?${serialized}` : ""}`),
+    `/api/runs${serialized ? `?${serialized}` : ""}`,
   );
 }
 
 export async function fetchRun(runId: string): Promise<RunReport> {
-  return fetchJson<RunReport>(
-    shaidenApiPath(`/api/runs/${encodeURIComponent(runId)}`),
-  );
+  return fetchJson<RunReport>(`/api/runs/${encodeURIComponent(runId)}`);
 }
 
 export async function sendRunFollowUp(
@@ -96,7 +78,7 @@ export async function sendRunFollowUp(
   message: string,
 ): Promise<{ runId: string }> {
   return fetchJsonWithBody<{ runId: string }>(
-    shaidenApiPath(`/api/runs/${encodeURIComponent(runId)}/follow-up`),
+    `/api/runs/${encodeURIComponent(runId)}/follow-up`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -106,11 +88,11 @@ export async function sendRunFollowUp(
 }
 
 export function getRunsEventsUrl(): string {
-  return shaidenApiPath("/api/runs/events");
+  return "/api/runs/events";
 }
 
 export async function fetchTaskRuntime(): Promise<TaskRuntimeResponse> {
-  return fetchJson<TaskRuntimeResponse>(shaidenApiPath("/api/tasks/runtime"));
+  return fetchJson<TaskRuntimeResponse>("/api/tasks/runtime");
 }
 
 export async function fetchTasks(
@@ -122,20 +104,20 @@ export async function fetchTasks(
   }
   const serialized = params.toString();
   return fetchJson<TasksResponse>(
-    shaidenApiPath(`/api/tasks${serialized ? `?${serialized}` : ""}`),
+    `/api/tasks${serialized ? `?${serialized}` : ""}`,
   );
 }
 
 export async function fetchTask(taskId: string): Promise<TaskResponse> {
   return fetchJson<TaskResponse>(
-    shaidenApiPath(`/api/tasks/${encodeURIComponent(taskId)}`),
+    `/api/tasks/${encodeURIComponent(taskId)}`,
   );
 }
 
 export async function createTask(
   task: CreateTaskRequest,
 ): Promise<TaskResponse> {
-  return fetchJsonWithBody<TaskResponse>(shaidenApiPath("/api/tasks"), {
+  return fetchJsonWithBody<TaskResponse>("/api/tasks", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(task),
@@ -147,7 +129,7 @@ export async function updateTask(
   task: UpdateTaskRequest,
 ): Promise<TaskResponse> {
   return fetchJsonWithBody<TaskResponse>(
-    shaidenApiPath(`/api/tasks/${encodeURIComponent(taskId)}`),
+    `/api/tasks/${encodeURIComponent(taskId)}`,
     {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -158,7 +140,7 @@ export async function updateTask(
 
 export async function archiveTask(taskId: string): Promise<void> {
   const response = await fetch(
-    shaidenApiPath(`/api/tasks/${encodeURIComponent(taskId)}`),
+    `/api/tasks/${encodeURIComponent(taskId)}`,
     { method: "DELETE" },
   );
   if (!response.ok) {
@@ -173,7 +155,7 @@ export async function runSavedTask(
   taskId: string,
 ): Promise<StartTaskRunResponse> {
   const response = await fetch(
-    shaidenApiPath(`/api/tasks/${encodeURIComponent(taskId)}/run`),
+    `/api/tasks/${encodeURIComponent(taskId)}/run`,
     { method: "POST" },
   );
 
@@ -190,7 +172,7 @@ export async function runSavedTask(
 export async function startTaskRun(
   task: StartTaskRunRequest,
 ): Promise<StartTaskRunResponse> {
-  const response = await fetch(shaidenApiPath("/api/tasks/run"), {
+  const response = await fetch("/api/tasks/run", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(task),
@@ -210,7 +192,7 @@ export async function fetchShaidenHealth(): Promise<ServiceHealth> {
   const displayAddress = getShaidenDisplayAddress();
 
   try {
-    const response = await fetch(shaidenHealthPath());
+    const response = await fetch("/api/shaiden/health");
     if (!response.ok) {
       throw new Error(`Shaiden health request failed: ${response.status}`);
     }

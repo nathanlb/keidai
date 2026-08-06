@@ -14,7 +14,6 @@ import type {
 } from "./types/gateway-http-server.js";
 import { registerGatewayRoutes } from "./utils/register-gateway-routes.js";
 import { readPackageVersion } from "./utils/read-package-version.js";
-import { registerUiStatic } from "./utils/register-ui-static.js";
 
 const requestStartTime = Symbol("requestStartTime");
 
@@ -77,11 +76,6 @@ export class GatewayHttpServer {
       approvalsApi: this.approvalsApi,
       mcpServer: this.mcpServer,
     });
-
-    const uiClientRoot = process.env.TORII_UI_CLIENT_ROOT;
-    if (uiClientRoot) {
-      await registerUiStatic(app, uiClientRoot);
-    }
 
     return app;
   }
