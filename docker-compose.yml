@@ -100,20 +100,13 @@ services:
         condition: service_started
     env_file:
       - .env
+      - apps/keidai-ui/.env
     environment:
       KEIDAI_UI_HOST: 0.0.0.0
       KEIDAI_UI_PORT: "3000"
       KEIDAI_UI_TORII_URL: http://torii:3100
       KEIDAI_UI_FUDA_URL: http://fuda:3300
       KEIDAI_UI_SHAIDEN_URL: http://shaiden:3200
-      KEIDAI_GOOGLE_CLIENT_ID: ${KEIDAI_GOOGLE_CLIENT_ID}
-      KEIDAI_GOOGLE_CLIENT_SECRET: ${KEIDAI_GOOGLE_CLIENT_SECRET}
-      KEIDAI_GOOGLE_REDIRECT_URI: ${KEIDAI_GOOGLE_REDIRECT_URI:-http://127.0.0.1:3000/auth/callback}
-      KEIDAI_SESSION_SECRET: ${KEIDAI_SESSION_SECRET}
-      KEIDAI_OWNER_ID: ${KEIDAI_OWNER_ID:-nathanlb}
-      KEIDAI_OPERATOR_GOOGLE_SUBS: ${KEIDAI_OPERATOR_GOOGLE_SUBS:-}
-      KEIDAI_OPERATOR_GOOGLE_EMAILS: ${KEIDAI_OPERATOR_GOOGLE_EMAILS:-}
-      KEIDAI_COOKIE_SECURE: ${KEIDAI_COOKIE_SECURE:-false}
     ports:
       - "3000:3000"
     healthcheck:

@@ -1,3 +1,7 @@
+import { loadEnvForPackage } from "@keidai/shared/load-env";
+
+loadEnvForPackage(import.meta.url);
+
 import { createServer } from "./create-server.js";
 import { OperatorAuthConfigError } from "./auth/config.js";
 
