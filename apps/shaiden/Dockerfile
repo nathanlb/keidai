@@ -13,7 +13,10 @@ COPY apps/shaiden apps/shaiden
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @keidai/shared build
 RUN pnpm --filter @keidai/shaiden build
-RUN pnpm --filter @keidai/shaiden deploy --prod --legacy /out
+RUN pnpm --filter @keidai/shaiden deploy --prod --legacy /out \
+  && rm -rf /out/node_modules/@keidai/shared \
+  && pnpm --filter @keidai/shared deploy --prod --legacy /out/node_modules/@keidai/shared \
+  && rm -rf /out/node_modules/@keidai/shared/src /out/node_modules/@keidai/shared/.turbo /out/node_modules/@keidai/shared/tsconfig.json
 
 FROM node:24-alpine AS runtime
 

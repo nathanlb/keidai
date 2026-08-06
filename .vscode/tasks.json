@@ -1,0 +1,116 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "services:dev (fuda)",
+      "type": "shell",
+      "command": "pnpm fuda:dev",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "services"
+      },
+      "problemMatcher": {
+        "owner": "fuda",
+        "pattern": {
+          "regexp": "."
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "boot\\.listening"
+        }
+      }
+    },
+    {
+      "label": "services:dev (torii)",
+      "type": "shell",
+      "command": "pnpm torii:dev",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "services"
+      },
+      "problemMatcher": {
+        "owner": "torii",
+        "pattern": {
+          "regexp": "."
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "boot\\.listening"
+        }
+      }
+    },
+    {
+      "label": "services:dev (shaiden)",
+      "type": "shell",
+      "command": "pnpm shaiden:dev",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "services"
+      },
+      "problemMatcher": {
+        "owner": "shaiden",
+        "pattern": {
+          "regexp": "."
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "boot\\.http_listening"
+        }
+      }
+    },
+    {
+      "label": "services:dev (keidai-ui)",
+      "type": "shell",
+      "command": "pnpm ui:dev",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "services"
+      },
+      "problemMatcher": {
+        "owner": "keidai-ui",
+        "pattern": {
+          "regexp": "."
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "Local:\\s+http"
+        }
+      }
+    },
+    {
+      "label": "services:dev",
+      "dependsOn": [
+        "services:dev (fuda)",
+        "services:dev (torii)",
+        "services:dev (shaiden)",
+        "services:dev (keidai-ui)"
+      ],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    }
+  ]
+}

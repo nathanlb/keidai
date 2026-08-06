@@ -16,9 +16,13 @@ RUN pnpm install --frozen-lockfile
 
 # UI is served from Torii; run reads go to Shaiden (browser-reachable URL).
 ENV VITE_SHAIDEN_URL=http://127.0.0.1:3200
+RUN pnpm --filter @keidai/shared build
 RUN pnpm --filter @keidai/keidai-ui build
 RUN pnpm --filter @keidai/torii build
-RUN pnpm --filter @keidai/torii deploy --prod --legacy /out
+RUN pnpm --filter @keidai/torii deploy --prod --legacy /out \
+  && rm -rf /out/node_modules/@keidai/shared \
+  && pnpm --filter @keidai/shared deploy --prod --legacy /out/node_modules/@keidai/shared \
+  && rm -rf /out/node_modules/@keidai/shared/src /out/node_modules/@keidai/shared/.turbo /out/node_modules/@keidai/shared/tsconfig.json
 
 FROM node:24-alpine AS runtime
 

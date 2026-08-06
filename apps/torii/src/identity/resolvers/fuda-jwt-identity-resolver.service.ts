@@ -3,7 +3,7 @@ import * as jose from "jose";
 import { inject, injectable } from "tsyringe";
 import type { FudaJwtConfig } from "../types/fuda-jwt-config.js";
 import { IdentityResolutionError } from "../types/identity-resolution-error.js";
-import { FUDA_JWT_CONFIG } from "../types/tokens.js";
+import { FUDA_JWT_CONFIG, JWT_VERIFY_KEY } from "../types/tokens.js";
 import {
   createResilientRemoteJWKSet,
   type JwtVerifyKey,
@@ -21,6 +21,7 @@ export class FudaJwtIdentityResolver implements AgentIdentityResolver {
   constructor(
     @inject(FUDA_JWT_CONFIG)
     private readonly config: FudaJwtConfig,
+    @inject(JWT_VERIFY_KEY, { isOptional: true })
     verifyKey?: JwtVerifyKey,
   ) {
     this.verifyKey =

@@ -8,6 +8,7 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "services:dev": "turbo run dev --filter=@keidai/fuda --filter=@keidai/torii --filter=@keidai/shaiden --filter=@keidai/keidai-ui",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
