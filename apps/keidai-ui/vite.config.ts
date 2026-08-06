@@ -1,12 +1,54 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import {
+  OPERATOR_API_ROUTES,
+  isOperatorApiSsePath,
+  rewriteOperatorApiPath,
+  type OperatorApiBackend,
+} from "@keidai/shared";
+import { defineConfig, type ProxyOptions } from "vite";
 
-const toriiUrl =
-  process.env.VITE_TORII_URL ?? "http://127.0.0.1:3100";
-const shaidenUrl =
-  process.env.VITE_SHAIDEN_URL ?? "http://127.0.0.1:3200";
-const fudaUrl = process.env.VITE_FUDA_URL ?? "http://127.0.0.1:3300";
+function backendUrl(backend: OperatorApiBackend): string {
+  switch (backend) {
+    case "torii":
+      return process.env.VITE_TORII_URL ?? "http://127.0.0.1:3100";
+    case "shaiden":
+      return process.env.VITE_SHAIDEN_URL ?? "http://127.0.0.1:3200";
+    case "fuda":
+      return process.env.VITE_FUDA_URL ?? "http://127.0.0.1:3300";
+  }
+}
+
+function buildDevProxy(): Record<string, ProxyOptions> {
+  const proxy: Record<string, ProxyOptions> = {};
+
+  for (const route of OPERATOR_API_ROUTES) {
+    proxy[route.prefix] = {
+      target: backendUrl(route.backend),
+      changeOrigin: true,
+      ...(route.pathRewrite
+        ? {
+            rewrite: (path) => rewriteOperatorApiPath(path, route),
+          }
+        : {}),
+      configure: (proxyServer) => {
+        proxyServer.on("proxyRes", (proxyRes, req) => {
+          const url = req.url ?? "";
+          if (!isOperatorApiSsePath(url)) {
+            return;
+          }
+          // Keep SSE chunks unbuffered through the Vite proxy.
+          proxyRes.headers["cache-control"] = "no-cache, no-transform";
+          proxyRes.headers["x-accel-buffering"] = "no";
+          delete proxyRes.headers["content-length"];
+          delete proxyRes.headers["content-encoding"];
+        });
+      },
+    };
+  }
+
+  return proxy;
+}
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -14,53 +56,7 @@ export default defineConfig({
     host: "127.0.0.1",
     port: 3000,
     strictPort: true,
-    proxy: {
-      // Shaiden owns task runs + run visibility; Torii owns the rest of /api.
-      "/api/shaiden/health": {
-        target: shaidenUrl,
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/shaiden/, "/api"),
-      },
-      "/api/tasks": {
-        target: shaidenUrl,
-        changeOrigin: true,
-      },
-      "/api/runs": {
-        target: shaidenUrl,
-        changeOrigin: true,
-        configure: (proxy) => {
-          proxy.on("proxyRes", (proxyRes, req) => {
-            const url = req.url ?? "";
-            if (!url.includes("/events")) {
-              return;
-            }
-            // Keep SSE chunks unbuffered through the Vite proxy.
-            proxyRes.headers["cache-control"] = "no-cache, no-transform";
-            proxyRes.headers["x-accel-buffering"] = "no";
-            delete proxyRes.headers["content-length"];
-            delete proxyRes.headers["content-encoding"];
-          });
-        },
-      },
-      // Fuda owns agent identity + bearer/grant management.
-      "/api/fuda/health": {
-        target: fudaUrl,
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/fuda/, "/api"),
-      },
-      "/api/agents": {
-        target: fudaUrl,
-        changeOrigin: true,
-      },
-      "/api/bearers": {
-        target: fudaUrl,
-        changeOrigin: true,
-      },
-      "/api": {
-        target: toriiUrl,
-        changeOrigin: true,
-      },
-    },
+    proxy: buildDevProxy(),
   },
   build: {
     outDir: "dist/client",

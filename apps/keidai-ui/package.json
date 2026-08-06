@@ -21,6 +21,7 @@
     "lint": "pnpm typecheck"
   },
   "dependencies": {
+    "@fastify/http-proxy": "^11.6.0",
     "@fastify/static": "^10.1.2",
     "@hookform/resolvers": "^5.6.0",
     "@keidai/shared": "workspace:*",
