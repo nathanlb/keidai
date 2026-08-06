@@ -10,6 +10,9 @@ import { existsSync } from "node:fs";
 import type { IncomingHttpHeaders } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveOperatorAuthConfigFromEnv } from "./auth/config.js";
+import { registerOperatorAuth } from "./auth/register-auth.js";
+import type { OperatorAuthConfig } from "./auth/types.js";
 
 const serverDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -32,6 +35,11 @@ export interface RegisterUiStaticOptions {
 export interface CreateServerOptions extends RegisterUiStaticOptions {
   /** Upstream origins for `/api/*` reverse proxy. */
   backends?: Partial<OperatorApiBackends>;
+  /**
+   * Operator Google OIDC auth. Pass `false` to disable (tests / explicit opt-out).
+   * When omitted, config is resolved from environment variables.
+   */
+  auth?: OperatorAuthConfig | false;
 }
 
 const DEFAULT_BACKENDS: OperatorApiBackends = {
@@ -126,14 +134,24 @@ export async function registerUiStatic(
 }
 
 /**
- * Builds the keidai-ui BFF: reverse-proxies `/api/*` to Torii/Fuda/Shaiden,
- * then serves the production SPA.
+ * Builds the keidai-ui BFF: operator auth, reverse-proxies `/api/*` to
+ * Torii/Fuda/Shaiden, then serves the production SPA.
  */
 export async function createServer(
   options: CreateServerOptions = {},
 ): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
   const backends = resolveBackends(options.backends);
+
+  const authConfig =
+    options.auth === false
+      ? null
+      : (options.auth ?? resolveOperatorAuthConfigFromEnv());
+
+  if (authConfig) {
+    await registerOperatorAuth(app, authConfig);
+  }
+
   await registerApiProxy(app, backends);
   await registerUiStatic(app, options);
   return app;

@@ -112,6 +112,15 @@ export async function mockToriiConfig(
   const bearerState: Bearer[] = fudaBearers.map((bearer) => ({ ...bearer }));
   const grantState: Grant[] = fudaGrants.map((grant) => ({ ...grant }));
 
+  // Vite has no BFF session endpoint; 404 keeps OperatorAuthGate open for e2e.
+  await page.route("**/api/session", async (route) => {
+    await route.fulfill({
+      status: 404,
+      contentType: "application/json",
+      body: JSON.stringify({ error: "Not Found" }),
+    });
+  });
+
   await page.route("**/api/health", async (route) => {
     if (!healthy) {
       await route.fulfill({ status: 503, body: "Gateway unavailable" });

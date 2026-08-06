@@ -98,6 +98,9 @@ services:
         condition: service_healthy
       shaiden:
         condition: service_started
+    env_file:
+      - .env
+      - apps/keidai-ui/.env
     environment:
       KEIDAI_UI_HOST: 0.0.0.0
       KEIDAI_UI_PORT: "3000"

@@ -84,6 +84,7 @@ describe("createServer", () => {
     shaidenPort = shaidenAddress.port;
 
     app = await createServer({
+      auth: false,
       backends: {
         torii: `http://127.0.0.1:${toriiPort}`,
         fuda: `http://127.0.0.1:${fudaPort}`,
