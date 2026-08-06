@@ -7,12 +7,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@keidai/ui";
-import { Check, ChevronsUpDown, UserPlus } from "lucide-react";
+import { Check, ChevronsUpDown, LogOut, UserPlus } from "lucide-react";
 import { useActingOwner } from "../../hooks/use-acting-owner.js";
+import { useOperatorSession } from "../../hooks/use-operator-session.js";
 import { OwnerAvatar } from "../owner-avatar/owner-avatar.js";
 
 export function OwnerSwitcher() {
   const { owner } = useActingOwner();
+  const { status, principal } = useOperatorSession();
 
   return (
     <DropdownMenu>
@@ -47,10 +49,29 @@ export function OwnerSwitcher() {
           <UserPlus className="size-[15px] text-muted-foreground" />
           Add owner
         </DropdownMenuItem>
-        <div className="px-2 pt-1.5 pb-0.5 text-[11px] leading-snug text-muted-foreground">
-          Single owner in v0. Connect an IdP to manage multiple owners — each
-          agent stays bound to one owner (strict ownership).
-        </div>
+        {status === "authenticated" ? (
+          <>
+            <DropdownMenuSeparator />
+            {principal?.email ? (
+              <div className="px-2 py-1.5 text-[11px] text-muted-foreground">
+                Signed in as {principal.email}
+              </div>
+            ) : null}
+            <form method="post" action="/auth/logout">
+              <DropdownMenuItem asChild className="gap-2">
+                <button type="submit">
+                  <LogOut className="size-[15px] text-muted-foreground" />
+                  Sign out
+                </button>
+              </DropdownMenuItem>
+            </form>
+          </>
+        ) : (
+          <div className="px-2 pt-1.5 pb-0.5 text-[11px] leading-snug text-muted-foreground">
+            Single owner in v0. Connect an IdP to manage multiple owners — each
+            agent stays bound to one owner (strict ownership).
+          </div>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

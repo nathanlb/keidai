@@ -1,6 +1,7 @@
 import { useLocation } from "react-router";
 import { AppShell } from "./app-shell.js";
 import { AppProvider } from "./context/app-provider.js";
+import { OperatorAuthGate } from "./components/operator-auth-gate.js";
 import { PlatformSidebarNav } from "./components/sidebar/platform-sidebar-nav.js";
 import { resolveAppNav, resolveAppSection } from "./resolve-app-nav.js";
 import { isFudaManagedRoute } from "../fuda/navigation.js";
@@ -34,30 +35,32 @@ export function KeidaiLayout() {
 
   return (
     <AppProvider>
-      <OAuthLinkProvider>
-        <AppShell
-          breadcrumb={
-            onFudaManagedRoute && current
-              ? { section: "Fuda", page: current.label }
-              : current
-                ? buildBreadcrumb(section, current)
-                : { section, page: section }
-          }
-          pageHeader={
-            onFudaManagedRoute || !current
-              ? undefined
-              : {
-                  title: current.title,
-                  description: current.description,
-                  configChip: section === "Torii" ? "torii.yaml" : undefined,
-                  showRefresh:
-                    "showRefresh" in current ? current.showRefresh : undefined,
-                }
-          }
-          sidebarNav={<PlatformSidebarNav />}
-          sidebarSubtitle="Agent ecosystem"
-        />
-      </OAuthLinkProvider>
+      <OperatorAuthGate>
+        <OAuthLinkProvider>
+          <AppShell
+            breadcrumb={
+              onFudaManagedRoute && current
+                ? { section: "Fuda", page: current.label }
+                : current
+                  ? buildBreadcrumb(section, current)
+                  : { section, page: section }
+            }
+            pageHeader={
+              onFudaManagedRoute || !current
+                ? undefined
+                : {
+                    title: current.title,
+                    description: current.description,
+                    configChip: section === "Torii" ? "torii.yaml" : undefined,
+                    showRefresh:
+                      "showRefresh" in current ? current.showRefresh : undefined,
+                  }
+            }
+            sidebarNav={<PlatformSidebarNav />}
+            sidebarSubtitle="Agent ecosystem"
+          />
+        </OAuthLinkProvider>
+      </OperatorAuthGate>
     </AppProvider>
   );
 }
