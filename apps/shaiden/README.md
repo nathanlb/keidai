@@ -20,7 +20,7 @@ Working steps continue implicitly when the model calls Torii tools. `report_step
 
 | Call | Credential |
 |------|------------|
-| Shaiden → Fuda (`POST /token`) | Subject token (`SHAIDEN_BEARER`; static in v0) |
+| Shaiden → Fuda (`POST /token`) | Subject token (`SHAIDEN_BEARER` locally, or projected SA file via `SHAIDEN_SUBJECT_TOKEN_FILE` in-cluster) |
 | Shaiden → Torii (tools/list, tools/call) | Fuda-minted agent JWT (`aud=torii`, ~5 min TTL) |
 
 Tokens are minted when the harness needs Torii credentials and reminted when near expiry or on resume from `waiting_approval`, so a long-parked task picks up revoked grants and group changes. Fuda unreachable at first mint fails the run clearly; mid-run Fuda outages keep a still-valid cached JWT.
@@ -106,7 +106,8 @@ Starts **Fuda** (identity / token exchange on `:3300`), **Torii** (`torii.demo.y
 
 | Variable | Description |
 |----------|-------------|
-| `SHAIDEN_BEARER` | Subject token for Fuda token exchange (static shared secret in v0) |
+| `SHAIDEN_BEARER` | Subject token for Fuda token exchange (static shared secret; local/compose) |
+| `SHAIDEN_SUBJECT_TOKEN_FILE` | Path to projected SA token file (cluster). Exactly one of bearer or file |
 | `FUDA_URL` | Fuda base URL for `POST /token` (e.g. `http://127.0.0.1:3300`) |
 | `TORII_MCP_URL` | Torii MCP endpoint (default: `http://127.0.0.1:3100/mcp`) |
 | `OPEN_ROUTER_API_KEY` | OpenRouter API key for the task-loop model |

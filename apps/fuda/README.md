@@ -139,7 +139,8 @@ both static and k8s is ambiguous and also fails. Required when
 `FUDA_LISTEN_GROUPS` includes `agent`.
 
 The k8s SA OIDC validator is **unit-tested** against a mocked JWKS (optional
-`verifyKey` inject). Cluster integration coverage is pending.
+`verifyKey` inject). For cluster deploy (projected SA tokens + kind), see
+[`deploy/k8s/README.md`](../../deploy/k8s/README.md).
 
 ## Signing keys and JWKS
 

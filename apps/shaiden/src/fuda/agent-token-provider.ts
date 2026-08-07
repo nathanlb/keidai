@@ -17,7 +17,11 @@ export interface AgentTokenProvider {
 
 export interface CreateAgentTokenProviderInput {
   fuda: FudaClient;
-  subjectToken: string;
+  /**
+   * Subject token for each mint/remint. Prefer a function that re-reads a
+   * projected SA token file so rotation does not leave a stale string cached.
+   */
+  getSubjectToken: () => string | Promise<string>;
   agentId: string;
   refreshSkewMs?: number;
   now?: () => number;
@@ -59,8 +63,9 @@ export function createAgentTokenProvider(
       }
 
       try {
+        const subjectToken = await input.getSubjectToken();
         const minted = await input.fuda.exchangeToken({
-          subjectToken: input.subjectToken,
+          subjectToken,
           agentId: input.agentId,
         });
         cached = {

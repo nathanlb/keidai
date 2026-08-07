@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fuda
+  namespace: keidai
+  labels:
+    app: fuda
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: fuda
+  template:
+    metadata:
+      labels:
+        app: fuda
+    spec:
+      serviceAccountName: fuda
+      securityContext:
+        fsGroup: 1001
+      initContainers:
+        - name: seed
+          image: keidai-fuda:latest
+          imagePullPolicy: IfNotPresent
+          command: ["node", "dist/seed/cli.js", "/app/seed/fuda.seed.k8s.yaml"]
+          envFrom:
+            - configMapRef:
+                name: fuda-config
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+      containers:
+        - name: fuda
+          image: keidai-fuda:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3300
+              name: http
+          envFrom:
+            - configMapRef:
+                name: fuda-config
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: signing-key
+              mountPath: /app/keys
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: fuda-data
+        - name: signing-key
+          secret:
+            secretName: fuda-signing
+            items:
+              - key: dev.pem
+                path: dev.pem
+                mode: 0400
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fuda
+  namespace: keidai
+spec:
+  type: ClusterIP
+  selector:
+    app: fuda
+  ports:
+    - name: http
+      port: 3300
+      targetPort: http

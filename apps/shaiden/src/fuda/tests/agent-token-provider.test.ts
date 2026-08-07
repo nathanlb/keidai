@@ -38,7 +38,7 @@ describe("createAgentTokenProvider", () => {
     ]);
     const provider = createAgentTokenProvider({
       fuda,
-      subjectToken: "subject",
+      getSubjectToken: () => "subject",
       agentId: "agent-1",
       refreshSkewMs: 30_000,
       now: () => clock,
@@ -53,6 +53,45 @@ describe("createAgentTokenProvider", () => {
     assert.equal(fuda.calls, 2);
   });
 
+  it("re-reads getSubjectToken on every mint", async () => {
+    const seen: string[] = [];
+    let tokenIndex = 0;
+    const subjects = ["subject-a", "subject-b"];
+    const fuda: FudaClient = {
+      async exchangeToken(input) {
+        seen.push(input.subjectToken);
+        tokenIndex += 1;
+        return {
+          accessToken: `jwt-${tokenIndex}`,
+          tokenType: "Bearer",
+          expiresIn: 300,
+        };
+      },
+      async getAgentDefinition() {
+        throw new Error("unused");
+      },
+    };
+    let subjectIdx = 0;
+    const provider = createAgentTokenProvider({
+      fuda,
+      getSubjectToken: () => subjects[subjectIdx++] ?? "done",
+      agentId: "agent-1",
+      refreshSkewMs: 30_000,
+      now: (() => {
+        let clock = 0;
+        return () => {
+          const at = clock;
+          clock += 270_000;
+          return at;
+        };
+      })(),
+    });
+
+    assert.equal(await provider.ensureToken(), "jwt-1");
+    assert.equal(await provider.ensureToken(), "jwt-2");
+    assert.deepEqual(seen, ["subject-a", "subject-b"]);
+  });
+
   it("force remints even when the cached token is still fresh", async () => {
     const fuda = scriptedFuda([
       { accessToken: "jwt-1", tokenType: "Bearer", expiresIn: 300 },
@@ -60,7 +99,7 @@ describe("createAgentTokenProvider", () => {
     ]);
     const provider = createAgentTokenProvider({
       fuda,
-      subjectToken: "subject",
+      getSubjectToken: () => "subject",
       agentId: "agent-1",
     });
 
@@ -89,7 +128,7 @@ describe("createAgentTokenProvider", () => {
     };
     const provider = createAgentTokenProvider({
       fuda,
-      subjectToken: "subject",
+      getSubjectToken: () => "subject",
       agentId: "agent-1",
       refreshSkewMs: 30_000,
       now: () => clock,
@@ -113,7 +152,7 @@ describe("createAgentTokenProvider", () => {
     };
     const provider = createAgentTokenProvider({
       fuda,
-      subjectToken: "subject",
+      getSubjectToken: () => "subject",
       agentId: "agent-1",
     });
 
@@ -160,7 +199,7 @@ describe("createAgentTokenProvider", () => {
     };
     const provider = createAgentTokenProvider({
       fuda: seeded,
-      subjectToken: "subject",
+      getSubjectToken: () => "subject",
       agentId: "agent-1",
     });
 

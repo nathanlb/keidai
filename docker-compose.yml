@@ -1,5 +1,6 @@
 services:
   fuda:
+    image: keidai-fuda:latest
     build:
       context: .
       dockerfile: apps/fuda/Dockerfile
@@ -35,6 +36,7 @@ services:
       start_period: 15s
 
   torii:
+    image: keidai-torii:latest
     build:
       context: .
       dockerfile: apps/torii/Dockerfile
@@ -66,6 +68,7 @@ services:
       start_period: 15s
 
   shaiden:
+    image: keidai-shaiden:latest
     build:
       context: .
       dockerfile: apps/shaiden/Dockerfile
@@ -88,6 +91,7 @@ services:
       - shaiden-data:/app/data
 
   keidai-ui:
+    image: keidai-keidai-ui:latest
     build:
       context: .
       dockerfile: apps/keidai-ui/Dockerfile

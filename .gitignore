@@ -6,7 +6,9 @@ dist/
 .env
 .env.*
 !.env.example
+deploy/k8s/secrets.env
 torii.yaml
+!deploy/k8s/base/torii.yaml
 data/
 apps/fuda/keys/
 .designs/

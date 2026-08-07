@@ -36,6 +36,7 @@ ENV NODE_ENV=production \
 COPY --from=build --chown=fuda:fuda /out/dist ./dist
 COPY --from=build --chown=fuda:fuda /out/node_modules ./node_modules
 COPY --from=build --chown=fuda:fuda /out/package.json ./package.json
+COPY --chown=fuda:fuda apps/fuda/fuda.seed.k8s.example.yaml /app/seed/fuda.seed.k8s.yaml
 
 USER fuda
 

@@ -12,7 +12,8 @@ export type JwtVerifyKey = jose.JWTVerifyGetKey;
  * SA subject to an internal `bearer_id` via validator-private config.
  *
  * Optional `verifyKey` injects a JWKS/key lookup for unit tests (same seam
- * as Torii's `K8sSaOidcIdentityResolver`). Cluster integration is pending.
+ * as Torii's former `K8sSaOidcIdentityResolver`). See `deploy/k8s/` for
+ * cluster wiring (projected SA tokens + kind).
  */
 export class K8sSaOidcSubjectValidator implements SubjectTokenValidator {
   private readonly verifyKey: JwtVerifyKey;

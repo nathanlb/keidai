@@ -5,14 +5,14 @@ alwaysApply: true
 
 # Keidai project context
 
-Keidai is the agent ecosystem monorepo. All four components are built and run together under Docker Compose; there is no Kubernetes deployment.
+Keidai is the agent ecosystem monorepo. Day-to-day local dev uses Docker Compose. In-cluster bring-up (projected k8s SA subject tokens, BFF-only edge) lives under `deploy/k8s/` (kind default; OrbStack overlay) — see `deploy/k8s/README.md`.
 
 ## Ecosystem components
 
 - **Torii — MCP Gateway** (`apps/torii`, `:3100`) is the gateway and control plane. One MCP endpoint fronting N backends; resolves credentials per server (`user_oauth` / `service_key` / `none`) so they never reach the agent; enforces group-based tool policy that fails closed on unknown groups; gates selected tools behind human approval (`gated_tools`); emits `CallTrace` records.
 - **Fuda — Agent Identity Provider (AIdP)** (`apps/fuda`, `:3300`) is a standalone service with its own SQLite registry of agents, bearers, grants, and versioned personas. Exchanges a subject token for a short-lived agent JWT (`POST /token`) and publishes JWKS. Torii validates those JWTs offline and calls Fuda for nothing else.
 - **Shaiden — Agent Runtime** (`apps/shaiden`, `:3200`) drives tasks to a typed termination outcome via a thin model/tool loop over Torii's MCP session, persists tasks and runs in SQLite, and parks a run while it waits on an approval decision.
-- **keidai-ui** (`apps/keidai-ui`, `:3000`) is the React + Vite operator frontend and BFF: serves the SPA and reverse-proxies `/api/*` to Torii/Fuda/Shaiden. In Docker Compose it is the sole published operator entry.
+- **keidai-ui** (`apps/keidai-ui`, `:3000`) is the React + Vite operator frontend and BFF: serves the SPA and reverse-proxies `/api/*` (and Torii `/oauth/callback/*`) to Torii/Fuda/Shaiden. Compose and kind both publish only the BFF as the operator edge.
 
 Naming and boundary details that are easy to get wrong:
 
@@ -20,7 +20,7 @@ Naming and boundary details that are easy to get wrong:
 - Policy is authored as top-level `groups[]` in `torii.yaml`, **not** per-server `policy` blocks. Per-server allow-lists are derived for the UI only.
 - Torii has exactly **one** identity resolver, `FudaJwtIdentityResolver`, permanently. Platform swappability lives in Fuda's `SubjectTokenValidator`.
 - **Torii owns the approval gate and ledger**; Shaiden only parks and resumes.
-- v0 attestation is a static shared secret. Nothing is actually attested.
+- Compose/local attestation uses a static shared secret (`SHAIDEN_BEARER` / `FUDA_STATIC_SUBJECT_MAPPINGS`). In-cluster, Shaiden presents a projected SA token (`SHAIDEN_SUBJECT_TOKEN_FILE`) and Fuda validates via `FUDA_K8S_SA_OIDC_*`.
 
 ## Implementation tasks (Linear)
 

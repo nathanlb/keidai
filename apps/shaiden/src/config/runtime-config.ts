@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 function requiredEnv(name: string): string {
   const value = process.env[name]?.trim();
   if (!value) {
@@ -12,10 +14,12 @@ const DEFAULT_HTTP_PORT = 3200;
 export interface RuntimeConfig {
   toriiMcpUrl: string;
   /**
-   * Subject token for Fuda token exchange (static secret in v0). When
-   * `fudaBaseUrl` is unset (eval/tests), this value is presented to Torii directly.
+   * Subject token for Fuda token exchange. Re-read on every mint when backed
+   * by `SHAIDEN_SUBJECT_TOKEN_FILE` (projected SA tokens rotate). When
+   * `fudaBaseUrl` is unset (eval/tests), the value is presented to Torii
+   * directly.
    */
-  bearerToken: string;
+  getSubjectToken: () => string;
   /**
    * Fuda base URL for `POST /token`. Required via `loadRuntimeConfig` /
    * `FUDA_URL`; optional on the type so evals can omit minting.
@@ -25,6 +29,42 @@ export interface RuntimeConfig {
   modelId: string;
   httpHost: string;
   httpPort: number;
+}
+
+/**
+ * Exactly one of `SHAIDEN_BEARER` or `SHAIDEN_SUBJECT_TOKEN_FILE` must be set.
+ * File mode re-reads the path on each call so projected SA tokens stay fresh.
+ */
+export function resolveSubjectTokenReader(
+  env: NodeJS.ProcessEnv = process.env,
+): () => string {
+  const bearer = env.SHAIDEN_BEARER?.trim() ?? "";
+  const tokenFile = env.SHAIDEN_SUBJECT_TOKEN_FILE?.trim() ?? "";
+
+  if (bearer && tokenFile) {
+    throw new Error(
+      "Set exactly one of SHAIDEN_BEARER or SHAIDEN_SUBJECT_TOKEN_FILE, not both",
+    );
+  }
+  if (!bearer && !tokenFile) {
+    throw new Error(
+      "Missing subject token: set SHAIDEN_BEARER or SHAIDEN_SUBJECT_TOKEN_FILE",
+    );
+  }
+
+  if (tokenFile) {
+    return () => {
+      const value = readFileSync(tokenFile, "utf8").trim();
+      if (!value) {
+        throw new Error(
+          `Subject token file is empty: ${tokenFile}`,
+        );
+      }
+      return value;
+    };
+  }
+
+  return () => bearer;
 }
 
 export function loadRuntimeConfig(): RuntimeConfig {
@@ -37,7 +77,7 @@ export function loadRuntimeConfig(): RuntimeConfig {
   return {
     toriiMcpUrl:
       process.env.TORII_MCP_URL?.trim() ?? "http://127.0.0.1:3100/mcp",
-    bearerToken: requiredEnv("SHAIDEN_BEARER"),
+    getSubjectToken: resolveSubjectTokenReader(),
     fudaBaseUrl: requiredEnv("FUDA_URL"),
     openRouterApiKey: requiredEnv("OPEN_ROUTER_API_KEY"),
     modelId: process.env.SHAIDEN_MODEL_ID?.trim() ?? DEFAULT_MODEL_ID,

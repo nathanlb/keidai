@@ -64,13 +64,13 @@ function createToriiCredential(
   if (!fudaClient) {
     // Eval / test path: Torii accepts a fixed principal without Fuda minting.
     return {
-      ensureToken: async () => config.bearerToken,
+      ensureToken: async () => config.getSubjectToken(),
     };
   }
 
   const provider = createAgentTokenProvider({
     fuda: fudaClient,
-    subjectToken: config.bearerToken,
+    getSubjectToken: config.getSubjectToken,
     agentId,
   });
   return {

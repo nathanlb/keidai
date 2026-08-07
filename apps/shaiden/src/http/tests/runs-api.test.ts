@@ -26,7 +26,7 @@ const sampleTask: Task = {
 
 const testRuntimeConfig: RuntimeConfig = {
   toriiMcpUrl: "http://127.0.0.1:3100/mcp",
-  bearerToken: "test-bearer",
+  getSubjectToken: () => "test-bearer",
   openRouterApiKey: "test-openrouter",
   modelId: "google/gemini-2.5-flash",
   httpHost: "127.0.0.1",

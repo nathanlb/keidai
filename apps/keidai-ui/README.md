@@ -69,26 +69,19 @@ manage.
 
 **Production** (`pnpm start` → `dist/server/index.js`):
 
-`server/create-server.ts` exposes `registerUiStatic(app, { clientRoot })`, a
-Fastify plugin that serves `dist/client` and falls back to `index.html` for
-extensionless `GET` routes so React Router routes survive a refresh.
-`server/index.ts` is a thin standalone preview server that registers it.
+`server/create-server.ts` is the BFF: operator Google OIDC, reverse-proxies
+`/api/*` (and Torii `/oauth/callback/*`) to Fuda/Torii/Shaiden, then serves
+`dist/client` with SPA fallback. Client API calls are same-origin `/api/...`.
 
 ```
-dev   Browser → Vite (:3000) ── /api/tasks,/api/runs,/api/shaiden/health ──▶ shaiden (:3200)
-                         └── /api/* ──▶ gateway (:3100)
-prod  Browser → Torii static UI; run fetches → Shaiden (`VITE_SHAIDEN_URL`)
+dev   Browser → Vite (:3000) ── /api/*, /oauth/callback/* ──▶ backends
+prod  Browser → keidai-ui BFF (:3000) ── same routes ──▶ backends (ClusterIP in k8s)
 ```
+
+In-cluster deploy: see [`deploy/k8s/README.md`](../../deploy/k8s/README.md).
 
 ### Torii integration (v0)
 
-When Torii serves the UI, it registers the same plugin on its own Fastify
-instance next to `registerGatewayRoutes(app, controllers)`:
-
-```ts
-await registerUiStatic(app, { clientRoot: "<keidai-ui>/dist/client" });
-```
-
-One origin then serves `/mcp`, `/api/*`, and the SPA. At that point
-`registerUiStatic` moves into a shared server package so `apps/torii` imports
-it directly rather than reaching across apps. No dev-only proxy code is involved.
+When Torii still serves a baked UI via `TORII_UI_CLIENT_ROOT`, that path is
+legacy. Prefer the keidai-ui BFF as the public edge (compose and kind both
+publish only `:3000`).

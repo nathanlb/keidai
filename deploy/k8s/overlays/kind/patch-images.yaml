@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fuda
+  namespace: keidai
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: seed
+          imagePullPolicy: Never
+      containers:
+        - name: fuda
+          imagePullPolicy: Never
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: torii
+  namespace: keidai
+spec:
+  template:
+    spec:
+      containers:
+        - name: torii
+          imagePullPolicy: Never
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shaiden
+  namespace: keidai
+spec:
+  template:
+    spec:
+      containers:
+        - name: shaiden
+          imagePullPolicy: Never
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keidai-ui
+  namespace: keidai
+spec:
+  template:
+    spec:
+      containers:
+        - name: keidai-ui
+          imagePullPolicy: Never

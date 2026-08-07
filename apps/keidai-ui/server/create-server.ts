@@ -134,8 +134,8 @@ export async function registerUiStatic(
 }
 
 /**
- * Builds the keidai-ui BFF: operator auth, reverse-proxies `/api/*` to
- * Torii/Fuda/Shaiden, then serves the production SPA.
+ * Builds the keidai-ui BFF: operator auth, reverse-proxies `/api/*` and
+ * Torii `/oauth/callback/*`, then serves the production SPA.
  */
 export async function createServer(
   options: CreateServerOptions = {},

@@ -17,9 +17,10 @@ function requiredEnv(name: string): string {
 }
 
 export function loadLiveEvalConfig(stack: EvalToriiStack): RuntimeConfig {
+  const bearer = process.env.SHAIDEN_BEARER?.trim() ?? EVAL_BEARER;
   return {
     toriiMcpUrl: stack.mcpUrl,
-    bearerToken: process.env.SHAIDEN_BEARER?.trim() ?? EVAL_BEARER,
+    getSubjectToken: () => bearer,
     openRouterApiKey: requiredEnv("OPEN_ROUTER_API_KEY"),
     modelId: process.env.SHAIDEN_MODEL_ID?.trim() ?? "google/gemini-2.5-flash",
     httpHost: "127.0.0.1",
