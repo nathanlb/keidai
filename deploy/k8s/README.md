@@ -17,7 +17,7 @@ Browser → keidai-ui:3000 (SPA, /auth/*, /api/*, /oauth/callback/*)
 |------|------|
 | [`base/`](base/) | Portable manifests (Deployments, Services, PVCs, SA projection, seed init) |
 | [`overlays/kind/`](overlays/kind/) | kind: `imagePullPolicy: Never`, BFF `hostPort`, cluster config |
-| [`overlays/orbstack/`](overlays/orbstack/) | OrbStack: BFF `LoadBalancer`, shared local Docker images |
+| [`overlays/orbstack/`](overlays/orbstack/) | OrbStack: BFF `LoadBalancer`, hostPath SQLite → `apps/*/data` |
 
 GKE (and other cloud) overlays are intentionally separate and not included yet.
 
@@ -57,6 +57,28 @@ Tear down:
 pnpm k8s:down          # or: pnpm k8s:down:orbstack
 KEIDAI_DELETE_CLUSTER=1 pnpm k8s:down   # also delete the kind cluster
 ```
+
+## OrbStack persistence
+
+The orbstack overlay mounts SQLite via **hostPath** to the same dirs native
+local runs use (visible inside OrbStack at the same absolute path):
+
+```text
+apps/fuda/data
+apps/torii/data
+apps/shaiden/data
+```
+
+`pnpm k8s:up:orbstack` ensures those dirs exist and generates
+`overlays/orbstack/patch-hostpath-volumes.yaml` from the `.tmpl`. Data survives
+disabling Kubernetes in OrbStack and is **not** removed by `k8s:down`. Delete
+the `*.db` files under those dirs to reset.
+
+Compose still uses named Docker volumes (`fuda-data`, etc.), so it does not
+share these host files unless you change the compose binds.
+
+Base / kind still use cluster `local-path` PVCs (wiped if the kind node is
+deleted).
 
 ## What `k8s:up` does
 

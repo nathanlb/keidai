@@ -51,6 +51,34 @@ ensure_orbstack_cluster() {
   fi
 }
 
+# Materialize hostPath patches onto apps/*/data (same dirs as native local runs).
+# Mac home paths are visible inside OrbStack at the same absolute path.
+prepare_orbstack_hostpath() {
+  local fuda_data="${ROOT}/apps/fuda/data"
+  local torii_data="${ROOT}/apps/torii/data"
+  local shaiden_data="${ROOT}/apps/shaiden/data"
+  local tmpl="${OVERLAY_DIR}/patch-hostpath-volumes.yaml.tmpl"
+  local out="${OVERLAY_DIR}/patch-hostpath-volumes.yaml"
+
+  [[ -f "${tmpl}" ]] || die "missing ${tmpl}"
+
+  log "preparing hostPath data dirs (apps/{fuda,torii,shaiden}/data)"
+  mkdir -p "${fuda_data}" "${torii_data}" "${shaiden_data}"
+  # Pods run as uid 1001; keep local dirs writable across Mac↔VM ownership.
+  chmod 777 "${fuda_data}" "${torii_data}" "${shaiden_data}"
+
+  local esc_fuda esc_torii esc_shaiden
+  esc_fuda="$(printf '%s' "${fuda_data}" | sed -e 's/[&\\]/\\&/g')"
+  esc_torii="$(printf '%s' "${torii_data}" | sed -e 's/[&\\]/\\&/g')"
+  esc_shaiden="$(printf '%s' "${shaiden_data}" | sed -e 's/[&\\]/\\&/g')"
+  sed \
+    -e "s|__KEIDAI_FUDA_DATA__|${esc_fuda}|g" \
+    -e "s|__KEIDAI_TORII_DATA__|${esc_torii}|g" \
+    -e "s|__KEIDAI_SHAIDEN_DATA__|${esc_shaiden}|g" \
+    "${tmpl}" >"${out}"
+  log "wrote ${out}"
+}
+
 build_images() {
   log "building images (docker compose)"
   (
@@ -187,13 +215,20 @@ wait_ready() {
 }
 
 print_checklist() {
+  local data_note=""
+  if [[ "${OVERLAY}" == "orbstack" ]]; then
+    data_note="
+  SQLite hostPath: apps/{fuda,torii,shaiden}/data (shared with native local runs)
+  (survives OrbStack Kubernetes disable; not deleted by k8s:down)
+"
+  fi
   cat <<EOF
 
 Keidai is up (overlay: ${OVERLAY}).
 
   UI / BFF:  ${PUBLIC_URL}
   Login:     ${PUBLIC_URL}/auth/login
-
+${data_note}
 Smoke checklist:
   1. Only the BFF is on the host. Fuda/Torii/Shaiden stay ClusterIP.
   2. Google operator login → SPA loads; /api/agents and /api/config work same-origin.
@@ -224,6 +259,7 @@ main() {
       ;;
     orbstack)
       ensure_orbstack_cluster
+      prepare_orbstack_hostpath
       build_images
       log "OrbStack shares the local Docker store — skipping image load"
       ;;

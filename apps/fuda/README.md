@@ -133,6 +133,7 @@ validator (k8s SA OIDC, SPIFFE) an addition rather than a refactor.
 |----------|-------|
 | `FUDA_STATIC_SUBJECT_MAPPINGS` | `credential=bearer_id` list for local/pre-cluster use |
 | `FUDA_K8S_SA_OIDC_ISSUER` / `_AUDIENCE` / `_JWKS_URI` / `_SUBJECT_MAPPINGS` | Set all four together. Audience should be `fuda` (projected volume `aud`). Mappings: `namespace/serviceAccount=bearer_id,...` |
+| `FUDA_K8S_SA_OIDC_JWKS_BEARER_TOKEN_FILE` | Optional. Defaults to the in-cluster SA token path. Required in practice on clusters that disable anonymous JWKS access (e.g. OrbStack). |
 
 Exactly one config group may be set. Partial k8s env fails at boot; setting
 both static and k8s is ambiguous and also fails. Required when
@@ -177,5 +178,6 @@ Automated rotation scheduling is out of scope for v0.
 | `FUDA_K8S_SA_OIDC_AUDIENCE` | — | Expected JWT audience (deploy projected volume with `aud=fuda`) |
 | `FUDA_K8S_SA_OIDC_JWKS_URI` | — | Cluster JWKS endpoint |
 | `FUDA_K8S_SA_OIDC_SUBJECT_MAPPINGS` | — | `namespace/serviceAccount=bearer_id` list (validator-private) |
+| `FUDA_K8S_SA_OIDC_JWKS_BEARER_TOKEN_FILE` | in-cluster SA token | Optional. Bearer used when fetching JWKS (many clusters reject anonymous JWKS with 401) |
 
 Invalid config fails fast at boot.

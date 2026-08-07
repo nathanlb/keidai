@@ -1,0 +1,21 @@
+# Drop base PVCs — OrbStack uses hostPath volumes instead (see patch-hostpath-volumes).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fuda-data
+  namespace: keidai
+$patch: delete
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: torii-data
+  namespace: keidai
+$patch: delete
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: shaiden-data
+  namespace: keidai
+$patch: delete
