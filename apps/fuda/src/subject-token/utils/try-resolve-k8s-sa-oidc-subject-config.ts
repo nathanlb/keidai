@@ -39,5 +39,16 @@ export function tryResolveK8sSaOidcSubjectConfig(
     );
   }
 
-  return { issuer, audience, jwksUri, mappings };
+  const jwksBearerTokenFile = readEnv(
+    env,
+    "FUDA_K8S_SA_OIDC_JWKS_BEARER_TOKEN_FILE",
+  );
+
+  return {
+    issuer,
+    audience,
+    jwksUri,
+    mappings,
+    ...(jwksBearerTokenFile ? { jwksBearerTokenFile } : {}),
+  };
 }

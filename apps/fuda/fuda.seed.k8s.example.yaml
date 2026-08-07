@@ -1,0 +1,34 @@
+# Fuda seed for in-cluster deploy (projected SA → bearer mapping).
+#
+# Mapping `keidai/shaiden=shaiden-runner` lives in FUDA_K8S_SA_OIDC_SUBJECT_MAPPINGS
+# (validator-private). Native SA subjects are never stored here.
+#
+# Apply via Fuda init container:
+#   node dist/seed/cli.js /app/seed/fuda.seed.k8s.yaml
+
+agents:
+  - agent_id: demo-agent-01
+    slug: demo-agent
+    name: Demo agent
+    owner_id: demo-owner
+    groups: [agents]
+    persona: |
+      You are the demo agent for local Keidai walks.
+
+  - agent_id: shaiden-newsletter-01
+    slug: shaiden-newsletter
+    name: Shaiden newsletter
+    owner_id: demo-owner
+    groups: [agents]
+    persona: |
+      You draft a short weekly newsletter from linked tools.
+
+bearers:
+  - bearer_id: shaiden-runner
+    display_name: Shaiden runner (k8s SA)
+
+grants:
+  - bearer_id: shaiden-runner
+    agent_id: demo-agent-01
+  - bearer_id: shaiden-runner
+    agent_id: shaiden-newsletter-01

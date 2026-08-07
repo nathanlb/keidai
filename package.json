@@ -21,7 +21,13 @@
     "ui:dev": "pnpm --filter @keidai/keidai-ui dev",
     "docker:build": "docker compose build",
     "docker:up": "docker compose up",
-    "docker:down": "docker compose down"
+    "docker:down": "docker compose down",
+    "k8s:up": "bash deploy/k8s/up.sh kind",
+    "k8s:up:kind": "bash deploy/k8s/up.sh kind",
+    "k8s:up:orbstack": "bash deploy/k8s/up.sh orbstack",
+    "k8s:down": "bash deploy/k8s/down.sh kind",
+    "k8s:down:kind": "bash deploy/k8s/down.sh kind",
+    "k8s:down:orbstack": "bash deploy/k8s/down.sh orbstack"
   },
   "devDependencies": {
     "turbo": "^2.10.8",

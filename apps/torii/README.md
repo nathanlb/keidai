@@ -72,15 +72,15 @@ pnpm --filter @keidai/torii start
 | `TORII_CONFIG_PATH` | `./torii.yaml` | Gateway config file |
 | `TORII_PORT` | `3100` (falls back to `PORT`) | HTTP listen port |
 | `TORII_HOST` | `127.0.0.1` | HTTP bind address |
-| `TORII_UI_CLIENT_ROOT` | — | Path to built keidai-ui client (`dist/client`); when set, Torii serves the UI on the same origin as `/api` and `/mcp` |
+| `TORII_UI_CLIENT_ROOT` | — | Legacy: path to built keidai-ui client (`dist/client`). Prefer the keidai-ui BFF as the public edge; leave unset in compose/k8s |
 | `TORII_DB_PATH` | `./data/torii.db` | SQLite path for gateway persistent storage (OAuth tokens, provider clients, call traces) |
-| `TORII_GATEWAY_BASE_URL` | — | Stable public base URL for OAuth callbacks (overrides per-request Host derivation) |
+| `TORII_GATEWAY_BASE_URL` | — | Stable **public** base URL for OAuth callbacks (overrides per-request Host derivation). With the BFF edge, set this to the BFF origin (e.g. `http://localhost:3000`), not Torii's ClusterIP/`localhost:3100` |
 | `TORII_FUDA_ISSUER` | — | Expected `iss` on Fuda-minted agent JWTs (required) |
 | `TORII_FUDA_JWKS_URI` | — | Fuda JWKS URL, e.g. `http://127.0.0.1:3300/.well-known/jwks.json` (required) |
 
 See `torii.example.yaml` at the repo root for server list, group definitions, OAuth providers, and agent registration shapes. Demo config: [`torii.demo.yaml`](torii.demo.yaml) in this package.
 
-Optional `gateway_base_url` in torii.yaml (or `TORII_GATEWAY_BASE_URL`) sets the stable public URL used to derive OAuth callback URIs: `{base}/oauth/callback/{provider}`.
+Optional `gateway_base_url` in torii.yaml (or `TORII_GATEWAY_BASE_URL`) sets the stable public URL used to derive OAuth callback URIs: `{base}/oauth/callback/{provider}`. Compose and kind both publish only keidai-ui (`:3000`); backends stay internal and the BFF reverse-proxies `/oauth/callback/*` to Torii.
 
 ## Agent identity
 
@@ -100,13 +100,34 @@ Traces are retained in SQLite (most recent 200 by default). Payloads include cre
 
 Link an owner's OAuth token before `user_oauth` backends can resolve credentials:
 
-1. Start the gateway and keidai-ui (`pnpm --filter @keidai/keidai-ui dev`)
-2. Open the **OAuth providers** screen
+1. Start the stack with the BFF as the browser origin (`docker compose up`, `pnpm k8s:up`, or Torii + `pnpm --filter @keidai/keidai-ui dev`)
+2. Open the UI at [http://localhost:3000](http://localhost:3000) → **OAuth providers**
 3. Select the owner and click **Link account** for each provider
 
-The gateway derives the callback URL as `{gateway_base}/oauth/callback/{provider}` (default local: `http://127.0.0.1:3100/oauth/callback/github`). For **static** providers (GitHub, Google), register that exact callback URL in the provider's developer console. **Dynamic** providers (Notion MCP) register automatically on first link.
+Torii derives the callback URL as `{gateway_base}/oauth/callback/{provider}`. Set `TORII_GATEWAY_BASE_URL` (or `gateway_base_url` in config) to the **BFF origin** so initiate returns a URL the browser and the IdP can both reach:
+
+```text
+http://localhost:3000/oauth/callback/{provider}
+```
+
+The BFF proxies `/oauth/callback/*` to Torii without an operator session. Do not register Torii's listen address (`:3100`) in provider consoles when the BFF is the only published surface.
+
+### Provider console settings (GitHub / Google)
+
+For **static** providers, register these on the OAuth app (same host you use to open the UI — prefer `localhost` over `127.0.0.1`, or register both):
+
+| Field | Value |
+|-------|--------|
+| Authorized redirect / callback URI | `http://localhost:3000/oauth/callback/github` or `…/google` |
+| Authorized JavaScript origin (Google) | `http://localhost:3000` |
+
+**Dynamic** providers (Notion MCP) register the redirect URI automatically on first link.
+
+Operator Google login (`KEIDAI_GOOGLE_*` on keidai-ui) is a separate client: redirect `http://localhost:3000/auth/callback`, origin `http://localhost:3000`.
 
 The `owner_id` must match the registered agent's owner — tokens linked for a different owner will not resolve at call time.
+
+In-cluster wiring: [`deploy/k8s/README.md`](../../deploy/k8s/README.md).
 
 ### Resetting stale OAuth data
 
@@ -133,7 +154,7 @@ The Inspector UI opens automatically at `http://localhost:6274` (or prints the U
 
 ## Demo harness
 
-Torii runs alongside Fuda and Shaiden under Docker Compose from the repo root:
+Torii runs alongside Fuda, Shaiden, and keidai-ui under Docker Compose from the repo root (only `:3000` is published):
 
 ```bash
 docker compose up --build
@@ -145,19 +166,22 @@ Torii reads [`torii.demo.yaml`](torii.demo.yaml) and takes JWKS from Fuda. Seed 
 pnpm --filter @keidai/fuda seed -- ./apps/fuda/fuda.seed.example.yaml
 ```
 
+For kind / OrbStack (projected SA tokens + ClusterIP backends), see [`deploy/k8s/README.md`](../../deploy/k8s/README.md).
+
 ## Docker
 
-Build from the monorepo root (serves keidai-ui and the gateway on one port):
+Prefer `docker compose up` from the monorepo root so the BFF is the public edge. Standalone Torii image (MCP/API only; no UI):
 
 ```bash
 docker build -f apps/torii/Dockerfile -t torii .
 docker run --rm -p 3100:3100 \
   -e GITHUB_CLIENT_ID=... -e GITHUB_CLIENT_SECRET=... \
+  -e TORII_GATEWAY_BASE_URL=http://localhost:3000 \
   -v torii-data:/app/data \
   torii
 ```
 
-Open [http://localhost:3100](http://localhost:3100) for the UI. Mount a custom config with `-v ./torii.yaml:/app/torii.yaml:ro` and set `TORII_GATEWAY_BASE_URL` to your public URL for OAuth callbacks.
+Mount a custom config with `-v ./torii.yaml:/app/torii.yaml:ro`. Set `TORII_GATEWAY_BASE_URL` to the URL browsers and IdPs use for OAuth (the BFF when that is the only published surface).
 
 ## License
 

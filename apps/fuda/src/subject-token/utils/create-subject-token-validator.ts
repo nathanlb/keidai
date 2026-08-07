@@ -19,6 +19,7 @@ export function createSubjectTokenValidator(
         audience: config.audience,
         jwksUri: config.jwksUri,
         mappings: config.mappings,
+        jwksBearerTokenFile: config.jwksBearerTokenFile,
       });
   }
 }

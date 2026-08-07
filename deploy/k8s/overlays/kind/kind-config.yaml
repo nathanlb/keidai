@@ -1,0 +1,17 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: keidai
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # Host :3000 → node :3000 (keidai-ui container hostPort).
+      - containerPort: 3000
+        hostPort: 3000
+        protocol: TCP
+    kubeadmConfigPatches:
+      - |
+        kind: ClusterConfiguration
+        apiServer:
+          extraArgs:
+            service-account-issuer: https://kubernetes.default.svc.cluster.local
+            service-account-jwks-uri: https://kubernetes.default.svc.cluster.local/openid/v1/jwks

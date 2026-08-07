@@ -21,7 +21,7 @@ const sampleTask: Task = {
 
 const baseConfig: RuntimeConfig = {
   toriiMcpUrl: "http://127.0.0.1:9/mcp",
-  bearerToken: "subject",
+  getSubjectToken: () => "subject",
   fudaBaseUrl: "http://fuda.test",
   openRouterApiKey: "test-key",
   modelId: "test-model",

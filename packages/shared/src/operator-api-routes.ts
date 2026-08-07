@@ -1,10 +1,12 @@
 /**
- * Operator UI API reverse-proxy table.
+ * Operator UI reverse-proxy table.
  *
  * Single source of truth for the Vite dev proxy and the keidai-ui BFF so
- * `/api/*` routing stays identical in both environments.
+ * routing stays identical in both environments.
  *
- * Order matters: more specific prefixes must appear before `/api`.
+ * Order matters: more specific prefixes must appear before catch-alls
+ * (`/api`). Non-`/api` routes (Torii OAuth callbacks) are public browser
+ * redirects and must not require an operator session.
  */
 
 export type OperatorApiBackend = "torii" | "fuda" | "shaiden";
@@ -30,6 +32,8 @@ export interface OperatorApiRoute {
 }
 
 export const OPERATOR_API_ROUTES: readonly OperatorApiRoute[] = [
+  // Torii backend OAuth provider redirects (not under /api; no session gate).
+  { prefix: "/oauth/callback", backend: "torii" },
   {
     prefix: "/api/shaiden/health",
     backend: "shaiden",

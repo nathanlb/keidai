@@ -1,31 +1,25 @@
-#!/usr/bin/env tsx
 /**
- * Dev/demo setup utility (NAT-121). Not part of the production `fuda` server bin.
- * Cluster image uses the compiled entrypoint: `node dist/seed/cli.js <file.yaml>`.
+ * Cluster/local seed entrypoint compiled into the Fuda image.
  *
- *   pnpm --filter @keidai/fuda seed -- ./fuda.seed.example.yaml
+ *   node dist/seed/cli.js /app/seed/fuda.seed.k8s.yaml
  */
-import { loadEnvForPackage } from "@keidai/shared/load-env";
-
-loadEnvForPackage(import.meta.url);
-
 import path from "node:path";
-import { SqliteAgentRepository } from "../src/agents/sqlite-agent-repository.js";
-import { SqliteBearerRepository } from "../src/bearers/sqlite-bearer-repository.js";
+import { SqliteAgentRepository } from "../agents/sqlite-agent-repository.js";
+import { SqliteBearerRepository } from "../bearers/sqlite-bearer-repository.js";
 import {
   ConfigValidationError,
   reportConfigError,
-} from "../src/config/runtime-config.js";
-import { seedFudaDatabase } from "../src/seed/seed-fuda-database.js";
-import { loadSeedFile } from "../src/seed/utils/parse-seed-file.js";
-import { resolveFudaDbPath } from "../src/storage/fuda-db-path.js";
-import { openFudaDatabase } from "../src/storage/fuda-sqlite.js";
+} from "../config/runtime-config.js";
+import { seedFudaDatabase } from "./seed-fuda-database.js";
+import { loadSeedFile } from "./utils/parse-seed-file.js";
+import { resolveFudaDbPath } from "../storage/fuda-db-path.js";
+import { openFudaDatabase } from "../storage/fuda-sqlite.js";
 
 async function main(): Promise<void> {
   const fileArg = process.argv[2];
   if (!fileArg || process.argv.length !== 3) {
     throw new ConfigValidationError([
-      "Usage: pnpm --filter @keidai/fuda seed -- <file.yaml>",
+      "Usage: node dist/seed/cli.js <file.yaml>",
     ]);
   }
 

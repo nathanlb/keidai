@@ -19,6 +19,11 @@ describe("createServer", () => {
         res.end(JSON.stringify({ ok: true, backend: "torii" }));
         return;
       }
+      if (req.url?.startsWith("/oauth/callback/")) {
+        res.writeHead(302, { location: "/?oauth=linked" });
+        res.end();
+        return;
+      }
       if (req.url?.startsWith("/api/traces/events")) {
         res.writeHead(200, {
           "content-type": "text/event-stream",
@@ -141,6 +146,18 @@ describe("createServer", () => {
       ok: true,
       backend: "shaiden",
     });
+  });
+
+  it("proxies Torii OAuth callbacks without requiring an operator session", async () => {
+    const address = app.server.address();
+    assert(address && typeof address === "object");
+    const base = `http://127.0.0.1:${address.port}`;
+
+    const response = await fetch(`${base}/oauth/callback/github?code=x&state=y`, {
+      redirect: "manual",
+    });
+    assert.equal(response.status, 302);
+    assert.equal(response.headers.get("location"), "/?oauth=linked");
   });
 
   it("hardens SSE proxy responses for runs and traces events", async () => {

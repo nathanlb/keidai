@@ -2,6 +2,7 @@ import * as jose from "jose";
 import type { K8sSaOidcSubjectConfig } from "../types/k8s-sa-oidc-subject-config.js";
 import { SubjectTokenValidationError } from "../types/subject-token-validation-error.js";
 import type { SubjectTokenValidator } from "../types/subject-token-validator.js";
+import { createClusterRemoteJwkSet } from "../utils/create-cluster-remote-jwk-set.js";
 import { parseK8sSaSubject } from "../utils/parse-k8s-sa-subject.js";
 import { registryKey } from "../utils/registry-key.js";
 
@@ -11,8 +12,9 @@ export type JwtVerifyKey = jose.JWTVerifyGetKey;
  * Validates a Kubernetes projected service-account OIDC token and maps the
  * SA subject to an internal `bearer_id` via validator-private config.
  *
- * Optional `verifyKey` injects a JWKS/key lookup for unit tests (same seam
- * as Torii's `K8sSaOidcIdentityResolver`). Cluster integration is pending.
+ * Optional `verifyKey` injects a JWKS/key lookup for unit tests. Production
+ * fetches JWKS with the in-cluster SA token — many clusters reject anonymous
+ * JWKS access (401). See `deploy/k8s/` for cluster wiring.
  */
 export class K8sSaOidcSubjectValidator implements SubjectTokenValidator {
   private readonly verifyKey: JwtVerifyKey;
@@ -21,7 +23,11 @@ export class K8sSaOidcSubjectValidator implements SubjectTokenValidator {
   constructor(config: K8sSaOidcSubjectConfig, verifyKey?: JwtVerifyKey) {
     this.config = config;
     this.verifyKey =
-      verifyKey ?? jose.createRemoteJWKSet(new URL(config.jwksUri));
+      verifyKey ??
+      createClusterRemoteJwkSet(
+        config.jwksUri,
+        config.jwksBearerTokenFile,
+      );
   }
 
   async validate(subjectToken: string): Promise<string> {

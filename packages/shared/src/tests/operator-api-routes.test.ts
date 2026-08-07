@@ -17,10 +17,18 @@ describe("OPERATOR_API_ROUTES", () => {
       const current = prefixes[i]!;
       assert.notEqual(current, "/api");
       assert.ok(
-        current.startsWith("/api"),
-        `expected ${current} to be under /api`,
+        current.startsWith("/api") || current.startsWith("/oauth/"),
+        `expected ${current} to be under /api or /oauth/`,
       );
     }
+  });
+
+  it("proxies Torii OAuth callbacks on the public origin", () => {
+    const oauth = OPERATOR_API_ROUTES.find(
+      (route) => route.prefix === "/oauth/callback",
+    );
+    assert.equal(oauth?.backend, "torii");
+    assert.equal(oauth?.pathRewrite, undefined);
   });
 
   it("routes shaiden and fuda health aliases with path rewrites", () => {

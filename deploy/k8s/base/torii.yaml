@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: torii
+  namespace: keidai
+  labels:
+    app: torii
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: torii
+  template:
+    metadata:
+      labels:
+        app: torii
+    spec:
+      serviceAccountName: torii
+      securityContext:
+        fsGroup: 1001
+      containers:
+        - name: torii
+          image: keidai-torii:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3100
+              name: http
+          envFrom:
+            - configMapRef:
+                name: torii-env
+            - secretRef:
+                name: keidai-secrets
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: config
+              mountPath: /app/torii.demo.yaml
+              subPath: torii.demo.yaml
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 15
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: torii-data
+        - name: config
+          configMap:
+            name: torii-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: torii
+  namespace: keidai
+spec:
+  type: ClusterIP
+  selector:
+    app: torii
+  ports:
+    - name: http
+      port: 3100
+      targetPort: http

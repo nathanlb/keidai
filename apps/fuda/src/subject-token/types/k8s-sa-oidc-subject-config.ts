@@ -6,6 +6,11 @@ export interface K8sSaOidcSubjectConfig {
   issuer: string;
   audience: string;
   jwksUri: string;
+  /**
+   * Path to a bearer token used when fetching JWKS. Defaults to the in-cluster
+   * SA token. Many clusters require auth for `/openid/v1/jwks`.
+   */
+  jwksBearerTokenFile?: string;
   /** `registryKey(subject)` → internal bearer_id. */
   mappings: ReadonlyMap<string, string>;
 }
