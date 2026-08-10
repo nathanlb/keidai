@@ -5,6 +5,10 @@ import {
   isOperatorApiSsePath,
   type OperatorApiBackend,
 } from "@keidai/shared";
+import {
+  bffServiceTokenAuthorizationHeader,
+  resolveBffServiceToken,
+} from "@keidai/shared/bff-service-token";
 import Fastify, { type FastifyInstance } from "fastify";
 import { existsSync } from "node:fs";
 import type { IncomingHttpHeaders } from "node:http";
@@ -44,6 +48,15 @@ export interface CreateServerOptions extends RegisterUiStaticOptions {
    * When omitted, config is resolved from environment variables.
    */
   auth?: OperatorAuthConfig | false;
+  /**
+   * Shared BFF→backend service token injected as `Authorization: Bearer …`
+   * on proxied management API requests.
+   * - omit: resolve from env (`BFF_SERVICE_TOKEN` required unless
+   *   `BFF_SERVICE_TOKEN_DISABLED=true`)
+   * - `null`: explicitly disable injection (tests / insecure local only)
+   * - string: use this token
+   */
+  bffServiceToken?: string | null;
   /**
    * Serve the built SPA (`dist/client`). Default true for production.
    * Set false for the local API-only BFF behind Vite HMR.
@@ -97,6 +110,7 @@ function readForwardedHeader(
 function forwardOperatorEdgeHeaders(
   request: { headers: IncomingHttpHeaders },
   headers: IncomingHttpHeaders,
+  bffServiceToken: string | null,
 ): IncomingHttpHeaders {
   const host =
     readForwardedHeader(request.headers["x-forwarded-host"]) ??
@@ -108,6 +122,11 @@ function forwardOperatorEdgeHeaders(
     ...headers,
     ...(host ? { "x-forwarded-host": host } : {}),
     "x-forwarded-proto": proto,
+    ...(bffServiceToken
+      ? {
+          authorization: bffServiceTokenAuthorizationHeader(bffServiceToken),
+        }
+      : {}),
   };
 }
 
@@ -121,9 +140,13 @@ function forwardOperatorEdgeHeaders(
 export async function registerApiProxy(
   app: FastifyInstance,
   backends: OperatorApiBackends,
-  options: { enforceSessionOwner?: boolean } = {},
+  options: {
+    enforceSessionOwner?: boolean;
+    bffServiceToken?: string | null;
+  } = {},
 ): Promise<void> {
   const enforceSessionOwner = options.enforceSessionOwner ?? false;
+  const bffServiceToken = options.bffServiceToken ?? null;
 
   for (const route of OPERATOR_API_ROUTES) {
     const rewritePrefix = route.pathRewrite
@@ -133,6 +156,8 @@ export async function registerApiProxy(
     const isAgentsProxy = route.prefix === "/api/agents";
     const isToriiApiCatchAll =
       route.prefix === "/api" && route.backend === "torii";
+    // OAuth provider redirects are browser navigations — no service token.
+    const injectServiceToken = route.prefix !== "/oauth/callback";
 
     await app.register(fastifyHttpProxy, {
       upstream: backends[route.backend],
@@ -162,7 +187,11 @@ export async function registerApiProxy(
       },
       replyOptions: {
         rewriteRequestHeaders(request, headers) {
-          return forwardOperatorEdgeHeaders(request, headers);
+          return forwardOperatorEdgeHeaders(
+            request,
+            headers,
+            injectServiceToken ? bffServiceToken : null,
+          );
         },
         rewriteHeaders(headers, request) {
           if (request && isOperatorApiSsePath(request.url)) {
@@ -208,6 +237,10 @@ export async function createServer(
 ): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
   const backends = resolveBackends(options.backends);
+  const bffServiceToken =
+    options.bffServiceToken !== undefined
+      ? options.bffServiceToken
+      : resolveBffServiceToken();
 
   const authConfig =
     options.auth === false
@@ -220,6 +253,7 @@ export async function createServer(
 
   await registerApiProxy(app, backends, {
     enforceSessionOwner: Boolean(authConfig),
+    bffServiceToken,
   });
 
   if (options.serveStatic !== false) {

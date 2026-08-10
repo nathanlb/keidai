@@ -127,6 +127,7 @@ Fuda reconciles platform owners from ConfigMap `keidai-operators` at boot
 | `OPEN_ROUTER_API_KEY` | Shaiden |
 | `LINEAR_API_KEY`, `GITHUB_*`, `GOOGLE_*` | Torii demo backends (optional at boot) |
 | `KEIDAI_GOOGLE_*`, `KEIDAI_SESSION_SECRET`, `keidai-operators` ConfigMap | BFF operator login |
+| `BFF_SERVICE_TOKEN` | BFF → Torii/Fuda/Shaiden management API Bearer |
 
 Operators are a Google ↔ opaque `owner_id` registry (`operators.yaml`). `up.sh`
 loads ConfigMap `keidai-operators` from `KEIDAI_OPERATORS_FILE` (default:
@@ -142,7 +143,9 @@ both mount that file at boot.
 - Do not set `TORII_UI_CLIENT_ROOT` — the UI is served by keidai-ui only.
 - `TORII_GATEWAY_BASE_URL=http://localhost:3000` so backend OAuth initiate
   returns BFF-origin callbacks.
-- Management APIs on Fuda remain unauthenticated at the service; reach them
-  only via the BFF session gate.
+- Management APIs require `BFF_SERVICE_TOKEN` (set in `secrets.env`);
+  keidai-ui injects it on proxied `/api/*` requests. Opt out only with
+  `BFF_SERVICE_TOKEN_DISABLED=true`. `/api/health`, Torii `/mcp`, and Fuda
+  `POST /token` stay on their existing auth models.
 - OrbStack: if your kubectl context name does not contain `orbstack`, set
   `KEIDAI_ALLOW_ANY_CONTEXT=1`.

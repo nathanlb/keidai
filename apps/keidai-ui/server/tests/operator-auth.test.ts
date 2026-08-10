@@ -84,6 +84,7 @@ describe("operator auth", () => {
 
     app = await createServer({
       auth: authConfig,
+      bffServiceToken: null,
       backends: {
         torii: `http://127.0.0.1:${upstreamPort}`,
         fuda: `http://127.0.0.1:${upstreamPort}`,

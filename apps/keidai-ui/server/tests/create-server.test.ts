@@ -113,6 +113,7 @@ describe("createServer", () => {
 
     app = await createServer({
       auth: false,
+      bffServiceToken: null,
       backends: {
         torii: `http://127.0.0.1:${toriiPort}`,
         fuda: `http://127.0.0.1:${fudaPort}`,
@@ -223,5 +224,49 @@ describe("createServer", () => {
     assert.match(traces.headers.get("cache-control") ?? "", /no-cache/);
     assert.equal(traces.headers.get("x-accel-buffering"), "no");
     assert.match(await traces.text(), /"type":"trace"/);
+  });
+
+  it("injects BFF_SERVICE_TOKEN on proxied management API requests", async () => {
+    let seenAuthorization: string | string[] | undefined;
+    const tokenBackend = createHttpServer((req, res) => {
+      seenAuthorization = req.headers.authorization;
+      if (req.url === "/api/agents") {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ agents: [] }));
+        return;
+      }
+      res.writeHead(404).end();
+    });
+    await new Promise<void>((resolve) => {
+      tokenBackend.listen(0, "127.0.0.1", () => resolve());
+    });
+    const tokenAddress = tokenBackend.address();
+    assert(tokenAddress && typeof tokenAddress === "object");
+
+    const tokenApp = await createServer({
+      auth: false,
+      bffServiceToken: "bff-proxy-token",
+      backends: {
+        torii: `http://127.0.0.1:${toriiPort}`,
+        fuda: `http://127.0.0.1:${tokenAddress.port}`,
+        shaiden: `http://127.0.0.1:${shaidenPort}`,
+      },
+    });
+    await tokenApp.listen({ port: 0, host: "127.0.0.1" });
+
+    try {
+      const address = tokenApp.server.address();
+      assert(address && typeof address === "object");
+      const response = await fetch(
+        `http://127.0.0.1:${address.port}/api/agents`,
+      );
+      assert.equal(response.status, 200);
+      assert.equal(seenAuthorization, "Bearer bff-proxy-token");
+    } finally {
+      await tokenApp.close();
+      await new Promise<void>((resolve, reject) => {
+        tokenBackend.close((error) => (error ? reject(error) : resolve()));
+      });
+    }
   });
 });

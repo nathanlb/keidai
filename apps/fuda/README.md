@@ -12,7 +12,7 @@ HTTP route groups are structurally separate so they can be exposed independently
 | `agent` | Agent / runtime facing | Definition view (`GET /agents/{id}`), token exchange (`POST /token`) |
 | `management` | Operator / UI facing | Agent / bearer CRUD (`/api/agents`, `/api/bearers`) |
 
-By default one process listens on `127.0.0.1:3300` with all groups. To expose JWKS without management, run a process with `FUDA_LISTEN_GROUPS=public` (optionally on its own port). Management is unauthenticated in v0 and expects localhost bind.
+By default one process listens on `127.0.0.1:3300` with all groups. To expose JWKS without management, run a process with `FUDA_LISTEN_GROUPS=public` (optionally on its own port). Management `/api/*` requires `BFF_SERVICE_TOKEN` (`Authorization: Bearer <token>`; keidai-ui injects it). Opt out with `BFF_SERVICE_TOKEN_DISABLED=true` for local unit tests only.
 
 ## Local development
 
@@ -45,7 +45,7 @@ When `FUDA_OPERATORS_PATH` points at an `operators.yaml`, Fuda reconciles the `o
 
 ### Management API
 
-Unauthenticated; intended for keidai-ui on localhost.
+Protected by `BFF_SERVICE_TOKEN` (required; Bearer on `/api/agents` and `/api/bearers`). Intended for keidai-ui; generate with `openssl rand -hex 32` and share via the root `.env`. Set `BFF_SERVICE_TOKEN_DISABLED=true` only to opt out locally.
 
 | Method | Path | Notes |
 |--------|------|-------|

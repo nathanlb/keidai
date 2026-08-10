@@ -17,6 +17,10 @@
       "types": "./dist/load-env.d.ts",
       "import": "./dist/load-env.js"
     },
+    "./bff-service-token": {
+      "types": "./dist/bff-service-token.d.ts",
+      "import": "./dist/bff-service-token.js"
+    },
     "./clients": {
       "types": "./dist/clients/index.d.ts",
       "import": "./dist/clients/index.js"
