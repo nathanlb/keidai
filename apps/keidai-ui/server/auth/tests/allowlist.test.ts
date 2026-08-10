@@ -1,38 +1,36 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { isOperatorAllowed, parseAllowlistCsv } from "../allowlist.js";
+import { isOperatorAllowed, resolveOperatorOwnerId } from "../allowlist.js";
 
-describe("operator allowlist", () => {
-  it("parses comma-separated allowlist entries", () => {
-    assert.deepEqual(parseAllowlistCsv(" a, b ,c "), ["a", "b", "c"]);
-    assert.deepEqual(parseAllowlistCsv(""), []);
-    assert.deepEqual(parseAllowlistCsv(undefined), []);
+const operators = [
+  {
+    owner_id: "owner-sub",
+    google_sub: "sub-1",
+  },
+  {
+    owner_id: "owner-email",
+    google_email: "ops@example.com",
+  },
+] as const;
+
+describe("operator registry allowlist", () => {
+  it("allows by google_sub and resolves owner", () => {
+    const claims = { googleSub: "sub-1", email: "other@example.com" };
+    assert.equal(isOperatorAllowed(operators, claims), true);
+    assert.equal(resolveOperatorOwnerId(operators, claims), "owner-sub");
   });
 
-  it("matches by google sub or email (case-insensitive)", () => {
-    const allowlist = {
-      googleSubs: new Set(["sub-1"]),
-      emails: new Set(["allow@example.com"]),
-    };
+  it("allows by google_email when sub does not match", () => {
+    const claims = { googleSub: "other", email: "Ops@Example.com" };
+    assert.equal(isOperatorAllowed(operators, claims), true);
+    assert.equal(resolveOperatorOwnerId(operators, claims), "owner-email");
+  });
 
+  it("rejects unknown identities", () => {
     assert.equal(
-      isOperatorAllowed(allowlist, {
-        googleSub: "sub-1",
-        email: "other@example.com",
-      }),
-      true,
-    );
-    assert.equal(
-      isOperatorAllowed(allowlist, {
+      isOperatorAllowed(operators, {
         googleSub: "nope",
-        email: "Allow@Example.com",
-      }),
-      true,
-    );
-    assert.equal(
-      isOperatorAllowed(allowlist, {
-        googleSub: "nope",
-        email: "deny@example.com",
+        email: "nope@example.com",
       }),
       false,
     );

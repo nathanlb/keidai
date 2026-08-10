@@ -15,7 +15,6 @@ import {
 } from "./test-helpers.js";
 
 const sampleConfig: ToriiConfig = {
-  boot_owner_id: "demo-owner",
   oauth_providers: {
     github: {
       token_url: "https://github.com/login/oauth/access_token",
@@ -44,7 +43,7 @@ describe("Gateway OAuth linking API", () => {
     const gateway = await gatewayHttpServer.start();
     try {
       const response = await fetch(
-        `${gateway.baseUrl}/api/oauth/initiate/github`,
+        `${gateway.baseUrl}/api/oauth/initiate/github?owner=demo-owner`,
         { method: "POST" },
       );
       assert.equal(response.status, 200);
@@ -101,7 +100,7 @@ describe("Gateway OAuth linking API", () => {
 
     const gateway = await gatewayHttpServer.start();
     try {
-      const response = await fetch(`${gateway.baseUrl}/api/oauth/connections`);
+      const response = await fetch(`${gateway.baseUrl}/api/oauth/connections?owner=demo-owner`);
       assert.equal(response.status, 200);
 
       const body = (await response.json()) as OAuthConnectionsResponse;
@@ -141,17 +140,17 @@ describe("Gateway OAuth linking API", () => {
     const gateway = await gatewayHttpServer.start();
     try {
       const deleteResponse = await fetch(
-        `${gateway.baseUrl}/api/oauth/connections/github`,
+        `${gateway.baseUrl}/api/oauth/connections/github?owner=demo-owner`,
         { method: "DELETE" },
       );
       assert.equal(deleteResponse.status, 204);
 
-      const listResponse = await fetch(`${gateway.baseUrl}/api/oauth/connections`);
+      const listResponse = await fetch(`${gateway.baseUrl}/api/oauth/connections?owner=demo-owner`);
       const body = (await listResponse.json()) as OAuthConnectionsResponse;
       assert.equal(body.connections[0]?.status, "not_linked");
 
       const missingResponse = await fetch(
-        `${gateway.baseUrl}/api/oauth/connections/github`,
+        `${gateway.baseUrl}/api/oauth/connections/github?owner=demo-owner`,
         { method: "DELETE" },
       );
       assert.equal(missingResponse.status, 404);
@@ -178,7 +177,7 @@ describe("Gateway OAuth linking API", () => {
     const gateway = await gatewayHttpServer.start();
     try {
       const initiateResponse = await fetch(
-        `${gateway.baseUrl}/api/oauth/initiate/github`,
+        `${gateway.baseUrl}/api/oauth/initiate/github?owner=demo-owner`,
         { method: "POST" },
       );
       const initiate = (await initiateResponse.json()) as OAuthInitiateResponse;
@@ -191,12 +190,12 @@ describe("Gateway OAuth linking API", () => {
       assert.match(await errorResponse.text(), /Authorization failed/);
 
       const connectionsAfterError = (await (
-        await fetch(`${gateway.baseUrl}/api/oauth/connections`)
+        await fetch(`${gateway.baseUrl}/api/oauth/connections?owner=demo-owner`)
       ).json()) as OAuthConnectionsResponse;
       assert.equal(connectionsAfterError.connections[0]?.status, "failed");
 
       const initiateAgain = await fetch(
-        `${gateway.baseUrl}/api/oauth/initiate/github`,
+        `${gateway.baseUrl}/api/oauth/initiate/github?owner=demo-owner`,
         { method: "POST" },
       );
       const initiateBody =
@@ -240,7 +239,7 @@ describe("Gateway OAuth linking API", () => {
         assert.equal(token?.accessToken, "new-access-token");
 
         const connectionsAfterSuccess = (await (
-          await fetch(`${gateway.baseUrl}/api/oauth/connections`)
+          await fetch(`${gateway.baseUrl}/api/oauth/connections?owner=demo-owner`)
         ).json()) as OAuthConnectionsResponse;
         assert.equal(connectionsAfterSuccess.connections[0]?.status, "linked");
       } finally {

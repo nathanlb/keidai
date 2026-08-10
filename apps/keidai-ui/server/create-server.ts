@@ -11,6 +11,10 @@ import type { IncomingHttpHeaders } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveOperatorAuthConfigFromEnv } from "./auth/config.js";
+import {
+  enforceSessionOwnerOnAgentProxy,
+  enforceSessionOwnerOnToriiApiProxy,
+} from "./auth/enforce-session-owner.js";
 import { registerOperatorAuth } from "./auth/register-auth.js";
 import type { OperatorAuthConfig } from "./auth/types.js";
 
@@ -72,20 +76,41 @@ function hardenSseHeaders(
 /**
  * Reverse-proxies `/api/*` using the shared operator route table
  * (`OPERATOR_API_ROUTES` in `@keidai/shared`).
+ *
+ * When auth is enabled, agent create and OAuth initiate rewrite `ownerId` /
+ * `?owner=` to the session principal so clients cannot override it.
  */
 export async function registerApiProxy(
   app: FastifyInstance,
   backends: OperatorApiBackends,
+  options: { enforceSessionOwner?: boolean } = {},
 ): Promise<void> {
+  const enforceSessionOwner = options.enforceSessionOwner ?? false;
+
   for (const route of OPERATOR_API_ROUTES) {
     const rewritePrefix = route.pathRewrite
       ? `${route.pathRewrite.to}${route.prefix.slice(route.pathRewrite.from.length)}`
       : route.prefix;
 
+    const isAgentsProxy = route.prefix === "/api/agents";
+    const isToriiApiCatchAll =
+      route.prefix === "/api" && route.backend === "torii";
+
     await app.register(fastifyHttpProxy, {
       upstream: backends[route.backend],
       prefix: route.prefix,
       rewritePrefix,
+      // Parse JSON so agent-create preHandler can rewrite `ownerId` before
+      // reply-from re-serializes the body upstream.
+      ...(enforceSessionOwner && isAgentsProxy
+        ? {
+            proxyPayloads: false as const,
+            preHandler: enforceSessionOwnerOnAgentProxy,
+          }
+        : {}),
+      ...(enforceSessionOwner && isToriiApiCatchAll
+        ? { preHandler: enforceSessionOwnerOnToriiApiProxy }
+        : {}),
       // Disable default proxy timeouts so long-lived SSE streams (runs, traces,
       // connections) are not cut off after 10s.
       http: {
@@ -146,13 +171,15 @@ export async function createServer(
   const authConfig =
     options.auth === false
       ? null
-      : (options.auth ?? resolveOperatorAuthConfigFromEnv());
+      : (options.auth ?? (await resolveOperatorAuthConfigFromEnv()));
 
   if (authConfig) {
     await registerOperatorAuth(app, authConfig);
   }
 
-  await registerApiProxy(app, backends);
+  await registerApiProxy(app, backends, {
+    enforceSessionOwner: Boolean(authConfig),
+  });
   await registerUiStatic(app, options);
   return app;
 }

@@ -39,7 +39,6 @@ describe("ConnectionManager", () => {
   it("connects to a mock MCP server and tracks connected state", async () => {
     const mockServer = await startMockMcpServer();
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [serverConfig("alpha", mockServer.url)],
     });
@@ -64,7 +63,6 @@ describe("ConnectionManager", () => {
     const goodServer = await startMockMcpServer();
     const badServer = await startMockMcpServer({ rejectConnections: true });
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         serverConfig("good", goodServer.url, { strategy: "service_key", key: "sk_test" }),
@@ -100,7 +98,6 @@ describe("ConnectionManager", () => {
     const unreachableUrl = closedServer.url;
     await closedServer.close();
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         serverConfig("reachable", reachable.url),
@@ -128,7 +125,6 @@ describe("ConnectionManager", () => {
 
   it("exposes the registry by server name", async () => {
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [serverConfig("github", "http://127.0.0.1:9/mcp")],
     });
@@ -147,14 +143,11 @@ describe("ConnectionManager", () => {
     assert.equal(manager.get("github")?.config.name, "github");
   });
 
-  it("connects user_oauth backends using boot_owner_id without caller context", async () => {
-    const mockServer = await startMockMcpServer({ requireAuth: true });
-    const ownerId = "demo-owner";
-    const { credentialResolver, tokenRepository } = createCredentialServices();
-    await tokenRepository.set(ownerId, "github", { accessToken: "gho_valid" });
+  it("connects user_oauth backends without principal (handshake fails open)", async () => {
+    const mockServer = await startMockMcpServer();
+    const { credentialResolver } = createCredentialServices();
 
     const configService = new ToriiConfigService({
-      boot_owner_id: ownerId,
       oauth_providers: {
         github: {
           token_url: "https://github.com/login/oauth/access_token",

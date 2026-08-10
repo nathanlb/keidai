@@ -7,7 +7,6 @@ describe("resolveGatewayBaseUrl", () => {
   it("prefers gateway_base_url from config", () => {
     const config: ToriiConfig = {
       gateway_base_url: "https://torii.example.com",
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         {
@@ -24,7 +23,6 @@ describe("resolveGatewayBaseUrl", () => {
   it("strips trailing slash from configured base URL", () => {
     const config: ToriiConfig = {
       gateway_base_url: "https://torii.example.com/",
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         {
@@ -47,7 +45,6 @@ describe("resolveGatewayBaseUrl", () => {
     try {
       assert.equal(
         resolveGatewayBaseUrl({
-          boot_owner_id: "test-owner",
           oauth_providers: {},
           servers: [],
         }),

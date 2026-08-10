@@ -1,11 +1,12 @@
-import type { OperatorPrincipal } from "@keidai/shared";
+import type { OperatorEntry, OperatorPrincipal } from "@keidai/shared";
 
 export type { OperatorPrincipal };
 
-export interface OperatorAllowlist {
-  googleSubs: ReadonlySet<string>;
-  /** Lowercased emails. */
-  emails: ReadonlySet<string>;
+declare module "fastify" {
+  interface FastifyRequest {
+    /** Set by operator auth `onRequest` after a valid session cookie. */
+    operatorPrincipal?: OperatorPrincipal;
+  }
 }
 
 export interface OperatorAuthConfig {
@@ -14,8 +15,8 @@ export interface OperatorAuthConfig {
   redirectUri: string;
   /** Symmetric secret used to seal session / OIDC state cookies (≥32 chars). */
   sessionSecret: string;
-  ownerId: string;
-  allowlist: OperatorAllowlist;
+  /** Google ↔ owner_id registry (from operators.yaml). */
+  operators: readonly OperatorEntry[];
   cookieSecure: boolean;
   /** Cookie max-age for the sealed operator session (seconds). Default 7d. */
   sessionMaxAgeSeconds?: number;
@@ -30,7 +31,12 @@ export interface OperatorAuthConfig {
   exchangeAuthorizationCode?: (
     code: string,
     codeVerifier: string,
-  ) => Promise<{ googleSub: string; email: string }>;
+  ) => Promise<{
+    googleSub: string;
+    email: string;
+    name?: string;
+    picture?: string;
+  }>;
 }
 
 export interface OidcPendingState {

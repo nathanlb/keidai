@@ -17,6 +17,8 @@ import { SigningKeyService } from "./signing/signing-key.service.js";
 import type { SubjectTokenValidatorConfig } from "./subject-token/types/subject-token-validator-config.js";
 import { SUBJECT_TOKEN_VALIDATOR } from "./subject-token/types/subject-token-validator.js";
 import { createSubjectTokenValidator } from "./subject-token/utils/create-subject-token-validator.js";
+import { SqliteOwnerRepository } from "./owners/sqlite-owner-repository.js";
+import { OWNER_REPOSITORY } from "./owners/types/owner-repository.js";
 import { openFudaDatabase } from "./storage/fuda-sqlite.js";
 import type { MigrationResult } from "./storage/migrate.js";
 import { TokenExchangeApiController } from "./token-exchange/token-exchange-api.controller.js";
@@ -90,7 +92,16 @@ export function createContainer(
 
   let agentRepository: SqliteAgentRepository | undefined;
   let bearerRepository: SqliteBearerRepository | undefined;
+  let ownerRepository: SqliteOwnerRepository | undefined;
 
+  appContainer.register(OWNER_REPOSITORY, {
+    useFactory: () => {
+      ownerRepository ??= new SqliteOwnerRepository(
+        appContainer.resolve<DatabaseSync>(FUDA_DATABASE),
+      );
+      return ownerRepository;
+    },
+  });
   appContainer.register(AGENT_REPOSITORY, {
     useFactory: () => {
       agentRepository ??= new SqliteAgentRepository(

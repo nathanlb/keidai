@@ -160,11 +160,9 @@ Torii runs alongside Fuda, Shaiden, and keidai-ui under Docker Compose from the 
 docker compose up --build
 ```
 
-Torii reads [`torii.demo.yaml`](torii.demo.yaml) and takes JWKS from Fuda. Seed Fuda before submitting a task:
-
-```bash
-pnpm --filter @keidai/fuda seed -- ./apps/fuda/fuda.seed.example.yaml
-```
+Torii reads [`torii.demo.yaml`](torii.demo.yaml) and takes JWKS from Fuda. Create
+agents/bearers/grants via keidai-ui (or Fuda's management API) before submitting
+a task — Fuda boots with an empty agent registry.
 
 For kind / OrbStack (projected SA tokens + ClusterIP backends), see [`deploy/k8s/README.md`](../../deploy/k8s/README.md).
 

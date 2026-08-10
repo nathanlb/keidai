@@ -8,7 +8,6 @@ import { MockTokenRepository } from "../../testing/mocks/mock-token-repository.j
 import { OAuthConnectionReadService } from "../oauth-connection-read.service.js";
 
 const sampleConfig: ToriiConfig = {
-  boot_owner_id: "demo-owner",
   oauth_providers: {
     github: {
       token_url: "https://github.com/login/oauth/access_token",
@@ -55,7 +54,7 @@ function createReadService(
 describe("OAuthConnectionReadService", () => {
   it("reports not_linked for configured providers without grants", async () => {
     const { service } = createReadService();
-    const result = await service.listConnections();
+    const result = await service.listConnections("demo-owner");
 
     assert.equal(result.connections.length, 2);
     assert.deepEqual(
@@ -83,7 +82,7 @@ describe("OAuthConnectionReadService", () => {
       createdAt: new Date(),
     });
 
-    const result = await service.listConnections();
+    const result = await service.listConnections("demo-owner");
     const github = result.connections.find(
       (connection) => connection.provider === "github",
     );
@@ -106,7 +105,7 @@ describe("OAuthConnectionReadService", () => {
       expiresAt: new Date("2000-01-01T00:00:00.000Z"),
     });
 
-    const result = await service.listConnections();
+    const result = await service.listConnections("demo-owner");
     const byProvider = new Map(
       result.connections.map((connection) => [connection.provider, connection]),
     );
@@ -140,7 +139,7 @@ describe("OAuthConnectionReadService", () => {
       createdAt: new Date(),
     });
 
-    const github = (await service.listConnections()).connections.find(
+    const github = (await service.listConnections("demo-owner")).connections.find(
       (connection) => connection.provider === "github",
     );
     assert.equal(github?.status, "linked");
@@ -160,7 +159,7 @@ describe("OAuthConnectionReadService", () => {
       createdAt: new Date(),
     });
 
-    const github = (await service.listConnections()).connections.find(
+    const github = (await service.listConnections("demo-owner")).connections.find(
       (connection) => connection.provider === "github",
     );
     assert.equal(github?.status, "failed");

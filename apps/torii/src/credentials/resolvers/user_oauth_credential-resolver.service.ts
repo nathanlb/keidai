@@ -3,11 +3,12 @@ import { inject, injectable } from "tsyringe";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
 import { resolveGatewayBaseUrl } from "../../config/utils/resolve-gateway-base-url.js";
 import { buildOAuthCallbackRedirectUri } from "../utils/oauth-callback-redirect-uri.js";
-import { getAgentPrincipal } from "../../identity/agent-principal-context.js";
+import { tryGetAgentPrincipal } from "../../identity/agent-principal-context.js";
 import { OAuthTokenLifecycleService } from "../oauth-token-lifecycle.service.js";
 import { OAuthTokenRefreshError } from "../utils/oauth-token-refresh.js";
 import type { CredentialStrategyResolver } from "../types/credential-strategy-resolver.js";
 import {
+  CredentialResolutionError,
   LINKING_REQUIRED_CODE,
   LinkingRequiredError,
   type ResolvedCredentials,
@@ -31,7 +32,11 @@ export class UserOAuthCredentialResolver implements CredentialStrategyResolver {
     }
 
     const { provider } = server.credential;
-    const { ownerId } = getAgentPrincipal();
+    const principal = tryGetAgentPrincipal();
+    if (!principal) {
+      throw new CredentialResolutionError("no agent principal");
+    }
+    const { ownerId } = principal;
 
     let token;
     try {

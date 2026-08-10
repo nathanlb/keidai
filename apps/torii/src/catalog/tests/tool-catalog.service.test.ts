@@ -43,7 +43,6 @@ describe("ToolCatalogService", () => {
       ],
     });
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [serverConfig("github", mockServer.url)],
       groups: [
@@ -99,7 +98,6 @@ describe("ToolCatalogService", () => {
       ],
     });
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         {
@@ -160,7 +158,6 @@ describe("ToolCatalogService", () => {
     });
 
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         {
@@ -224,7 +221,6 @@ describe("ToolCatalogService", () => {
     await mockServer.close();
 
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         {

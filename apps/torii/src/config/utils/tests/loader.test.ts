@@ -9,7 +9,6 @@ const validEnv = {
 };
 
 const validDocument = {
-  boot_owner_id: "test-owner",
   oauth_providers: {
     github: {
       token_url: "https://github.com/login/oauth/access_token",
@@ -106,7 +105,6 @@ describe("loadConfigFromDocument", () => {
       "sk_test_123",
     );
     assert.deepEqual(config.gated_tools, {});
-    assert.equal(config.boot_owner_id, "test-owner");
     assert.equal(config.groups?.length, 1);
     assert.equal(config.groups?.[0]?.name, "agents");
   });
@@ -174,25 +172,17 @@ describe("loadConfigFromDocument", () => {
     );
   });
 
-  it("fails when boot_owner_id is missing", () => {
-    const { boot_owner_id: _omit, ...withoutBootOwner } = validDocument;
-    expectValidationError(
-      () => loadConfigFromDocument(withoutBootOwner, validEnv),
-      ["boot_owner_id: Required"],
-    );
-  });
-
-  it("fails when boot_owner_id is empty", () => {
+  it("rejects unrecognized boot_owner_id key", () => {
     expectValidationError(
       () =>
         loadConfigFromDocument(
           {
             ...validDocument,
-            boot_owner_id: "",
+            boot_owner_id: "test-owner",
           },
           validEnv,
         ),
-      ["boot_owner_id: boot_owner_id is required"],
+      ["Unrecognized key(s) in object: 'boot_owner_id'"],
     );
   });
 

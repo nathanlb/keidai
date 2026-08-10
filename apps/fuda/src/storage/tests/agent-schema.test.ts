@@ -16,7 +16,11 @@ describe("002_agent_schema migration", () => {
   it("creates agents, persona_versions, bearers, and bearer_agent_grants", () => {
     const { db, migrations } = openFudaDatabase(tempDbPath());
 
-    assert.deepEqual(migrations.applied, ["001_baseline", "002_agent_schema"]);
+    assert.deepEqual(migrations.applied, [
+      "001_baseline",
+      "002_agent_schema",
+      "003_owners",
+    ]);
 
     const tables = db
       .prepare(
@@ -33,6 +37,7 @@ describe("002_agent_schema migration", () => {
     assert.ok(names.includes("persona_versions"));
     assert.ok(names.includes("bearers"));
     assert.ok(names.includes("bearer_agent_grants"));
+    assert.ok(names.includes("owners"));
   });
 
   it("enforces slug uniqueness at the database level", () => {
@@ -70,6 +75,7 @@ describe("002_agent_schema migration", () => {
     assert.deepEqual(first.migrations.applied, [
       "001_baseline",
       "002_agent_schema",
+      "003_owners",
     ]);
     first.db.close();
 
@@ -78,6 +84,7 @@ describe("002_agent_schema migration", () => {
     assert.deepEqual(second.migrations.alreadyApplied, [
       "001_baseline",
       "002_agent_schema",
+      "003_owners",
     ]);
   });
 
@@ -86,6 +93,10 @@ describe("002_agent_schema migration", () => {
     const db = new DatabaseSync(path.join(dir, "test.db"));
     db.exec("PRAGMA foreign_keys = ON");
     const result = runMigrations(db, fudaMigrations);
-    assert.deepEqual(result.applied, ["001_baseline", "002_agent_schema"]);
+    assert.deepEqual(result.applied, [
+      "001_baseline",
+      "002_agent_schema",
+      "003_owners",
+    ]);
   });
 });

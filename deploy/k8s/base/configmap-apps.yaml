@@ -39,4 +39,4 @@ data:
   KEIDAI_UI_SHAIDEN_URL: http://shaiden:3200
   KEIDAI_GOOGLE_REDIRECT_URI: http://localhost:3000/auth/callback
   KEIDAI_COOKIE_SECURE: "false"
-  KEIDAI_OWNER_ID: demo-owner
+  KEIDAI_OPERATORS_PATH: /app/operators/operators.yaml

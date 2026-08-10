@@ -134,7 +134,6 @@ describe("Gateway /api/connections endpoints", () => {
     const goodServer = await startMockMcpServer();
     const badServer = await startMockMcpServer({ rejectConnections: true });
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         serverConfig("good", goodServer.url),
@@ -182,7 +181,6 @@ describe("Gateway /api/connections endpoints", () => {
       ],
     });
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [serverConfig("gmail", mockServer.url)],
       groups: [
@@ -254,7 +252,6 @@ describe("Gateway /api/connections endpoints", () => {
   it("streams connection state changes over SSE", async () => {
     const mockServer = await startMockMcpServer();
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [serverConfig("alpha", mockServer.url)],
     });

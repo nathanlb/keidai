@@ -1,16 +1,11 @@
-import type { ToriiConfig } from "@keidai/shared";
-
 /**
  * Resolves the owner id for OAuth link/read flows.
- * Explicit `?owner=` wins; otherwise falls back to deployment `boot_owner_id`.
+ * Explicit `?owner=` is required — there is no deployment-wide boot fallback.
  */
-export function resolveOAuthOwnerId(
-  config: ToriiConfig,
-  ownerIdFlag: string | undefined,
-): string {
+export function resolveOAuthOwnerId(ownerIdFlag: string | undefined): string {
   if (ownerIdFlag) {
     return ownerIdFlag;
   }
 
-  return config.boot_owner_id;
+  throw new Error("owner query parameter is required");
 }

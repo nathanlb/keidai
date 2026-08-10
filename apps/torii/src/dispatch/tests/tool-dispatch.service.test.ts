@@ -88,7 +88,6 @@ async function createDispatchStack(
   const { credentialResolver } = createCredentialServices();
 
   const configService = new ToriiConfigService({
-    boot_owner_id: "test-owner",
     oauth_providers: {
       github: {
         token_url: "https://github.com/login/oauth/access_token",
@@ -340,7 +339,6 @@ describe("ToolDispatchService", () => {
       oauth_providers: oauthProviders,
     });
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: oauthProviders,
       servers: [userOAuthServer("github", mockServer.url)],
       groups: [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])],

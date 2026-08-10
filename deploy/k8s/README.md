@@ -15,7 +15,7 @@ Browser → keidai-ui:3000 (SPA, /auth/*, /api/*, /oauth/callback/*)
 
 | Path | Role |
 |------|------|
-| [`base/`](base/) | Portable manifests (Deployments, Services, PVCs, SA projection, seed init) |
+| [`base/`](base/) | Portable manifests (Deployments, Services, PVCs, SA projection) |
 | [`overlays/kind/`](overlays/kind/) | kind: `imagePullPolicy: Never`, BFF `hostPort`, cluster config |
 | [`overlays/orbstack/`](overlays/orbstack/) | OrbStack: BFF `LoadBalancer`, hostPath SQLite → `apps/*/data` |
 
@@ -36,8 +36,8 @@ GKE (and other cloud) overlays are intentionally separate and not included yet.
 
 ```bash
 cp deploy/k8s/secrets.example.env deploy/k8s/secrets.env
-# Fill KEIDAI_GOOGLE_*, KEIDAI_SESSION_SECRET (≥32 chars),
-# KEIDAI_OPERATOR_GOOGLE_EMAILS (or _SUBS), OPEN_ROUTER_API_KEY.
+# Fill KEIDAI_GOOGLE_*, KEIDAI_SESSION_SECRET (≥32 chars), OPEN_ROUTER_API_KEY.
+# Operators default to deploy/operators.example.yaml (override with KEIDAI_OPERATORS_FILE).
 
 # Default local path (kind):
 pnpm k8s:up
@@ -115,9 +115,9 @@ Fuda mapping (validator-private, not in SQLite):
 FUDA_K8S_SA_OIDC_SUBJECT_MAPPINGS=keidai/shaiden=shaiden-runner
 ```
 
-Seed ([`apps/fuda/fuda.seed.k8s.example.yaml`](../../apps/fuda/fuda.seed.k8s.example.yaml))
-runs as a Fuda **init container** against the shared PVC (`bearer_id:
-shaiden-runner` + demo agent grants).
+Fuda reconciles platform owners from ConfigMap `keidai-operators` at boot
+(`FUDA_OPERATORS_PATH`). Create agents/bearers/grants via the management API
+(or keidai-ui), not a seed YAML.
 
 ## Secrets
 
@@ -126,10 +126,12 @@ shaiden-runner` + demo agent grants).
 | `fuda-signing` / `dev.pem` | Fuda token signing |
 | `OPEN_ROUTER_API_KEY` | Shaiden |
 | `LINEAR_API_KEY`, `GITHUB_*`, `GOOGLE_*` | Torii demo backends (optional at boot) |
-| `KEIDAI_GOOGLE_*`, `KEIDAI_SESSION_SECRET`, allowlists, `KEIDAI_OWNER_ID` | BFF operator login |
+| `KEIDAI_GOOGLE_*`, `KEIDAI_SESSION_SECRET`, `keidai-operators` ConfigMap | BFF operator login |
 
-`KEIDAI_OWNER_ID` should match Torii `boot_owner_id` / Fuda seed `owner_id`
-(`demo-owner` in the bundled configs).
+Operators are a Google ↔ opaque `owner_id` registry (`operators.yaml`). `up.sh`
+loads ConfigMap `keidai-operators` from `KEIDAI_OPERATORS_FILE` (default:
+[`deploy/operators.example.yaml`](../operators.example.yaml)). Fuda and the BFF
+both mount that file at boot.
 
 ## Notes
 

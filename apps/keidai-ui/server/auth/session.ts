@@ -29,6 +29,8 @@ export async function sealOperatorSession(
       googleSub: principal.googleSub,
       email: principal.email,
       ownerId: principal.ownerId,
+      ...(principal.name ? { name: principal.name } : {}),
+      ...(principal.picture ? { picture: principal.picture } : {}),
     },
     config.sessionSecret,
     sessionMaxAge(config),
@@ -48,6 +50,8 @@ export async function readOperatorSession(
     googleSub?: unknown;
     email?: unknown;
     ownerId?: unknown;
+    name?: unknown;
+    picture?: unknown;
   }>(raw, config.sessionSecret);
 
   if (
@@ -59,10 +63,10 @@ export async function readOperatorSession(
     return null;
   }
 
-  // Re-check allowlist on every unseal so env allowlist removals take effect
+  // Re-check operators registry on every unseal so removals take effect
   // on the next /api/session or gated /api/* request (not only at login).
   if (
-    !isOperatorAllowed(config.allowlist, {
+    !isOperatorAllowed(config.operators, {
       googleSub: payload.googleSub,
       email: payload.email,
     })
@@ -74,6 +78,10 @@ export async function readOperatorSession(
     googleSub: payload.googleSub,
     email: payload.email,
     ownerId: payload.ownerId,
+    ...(typeof payload.name === "string" ? { name: payload.name } : {}),
+    ...(typeof payload.picture === "string"
+      ? { picture: payload.picture }
+      : {}),
   };
 }
 

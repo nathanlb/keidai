@@ -10,6 +10,7 @@ import { UserOAuthCredentialResolver } from "../user_oauth_credential-resolver.s
 import {
   LINKING_REQUIRED_CODE,
   LinkingRequiredError,
+  CredentialResolutionError,
 } from "../../types/credential-resolution.js";
 import type { OAuthFetch } from "../../utils/oauth-token-refresh.js";
 import { runWithAgentPrincipal } from "../../../identity/agent-principal-context.js";
@@ -42,7 +43,6 @@ function createResolver(
   repository = new MockTokenRepository(),
 ): UserOAuthCredentialResolver {
   const configService = new ToriiConfigService({
-    boot_owner_id: "test-owner",
     oauth_providers: oauthProviders,
     servers: [],
   });
@@ -109,6 +109,19 @@ describe("DelegatedConnectionCredentialResolver", () => {
         assert.match(error.payload.linkUrl, /scope=repo/);
         assert.doesNotMatch(error.message, /gho_/);
         assert.doesNotMatch(error.payload.linkUrl, /secret/);
+        return true;
+      },
+    );
+  });
+
+  it("returns CredentialResolutionError when no agent principal is set", async () => {
+    const resolver = createResolver();
+
+    await assert.rejects(
+      () => resolver.resolve(userOAuthServer()),
+      (error: unknown) => {
+        assert.ok(error instanceof CredentialResolutionError);
+        assert.match(error.message, /no agent principal/);
         return true;
       },
     );

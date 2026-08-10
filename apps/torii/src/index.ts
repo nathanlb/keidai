@@ -9,8 +9,6 @@ import { createContainer } from "./container.js";
 import { ConnectionManager } from "./connections/connection-manager.service.js";
 import { ToolCatalogService } from "./catalog/tool-catalog.service.js";
 import { ToriiConfigService } from "./config/torii-config.service.js";
-import { runWithAgentPrincipal } from "./identity/agent-principal-context.js";
-import { resolveBootPrincipal } from "./identity/resolve-boot-principal.js";
 import { GatewayHttpServer } from "./http/gateway-http-server.service.js";
 import { StructuredLoggerService } from "./logging/structured-logger.service.js";
 
@@ -36,24 +34,20 @@ export async function startServer(): Promise<void> {
     serverCount: configService.get().servers.length,
   });
 
-  const bootPrincipal = resolveBootPrincipal(config);
+  await connectionManager.connectAll();
 
-  await runWithAgentPrincipal(bootPrincipal, async () => {
-    await connectionManager.connectAll();
+  const connections = connectionManager.list();
+  const connected = connections.filter(
+    (connection) => connection.state === "connected",
+  ).length;
+  const failed = connections.filter(
+    (connection) => connection.state === "failed",
+  ).length;
 
-    const connections = connectionManager.list();
-    const connected = connections.filter(
-      (connection) => connection.state === "connected",
-    ).length;
-    const failed = connections.filter(
-      (connection) => connection.state === "failed",
-    ).length;
+  logger.info("boot.connections_ready", { connected, failed });
 
-    logger.info("boot.connections_ready", { connected, failed });
-
-    const catalog = await toolCatalog.refresh();
-    logger.info("boot.catalog_ready", { toolCount: catalog.length });
-  });
+  const catalog = await toolCatalog.refresh();
+  logger.info("boot.catalog_ready", { toolCount: catalog.length });
 
   const gateway = await gatewayHttpServer.start({
     host: process.env.TORII_HOST ?? "127.0.0.1",

@@ -49,12 +49,9 @@ The whole stack runs under Docker Compose: Fuda on `:3300`, Torii on `:3100` (al
 docker compose up --build
 ```
 
-Fuda starts with an empty registry, so seed agents and grants before submitting a task — otherwise token exchange fails:
-
-```bash
-pnpm --filter @keidai/fuda seed -- ./apps/fuda/fuda.seed.example.yaml
-```
-
+Fuda starts with an empty agent registry. Set `FUDA_OPERATORS_PATH` so owners
+reconcile at boot, then create agents/bearers/grants via keidai-ui (or the
+management API) before submitting a task — otherwise token exchange fails.
 Requires a signing key at `apps/fuda/keys/dev.pem` plus `SHAIDEN_BEARER`, `FUDA_ISSUER`, and the demo backend secrets in the repo root `.env` (see [`.env.example`](.env.example)). Per-service setup: [`apps/fuda/README.md`](apps/fuda/README.md), [`apps/torii/README.md`](apps/torii/README.md), [`apps/shaiden/README.md`](apps/shaiden/README.md).
 
 ## Docs

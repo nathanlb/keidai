@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { isOperatorAllowed } from "./allowlist.js";
+import type { OperatorPrincipal } from "@keidai/shared";
+import { isOperatorAllowed, resolveOperatorOwnerId } from "./allowlist.js";
 import {
   buildGoogleAuthorizationUrl,
   exchangeGoogleAuthorizationCode,
@@ -15,13 +16,7 @@ import {
   serializeOidcStateCookie,
   serializeSessionCookie,
 } from "./session.js";
-import type { OperatorAuthConfig, OperatorPrincipal } from "./types.js";
-
-declare module "fastify" {
-  interface FastifyRequest {
-    operatorPrincipal?: OperatorPrincipal;
-  }
-}
+import type { OperatorAuthConfig } from "./types.js";
 
 function appendSetCookie(reply: FastifyReply, value: string): void {
   const existing = reply.getHeader("set-cookie");
@@ -111,7 +106,12 @@ export async function registerOperatorAuth(
       return reply.redirect("/?auth_error=invalid_state");
     }
 
-    let claims: { googleSub: string; email: string };
+    let claims: {
+      googleSub: string;
+      email: string;
+      name?: string;
+      picture?: string;
+    };
     try {
       claims = await exchangeGoogleAuthorizationCode(config, {
         code,
@@ -122,7 +122,13 @@ export async function registerOperatorAuth(
       return reply.redirect("/?auth_error=token_exchange");
     }
 
-    if (!isOperatorAllowed(config.allowlist, claims)) {
+    if (!isOperatorAllowed(config.operators, claims)) {
+      appendSetCookie(reply, clearOidc);
+      return reply.code(403).type("text/html").send(forbiddenPage(claims.email));
+    }
+
+    const ownerId = resolveOperatorOwnerId(config.operators, claims);
+    if (!ownerId) {
       appendSetCookie(reply, clearOidc);
       return reply.code(403).type("text/html").send(forbiddenPage(claims.email));
     }
@@ -130,7 +136,9 @@ export async function registerOperatorAuth(
     const principal: OperatorPrincipal = {
       googleSub: claims.googleSub,
       email: claims.email,
-      ownerId: config.ownerId,
+      ownerId,
+      ...(claims.name ? { name: claims.name } : {}),
+      ...(claims.picture ? { picture: claims.picture } : {}),
     };
     const sealedSession = await sealOperatorSession(principal, config);
     appendSetCookie(reply, clearOidc);

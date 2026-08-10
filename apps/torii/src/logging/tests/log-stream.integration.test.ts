@@ -32,7 +32,6 @@ describe("gateway log streams", () => {
       tools: [{ name: "ping", description: "Ping" }],
     });
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         {

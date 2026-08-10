@@ -5,7 +5,6 @@ import type { ToriiConfig } from "@keidai/shared";
 import { ToriiConfigService } from "../torii-config.service.js";
 
 const sampleConfig: ToriiConfig = {
-  boot_owner_id: "test-owner",
   oauth_providers: {},
   servers: [
     {

@@ -17,7 +17,7 @@ services:
       # Mount apps/fuda/keys/dev.pem (see apps/fuda/README.md).
       FUDA_SIGNING_KEYS: "dev=/app/keys/dev.pem"
       FUDA_SIGNING_KID: "dev"
-      # Map Shaiden's subject token to the demo bearer_id from fuda.seed.example.yaml.
+      # Map Shaiden's subject token to a Fuda bearer_id (create via management API).
       FUDA_STATIC_SUBJECT_MAPPINGS: ${SHAIDEN_BEARER:-local-dev-secret}=local-dev
     volumes:
       - ./apps/fuda/keys:/app/keys:ro

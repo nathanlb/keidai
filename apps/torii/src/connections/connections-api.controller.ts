@@ -2,9 +2,6 @@ import { CONNECTION_SSE_EVENT, type ConnectionSseEvent } from "@keidai/shared";
 import type { FastifyInstance } from "fastify";
 import { inject, injectable } from "tsyringe";
 import { ToolCatalogService } from "../catalog/tool-catalog.service.js";
-import { ToriiConfigService } from "../config/torii-config.service.js";
-import { runWithAgentPrincipal } from "../identity/agent-principal-context.js";
-import { resolveBootPrincipal } from "../identity/resolve-boot-principal.js";
 import { ConnectionManager } from "./connection-manager.service.js";
 import { ConnectionReadService } from "./connection-read.service.js";
 
@@ -17,8 +14,6 @@ export class ConnectionsApiController {
     private readonly connectionManager: ConnectionManager,
     @inject(ToolCatalogService)
     private readonly toolCatalog: ToolCatalogService,
-    @inject(ToriiConfigService)
-    private readonly configService: ToriiConfigService,
   ) {}
 
   registerRoutes(app: FastifyInstance): void {
@@ -73,8 +68,7 @@ export class ConnectionsApiController {
   }
 
   private async refreshCatalogAndBroadcast(name?: string): Promise<void> {
-    const principal = resolveBootPrincipal(this.configService.get());
-    await runWithAgentPrincipal(principal, () => this.toolCatalog.refresh());
+    await this.toolCatalog.refresh();
     this.connectionManager.rebroadcast(name);
   }
 }

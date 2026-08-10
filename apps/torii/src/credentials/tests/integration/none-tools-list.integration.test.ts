@@ -58,7 +58,6 @@ describe("none credentials with tools/list", () => {
     });
 
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [noneServer("deepwiki", mockServer.url)],
       groups: [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])],
@@ -100,7 +99,6 @@ describe("none credentials with tools/call", () => {
     });
 
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [noneServer("deepwiki", mockServer.url)],
     });
@@ -129,7 +127,6 @@ describe("none credentials with tools/call", () => {
 describe("none credentials with DeepWiki MCP", () => {
   it("lists and calls tools from DeepWiki", async () => {
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         {

@@ -19,7 +19,6 @@ describe("Gateway HTTP access logging", () => {
   it("emits structured access logs without secrets", async () => {
     const logger = createCapturingLogger();
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [],
     });
@@ -39,7 +38,6 @@ describe("Gateway HTTP access logging", () => {
         new ConnectionReadService(connectionManager, createStubToolCatalog()),
         connectionManager,
         createStubToolCatalog(),
-        configService,
       ),
       createOAuthApiController(configService),
       createTracesApiController(),

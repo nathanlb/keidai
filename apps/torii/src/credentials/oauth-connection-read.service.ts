@@ -26,7 +26,7 @@ export class OAuthConnectionReadService {
 
   async listConnections(ownerId?: string): Promise<OAuthConnectionsResponse> {
     const config = this.configService.get();
-    const resolvedOwnerId = resolveOAuthOwnerId(config, ownerId);
+    const resolvedOwnerId = resolveOAuthOwnerId(ownerId);
     const grants = await this.tokenRepository.listByOwner(resolvedOwnerId);
     const grantsByProvider = new Map(
       grants.map((grant) => [grant.provider, grant.token]),

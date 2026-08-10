@@ -11,6 +11,9 @@ import {
 } from "./config/runtime-config.js";
 import { FudaHttpServer } from "./http/fuda-http-server.service.js";
 import { StructuredLoggerService } from "./logging/structured-logger.service.js";
+import { AGENT_REPOSITORY } from "./agents/types/agent-repository.js";
+import { applyOperatorsFile } from "./owners/apply-operators-file.js";
+import { OWNER_REPOSITORY } from "./owners/types/owner-repository.js";
 
 function waitForShutdown(): Promise<void> {
   return new Promise((resolve) => {
@@ -37,6 +40,17 @@ export async function startServer(): Promise<void> {
     applied: migrations.applied,
     alreadyApplied: migrations.alreadyApplied,
   });
+
+  const ownersReconcile = await applyOperatorsFile(
+    app.resolve(OWNER_REPOSITORY),
+    app.resolve(AGENT_REPOSITORY),
+  );
+  if (ownersReconcile) {
+    logger.info("boot.operators_reconciled", {
+      path: process.env.FUDA_OPERATORS_PATH,
+      ...ownersReconcile,
+    });
+  }
 
   const http = await httpServer.start();
   logger.info("boot.listening", {
