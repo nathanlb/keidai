@@ -130,6 +130,47 @@ describe("buildServerSummaries", () => {
     expect(summaries[0]?.rowAction).toBe("link");
     expect(summaries[0]?.linkProviderId).toBe("github");
   });
+
+  it("softens boot auth failures when the acting owner is already linked", () => {
+    const connections = new Map<string, ConnectionStatus>([
+      [
+        "github",
+        {
+          name: "github",
+          state: "failed",
+          error:
+            "Streamable HTTP error: Error POSTing to endpoint: bad request: missing required Authorization header",
+        },
+      ],
+    ]);
+
+    const summaries = buildServerSummaries([githubServer], connections, {
+      ownerId: "demo-owner",
+      oauthProviders: {
+        github: {
+          token_url: "https://github.com/login/oauth/access_token",
+          client_id: "gh-client",
+          scopes: ["repo"],
+        },
+      },
+      oauthConnections: [
+        {
+          provider: "github",
+          ownerId: "demo-owner",
+          status: "linked",
+          scopes: ["repo"],
+        },
+      ],
+    });
+
+    expect(summaries[0]?.credentialSubStatus).toEqual({
+      label: "→ GitHub",
+      warning: false,
+    });
+    expect(summaries[0]?.error).toBe(
+      "Owner linked — MCP connects on the next agent session",
+    );
+  });
 });
 
 describe("summarizeConnectionCounts", () => {

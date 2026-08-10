@@ -30,7 +30,7 @@ describe("resolveOperatorAuthConfigFromEnv", () => {
     const config = await resolveOperatorAuthConfigFromEnv({
       KEIDAI_GOOGLE_CLIENT_ID: "cid",
       KEIDAI_GOOGLE_CLIENT_SECRET: "csecret",
-      KEIDAI_GOOGLE_REDIRECT_URI: "http://127.0.0.1:3000/auth/callback",
+      KEIDAI_GOOGLE_REDIRECT_URI: "http://localhost:3000/auth/callback",
       KEIDAI_SESSION_SECRET: "x".repeat(32),
       KEIDAI_OPERATORS_PATH: operatorsPath,
       KEIDAI_COOKIE_SECURE: "false",

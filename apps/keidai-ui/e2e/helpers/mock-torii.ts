@@ -112,12 +112,19 @@ export async function mockToriiConfig(
   const bearerState: Bearer[] = fudaBearers.map((bearer) => ({ ...bearer }));
   const grantState: Grant[] = fudaGrants.map((grant) => ({ ...grant }));
 
-  // Vite has no BFF session endpoint; 404 keeps OperatorAuthGate open for e2e.
+  // E2E runs Vite without the API-only BFF; fulfill a session so
+  // OperatorAuthGate + useActingOwner see a valid operator principal
+  // (same owner as e2e agent fixtures).
   await page.route("**/api/session", async (route) => {
     await route.fulfill({
-      status: 404,
+      status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ error: "Not Found" }),
+      body: JSON.stringify({
+        googleSub: "e2e-operator",
+        email: "e2e@example.com",
+        ownerId: "owner-a",
+        name: "E2E Operator",
+      }),
     });
   });
 
@@ -245,7 +252,7 @@ export async function mockToriiConfig(
     const response = oauthInitiate[provider] ?? {
       authorizationUrl: `https://example.com/oauth/${provider}`,
       linkId: "link-1",
-      redirectUri: `http://127.0.0.1:3100/oauth/callback/${provider}`,
+      redirectUri: `http://localhost:3000/oauth/callback/${provider}`,
     };
 
     if ("status" in response) {

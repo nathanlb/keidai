@@ -332,9 +332,14 @@ describe("operator auth", () => {
       ";",
     )[0]!;
 
+    // Mirror browser <form method="post"> (default enctype).
     const logout = await fetch(`${baseUrl()}/auth/logout`, {
       method: "POST",
-      headers: { cookie: cookieHeader },
+      headers: {
+        cookie: cookieHeader,
+        "content-type": "application/x-www-form-urlencoded",
+      },
+      body: "",
       redirect: "manual",
     });
     assert.equal(logout.status, 302);

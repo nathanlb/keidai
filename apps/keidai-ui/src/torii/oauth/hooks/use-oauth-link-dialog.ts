@@ -201,11 +201,13 @@ export function useOAuthLinkDialog() {
 
       const initiate = await initiateOAuthLink(context.providerId, context.ownerId);
       activeLinkIdRef.current = initiate.linkId;
-      setContext((current) =>
-        current
-          ? { ...current, redirectUri: initiate.redirectUri }
-          : current,
-      );
+      if (initiate.redirectUri !== context.redirectUri) {
+        console.warn(
+          `Torii OAuth redirect_uri (${initiate.redirectUri}) does not match the operator edge (${context.redirectUri}). Set TORII_GATEWAY_BASE_URL to the BFF origin (e.g. http://localhost:3000).`,
+        );
+      }
+      // Keep the operator-edge redirect URI for display. Torii's initiate
+      // response must match (TORII_GATEWAY_BASE_URL / X-Forwarded-Host → BFF).
       openAuthWindow(initiate.authorizationUrl);
       setStep("waiting");
     } catch (error) {

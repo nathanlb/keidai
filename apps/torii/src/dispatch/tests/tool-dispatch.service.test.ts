@@ -298,6 +298,8 @@ describe("ToolDispatchService", () => {
     try {
       await bootBackends(stack.connectionManager, stack.toolCatalog);
 
+      // Kill the upstream so ensureConnected/reconnect cannot recover.
+      await mockServer.close();
       const connection = stack.connectionManager.get("github");
       assert.ok(connection);
       connection.state = "failed";
@@ -318,7 +320,6 @@ describe("ToolDispatchService", () => {
       assert.match(trace.error ?? "", /unavailable/);
     } finally {
       await stack.close();
-      await mockServer.close();
     }
   });
 

@@ -128,6 +128,9 @@ export class ToolCatalogService {
 
   /** Agent-facing tool list with namespaced `name` fields. */
   async listToolsForAgent(): Promise<AgentTool[]> {
+    // user_oauth MCP servers often require Authorization on initialize.
+    // Boot connect has no agent principal, so reconnect now that one is set.
+    await this.connectionManager.ensureUserOAuthConnected();
     const catalog = await this.refresh();
     const principal = getAgentPrincipal();
     return catalog

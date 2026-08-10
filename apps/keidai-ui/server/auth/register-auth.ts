@@ -49,6 +49,16 @@ export async function registerOperatorAuth(
   app: FastifyInstance,
   config: OperatorAuthConfig,
 ): Promise<void> {
+  // Browser <form method="post"> sends this Content-Type. Fastify only
+  // registers JSON by default and would otherwise 415 before logout runs.
+  app.addContentTypeParser(
+    "application/x-www-form-urlencoded",
+    { parseAs: "buffer" },
+    (_request, _body, done) => {
+      done(null, undefined);
+    },
+  );
+
   app.addHook("onRequest", async (request, reply) => {
     if (!wantsApi(request.url) || isPublicApiPath(request.url)) {
       return;

@@ -16,13 +16,17 @@ export function OwnerSwitcher() {
   const { owner } = useActingOwner();
   const { status, principal } = useOperatorSession();
 
+  if (!owner) {
+    return null;
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
           type="button"
           variant="outline"
-          className="h-8 gap-2 rounded-full py-0.5 pr-2 pl-1"
+          className="h-8 gap-2 rounded-full py-0.5 pr-1 pl-1 sm:pr-2"
         >
           <OwnerAvatar
             initials={owner.initials}
@@ -30,8 +34,10 @@ export function OwnerSwitcher() {
             size="sm"
             className="size-6 text-[10px]"
           />
-          <span className="text-[13px] font-medium">{owner.displayName}</span>
-          <ChevronsUpDown className="size-3.5 text-muted-foreground" />
+          <span className="hidden text-[13px] font-medium sm:inline">
+            {owner.displayName}
+          </span>
+          <ChevronsUpDown className="hidden size-3.5 text-muted-foreground sm:block" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-60">

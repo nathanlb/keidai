@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "build": "vite build && tsc -p tsconfig.server.json",
-    "dev": "vite",
+    "dev": "node ./scripts/dev.mjs",
+    "dev:bff": "tsx watch server/dev.ts",
+    "dev:vite": "vite",
     "start": "node dist/server/index.js",
     "test": "vitest run && pnpm run test:server && pnpm run test:e2e",
     "test:ui": "vitest --ui",

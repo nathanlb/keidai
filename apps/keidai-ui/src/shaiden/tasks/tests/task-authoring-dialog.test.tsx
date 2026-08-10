@@ -52,7 +52,12 @@ vi.mock("../../../shell/hooks/use-fetch-agents.js", () => ({
 
 vi.mock("../../../shell/hooks/use-acting-owner.js", () => ({
   useActingOwner: () => ({
-    owner: { ownerId: "nathanlb", initials: "NL" },
+    owner: {
+      ownerId: "nathanlb",
+      displayName: "nathanlb",
+      initials: "NL",
+    },
+    isLoading: false,
   }),
 }));
 

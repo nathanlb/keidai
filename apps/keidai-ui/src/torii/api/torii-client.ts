@@ -16,39 +16,34 @@ import type {
 } from "@keidai/shared";
 
 import type { ServiceHealth } from "../../shell/types/service-health.js";
-
-const toriiDisplayUrl =
-  import.meta.env.VITE_TORII_URL ?? "http://127.0.0.1:3100";
+import { resolveBackendDisplayAddress } from "../../shell/utils/resolve-backend-display-address.js";
 
 export interface ToriiHealthResponse {
   ok: boolean;
   version: string;
 }
 
-function parseDisplayAddress(url: string): string {
-  try {
-    const parsed = new URL(url);
-    return `${parsed.hostname}:${parsed.port || (parsed.protocol === "https:" ? "443" : "80")}`;
-  } catch {
-    return url;
-  }
-}
-
+/**
+ * Display-only backend address for the health footer.
+ * Browser API calls are same-origin `/api/*` through the BFF — never this URL.
+ */
 export function getToriiDisplayAddress(): string {
-  return parseDisplayAddress(toriiDisplayUrl);
+  return resolveBackendDisplayAddress(
+    "VITE_TORII_URL",
+    import.meta.env.VITE_TORII_URL,
+  );
 }
 
+/**
+ * Public operator-edge origin (Vite/BFF), used for OAuth callback URLs and
+ * postMessage origin checks. Not Torii's internal listen address.
+ */
 export function getToriiOrigin(): string {
-  const configured = import.meta.env.VITE_TORII_URL;
-  if (configured) {
-    return new URL(configured).origin;
-  }
-
   if (typeof window !== "undefined") {
     return window.location.origin;
   }
 
-  return new URL(toriiDisplayUrl).origin;
+  return "http://localhost:3000";
 }
 
 async function fetchJson<T>(path: string): Promise<T> {
@@ -116,16 +111,23 @@ export async function fetchServerTools(
   );
 }
 
-export async function reconnectAllConnections(): Promise<void> {
-  const response = await fetch("/api/connections/reconnect", { method: "POST" });
+export async function reconnectAllConnections(ownerId: string): Promise<void> {
+  const query = `?owner=${encodeURIComponent(ownerId)}`;
+  const response = await fetch(`/api/connections/reconnect${query}`, {
+    method: "POST",
+  });
   if (!response.ok) {
     throw new Error(`Reconnect all failed: ${response.status}`);
   }
 }
 
-export async function reconnectConnection(serverName: string): Promise<void> {
+export async function reconnectConnection(
+  serverName: string,
+  ownerId: string,
+): Promise<void> {
+  const query = `?owner=${encodeURIComponent(ownerId)}`;
   const response = await fetch(
-    `/api/connections/${encodeURIComponent(serverName)}/reconnect`,
+    `/api/connections/${encodeURIComponent(serverName)}/reconnect${query}`,
     { method: "POST" },
   );
   if (!response.ok) {

@@ -558,7 +558,9 @@ export function TaskAuthoringView({
             <Info className="size-3.5 shrink-0" aria-hidden />
             <span className="truncate">
               Executes on the assigned agent · runs as{" "}
-              <span className="font-mono text-foreground">{owner.ownerId}</span>
+              <span className="font-mono text-foreground">
+                {owner?.ownerId ?? "—"}
+              </span>
             </span>
           </div>
         ) : (

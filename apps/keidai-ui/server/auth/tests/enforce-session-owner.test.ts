@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   forceSessionOwnerOnAgentCreateBody,
-  forceSessionOwnerOnOAuthInitiateUrl,
+  forceSessionOwnerQuery,
 } from "../enforce-session-owner.js";
 
 describe("forceSessionOwnerOnAgentCreateBody", () => {
@@ -42,24 +42,32 @@ describe("forceSessionOwnerOnAgentCreateBody", () => {
   });
 });
 
-describe("forceSessionOwnerOnOAuthInitiateUrl", () => {
-  it("sets owner when missing", () => {
+describe("forceSessionOwnerQuery", () => {
+  it("sets owner when missing on OAuth initiate", () => {
     assert.equal(
-      forceSessionOwnerOnOAuthInitiateUrl(
-        "/oauth/initiate/github",
-        "demo-owner",
-      ),
+      forceSessionOwnerQuery("/oauth/initiate/github", "demo-owner"),
       "/oauth/initiate/github?owner=demo-owner",
     );
   });
 
-  it("overwrites a client-supplied owner", () => {
+  it("overwrites a client-supplied owner on OAuth initiate", () => {
     assert.equal(
-      forceSessionOwnerOnOAuthInitiateUrl(
+      forceSessionOwnerQuery(
         "/oauth/initiate/github?owner=other-owner&foo=1",
         "demo-owner",
       ),
       "/oauth/initiate/github?owner=demo-owner&foo=1",
+    );
+  });
+
+  it("sets owner on connection reconnect paths", () => {
+    assert.equal(
+      forceSessionOwnerQuery("/api/connections/github/reconnect", "demo-owner"),
+      "/api/connections/github/reconnect?owner=demo-owner",
+    );
+    assert.equal(
+      forceSessionOwnerQuery("/connections/reconnect", "demo-owner"),
+      "/connections/reconnect?owner=demo-owner",
     );
   });
 });

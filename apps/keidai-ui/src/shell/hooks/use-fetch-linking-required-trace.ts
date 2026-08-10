@@ -20,10 +20,10 @@ async function fetchLatestLinkingRequiredTrace(
   );
 }
 
-export function useFetchLinkingRequiredTrace(ownerId: string) {
+export function useFetchLinkingRequiredTrace(ownerId: string | null) {
   const { data, error, isLoading, mutate } = useSWR(
-    [LINKING_REQUIRED_TRACE_KEY, ownerId],
-    () => fetchLatestLinkingRequiredTrace(ownerId),
+    ownerId ? [LINKING_REQUIRED_TRACE_KEY, ownerId] : null,
+    () => fetchLatestLinkingRequiredTrace(ownerId!),
     swrOptions,
   );
 

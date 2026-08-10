@@ -1,8 +1,5 @@
 import type { ServiceHealth } from "../../shell/types/service-health.js";
-
-/** Display-only backend address for the health footer (API calls are same-origin `/api/*`). */
-const fudaDisplayUrl =
-  import.meta.env.VITE_FUDA_URL || "http://127.0.0.1:3300";
+import { resolveBackendDisplayAddress } from "../../shell/utils/resolve-backend-display-address.js";
 
 export interface FudaHealthResponse {
   ok: boolean;
@@ -65,17 +62,12 @@ export interface UpdateAgentRequest {
   persona?: string;
 }
 
-function parseDisplayAddress(url: string): string {
-  try {
-    const parsed = new URL(url);
-    return `${parsed.hostname}:${parsed.port || (parsed.protocol === "https:" ? "443" : "80")}`;
-  } catch {
-    return url;
-  }
-}
-
+/** Display-only backend address for the health footer (API calls are same-origin `/api/*` via the BFF). */
 export function getFudaDisplayAddress(): string {
-  return parseDisplayAddress(fudaDisplayUrl);
+  return resolveBackendDisplayAddress(
+    "VITE_FUDA_URL",
+    import.meta.env.VITE_FUDA_URL,
+  );
 }
 
 async function fetchJson<T>(path: string): Promise<T> {

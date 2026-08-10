@@ -76,6 +76,25 @@ export function summarizeConnectionCounts(
   );
 }
 
+function formatConnectionError(
+  server: PublicServerConfig,
+  state: ConnectionState,
+  connection: ConnectionStatus | undefined,
+  oauthConnection: OAuthConnectionStatus | undefined,
+): string | undefined {
+  if (
+    server.credential.strategy === "user_oauth" &&
+    oauthConnection?.status === "linked" &&
+    state === "failed"
+  ) {
+    // Boot/reconnect without an agent principal cannot attach Authorization.
+    // Grant is linked; the next agent tools/list or tools/call reconnects.
+    return "Owner linked — MCP connects on the next agent session";
+  }
+
+  return connection?.error;
+}
+
 export function buildServerSummaries(
   servers: readonly PublicServerConfig[],
   connections: ReadonlyMap<string, ConnectionStatus>,
@@ -119,7 +138,7 @@ export function buildServerSummaries(
             ? connection.toolCount
             : null,
         state,
-        error: connection?.error,
+        error: formatConnectionError(server, state, connection, oauthConnection),
         ...rowAction,
       };
     });

@@ -1,6 +1,6 @@
 import { defineConfig } from "@playwright/test";
 
-const baseURL = "http://127.0.0.1:3000";
+const baseURL = "http://localhost:3000";
 
 export default defineConfig({
   testDir: "e2e",
@@ -14,7 +14,7 @@ export default defineConfig({
     trace: process.env.CI ? "retain-on-failure" : "on-first-retry",
   },
   webServer: {
-    command: "pnpm exec vite",
+    command: "pnpm run dev:vite",
     url: baseURL,
     cwd: import.meta.dirname,
     reuseExistingServer: !process.env.CI,

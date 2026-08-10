@@ -20,13 +20,18 @@ function isAgentCreatePath(url: string): boolean {
 }
 
 /**
- * Path for OAuth initiate — may be full `/api/...` (raw) or prefix-stripped.
+ * Path for posts that must bind `?owner=` to the session principal —
+ * OAuth initiate and connection reconnect (user_oauth credentials).
+ * May be full `/api/...` (raw) or prefix-stripped by http-proxy.
  */
-function isOAuthInitiatePath(url: string): boolean {
+function isSessionOwnerQueryPath(url: string): boolean {
   const pathname = url.split("?")[0] ?? url;
   return (
     pathname.startsWith("/oauth/initiate/") ||
-    pathname.startsWith("/api/oauth/initiate/")
+    pathname.startsWith("/api/oauth/initiate/") ||
+    pathname === "/connections/reconnect" ||
+    pathname === "/api/connections/reconnect" ||
+    /(?:^|\/)connections\/[^/]+\/reconnect$/.test(pathname)
   );
 }
 
@@ -49,10 +54,10 @@ export function forceSessionOwnerOnAgentCreateBody(
 }
 
 /**
- * Forces `?owner=` on OAuth initiate to the session principal.
+ * Forces `?owner=` to the session principal.
  * Returns the rewritten path+query (no origin).
  */
-export function forceSessionOwnerOnOAuthInitiateUrl(
+export function forceSessionOwnerQuery(
   url: string,
   ownerId: string,
 ): string {
@@ -60,6 +65,9 @@ export function forceSessionOwnerOnOAuthInitiateUrl(
   parsed.searchParams.set("owner", ownerId);
   return `${parsed.pathname}${parsed.search}`;
 }
+
+/** @deprecated Use forceSessionOwnerQuery */
+export const forceSessionOwnerOnOAuthInitiateUrl = forceSessionOwnerQuery;
 
 /**
  * `@fastify/http-proxy` preHandler for the Fuda `/api/agents` mount.
@@ -87,7 +95,8 @@ export async function enforceSessionOwnerOnAgentProxy(
 
 /**
  * `@fastify/http-proxy` preHandler for the Torii `/api` mount.
- * Rewrites OAuth initiate `?owner=` to the session principal before proxying.
+ * Rewrites OAuth initiate and connection reconnect `?owner=` to the session
+ * principal before proxying.
  *
  * Mutates `request.raw.url` (Fastify's `request.url` is a read-only getter over
  * it) so `@fastify/http-proxy` forwards the forced query string.
@@ -96,7 +105,7 @@ export async function enforceSessionOwnerOnToriiApiProxy(
   request: FastifyRequest,
   _reply: FastifyReply,
 ): Promise<void> {
-  if (request.method !== "POST" || !isOAuthInitiatePath(request.url)) {
+  if (request.method !== "POST" || !isSessionOwnerQueryPath(request.url)) {
     return;
   }
 
@@ -105,5 +114,5 @@ export async function enforceSessionOwnerOnToriiApiProxy(
     return;
   }
 
-  request.raw.url = forceSessionOwnerOnOAuthInitiateUrl(request.url, ownerId);
+  request.raw.url = forceSessionOwnerQuery(request.url, ownerId);
 }

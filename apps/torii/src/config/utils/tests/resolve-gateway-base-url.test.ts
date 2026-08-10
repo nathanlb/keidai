@@ -63,4 +63,19 @@ describe("resolveGatewayBaseUrl", () => {
       }
     }
   });
+
+  it("prefers X-Forwarded-Host and X-Forwarded-Proto from the operator edge", () => {
+    const base = resolveGatewayBaseUrl(
+      { oauth_providers: {}, servers: [] },
+      {
+        headers: {
+          host: "127.0.0.1:3100",
+          "x-forwarded-host": "localhost:3000",
+          "x-forwarded-proto": "https",
+        },
+      } as never,
+    );
+
+    assert.equal(base, "https://localhost:3000");
+  });
 });

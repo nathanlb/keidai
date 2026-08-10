@@ -115,10 +115,10 @@ export function AgentCreateView() {
   }
 
   const canCreate =
-    isValid && slugStatus === "available" && !isSubmitting;
+    Boolean(owner) && isValid && slugStatus === "available" && !isSubmitting;
 
   const onSubmit = handleSubmit(async (values) => {
-    if (!canCreate) {
+    if (!canCreate || !owner) {
       return;
     }
     setSubmitError(null);
@@ -295,8 +295,10 @@ export function AgentCreateView() {
           <div className="flex items-center gap-2.5 border-t border-border pt-4 text-[12.5px] text-muted-foreground">
             <User className="size-3 shrink-0" aria-hidden />
             Owner will be{" "}
-            <span className="font-mono text-foreground">{owner.ownerId}</span> —
-            single-valued and fixed at registration.
+            <span className="font-mono text-foreground">
+              {owner?.ownerId ?? "—"}
+            </span>{" "}
+            — single-valued and fixed at registration.
           </div>
         </div>
 
