@@ -19,8 +19,12 @@ services:
       FUDA_SIGNING_KID: "dev"
       # Map Shaiden's subject token to a Fuda bearer_id (create via management API).
       FUDA_STATIC_SUBJECT_MAPPINGS: ${SHAIDEN_BEARER:-local-dev-secret}=local-dev
+      # Pin container path so host-relative FUDA_OPERATORS_PATH from apps/fuda/.env
+      # cannot break in-container boot (mirrors k8s ConfigMap mount).
+      FUDA_OPERATORS_PATH: /app/operators/operators.yaml
     volumes:
       - ./apps/fuda/keys:/app/keys:ro
+      - ./deploy/operators.example.yaml:/app/operators/operators.yaml:ro
       - fuda-data:/app/data
     healthcheck:
       test:
@@ -51,6 +55,8 @@ services:
       TORII_DB_PATH: /app/data/torii.db
       TORII_FUDA_ISSUER: ${FUDA_ISSUER:-http://fuda:3300}
       TORII_FUDA_JWKS_URI: http://fuda:3300/.well-known/jwks.json
+      # Public operator edge (keidai-ui BFF), not Torii's listen port.
+      TORII_GATEWAY_BASE_URL: http://localhost:3000
     volumes:
       - ./apps/torii/torii.demo.yaml:/app/torii.demo.yaml:ro
       - torii-data:/app/data
@@ -111,6 +117,13 @@ services:
       KEIDAI_UI_TORII_URL: http://torii:3100
       KEIDAI_UI_FUDA_URL: http://fuda:3300
       KEIDAI_UI_SHAIDEN_URL: http://shaiden:3200
+      # Pin edge/session env so host .env relative paths / Secure-cookie
+      # defaults cannot break http://localhost:3000 (mirrors k8s ConfigMap).
+      KEIDAI_GOOGLE_REDIRECT_URI: http://localhost:3000/auth/callback
+      KEIDAI_COOKIE_SECURE: "false"
+      KEIDAI_OPERATORS_PATH: /app/operators/operators.yaml
+    volumes:
+      - ./deploy/operators.example.yaml:/app/operators/operators.yaml:ro
     ports:
       - "3000:3000"
     healthcheck:
