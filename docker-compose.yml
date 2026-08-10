@@ -66,7 +66,7 @@ services:
           "CMD",
           "node",
           "-e",
-          "fetch('http://127.0.0.1:' + (process.env.TORII_PORT || 3100) + '/api/config/servers').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+            "fetch('http://127.0.0.1:' + (process.env.TORII_PORT || 3100) + '/api/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
         ]
       interval: 10s
       timeout: 3s

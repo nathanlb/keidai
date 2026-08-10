@@ -17,6 +17,9 @@ import {
   type TestPersistence,
 } from "../../testing/persistence.js";
 
+// Opt out of ecosystem BFF service-token hardening for HTTP unit tests.
+process.env.BFF_SERVICE_TOKEN_DISABLED ??= "true";
+
 const silentLogger: Logger = {
   debug() {},
   info() {},

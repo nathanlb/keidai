@@ -9,6 +9,10 @@ import { SqliteOwnerRepository } from "../../owners/sqlite-owner-repository.js";
 import { writeTempSigningKeyPem } from "../../signing/tests/test-helpers.js";
 import { FudaHttpServer } from "../fuda-http-server.service.js";
 
+// Opt out of ecosystem BFF service-token hardening for HTTP unit tests.
+// Gate-focused tests clear this and set BFF_SERVICE_TOKEN explicitly.
+process.env.BFF_SERVICE_TOKEN_DISABLED ??= "true";
+
 const silentLogger = {
   debug() {},
   info() {},

@@ -56,7 +56,16 @@ docker compose up --build
 
 Open [http://localhost:3000](http://localhost:3000) and sign in with an allowlisted Google operator (`deploy/operators.example.yaml`, mounted into Fuda + BFF). Create agents/bearers/grants via keidai-ui before submitting a Shaiden task — otherwise token exchange fails.
 
-Requires a signing key at `apps/fuda/keys/dev.pem` plus `SHAIDEN_BEARER`, `FUDA_ISSUER`, Google OIDC secrets for the BFF, and demo backend secrets in the repo root `.env` / `apps/keidai-ui/.env` (see [`.env.example`](.env.example) and [`apps/keidai-ui/.env.example`](apps/keidai-ui/.env.example)). Per-service setup: [`apps/fuda/README.md`](apps/fuda/README.md), [`apps/torii/README.md`](apps/torii/README.md), [`apps/shaiden/README.md`](apps/shaiden/README.md), [`apps/keidai-ui/README.md`](apps/keidai-ui/README.md). In-cluster: [`deploy/k8s/README.md`](deploy/k8s/README.md).
+**Prerequisites** (see [`.env.example`](.env.example) and [`apps/keidai-ui/.env.example`](apps/keidai-ui/.env.example)):
+
+- Fuda signing key at `apps/fuda/keys/dev.pem`
+- `SHAIDEN_BEARER` — Shaiden → Fuda subject token
+- `FUDA_ISSUER` — JWT issuer claim (must match Torii)
+- `BFF_SERVICE_TOKEN` — shared BFF → backend secret (`openssl rand -hex 32`)
+- Google OIDC secrets for the BFF (`KEIDAI_GOOGLE_*`, `KEIDAI_SESSION_SECRET`)
+- Demo backend secrets in the repo root `.env` and `apps/keidai-ui/.env`
+
+Per-service setup: [`apps/fuda/README.md`](apps/fuda/README.md), [`apps/torii/README.md`](apps/torii/README.md), [`apps/shaiden/README.md`](apps/shaiden/README.md), [`apps/keidai-ui/README.md`](apps/keidai-ui/README.md). In-cluster: [`deploy/k8s/README.md`](deploy/k8s/README.md).
 
 ## Docs
 

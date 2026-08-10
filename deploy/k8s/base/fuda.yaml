@@ -30,6 +30,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: fuda-config
+            - secretRef:
+                name: keidai-secrets
           volumeMounts:
             - name: data
               mountPath: /app/data

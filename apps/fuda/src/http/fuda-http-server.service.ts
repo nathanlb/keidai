@@ -1,6 +1,10 @@
 import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import { inject, injectable } from "tsyringe";
 import type { Logger } from "@keidai/shared";
+import {
+  authorizeBffServiceToken,
+  resolveBffServiceToken,
+} from "@keidai/shared/bff-service-token";
 import { AgentDefinitionApiController } from "../agents/agent-definition-api.controller.js";
 import { AgentsManagementApiController } from "../agents/agents-management-api.controller.js";
 import { BearersManagementApiController } from "../bearers/bearers-management-api.controller.js";
@@ -47,11 +51,23 @@ export class FudaHttpServer {
     listenGroups: readonly RouteGroup[] = this.configService.get().listenGroups,
   ): Promise<FastifyInstance> {
     const app = Fastify({ logger: false });
+    const bffServiceToken = resolveBffServiceToken();
 
     app.addHook("onRequest", async (request) => {
       (request as FastifyRequest & { [requestStartTime]?: number })[
         requestStartTime
       ] = Date.now();
+    });
+
+    app.addHook("onRequest", async (request, reply) => {
+      const decision = authorizeBffServiceToken({
+        expectedToken: bffServiceToken,
+        authorization: request.headers.authorization,
+        pathname: readRequestPath(request),
+      });
+      if (!decision.ok) {
+        return reply.code(decision.statusCode).send({ error: decision.error });
+      }
     });
 
     app.addHook("onResponse", async (request, reply) => {

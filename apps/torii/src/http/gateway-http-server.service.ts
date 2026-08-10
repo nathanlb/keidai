@@ -8,6 +8,10 @@ import { StructuredLoggerService } from "../logging/structured-logger.service.js
 import { TracesApiController } from "../trace/traces-api.controller.js";
 import { ApprovalsApiController } from "../policy/approvals-api.controller.js";
 import type { Logger } from "@keidai/shared";
+import {
+  authorizeBffServiceToken,
+  resolveBffServiceToken,
+} from "@keidai/shared/bff-service-token";
 import type {
   GatewayHttpServerHandle,
   GatewayHttpServerOptions,
@@ -44,11 +48,23 @@ export class GatewayHttpServer {
 
   async createApp(): Promise<FastifyInstance> {
     const app = Fastify({ logger: false });
+    const bffServiceToken = resolveBffServiceToken();
 
     app.addHook("onRequest", async (request) => {
       (request as FastifyRequest & { [requestStartTime]?: number })[
         requestStartTime
       ] = Date.now();
+    });
+
+    app.addHook("onRequest", async (request, reply) => {
+      const decision = authorizeBffServiceToken({
+        expectedToken: bffServiceToken,
+        authorization: request.headers.authorization,
+        pathname: readRequestPath(request),
+      });
+      if (!decision.ok) {
+        return reply.code(decision.statusCode).send({ error: decision.error });
+      }
     });
 
     app.addHook("onResponse", async (request, reply) => {

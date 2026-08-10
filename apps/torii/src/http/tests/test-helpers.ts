@@ -39,6 +39,10 @@ import {
   type TestGatewayPersistence,
 } from "../../testing/gateway-persistence.js";
 
+// Opt out of ecosystem BFF service-token hardening for HTTP unit tests.
+// Gate-focused tests clear this and set BFF_SERVICE_TOKEN explicitly.
+process.env.BFF_SERVICE_TOKEN_DISABLED ??= "true";
+
 export function createStubToolCatalog(
   catalog: readonly CatalogTool[] = [],
   serverTools: Record<

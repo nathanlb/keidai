@@ -1,5 +1,9 @@
 import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import type { Logger, Task } from "@keidai/shared";
+import {
+  authorizeBffServiceToken,
+  resolveBffServiceToken,
+} from "@keidai/shared/bff-service-token";
 import type { FudaClient } from "@keidai/shared/clients";
 import { RunsApiController } from "./runs-api.controller.js";
 import { TasksApiController } from "./tasks-api.controller.js";
@@ -58,6 +62,7 @@ export class ShaidenHttpServer {
 
   async createApp(): Promise<FastifyInstance> {
     const app = Fastify({ logger: false });
+    const bffServiceToken = resolveBffServiceToken();
 
     app.addHook("onRequest", async (request, reply) => {
       (request as FastifyRequest & { [requestStartTime]?: number })[
@@ -68,6 +73,17 @@ export class ShaidenHttpServer {
       reply.header("Access-Control-Allow-Origin", "*");
       reply.header("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
       reply.header("Access-Control-Allow-Headers", "Content-Type");
+    });
+
+    app.addHook("onRequest", async (request, reply) => {
+      const decision = authorizeBffServiceToken({
+        expectedToken: bffServiceToken,
+        authorization: request.headers.authorization,
+        pathname: readRequestPath(request),
+      });
+      if (!decision.ok) {
+        return reply.code(decision.statusCode).send({ error: decision.error });
+      }
     });
 
     app.options("/*", async (_request, reply) => {

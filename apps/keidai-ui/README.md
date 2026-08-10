@@ -58,6 +58,7 @@ Open [http://localhost:3000](http://localhost:3000) and sign in with Google OIDC
 | `KEIDAI_UI_TORII_URL` | `http://127.0.0.1:3100` | Torii upstream for the BFF |
 | `KEIDAI_UI_FUDA_URL` | `http://127.0.0.1:3300` | Fuda upstream for the BFF |
 | `KEIDAI_UI_SHAIDEN_URL` | `http://127.0.0.1:3200` | Shaiden upstream for the BFF |
+| `BFF_SERVICE_TOKEN` | — | Required shared secret with Torii/Fuda/Shaiden (root `.env`); injected on proxied management APIs. Opt out: `BFF_SERVICE_TOKEN_DISABLED=true` |
 | `VITE_TORII_URL` / `VITE_FUDA_URL` / `VITE_SHAIDEN_URL` | — | Display-only addresses in the health footer; unset shows `<NAME> unset` |
 
 Copy `.env.example` → `.env` and fill Google OIDC + operators path. Redirect URI stays `http://localhost:3000/auth/callback` (Vite origin; proxied to the BFF). Always open the UI as `http://localhost:3000` — not `127.0.0.1` — so OAuth matches IdP registrations and k8s.
@@ -74,7 +75,8 @@ Browser → Vite (http://localhost:3000, HMR)
 ```
 
 The BFF owns operator Google OIDC, session cookies, `ownerId` enforcement on
-writes, and the shared `OPERATOR_API_ROUTES` reverse-proxy table. Vite does not
+writes, the shared `OPERATOR_API_ROUTES` reverse-proxy table, and injection of
+`BFF_SERVICE_TOKEN` on upstream management API calls. Vite does not
 reimplement that routing.
 
 **Production** (`pnpm start` → `dist/server/index.js`):
