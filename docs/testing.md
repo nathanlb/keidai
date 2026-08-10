@@ -50,7 +50,10 @@ pnpm test:ui           # Vitest UI
 pnpm test:e2e:ui       # Playwright UI
 ```
 
-Playwright starts `pnpm exec tsx server/dev.ts` automatically (Fastify on port 3000 proxying Vite). In CI, browsers are installed before the test job runs.
+Playwright starts `pnpm exec vite` automatically (HMR on port 3000). E2E mocks
+`/api/*` (including `/api/session`) at the network boundary, so the API-only BFF
+is not required for those specs. In CI, browsers are installed before the test
+job runs.
 
 ## Guiding principles
 

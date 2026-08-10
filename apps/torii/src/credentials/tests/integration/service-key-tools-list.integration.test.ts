@@ -48,7 +48,6 @@ describe("service_key credentials with tools/list", () => {
     });
 
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [serviceKeyServer("stripe", mockServer.url, secretKey)],
       groups: [testAgentsGroup([{ server: "stripe", tools: ["list_customers"] }])],
@@ -93,7 +92,6 @@ describe("service_key credentials with tools/list", () => {
     });
 
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [serviceKeyServer("stripe", mockServer.url, wrongKey)],
     });
@@ -142,7 +140,6 @@ describe("service_key credentials with Stripe MCP", () => {
     }
 
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         {

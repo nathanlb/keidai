@@ -58,7 +58,7 @@ export const notLinkedGitHubProvidersConfig: MockToriiConfig = {
       authorizationUrl:
         "https://github.com/login/oauth/authorize?state=test",
       linkId: "link-1",
-      redirectUri: "http://127.0.0.1:3100/oauth/callback/github",
+      redirectUri: "http://localhost:3000/oauth/callback/github",
     },
   },
 };

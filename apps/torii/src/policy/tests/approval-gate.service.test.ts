@@ -14,7 +14,6 @@ import {
 
 function createGate(gatedTools: NonNullable<ToriiConfig["gated_tools"]>) {
   const configService = new ToriiConfigService({
-    boot_owner_id: "test-owner",
     oauth_providers: {},
     servers: [],
     gated_tools: gatedTools,

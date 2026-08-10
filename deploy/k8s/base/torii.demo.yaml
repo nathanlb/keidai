@@ -10,8 +10,8 @@
 # http://localhost:3000/oauth/callback/... (compose and kind). Direct Torii
 # :3100 callbacks are only for local Torii-without-BFF experiments.
 #
-# Agent identity lives in Fuda (see apps/fuda/fuda.seed.example.yaml /
-# fuda.seed.k8s.example.yaml). See the Demo section in the repo root README.md.
+# Agent identity lives in Fuda (management API / keidai-ui). See the Demo
+# section in the repo root README.md.
 
 oauth_providers:
   github:
@@ -87,11 +87,8 @@ groups:
       - server: gmail
         tools: [create_draft, list_drafts]
 
-# Owner used for boot-time backend connections and catalog refresh.
-boot_owner_id: demo-owner
-
 # Tools that require human approval before Torii proxies upstream,
-# keyed by Fuda agent id (see fuda.seed.example.yaml).
+# keyed by Fuda agent id (create agents via keidai-ui / management API).
 gated_tools:
   shaiden-newsletter-01:
     - gmail.create_draft

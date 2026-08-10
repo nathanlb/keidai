@@ -25,8 +25,8 @@ function describeAuthError(code: string | null): string | null {
 }
 
 /**
- * Gates the operator shell on a BFF session when `/api/session` is available.
- * When the endpoint is missing (Vite → Torii), children render unauthenticated.
+ * Gates the operator shell on a valid BFF Google OIDC session.
+ * Unauthenticated (or missing session endpoint) operators must sign in.
  */
 export function OperatorAuthGate({ children }: { children: ReactNode }) {
   const { status } = useOperatorSession();
@@ -47,7 +47,7 @@ export function OperatorAuthGate({ children }: { children: ReactNode }) {
     );
   }
 
-  if (status === "unavailable" || status === "authenticated") {
+  if (status === "authenticated") {
     return children;
   }
 

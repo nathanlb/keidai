@@ -17,11 +17,13 @@ function testAuthConfig(
     googleClientSecret: "test-client-secret",
     redirectUri: "http://127.0.0.1/auth/callback",
     sessionSecret: "test-session-secret-at-least-32-chars!!",
-    ownerId: "nathanlb",
-    allowlist: {
-      googleSubs: new Set(["allowlisted-sub"]),
-      emails: new Set(["allow@example.com"]),
-    },
+    operators: [
+      {
+        owner_id: "nathanlb",
+        google_sub: "allowlisted-sub",
+        google_email: "allow@example.com",
+      },
+    ],
     cookieSecure: false,
     ...overrides,
   };
@@ -38,11 +40,28 @@ describe("operator auth", () => {
   let upstream: ReturnType<typeof createHttpServer>;
   let upstreamPort = 0;
   let authConfig: OperatorAuthConfig;
+  let lastUpstream: {
+    method: string;
+    url: string;
+    body: string;
+  } | null;
 
   before(async () => {
-    upstream = createHttpServer((_req, res) => {
-      res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({ ok: true, backend: "torii" }));
+    lastUpstream = null;
+    upstream = createHttpServer((req, res) => {
+      const chunks: Buffer[] = [];
+      req.on("data", (chunk: Buffer) => {
+        chunks.push(chunk);
+      });
+      req.on("end", () => {
+        lastUpstream = {
+          method: req.method ?? "GET",
+          url: req.url ?? "",
+          body: Buffer.concat(chunks).toString("utf8"),
+        };
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ ok: true, backend: "upstream" }));
+      });
     });
     await new Promise<void>((resolve) => {
       upstream.listen(0, "127.0.0.1", () => resolve());
@@ -119,8 +138,75 @@ describe("operator auth", () => {
       headers: { cookie: cookieHeader },
     });
     assert.equal(agents.status, 200);
-    assert.deepEqual(await agents.json(), { ok: true, backend: "torii" });
+    assert.deepEqual(await agents.json(), { ok: true, backend: "upstream" });
     assert.match(cookieHeader, new RegExp(`^${OPERATOR_SESSION_COOKIE}=`));
+  });
+
+  it("rewrites agent create ownerId to the session owner", async () => {
+    const principal = {
+      googleSub: "allowlisted-sub",
+      email: "allow@example.com",
+      ownerId: "nathanlb",
+    };
+    const sealed = await sealOperatorSession(principal, authConfig);
+    const cookieHeader = serializeSessionCookie(sealed, authConfig).split(
+      ";",
+    )[0]!;
+
+    lastUpstream = null;
+    const response = await fetch(`${baseUrl()}/api/agents`, {
+      method: "POST",
+      headers: {
+        cookie: cookieHeader,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        slug: "new-agent",
+        name: "New",
+        ownerId: "attacker-owner",
+        groups: [],
+        persona: "hi",
+      }),
+    });
+    assert.equal(response.status, 200);
+    assert.ok(lastUpstream);
+    assert.equal(lastUpstream.method, "POST");
+    assert.equal(lastUpstream.url, "/api/agents");
+    assert.deepEqual(JSON.parse(lastUpstream.body), {
+      slug: "new-agent",
+      name: "New",
+      ownerId: "nathanlb",
+      groups: [],
+      persona: "hi",
+    });
+  });
+
+  it("rewrites OAuth initiate ?owner= to the session owner", async () => {
+    const principal = {
+      googleSub: "allowlisted-sub",
+      email: "allow@example.com",
+      ownerId: "nathanlb",
+    };
+    const sealed = await sealOperatorSession(principal, authConfig);
+    const cookieHeader = serializeSessionCookie(sealed, authConfig).split(
+      ";",
+    )[0]!;
+
+    lastUpstream = null;
+    const response = await fetch(
+      `${baseUrl()}/api/oauth/initiate/github?owner=attacker-owner`,
+      {
+        method: "POST",
+        headers: { cookie: cookieHeader },
+      },
+    );
+    assert.equal(response.status, 200);
+    assert.ok(lastUpstream);
+    assert.equal(lastUpstream.method, "POST");
+    assert.equal(
+      lastUpstream.url,
+      "/api/oauth/initiate/github?owner=nathanlb",
+    );
   });
 
   it("starts login with a Google authorize redirect and PKCE cookie", async () => {
@@ -246,9 +332,14 @@ describe("operator auth", () => {
       ";",
     )[0]!;
 
+    // Mirror browser <form method="post"> (default enctype).
     const logout = await fetch(`${baseUrl()}/auth/logout`, {
       method: "POST",
-      headers: { cookie: cookieHeader },
+      headers: {
+        cookie: cookieHeader,
+        "content-type": "application/x-www-form-urlencoded",
+      },
+      body: "",
       redirect: "manual",
     });
     assert.equal(logout.status, 302);

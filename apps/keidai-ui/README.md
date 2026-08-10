@@ -7,8 +7,8 @@ Design reference: [keidai-ui — Frontend](https://app.notion.com/p/keidai-ui-Fr
 ## Stack
 
 - **Client:** React 19, Vite, React Router, Tailwind 4 (via `@keidai/ui/globals.css`)
-- **Dev server:** Vite (serves the client, HMR, and proxies `/api` to the gateway)
-- **Prod server:** Fastify 5 — static serving with SPA fallback (also reused by Torii)
+- **Dev:** Vite HMR on `:3000` + API-only Fastify BFF on `:3001` (auth, session, `/api` proxy)
+- **Prod:** Fastify BFF on `:3000` — static SPA + same auth/API edge
 - **Shared UI:** `@keidai/ui`
 
 ## Layout
@@ -18,7 +18,7 @@ src/
   shell/         # Shared app chrome (sidebar, top bar, theme, gateway status)
   torii/         # Torii module (nav, pages, layout)
   routes.tsx     # Route tree
-server/          # Fastify prod server (create-server: static + SPA fallback, prod entry)
+server/          # Fastify BFF (auth, API proxy, prod static entry; `dev.ts` API-only)
 dist/
   client/        # Vite build output
   server/        # Compiled server entrypoints
@@ -26,7 +26,7 @@ dist/
 
 ## Getting started
 
-From the monorepo root:
+From the monorepo root (with Fuda/Torii/Shaiden running):
 
 ```bash
 pnpm install
@@ -34,54 +34,51 @@ pnpm build
 pnpm --filter @keidai/keidai-ui dev
 ```
 
-Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
+Open [http://localhost:3000](http://localhost:3000) and sign in with Google OIDC.
 
 ### Scripts
 
 | Script | Purpose |
 |--------|---------|
-| `dev` | Start the Vite dev server on `:3000` |
+| `dev` | Vite HMR (`:3000`) + API-only BFF (`:3001`) |
+| `dev:vite` / `dev:bff` | Run either process alone |
 | `build` | Build client (`dist/client`) and server (`dist/server`) |
 | `start` | Serve the production build from Fastify |
-| `test` | Server integration tests (builds first) |
+| `test` | Unit, server, and e2e tests |
 | `typecheck` / `lint` | TypeScript checks for client and server |
 
 ### Environment
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `KEIDAI_UI_HOST` | `127.0.0.1` | Prod Fastify bind address |
-| `KEIDAI_UI_PORT` | `3000` | Prod Fastify listen port |
-| `VITE_TORII_URL` | `http://127.0.0.1:3100` | Torii gateway origin for the dev `/api` proxy and health footer display |
-| `VITE_SHAIDEN_URL` | `http://127.0.0.1:3200` (dev proxy) / unset (same-origin) | Shaiden origin for task/run APIs; Vite proxies `/api/tasks`, `/api/runs`, and `/api/shaiden/health` in dev when unset client-side |
+| `KEIDAI_UI_HOST` | `127.0.0.1` | BFF bind address |
+| `KEIDAI_UI_PORT` | `3000` | Production BFF listen port |
+| `KEIDAI_UI_BFF_PORT` | `3001` | API-only BFF port used by `pnpm dev` |
+| `VITE_BFF_URL` | `http://127.0.0.1:3001` | Vite proxy target for `/api`, `/auth`, `/oauth/callback` |
+| `KEIDAI_UI_TORII_URL` | `http://127.0.0.1:3100` | Torii upstream for the BFF |
+| `KEIDAI_UI_FUDA_URL` | `http://127.0.0.1:3300` | Fuda upstream for the BFF |
+| `KEIDAI_UI_SHAIDEN_URL` | `http://127.0.0.1:3200` | Shaiden upstream for the BFF |
+| `VITE_TORII_URL` / `VITE_FUDA_URL` / `VITE_SHAIDEN_URL` | — | Display-only addresses in the health footer; unset shows `<NAME> unset` |
 
-The dev server (Vite) binds to `127.0.0.1:3000` — see `vite.config.ts`.
+Copy `.env.example` → `.env` and fill Google OIDC + operators path. Redirect URI stays `http://localhost:3000/auth/callback` (Vite origin; proxied to the BFF). Always open the UI as `http://localhost:3000` — not `127.0.0.1` — so OAuth matches IdP registrations and k8s.
 
 ## Server setup
 
-**Development** (`pnpm dev` → `vite`):
+**Development** (`pnpm dev`):
 
-Vite serves the client with HMR on `127.0.0.1:3000`, proxies `/api/tasks`,
-`/api/runs`, and `/api/shaiden/health` to `VITE_SHAIDEN_URL`, and proxies other
-`/api` paths to `VITE_TORII_URL` (see `vite.config.ts`). Client-side routes
-fall back to `index.html` automatically. There is no separate server process to
-manage.
+```
+Browser → Vite (http://localhost:3000, HMR)
+            ├── /api/*, /auth/*, /oauth/callback/* ──▶ BFF (127.0.0.1:3001)
+            │                                            └──▶ Fuda / Torii / Shaiden
+            └── SPA + HMR
+```
+
+The BFF owns operator Google OIDC, session cookies, `ownerId` enforcement on
+writes, and the shared `OPERATOR_API_ROUTES` reverse-proxy table. Vite does not
+reimplement that routing.
 
 **Production** (`pnpm start` → `dist/server/index.js`):
 
-`server/create-server.ts` is the BFF: operator Google OIDC, reverse-proxies
-`/api/*` (and Torii `/oauth/callback/*`) to Fuda/Torii/Shaiden, then serves
-`dist/client` with SPA fallback. Client API calls are same-origin `/api/...`.
-
-```
-dev   Browser → Vite (:3000) ── /api/*, /oauth/callback/* ──▶ backends
-prod  Browser → keidai-ui BFF (:3000) ── same routes ──▶ backends (ClusterIP in k8s)
-```
+Same BFF on `:3000`, plus static `dist/client` with SPA fallback.
 
 In-cluster deploy: see [`deploy/k8s/README.md`](../../deploy/k8s/README.md).
-
-### Torii integration (v0)
-
-When Torii still serves a baked UI via `TORII_UI_CLIENT_ROOT`, that path is
-legacy. Prefer the keidai-ui BFF as the public edge (compose and kind both
-publish only `:3000`).

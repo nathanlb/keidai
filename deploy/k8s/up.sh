@@ -132,8 +132,11 @@ load_secrets_env() {
   for name in "${required[@]}"; do
     [[ -n "${!name:-}" ]] || die "set ${name} in ${SECRETS_ENV}"
   done
-  if [[ -z "${KEIDAI_OPERATOR_GOOGLE_SUBS:-}" && -z "${KEIDAI_OPERATOR_GOOGLE_EMAILS:-}" ]]; then
-    die "set KEIDAI_OPERATOR_GOOGLE_SUBS and/or KEIDAI_OPERATOR_GOOGLE_EMAILS in ${SECRETS_ENV}"
+  if [[ -z "${KEIDAI_OPERATORS_FILE:-}" ]]; then
+    KEIDAI_OPERATORS_FILE="${ROOT}/deploy/operators.example.yaml"
+  fi
+  if [[ ! -f "${KEIDAI_OPERATORS_FILE}" ]]; then
+    die "operators file not found: ${KEIDAI_OPERATORS_FILE} (set KEIDAI_OPERATORS_FILE in ${SECRETS_ENV})"
   fi
   if [[ "${#KEIDAI_SESSION_SECRET}" -lt 32 ]]; then
     die "KEIDAI_SESSION_SECRET must be at least 32 characters"
@@ -153,6 +156,11 @@ create_secrets() {
     --from-file="dev.pem=${key_file}" \
     --dry-run=client -o yaml | kubectl apply -f -
 
+  log "creating/updating ConfigMap keidai-operators from ${KEIDAI_OPERATORS_FILE}"
+  kubectl -n "${NAMESPACE}" create configmap keidai-operators \
+    --from-file="operators.yaml=${KEIDAI_OPERATORS_FILE}" \
+    --dry-run=client -o yaml | kubectl apply -f -
+
   log "creating/updating Secret keidai-secrets"
   kubectl -n "${NAMESPACE}" create secret generic keidai-secrets \
     --from-literal="OPEN_ROUTER_API_KEY=${OPEN_ROUTER_API_KEY}" \
@@ -164,9 +172,6 @@ create_secrets() {
     --from-literal="KEIDAI_GOOGLE_CLIENT_ID=${KEIDAI_GOOGLE_CLIENT_ID}" \
     --from-literal="KEIDAI_GOOGLE_CLIENT_SECRET=${KEIDAI_GOOGLE_CLIENT_SECRET}" \
     --from-literal="KEIDAI_SESSION_SECRET=${KEIDAI_SESSION_SECRET}" \
-    --from-literal="KEIDAI_OWNER_ID=${KEIDAI_OWNER_ID:-demo-owner}" \
-    --from-literal="KEIDAI_OPERATOR_GOOGLE_SUBS=${KEIDAI_OPERATOR_GOOGLE_SUBS:-}" \
-    --from-literal="KEIDAI_OPERATOR_GOOGLE_EMAILS=${KEIDAI_OPERATOR_GOOGLE_EMAILS:-}" \
     --dry-run=client -o yaml | kubectl apply -f -
 }
 

@@ -8,7 +8,7 @@ import * as toriiClient from "../../api/torii-client.js";
 vi.mock("../../api/torii-client.js", () => ({
   fetchOAuthConnections: vi.fn(),
   initiateOAuthLink: vi.fn(),
-  getToriiOrigin: vi.fn(() => "http://127.0.0.1:3100"),
+  getToriiOrigin: vi.fn(() => "http://localhost:3000"),
 }));
 
 vi.mock("../utils/open-oauth-popup.js", () => ({
@@ -35,7 +35,7 @@ function TestOpener({
             providerLabel: "GitHub",
             ownerId: "owner-a",
             scopes: ["repo"],
-            redirectUri: "http://127.0.0.1:3100/oauth/callback/github",
+            redirectUri: "http://localhost:3000/oauth/callback/github",
           },
           { onLinked },
         )
@@ -52,7 +52,7 @@ describe("OAuthLinkProvider", () => {
     vi.mocked(toriiClient.initiateOAuthLink).mockResolvedValue({
       authorizationUrl: "https://github.com/login/oauth/authorize",
       linkId: "link-1",
-      redirectUri: "http://127.0.0.1:3100/oauth/callback/github",
+      redirectUri: "http://localhost:3000/oauth/callback/github",
     });
   });
 

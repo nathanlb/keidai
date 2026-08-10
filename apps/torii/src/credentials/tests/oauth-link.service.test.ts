@@ -13,7 +13,6 @@ import {
 } from "../../logging/tests/test-helpers.js";
 
 const sampleConfig: ToriiConfig = {
-  boot_owner_id: "demo-owner",
   oauth_providers: {
     github: {
       token_url: "https://github.com/login/oauth/access_token",
@@ -126,6 +125,7 @@ describe("OAuthLinkService", () => {
     const { linkId } = await service.initiate(
       "github",
       "http://127.0.0.1:3100",
+      "demo-owner",
     );
     const state = encodeOAuthLinkState({
       ownerId: "demo-owner",
@@ -177,6 +177,7 @@ describe("OAuthLinkService", () => {
     const { linkId } = await service.initiate(
       "github",
       "http://127.0.0.1:3100",
+      "demo-owner",
     );
     const state = encodeOAuthLinkState({
       ownerId: "demo-owner",
@@ -223,6 +224,7 @@ describe("OAuthLinkService", () => {
     const { linkId } = await service.initiate(
       "github",
       "http://127.0.0.1:3100",
+      "demo-owner",
     );
     await pendingLinkStore.update({
       ...(await pendingLinkStore.get(linkId))!,
@@ -254,6 +256,7 @@ describe("OAuthLinkService", () => {
     const { linkId } = await service.initiate(
       "github",
       "http://127.0.0.1:3100",
+      "demo-owner",
     );
     const state = encodeOAuthLinkState({
       ownerId: "demo-owner",
@@ -288,6 +291,7 @@ describe("OAuthLinkService", () => {
     const { linkId } = await service.initiate(
       "github",
       "http://127.0.0.1:3100",
+      "demo-owner",
     );
     const state = encodeOAuthLinkState({
       ownerId: "demo-owner",
@@ -337,9 +341,9 @@ describe("OAuthLinkService", () => {
       accessToken: "token",
     });
 
-    assert.equal(await service.unlink("github"), true);
+    assert.equal(await service.unlink("github", "demo-owner"), true);
     assert.equal(await tokenRepository.get("demo-owner", "github"), null);
-    assert.equal(await service.unlink("github"), false);
+    assert.equal(await service.unlink("github", "demo-owner"), false);
   });
 
   it("unlink rejects unknown providers", async () => {
@@ -356,9 +360,10 @@ describe("OAuthLinkService", () => {
 
     try {
       const initiated = await service.initiate(
-        "github",
-        "http://127.0.0.1:3100",
-      );
+      "github",
+      "http://127.0.0.1:3100",
+      "demo-owner",
+    );
       assert.ok(
         logger.logs.some(
           (entry) =>
@@ -387,7 +392,7 @@ describe("OAuthLinkService", () => {
         ),
       );
 
-      assert.equal(await service.unlink("github"), true);
+      assert.equal(await service.unlink("github", "demo-owner"), true);
       assert.ok(
         logger.logs.some(
           (entry) =>

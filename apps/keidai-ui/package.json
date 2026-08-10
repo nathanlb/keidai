@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "build": "vite build && tsc -p tsconfig.server.json",
-    "dev": "vite",
+    "dev": "node ./scripts/dev.mjs",
+    "dev:bff": "tsx watch server/dev.ts",
+    "dev:vite": "vite",
     "start": "node dist/server/index.js",
     "test": "vitest run && pnpm run test:server && pnpm run test:e2e",
     "test:ui": "vitest --ui",
@@ -34,6 +36,7 @@
     "react-hook-form": "^7.84.0",
     "react-router": "^8.3.0",
     "swr": "^2.4.2",
+    "yaml": "^2.9.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {

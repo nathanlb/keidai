@@ -1,24 +1,21 @@
-import type { OperatorAllowlist } from "./types.js";
+import type { OperatorEntry } from "@keidai/shared";
+import {
+  isOperatorInRegistry,
+  resolveOwnerIdFromOperators,
+  type OperatorClaims,
+} from "@keidai/shared";
 
+/** @deprecated Prefer isOperatorInRegistry / resolveOwnerIdFromOperators. */
 export function isOperatorAllowed(
-  allowlist: OperatorAllowlist,
-  claims: { googleSub: string; email: string },
+  operators: readonly OperatorEntry[],
+  claims: OperatorClaims,
 ): boolean {
-  if (allowlist.googleSubs.has(claims.googleSub)) {
-    return true;
-  }
-
-  const email = claims.email.trim().toLowerCase();
-  return email.length > 0 && allowlist.emails.has(email);
+  return isOperatorInRegistry(operators, claims);
 }
 
-export function parseAllowlistCsv(value: string | undefined): string[] {
-  if (!value?.trim()) {
-    return [];
-  }
-
-  return value
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter((entry) => entry.length > 0);
+export function resolveOperatorOwnerId(
+  operators: readonly OperatorEntry[],
+  claims: OperatorClaims,
+): string | null {
+  return resolveOwnerIdFromOperators(operators, claims);
 }

@@ -7,6 +7,7 @@ export * from "./logging/logger.js";
 export * from "./logging/structured-logger.js";
 export * from "./operator-api-routes.js";
 export * from "./operator-principal.js";
+export * from "./operators.js";
 export * from "./policy-decision.js";
 export * from "./run.js";
 export * from "./task.js";

@@ -2,6 +2,10 @@ import type { FastifyInstance } from "fastify";
 import { inject, injectable } from "tsyringe";
 import { isSqliteUniqueConstraintError } from "../storage/utils/sqlite-errors.js";
 import {
+  OWNER_REPOSITORY,
+  type OwnerRepository,
+} from "../owners/types/owner-repository.js";
+import {
   createAgentBodySchema,
   updateAgentBodySchema,
   type ManagementAgent,
@@ -17,6 +21,8 @@ export class AgentsManagementApiController {
   constructor(
     @inject(AGENT_REPOSITORY)
     private readonly agents: AgentRepository,
+    @inject(OWNER_REPOSITORY)
+    private readonly owners: OwnerRepository,
   ) {}
 
   registerRoutes(app: FastifyInstance): void {
@@ -43,6 +49,14 @@ export class AgentsManagementApiController {
         reply.code(400).send({
           error: "invalid agent",
           details: parsed.error.flatten(),
+        });
+        return;
+      }
+
+      if (!this.owners.get(parsed.data.ownerId)) {
+        reply.code(400).send({
+          error: "unknown ownerId",
+          ownerId: parsed.data.ownerId,
         });
         return;
       }

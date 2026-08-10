@@ -124,7 +124,6 @@ export function createTestGatewayHttpServer(
   const configService =
     options.configService ??
     new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [],
     });
@@ -169,7 +168,6 @@ export function createTestGatewayHttpServer(
       connectionRead,
       connectionManager,
       toolCatalog,
-      configService,
     ),
     options.oauthApi ??
       createOAuthApiController(configService, { persistence }),

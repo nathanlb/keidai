@@ -1,8 +1,6 @@
 import type { ServerConfig } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
 import { ToriiConfigService } from "../config/torii-config.service.js";
-import { runWithAgentPrincipal } from "../identity/agent-principal-context.js";
-import { resolveBootPrincipal } from "../identity/resolve-boot-principal.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
 import type { Logger } from "@keidai/shared";
 import { DefaultMcpClientConnector } from "./mcp-client-connector.service.js";
@@ -64,6 +62,40 @@ export class ConnectionManager {
     await Promise.all(servers.map((server) => this.reconnect(server.name)));
   }
 
+  /**
+   * Ensures a backend has a live MCP client. Used when an agent principal is
+   * available so user_oauth handshakes can attach Authorization (boot connect
+   * often fails open without a principal against auth-required MCP servers).
+   */
+  async ensureConnected(name: string): Promise<BackendConnection> {
+    const existing = this.connections.get(name);
+    if (existing?.state === "connected" && existing.client) {
+      return existing;
+    }
+
+    await this.reconnect(name);
+    const connection = this.connections.get(name);
+    if (!connection) {
+      throw new Error(`Unknown server: ${name}`);
+    }
+    return connection;
+  }
+
+  /**
+   * Reconnects every user_oauth backend that is not currently connected.
+   * No-op for backends that are already up.
+   */
+  async ensureUserOAuthConnected(): Promise<void> {
+    const targets = this.list().filter(
+      (connection) =>
+        connection.config.credential.strategy === "user_oauth" &&
+        !(connection.state === "connected" && connection.client),
+    );
+    await Promise.all(
+      targets.map((connection) => this.ensureConnected(connection.config.name)),
+    );
+  }
+
   get(name: string): BackendConnection | undefined {
     return this.connections.get(name);
   }
@@ -109,30 +141,26 @@ export class ConnectionManager {
   }
 
   private async connectServer(server: ServerConfig): Promise<void> {
-    const principal = resolveBootPrincipal(this.configService.get());
-
-    await runWithAgentPrincipal(principal, async () => {
-      try {
-        const client = await this.connector.connect(server);
-        this.setConnection(server.name, {
-          config: server,
-          state: "connected",
-          client,
-        });
-      } catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        this.logger.error("connection.failed", {
-          server: server.name,
-          url: server.transport.url,
-          error: err.message,
-        });
-        this.setConnection(server.name, {
-          config: server,
-          state: "failed",
-          client: null,
-          error: err,
-        });
-      }
-    });
+    try {
+      const client = await this.connector.connect(server);
+      this.setConnection(server.name, {
+        config: server,
+        state: "connected",
+        client,
+      });
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.logger.error("connection.failed", {
+        server: server.name,
+        url: server.transport.url,
+        error: err.message,
+      });
+      this.setConnection(server.name, {
+        config: server,
+        state: "failed",
+        client: null,
+        error: err,
+      });
+    }
   }
 }

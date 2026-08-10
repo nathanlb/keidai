@@ -97,7 +97,7 @@ export class ToolDispatchService {
       return withToriiTraceMeta(gatedResult, ctx.traceId);
     }
 
-    const target = this.resolveConnectedBackend(ctx);
+    const target = await this.resolveConnectedBackend(ctx);
     const result = await this.proxyCallToBackend(ctx, target);
     return withToriiTraceMeta(result, ctx.traceId);
   }
@@ -217,9 +217,9 @@ export class ToolDispatchService {
     }
   }
 
-  private resolveConnectedBackend(
+  private async resolveConnectedBackend(
     ctx: DispatchCallContext,
-  ): ConnectedBackendTarget {
+  ): Promise<ConnectedBackendTarget> {
     const entry = this.toolCatalog.findTool(ctx.namespacedName);
     if (!entry) {
       ctx.emit({
@@ -232,7 +232,33 @@ export class ToolDispatchService {
       throw new ToolNotFoundError(ctx.namespacedName);
     }
 
-    const connection = this.connectionManager.get(entry.server);
+    let connection = this.connectionManager.get(entry.server);
+    if (
+      !connection ||
+      connection.state === "failed" ||
+      !connection.client
+    ) {
+      // Retry once with the current agent principal so user_oauth handshakes
+      // can attach Authorization after a principal-less boot failure.
+      try {
+        connection = await this.connectionManager.ensureConnected(entry.server);
+      } catch (error) {
+        const reason =
+          error instanceof Error ? error.message : "connection failed";
+        ctx.emit({
+          server: entry.server,
+          tool: entry.bareName,
+          principal: ctx.principal,
+          credentialRef: connection
+            ? deriveCredentialRef(connection.config, ctx.principal?.ownerId)
+            : undefined,
+          policyDecision: PolicyDecision.Allowed,
+          error: `Backend "${entry.server}" is unavailable: ${reason}`,
+        });
+        throw new BackendUnavailableError(entry.server, reason);
+      }
+    }
+
     if (!connection || connection.state === "failed") {
       const reason =
         connection?.state === "failed"

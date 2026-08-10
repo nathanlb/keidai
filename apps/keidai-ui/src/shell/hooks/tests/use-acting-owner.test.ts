@@ -1,57 +1,49 @@
 import { renderHook } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useActingOwner } from "../use-acting-owner.js";
 
-vi.mock("../use-fetch-agents.js", () => ({
-  useFetchAgents: vi.fn(),
+vi.mock("../use-operator-session.js", () => ({
+  useOperatorSession: vi.fn(),
 }));
 
-import { useFetchAgents } from "../use-fetch-agents.js";
+import { useOperatorSession } from "../use-operator-session.js";
 
 describe("useActingOwner", () => {
-  it("returns the v0 fallback owner when no agents are loaded", () => {
-    vi.mocked(useFetchAgents).mockReturnValue({
-      data: undefined,
-      error: undefined,
-      isLoading: true,
+  beforeEach(() => {
+    vi.mocked(useOperatorSession).mockReturnValue({
+      status: "unauthenticated",
+      principal: null,
+      error: null,
       refresh: vi.fn(),
-    });
-
-    const { result } = renderHook(() => useActingOwner());
-
-    expect(result.current.owner).toEqual({
-      ownerId: "nathanlb",
-      initials: "NA",
     });
   });
 
-  it("derives initials from the first agent's ownerId", () => {
-    vi.mocked(useFetchAgents).mockReturnValue({
-      data: {
-        agents: [
-          {
-            id: "agt_1",
-            slug: "demo-agent",
-            name: "Demo Agent",
-            ownerId: "demo-user",
-            groups: [],
-            persona: "You are a demo agent.",
-            currentPersonaVersion: 1,
-            createdAt: "2026-06-02T00:00:00.000Z",
-            updatedAt: "2026-06-02T00:00:00.000Z",
-          },
-        ],
+  it("returns null when there is no authenticated session", () => {
+    const { result } = renderHook(() => useActingOwner());
+    expect(result.current.owner).toBeNull();
+  });
+
+  it("uses session ownerId and IdP display fields when authenticated", () => {
+    vi.mocked(useOperatorSession).mockReturnValue({
+      status: "authenticated",
+      principal: {
+        googleSub: "sub-1",
+        email: "ops@example.com",
+        ownerId: "demo-owner",
+        name: "Ops User",
+        picture: "https://example.com/p.png",
       },
-      error: undefined,
-      isLoading: false,
+      error: null,
       refresh: vi.fn(),
     });
 
     const { result } = renderHook(() => useActingOwner());
 
     expect(result.current.owner).toEqual({
-      ownerId: "demo-user",
-      initials: "DU",
+      ownerId: "demo-owner",
+      displayName: "Ops User",
+      initials: "OU",
+      picture: "https://example.com/p.png",
     });
   });
 });

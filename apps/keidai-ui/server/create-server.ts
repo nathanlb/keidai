@@ -11,6 +11,10 @@ import type { IncomingHttpHeaders } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveOperatorAuthConfigFromEnv } from "./auth/config.js";
+import {
+  enforceSessionOwnerOnAgentProxy,
+  enforceSessionOwnerOnToriiApiProxy,
+} from "./auth/enforce-session-owner.js";
 import { registerOperatorAuth } from "./auth/register-auth.js";
 import type { OperatorAuthConfig } from "./auth/types.js";
 
@@ -40,6 +44,11 @@ export interface CreateServerOptions extends RegisterUiStaticOptions {
    * When omitted, config is resolved from environment variables.
    */
   auth?: OperatorAuthConfig | false;
+  /**
+   * Serve the built SPA (`dist/client`). Default true for production.
+   * Set false for the local API-only BFF behind Vite HMR.
+   */
+  serveStatic?: boolean;
 }
 
 const DEFAULT_BACKENDS: OperatorApiBackends = {
@@ -69,23 +78,77 @@ function hardenSseHeaders(
   return next;
 }
 
+function readForwardedHeader(
+  value: string | string[] | undefined,
+): string | undefined {
+  if (typeof value === "string") {
+    return value.split(",")[0]?.trim() || undefined;
+  }
+  if (Array.isArray(value)) {
+    return value[0]?.split(",")[0]?.trim() || undefined;
+  }
+  return undefined;
+}
+
+/**
+ * Preserve the browser-facing host/proto so Torii can derive OAuth callback
+ * URLs from X-Forwarded-* instead of its internal listen address.
+ */
+function forwardOperatorEdgeHeaders(
+  request: { headers: IncomingHttpHeaders },
+  headers: IncomingHttpHeaders,
+): IncomingHttpHeaders {
+  const host =
+    readForwardedHeader(request.headers["x-forwarded-host"]) ??
+    request.headers.host;
+  const proto =
+    readForwardedHeader(request.headers["x-forwarded-proto"]) ?? "http";
+
+  return {
+    ...headers,
+    ...(host ? { "x-forwarded-host": host } : {}),
+    "x-forwarded-proto": proto,
+  };
+}
+
 /**
  * Reverse-proxies `/api/*` using the shared operator route table
  * (`OPERATOR_API_ROUTES` in `@keidai/shared`).
+ *
+ * When auth is enabled, agent create and OAuth initiate rewrite `ownerId` /
+ * `?owner=` to the session principal so clients cannot override it.
  */
 export async function registerApiProxy(
   app: FastifyInstance,
   backends: OperatorApiBackends,
+  options: { enforceSessionOwner?: boolean } = {},
 ): Promise<void> {
+  const enforceSessionOwner = options.enforceSessionOwner ?? false;
+
   for (const route of OPERATOR_API_ROUTES) {
     const rewritePrefix = route.pathRewrite
       ? `${route.pathRewrite.to}${route.prefix.slice(route.pathRewrite.from.length)}`
       : route.prefix;
 
+    const isAgentsProxy = route.prefix === "/api/agents";
+    const isToriiApiCatchAll =
+      route.prefix === "/api" && route.backend === "torii";
+
     await app.register(fastifyHttpProxy, {
       upstream: backends[route.backend],
       prefix: route.prefix,
       rewritePrefix,
+      // Parse JSON so agent-create preHandler can rewrite `ownerId` before
+      // reply-from re-serializes the body upstream.
+      ...(enforceSessionOwner && isAgentsProxy
+        ? {
+            proxyPayloads: false as const,
+            preHandler: enforceSessionOwnerOnAgentProxy,
+          }
+        : {}),
+      ...(enforceSessionOwner && isToriiApiCatchAll
+        ? { preHandler: enforceSessionOwnerOnToriiApiProxy }
+        : {}),
       // Disable default proxy timeouts so long-lived SSE streams (runs, traces,
       // connections) are not cut off after 10s.
       http: {
@@ -98,6 +161,9 @@ export async function registerApiProxy(
         bodyTimeout: 0,
       },
       replyOptions: {
+        rewriteRequestHeaders(request, headers) {
+          return forwardOperatorEdgeHeaders(request, headers);
+        },
         rewriteHeaders(headers, request) {
           if (request && isOperatorApiSsePath(request.url)) {
             return hardenSseHeaders(headers);
@@ -135,7 +201,7 @@ export async function registerUiStatic(
 
 /**
  * Builds the keidai-ui BFF: operator auth, reverse-proxies `/api/*` and
- * Torii `/oauth/callback/*`, then serves the production SPA.
+ * Torii `/oauth/callback/*`, and optionally serves the production SPA.
  */
 export async function createServer(
   options: CreateServerOptions = {},
@@ -146,13 +212,19 @@ export async function createServer(
   const authConfig =
     options.auth === false
       ? null
-      : (options.auth ?? resolveOperatorAuthConfigFromEnv());
+      : (options.auth ?? (await resolveOperatorAuthConfigFromEnv()));
 
   if (authConfig) {
     await registerOperatorAuth(app, authConfig);
   }
 
-  await registerApiProxy(app, backends);
-  await registerUiStatic(app, options);
+  await registerApiProxy(app, backends, {
+    enforceSessionOwner: Boolean(authConfig),
+  });
+
+  if (options.serveStatic !== false) {
+    await registerUiStatic(app, options);
+  }
+
   return app;
 }

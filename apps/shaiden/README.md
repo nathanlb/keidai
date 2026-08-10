@@ -38,7 +38,7 @@ CI gate: `.github/workflows/shaiden-termination-eval.yml` runs `eval` on PRs tha
 ## Domain boundaries
 
 - **Torii** owns tool catalog/dispatch, group-based policy, and the **approval ledger** — see `apps/torii/torii.demo.yaml`
-- **Fuda** owns agent identity/registration — see `apps/fuda/fuda.seed.example.yaml`
+- **Fuda** owns agent identity/registration — create agents via keidai-ui / management API
 - **Shaiden** owns task execution, harness runtime, and **run visibility** (`POST /api/tasks/run`, `GET /api/runs`, SSE `/api/runs/events`)
 - **Shared** (`@keidai/shared`) owns cross-app Task/Run types, schemas, and structured logging
 
@@ -95,10 +95,8 @@ A sample Task shape still lives in [`src/config/boot-task.ts`](src/config/boot-t
 
 ```bash
 # Requires SHAIDEN_BEARER, FUDA_ISSUER, apps/fuda/keys/dev.pem, and demo Torii
-# secrets in the repo root .env. Seed agents/grants after first boot (empty DB
-# otherwise fails token exchange):
-#   pnpm --filter @keidai/fuda seed -- ./apps/fuda/fuda.seed.example.yaml
-# (point FUDA_DB_PATH at the compose volume, or use the management API)
+# secrets in the repo root .env. Create agents/bearers/grants via keidai-ui
+# (or Fuda management API) after first boot — empty registry fails token exchange.
 docker compose up --build
 ```
 

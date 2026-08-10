@@ -1,4 +1,5 @@
 import type { ServiceHealth } from "../../shell/types/service-health.js";
+import { resolveBackendDisplayAddress } from "../../shell/utils/resolve-backend-display-address.js";
 import type {
   CreateTaskRequest,
   RunReport,
@@ -12,26 +13,17 @@ import type {
   UpdateTaskRequest,
 } from "@keidai/shared";
 
-/** Display-only backend address for the health footer (API calls are same-origin `/api/*`). */
-const shaidenDisplayUrl =
-  import.meta.env.VITE_SHAIDEN_URL || "http://127.0.0.1:3200";
-
 export interface ShaidenHealthResponse {
   ok: boolean;
   version: string;
 }
 
-function parseDisplayAddress(url: string): string {
-  try {
-    const parsed = new URL(url);
-    return `${parsed.hostname}:${parsed.port || (parsed.protocol === "https:" ? "443" : "80")}`;
-  } catch {
-    return url;
-  }
-}
-
+/** Display-only backend address for the health footer (API calls are same-origin `/api/*` via the BFF). */
 export function getShaidenDisplayAddress(): string {
-  return parseDisplayAddress(shaidenDisplayUrl);
+  return resolveBackendDisplayAddress(
+    "VITE_SHAIDEN_URL",
+    import.meta.env.VITE_SHAIDEN_URL,
+  );
 }
 
 async function fetchJson<T>(path: string): Promise<T> {

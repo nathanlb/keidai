@@ -28,6 +28,10 @@ spec:
                 name: keidai-ui-env
             - secretRef:
                 name: keidai-secrets
+          volumeMounts:
+            - name: operators
+              mountPath: /app/operators
+              readOnly: true
           readinessProbe:
             httpGet:
               path: /
@@ -40,6 +44,10 @@ spec:
               port: http
             initialDelaySeconds: 10
             periodSeconds: 15
+      volumes:
+        - name: operators
+          configMap:
+            name: keidai-operators
 ---
 apiVersion: v1
 kind: Service

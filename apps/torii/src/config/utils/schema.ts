@@ -89,7 +89,6 @@ const serverSchema = z
 export const toriiConfigSchema = z
   .object({
     gateway_base_url: z.string().url().optional(),
-    boot_owner_id: z.string().min(1, "boot_owner_id is required"),
     oauth_providers: z.record(z.string(), oauthProviderSchema),
     servers: z.array(serverSchema).min(1, "at least one server is required"),
     groups: z.array(groupDefinitionSchema).default([]),

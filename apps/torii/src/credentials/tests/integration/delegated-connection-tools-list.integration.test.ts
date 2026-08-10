@@ -51,7 +51,6 @@ describe("user_oauth credentials with tools/list", () => {
     });
 
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {
         github: {
           token_url: "https://github.com/login/oauth/access_token",
@@ -86,7 +85,6 @@ describe("user_oauth credentials with tools/list", () => {
     });
 
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {
         github: {
           token_url: "https://github.com/login/oauth/access_token",

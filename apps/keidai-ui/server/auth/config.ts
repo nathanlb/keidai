@@ -1,4 +1,11 @@
-import { parseAllowlistCsv } from "./allowlist.js";
+import { readFile } from "node:fs/promises";
+import { parse as parseYaml } from "yaml";
+import {
+  OperatorsValidationError,
+  parseOperatorsDocument,
+  type OperatorEntry,
+  type OperatorsFile,
+} from "@keidai/shared";
 import type { OperatorAuthConfig } from "./types.js";
 
 export class OperatorAuthConfigError extends Error {
@@ -16,20 +23,54 @@ function requireEnv(name: string, value: string | undefined): string {
   return trimmed;
 }
 
+export async function loadOperatorsFile(filePath: string): Promise<OperatorsFile> {
+  let raw: string;
+  try {
+    raw = await readFile(filePath, "utf8");
+  } catch (error) {
+    throw new OperatorAuthConfigError(
+      `Failed to read operators file at ${filePath}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+
+  let document: unknown;
+  try {
+    document = parseYaml(raw);
+  } catch (error) {
+    throw new OperatorAuthConfigError(
+      `Failed to parse operators YAML at ${filePath}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+
+  try {
+    return parseOperatorsDocument(document);
+  } catch (error) {
+    if (error instanceof OperatorsValidationError) {
+      throw new OperatorAuthConfigError(
+        `Invalid operators file ${filePath}: ${error.message}`,
+      );
+    }
+    throw error;
+  }
+}
+
 /**
- * Resolves operator Google OIDC config from process env.
+ * Resolves operator Google OIDC config from process env + operators.yaml.
  *
  * Required:
  * - KEIDAI_GOOGLE_CLIENT_ID
  * - KEIDAI_GOOGLE_CLIENT_SECRET
  * - KEIDAI_GOOGLE_REDIRECT_URI
  * - KEIDAI_SESSION_SECRET (≥32 characters)
- * - KEIDAI_OWNER_ID
- * - KEIDAI_OPERATOR_GOOGLE_SUBS and/or KEIDAI_OPERATOR_GOOGLE_EMAILS
+ * - KEIDAI_OPERATORS_PATH (operators.yaml SSOT)
  */
-export function resolveOperatorAuthConfigFromEnv(
+export async function resolveOperatorAuthConfigFromEnv(
   env: NodeJS.ProcessEnv = process.env,
-): OperatorAuthConfig {
+): Promise<OperatorAuthConfig> {
   const googleClientId = requireEnv(
     "KEIDAI_GOOGLE_CLIENT_ID",
     env.KEIDAI_GOOGLE_CLIENT_ID,
@@ -51,18 +92,13 @@ export function resolveOperatorAuthConfigFromEnv(
       "KEIDAI_SESSION_SECRET must be at least 32 characters",
     );
   }
-  const ownerId = requireEnv("KEIDAI_OWNER_ID", env.KEIDAI_OWNER_ID);
 
-  const googleSubs = parseAllowlistCsv(env.KEIDAI_OPERATOR_GOOGLE_SUBS);
-  const emails = parseAllowlistCsv(env.KEIDAI_OPERATOR_GOOGLE_EMAILS).map((e) =>
-    e.toLowerCase(),
+  const operatorsPath = requireEnv(
+    "KEIDAI_OPERATORS_PATH",
+    env.KEIDAI_OPERATORS_PATH,
   );
-
-  if (googleSubs.length === 0 && emails.length === 0) {
-    throw new OperatorAuthConfigError(
-      "Set KEIDAI_OPERATOR_GOOGLE_SUBS and/or KEIDAI_OPERATOR_GOOGLE_EMAILS",
-    );
-  }
+  const operatorsFile = await loadOperatorsFile(operatorsPath);
+  const operators: readonly OperatorEntry[] = operatorsFile.operators;
 
   const cookieSecure =
     env.KEIDAI_COOKIE_SECURE === "true" ||
@@ -73,11 +109,7 @@ export function resolveOperatorAuthConfigFromEnv(
     googleClientSecret,
     redirectUri,
     sessionSecret,
-    ownerId,
-    allowlist: {
-      googleSubs: new Set(googleSubs),
-      emails: new Set(emails),
-    },
+    operators,
     cookieSecure,
   };
 }

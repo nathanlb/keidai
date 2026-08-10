@@ -92,7 +92,7 @@ export class OAuthLinkService {
       );
     }
 
-    const resolvedOwnerId = resolveOAuthOwnerId(config, ownerId);
+    const resolvedOwnerId = resolveOAuthOwnerId(ownerId);
     const redirectUri = buildOAuthCallbackRedirectUri(baseUrl, provider);
     const effectiveProviderConfig = await ensureRegisteredOAuthClient(
       provider,
@@ -178,7 +178,7 @@ export class OAuthLinkService {
       throw new Error(`Unknown OAuth provider "${provider}"`);
     }
 
-    const resolvedOwnerId = resolveOAuthOwnerId(config, ownerId);
+    const resolvedOwnerId = resolveOAuthOwnerId(ownerId);
     const removed = await this.tokenRepository.delete(resolvedOwnerId, provider);
     if (removed) {
       this.logger.info("oauth.unlinked", {

@@ -1,9 +1,11 @@
 import { mkdirSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import type { DatabaseSync } from "node:sqlite";
 import { loadRuntimeConfig } from "../../config/runtime-config.js";
-import { createContainer } from "../../container.js";
+import { createContainer, FUDA_DATABASE } from "../../container.js";
 import { StructuredLoggerService } from "../../logging/structured-logger.service.js";
+import { SqliteOwnerRepository } from "../../owners/sqlite-owner-repository.js";
 import { writeTempSigningKeyPem } from "../../signing/tests/test-helpers.js";
 import { FudaHttpServer } from "../fuda-http-server.service.js";
 
@@ -15,6 +17,21 @@ const silentLogger = {
 } as unknown as StructuredLoggerService;
 
 export { writeTempSigningKeyPem };
+
+export const sampleAgentBody = {
+  slug: "newsletter",
+  name: "Newsletter agent",
+  ownerId: "owner-1",
+  groups: ["editors"],
+  persona: "You draft the weekly newsletter.",
+};
+
+function seedSampleOwner(
+  container: ReturnType<typeof createContainer>["container"],
+): void {
+  const db = container.resolve<DatabaseSync>(FUDA_DATABASE);
+  new SqliteOwnerRepository(db).upsert(sampleAgentBody.ownerId);
+}
 
 export function createTestServer(listenGroups?: string): FudaHttpServer {
   const dbDir = mkdtempSync(path.join(tmpdir(), "fuda-http-"));
@@ -34,6 +51,7 @@ export function createTestServer(listenGroups?: string): FudaHttpServer {
   });
   const { container } = createContainer(config, subjectTokenValidatorConfig);
   container.register(StructuredLoggerService, { useValue: silentLogger });
+  seedSampleOwner(container);
   return container.resolve(FudaHttpServer);
 }
 
@@ -67,16 +85,9 @@ export function createTestServerWithKeys(options: {
   });
   const { container } = createContainer(config, subjectTokenValidatorConfig);
   container.register(StructuredLoggerService, { useValue: silentLogger });
+  seedSampleOwner(container);
   return {
     server: container.resolve(FudaHttpServer),
     container,
   };
 }
-
-export const sampleAgentBody = {
-  slug: "newsletter",
-  name: "Newsletter agent",
-  ownerId: "owner-1",
-  groups: ["editors"],
-  persona: "You draft the weekly newsletter.",
-};

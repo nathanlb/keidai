@@ -134,7 +134,6 @@ describe("Gateway /api/connections endpoints", () => {
     const goodServer = await startMockMcpServer();
     const badServer = await startMockMcpServer({ rejectConnections: true });
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         serverConfig("good", goodServer.url),
@@ -182,7 +181,6 @@ describe("Gateway /api/connections endpoints", () => {
       ],
     });
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [serverConfig("gmail", mockServer.url)],
       groups: [
@@ -251,10 +249,99 @@ describe("Gateway /api/connections endpoints", () => {
     }
   });
 
+  it("reconnects auth-required user_oauth backends with ?owner= after linking", async () => {
+    const mockServer = await startMockMcpServer({
+      requireAuth: true,
+      expectedBearer: "linked-access-token",
+      tools: [{ name: "search_issues", description: "Search issues" }],
+    });
+    const oauthProviders = {
+      github: {
+        token_url: "https://github.com/login/oauth/access_token",
+        client_id: "client",
+        client_secret: "secret",
+        scopes: ["repo"],
+      },
+    };
+    const { credentialResolver, tokenRepository } = createCredentialServices({
+      oauth_providers: oauthProviders,
+    });
+    await tokenRepository.set("demo-owner", "github", {
+      accessToken: "linked-access-token",
+    });
+
+    const configService = new ToriiConfigService({
+      oauth_providers: oauthProviders,
+      servers: [
+        {
+          name: "github",
+          transport: { type: "http", url: mockServer.url },
+          credential: { strategy: "user_oauth", provider: "github" },
+        },
+      ],
+      groups: [
+        testAgentsGroup([{ server: "github", tools: ["search_issues"] }]),
+      ],
+    });
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
+    const toolCatalog = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+      createPolicyEnforcement(configService),
+      createNoopLogger(),
+    );
+    const gatewayHttpServer = createConnectionsGateway(
+      configService,
+      connectionManager,
+      toolCatalog,
+    );
+
+    try {
+      // Boot without principal — auth-required handshake fails.
+      await connectionManager.connectAll();
+      assert.equal(connectionManager.get("github")?.state, "failed");
+
+      const gateway = await gatewayHttpServer.start();
+      try {
+        const withoutOwner = await fetch(
+          `${gateway.baseUrl}/api/connections/github/reconnect`,
+          { method: "POST" },
+        );
+        assert.equal(withoutOwner.status, 200);
+        assert.equal(connectionManager.get("github")?.state, "failed");
+
+        const withOwner = await fetch(
+          `${gateway.baseUrl}/api/connections/github/reconnect?owner=demo-owner`,
+          { method: "POST" },
+        );
+        assert.equal(withOwner.status, 200);
+        assert.equal(connectionManager.get("github")?.state, "connected");
+
+        const toolsResponse = await fetch(
+          `${gateway.baseUrl}/api/connections/github/tools`,
+        );
+        assert.equal(toolsResponse.status, 200);
+        const toolsBody = (await toolsResponse.json()) as ServerToolsResponse;
+        assert.deepEqual(
+          toolsBody.tools.map((tool) => tool.name),
+          ["search_issues"],
+        );
+      } finally {
+        await gateway.close();
+      }
+    } finally {
+      await closeManagerConnections(connectionManager);
+      await mockServer.close();
+    }
+  });
+
   it("streams connection state changes over SSE", async () => {
     const mockServer = await startMockMcpServer();
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [serverConfig("alpha", mockServer.url)],
     });

@@ -20,17 +20,6 @@ spec:
       serviceAccountName: fuda
       securityContext:
         fsGroup: 1001
-      initContainers:
-        - name: seed
-          image: keidai-fuda:latest
-          imagePullPolicy: IfNotPresent
-          command: ["node", "dist/seed/cli.js", "/app/seed/fuda.seed.k8s.yaml"]
-          envFrom:
-            - configMapRef:
-                name: fuda-config
-          volumeMounts:
-            - name: data
-              mountPath: /app/data
       containers:
         - name: fuda
           image: keidai-fuda:latest
@@ -46,6 +35,9 @@ spec:
               mountPath: /app/data
             - name: signing-key
               mountPath: /app/keys
+              readOnly: true
+            - name: operators
+              mountPath: /app/operators
               readOnly: true
           readinessProbe:
             httpGet:
@@ -70,6 +62,9 @@ spec:
               - key: dev.pem
                 path: dev.pem
                 mode: 0400
+        - name: operators
+          configMap:
+            name: keidai-operators
 ---
 apiVersion: v1
 kind: Service

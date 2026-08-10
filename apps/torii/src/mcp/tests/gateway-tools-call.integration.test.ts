@@ -92,7 +92,6 @@ describe("Gateway MCP tools/call", () => {
     });
 
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {
         github: {
           token_url: "https://github.com/login/oauth/access_token",
@@ -176,7 +175,6 @@ describe("Gateway MCP tools/call", () => {
     });
 
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         {
@@ -241,7 +239,6 @@ describe("Gateway MCP tools/call", () => {
     });
 
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         {

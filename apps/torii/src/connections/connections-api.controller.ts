@@ -1,12 +1,18 @@
 import { CONNECTION_SSE_EVENT, type ConnectionSseEvent } from "@keidai/shared";
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import { inject, injectable } from "tsyringe";
 import { ToolCatalogService } from "../catalog/tool-catalog.service.js";
-import { ToriiConfigService } from "../config/torii-config.service.js";
 import { runWithAgentPrincipal } from "../identity/agent-principal-context.js";
-import { resolveBootPrincipal } from "../identity/resolve-boot-principal.js";
+import { operatorReconnectPrincipal } from "../identity/operator-reconnect-principal.js";
 import { ConnectionManager } from "./connection-manager.service.js";
 import { ConnectionReadService } from "./connection-read.service.js";
+
+function readOwnerQuery(
+  request: FastifyRequest<{ Querystring: { owner?: string } }>,
+): string | undefined {
+  const owner = request.query.owner?.trim();
+  return owner || undefined;
+}
 
 @injectable()
 export class ConnectionsApiController {
@@ -17,8 +23,6 @@ export class ConnectionsApiController {
     private readonly connectionManager: ConnectionManager,
     @inject(ToolCatalogService)
     private readonly toolCatalog: ToolCatalogService,
-    @inject(ToriiConfigService)
-    private readonly configService: ToriiConfigService,
   ) {}
 
   registerRoutes(app: FastifyInstance): void {
@@ -31,16 +35,26 @@ export class ConnectionsApiController {
       reply.send(this.connectionRead.getServerTools(name));
     });
 
-    app.post("/api/connections/reconnect", async (_request, reply) => {
-      await this.connectionManager.reconnectAll();
-      await this.refreshCatalogAndBroadcast();
-      reply.send({ ok: true });
-    });
+    app.post<{ Querystring: { owner?: string } }>(
+      "/api/connections/reconnect",
+      async (request, reply) => {
+        await this.runReconnect(readOwnerQuery(request), async () => {
+          await this.connectionManager.reconnectAll();
+          await this.refreshCatalogAndBroadcast();
+        });
+        reply.send({ ok: true });
+      },
+    );
 
-    app.post("/api/connections/:name/reconnect", async (request, reply) => {
-      const { name } = request.params as { name: string };
-      await this.connectionManager.reconnect(name);
-      await this.refreshCatalogAndBroadcast(name);
+    app.post<{
+      Params: { name: string };
+      Querystring: { owner?: string };
+    }>("/api/connections/:name/reconnect", async (request, reply) => {
+      const { name } = request.params;
+      await this.runReconnect(readOwnerQuery(request), async () => {
+        await this.connectionManager.reconnect(name);
+        await this.refreshCatalogAndBroadcast(name);
+      });
       reply.send({ ok: true });
     });
 
@@ -72,9 +86,24 @@ export class ConnectionsApiController {
     });
   }
 
+  /**
+   * user_oauth handshakes need an owner to resolve Authorization. Operator
+   * reconnect passes `?owner=`; wrap credential resolution in that context.
+   */
+  private async runReconnect(
+    ownerId: string | undefined,
+    fn: () => Promise<void>,
+  ): Promise<void> {
+    if (!ownerId) {
+      await fn();
+      return;
+    }
+
+    await runWithAgentPrincipal(operatorReconnectPrincipal(ownerId), fn);
+  }
+
   private async refreshCatalogAndBroadcast(name?: string): Promise<void> {
-    const principal = resolveBootPrincipal(this.configService.get());
-    await runWithAgentPrincipal(principal, () => this.toolCatalog.refresh());
+    await this.toolCatalog.refresh();
     this.connectionManager.rebroadcast(name);
   }
 }

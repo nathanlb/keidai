@@ -28,8 +28,8 @@ async function fetchOperatorSession(
     return null;
   }
 
-  // Vite proxies `/api` to Torii, which has no session route — treat as
-  // "auth unavailable" so local e2e / `pnpm dev` keep working without the BFF.
+  // Vite alone (no BFF) may 404 /api/session — treat as auth unavailable so
+  // the shell requires Google OIDC via the BFF.
   if (response.status === 404) {
     const error = new Error(OPERATOR_AUTH_UNAVAILABLE);
     error.name = OPERATOR_AUTH_UNAVAILABLE;
@@ -44,8 +44,9 @@ async function fetchOperatorSession(
 }
 
 /**
- * Reads the BFF operator session. When the session endpoint is missing (Vite
- * → Torii), status is `unavailable` and the shell should not gate.
+ * Reads the BFF operator session. When the session endpoint is missing
+ * (e.g. Vite alone without the API-only BFF), status is `unavailable` and the
+ * shell requires Google OIDC login.
  */
 export function useOperatorSession(): OperatorSessionState {
   const { data, error, isLoading, mutate } = useSWR(

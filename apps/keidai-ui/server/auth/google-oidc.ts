@@ -35,7 +35,12 @@ interface GoogleTokenResponse {
 export async function exchangeGoogleAuthorizationCode(
   config: OperatorAuthConfig,
   params: { code: string; codeVerifier: string },
-): Promise<{ googleSub: string; email: string }> {
+): Promise<{
+  googleSub: string;
+  email: string;
+  name?: string;
+  picture?: string;
+}> {
   if (config.exchangeAuthorizationCode) {
     return config.exchangeAuthorizationCode(params.code, params.codeVerifier);
   }
@@ -68,7 +73,12 @@ export async function exchangeGoogleAuthorizationCode(
 export async function verifyGoogleIdToken(
   config: OperatorAuthConfig,
   idToken: string,
-): Promise<{ googleSub: string; email: string }> {
+): Promise<{
+  googleSub: string;
+  email: string;
+  name?: string;
+  picture?: string;
+}> {
   const jwksUri = config.googleJwksUri ?? DEFAULT_JWKS_URI;
   const issuer = config.googleIssuer ?? DEFAULT_ISSUER;
   const jwks = jose.createRemoteJWKSet(new URL(jwksUri));
@@ -88,5 +98,14 @@ export async function verifyGoogleIdToken(
     throw new Error("Google email is not verified");
   }
 
-  return { googleSub, email };
+  const name = typeof payload.name === "string" ? payload.name : undefined;
+  const picture =
+    typeof payload.picture === "string" ? payload.picture : undefined;
+
+  return {
+    googleSub,
+    email,
+    ...(name ? { name } : {}),
+    ...(picture ? { picture } : {}),
+  };
 }

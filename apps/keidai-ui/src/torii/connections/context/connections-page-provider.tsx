@@ -45,7 +45,10 @@ export function ConnectionsPageProvider({
   } = useFetchOAuthProviders();
 
   const { owner } = useActingOwner();
-  const ownerIds = useMemo(() => [owner.ownerId], [owner.ownerId]);
+  const ownerIds = useMemo(
+    () => (owner ? [owner.ownerId] : []),
+    [owner],
+  );
 
   const {
     data: connectionsByOwner,
@@ -71,9 +74,11 @@ export function ConnectionsPageProvider({
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const { trace: linkingRequiredTrace, refresh: refreshLinkingRequiredTrace } =
-    useFetchLinkingRequiredTrace(owner.ownerId);
+    useFetchLinkingRequiredTrace(owner?.ownerId ?? null);
 
-  const oauthConnections = connectionsByOwner?.get(owner.ownerId) ?? [];
+  const oauthConnections = owner
+    ? (connectionsByOwner?.get(owner.ownerId) ?? [])
+    : [];
   const linkDialog = useOAuthLink();
 
   const handleLinkCompleted = useCallback(
@@ -81,8 +86,34 @@ export function ConnectionsPageProvider({
       await patchOwnerConnections(ownerId, connections);
       await refreshConnections();
       await refreshLinkingRequiredTrace();
+
+      // user_oauth MCP handshakes need the owner token — reconnect now that
+      // the grant exists (boot connect had no principal).
+      const providerIds = new Set(
+        connections
+          .filter((connection) => connection.status === "linked")
+          .map((connection) => connection.provider),
+      );
+      const serversToReconnect = (serversData?.servers ?? [])
+        .filter(
+          (server) =>
+            server.credential.strategy === "user_oauth" &&
+            providerIds.has(server.credential.provider),
+        )
+        .map((server) => server.name);
+
+      await Promise.all(
+        serversToReconnect.map((serverName) =>
+          reconnectConnection(serverName, ownerId).catch(() => undefined),
+        ),
+      );
     },
-    [patchOwnerConnections, refreshConnections, refreshLinkingRequiredTrace],
+    [
+      patchOwnerConnections,
+      refreshConnections,
+      refreshLinkingRequiredTrace,
+      serversData?.servers,
+    ],
   );
 
   const serversByName = useMemo(() => {
@@ -116,14 +147,14 @@ export function ConnectionsPageProvider({
   const summaries = useMemo(
     () =>
       buildServerSummaries(serversData?.servers ?? [], liveConnections, {
-        ownerId: owner.ownerId,
+        ownerId: owner?.ownerId ?? "",
         oauthProviders: providersData?.providers ?? {},
         oauthConnections,
       }),
     [
       liveConnections,
       oauthConnections,
-      owner.ownerId,
+      owner?.ownerId,
       providersData?.providers,
       serversData?.servers,
     ],
@@ -134,24 +165,33 @@ export function ConnectionsPageProvider({
     [summaries],
   );
 
-  const onReconnect = useCallback(async (serverName: string) => {
-    setReconnectingServers((current) => new Set(current).add(serverName));
-    try {
-      await reconnectConnection(serverName);
-      await mutate([SERVER_TOOLS_KEY, serverName]);
-    } finally {
-      setReconnectingServers((current) => {
-        const next = new Set(current);
-        next.delete(serverName);
-        return next;
-      });
-    }
-  }, []);
+  const onReconnect = useCallback(
+    async (serverName: string) => {
+      if (!owner) {
+        return;
+      }
+      setReconnectingServers((current) => new Set(current).add(serverName));
+      try {
+        await reconnectConnection(serverName, owner.ownerId);
+        await mutate([SERVER_TOOLS_KEY, serverName]);
+      } finally {
+        setReconnectingServers((current) => {
+          const next = new Set(current);
+          next.delete(serverName);
+          return next;
+        });
+      }
+    },
+    [owner],
+  );
 
   const onReconnectAll = useCallback(async () => {
+    if (!owner) {
+      return;
+    }
     setIsReconnectingAll(true);
     try {
-      await reconnectAllConnections();
+      await reconnectAllConnections(owner.ownerId);
       await mutate(
         (key) => Array.isArray(key) && key[0] === SERVER_TOOLS_KEY,
         undefined,
@@ -160,7 +200,7 @@ export function ConnectionsPageProvider({
     } finally {
       setIsReconnectingAll(false);
     }
-  }, []);
+  }, [owner]);
 
   const openLinkDialog = useCallback(
     (providerId: string, ownerId: string) => {
@@ -185,9 +225,12 @@ export function ConnectionsPageProvider({
 
   const onLink = useCallback(
     (providerId: string) => {
+      if (!owner) {
+        return;
+      }
       openLinkDialog(providerId, owner.ownerId);
     },
-    [openLinkDialog, owner.ownerId],
+    [openLinkDialog, owner],
   );
 
   const onLinkFromBanner = useCallback(

@@ -6,9 +6,6 @@ metadata:
 spec:
   template:
     spec:
-      initContainers:
-        - name: seed
-          imagePullPolicy: Never
       containers:
         - name: fuda
           imagePullPolicy: Never

@@ -73,10 +73,6 @@ groups:
         tools:
           - read_wiki_structure
 
-# Owner used for boot-time backend connections and catalog refresh.
-# Deployment config — not derived from agent declarations.
-boot_owner_id: user-alice
-
 # Optional: tools that require human approval before Torii proxies upstream,
 # keyed by Fuda agent id.
 # gated_tools:

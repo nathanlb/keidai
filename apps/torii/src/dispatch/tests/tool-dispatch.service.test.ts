@@ -88,7 +88,6 @@ async function createDispatchStack(
   const { credentialResolver } = createCredentialServices();
 
   const configService = new ToriiConfigService({
-    boot_owner_id: "test-owner",
     oauth_providers: {
       github: {
         token_url: "https://github.com/login/oauth/access_token",
@@ -299,6 +298,8 @@ describe("ToolDispatchService", () => {
     try {
       await bootBackends(stack.connectionManager, stack.toolCatalog);
 
+      // Kill the upstream so ensureConnected/reconnect cannot recover.
+      await mockServer.close();
       const connection = stack.connectionManager.get("github");
       assert.ok(connection);
       connection.state = "failed";
@@ -319,7 +320,6 @@ describe("ToolDispatchService", () => {
       assert.match(trace.error ?? "", /unavailable/);
     } finally {
       await stack.close();
-      await mockServer.close();
     }
   });
 
@@ -340,7 +340,6 @@ describe("ToolDispatchService", () => {
       oauth_providers: oauthProviders,
     });
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: oauthProviders,
       servers: [userOAuthServer("github", mockServer.url)],
       groups: [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])],

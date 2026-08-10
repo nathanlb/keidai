@@ -6,6 +6,7 @@ import { useFetchOAuthConnections } from "../../shell/hooks/use-fetch-oauth-conn
 import { useFetchOAuthProviders } from "../../shell/hooks/use-fetch-oauth-providers.js";
 import { buildOAuthProviderSummaries } from "../oauth/utils/build-oauth-provider-summaries.js";
 import { buildToriiOAuthCallbackUrl } from "../oauth/utils/build-torii-oauth-callback-url.js";
+import { resolveOAuthProviderOwnerIds } from "../oauth/utils/resolve-oauth-provider-owner-ids.js";
 import { useOAuthLink } from "../oauth/context/use-oauth-link.js";
 import { OAuthProvidersView } from "../oauth/oauth-providers-view.js";
 
@@ -25,10 +26,12 @@ export function OAuthProvidersPage() {
   const { owner } = useActingOwner();
 
   const ownerIds = useMemo(
-    () => [
-      ...new Set((agentsData?.agents ?? []).map((agent) => agent.ownerId)),
-    ],
-    [agentsData],
+    () =>
+      resolveOAuthProviderOwnerIds(
+        owner?.ownerId,
+        (agentsData?.agents ?? []).map((agent) => agent.ownerId),
+      ),
+    [agentsData, owner?.ownerId],
   );
 
   const {
@@ -68,6 +71,9 @@ export function OAuthProvidersPage() {
 
   const handleLinkProvider = useCallback(
     (providerId: string) => {
+      if (!owner) {
+        return;
+      }
       const summary = summaries.find((entry) => entry.id === providerId);
       if (!summary || summary.aggregateStatus === "misconfigured") {
         return;
@@ -84,7 +90,7 @@ export function OAuthProvidersPage() {
         { onLinked: handleLinkCompleted },
       );
     },
-    [handleLinkCompleted, linkDialog, owner.ownerId, summaries],
+    [handleLinkCompleted, linkDialog, owner, summaries],
   );
 
   if (isLoading && !providersData) {

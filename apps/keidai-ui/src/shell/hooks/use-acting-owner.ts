@@ -1,26 +1,44 @@
 import { useMemo } from "react";
 import { deriveOwnerInitials } from "../utils/derive-owner-initials.js";
-import { useFetchAgents } from "./use-fetch-agents.js";
+import { useOperatorSession } from "./use-operator-session.js";
 
 export interface ActingOwner {
   ownerId: string;
+  /** Display label — Google name/email when authenticated. */
+  displayName: string;
   initials: string;
+  picture?: string;
 }
 
-/** v0 has one implicit owner and no user auth. */
-const V0_FALLBACK_OWNER_ID = "nathanlb";
-
+/**
+ * Acting owner for operator UI writes (agent create, OAuth link).
+ *
+ * Always session-derived (`GET /api/session`). Without an authenticated
+ * principal there is no acting owner — the shell must send the operator
+ * through Google OIDC again.
+ */
 export function useActingOwner() {
-  const { data, refresh, isLoading } = useFetchAgents();
+  const { status, principal } = useOperatorSession();
 
-  const owner = useMemo((): ActingOwner => {
-    const ownerId = data?.agents[0]?.ownerId ?? V0_FALLBACK_OWNER_ID;
+  const owner = useMemo((): ActingOwner | null => {
+    if (status !== "authenticated" || !principal) {
+      return null;
+    }
 
+    const displayName =
+      principal.name?.trim() || principal.email.trim() || principal.ownerId;
     return {
-      ownerId,
-      initials: deriveOwnerInitials(ownerId),
+      ownerId: principal.ownerId,
+      displayName,
+      initials: deriveOwnerInitials(
+        principal.name?.trim() || principal.email || principal.ownerId,
+      ),
+      ...(principal.picture ? { picture: principal.picture } : {}),
     };
-  }, [data]);
+  }, [status, principal]);
 
-  return { owner, refresh, isLoading };
+  return {
+    owner,
+    isLoading: status === "loading",
+  };
 }

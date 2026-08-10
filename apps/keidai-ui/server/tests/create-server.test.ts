@@ -19,6 +19,29 @@ describe("createServer", () => {
         res.end(JSON.stringify({ ok: true, backend: "torii" }));
         return;
       }
+      if (req.url?.startsWith("/api/oauth/initiate/")) {
+        const provider = req.url.split("/").pop()?.split("?")[0] ?? "unknown";
+        const proto =
+          String(req.headers["x-forwarded-proto"] ?? "http").split(",")[0]?.trim() ||
+          "http";
+        const host =
+          String(req.headers["x-forwarded-host"] ?? req.headers.host ?? "")
+            .split(",")[0]
+            ?.trim() || "127.0.0.1";
+        const redirectUri = `${proto}://${host}/oauth/callback/${provider}`;
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(
+          JSON.stringify({
+            authorizationUrl: `https://example.com/oauth/${provider}`,
+            linkId: "link-1",
+            redirectUri,
+            forwardedHost: req.headers["x-forwarded-host"] ?? null,
+            forwardedProto: req.headers["x-forwarded-proto"] ?? null,
+            uiOrigin: req.headers["x-torii-ui-origin"] ?? null,
+          }),
+        );
+        return;
+      }
       if (req.url?.startsWith("/oauth/callback/")) {
         res.writeHead(302, { location: "/?oauth=linked" });
         res.end();
@@ -158,6 +181,30 @@ describe("createServer", () => {
     });
     assert.equal(response.status, 302);
     assert.equal(response.headers.get("location"), "/?oauth=linked");
+  });
+
+  it("forwards operator-edge Host/proto so Torii OAuth redirect_uri stays on localhost:3000", async () => {
+    const address = app.server.address();
+    assert(address && typeof address === "object");
+    const base = `http://127.0.0.1:${address.port}`;
+
+    const response = await fetch(`${base}/api/oauth/initiate/github?owner=owner-a`, {
+      method: "POST",
+      headers: {
+        "x-forwarded-host": "localhost:3000",
+        "x-forwarded-proto": "http",
+        "x-torii-ui-origin": "http://localhost:3000",
+      },
+    });
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      authorizationUrl: "https://example.com/oauth/github",
+      linkId: "link-1",
+      redirectUri: "http://localhost:3000/oauth/callback/github",
+      forwardedHost: "localhost:3000",
+      forwardedProto: "http",
+      uiOrigin: "http://localhost:3000",
+    });
   });
 
   it("hardens SSE proxy responses for runs and traces events", async () => {

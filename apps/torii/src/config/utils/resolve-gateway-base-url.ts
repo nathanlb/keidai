@@ -1,13 +1,25 @@
 import type { FastifyRequest } from "fastify";
 import type { ToriiConfig } from "@keidai/shared";
 
+function readForwardedHeader(
+  value: string | string[] | undefined,
+): string | undefined {
+  if (typeof value === "string") {
+    return value.split(",")[0]?.trim() || undefined;
+  }
+  if (Array.isArray(value)) {
+    return value[0]?.split(",")[0]?.trim() || undefined;
+  }
+  return undefined;
+}
+
 function readRequestBaseUrl(request: FastifyRequest): string {
-  const forwardedProto = request.headers["x-forwarded-proto"];
   const protocol =
-    (typeof forwardedProto === "string"
-      ? forwardedProto.split(",")[0]?.trim()
-      : undefined) ?? "http";
-  const host = request.headers.host ?? "127.0.0.1";
+    readForwardedHeader(request.headers["x-forwarded-proto"]) ?? "http";
+  const host =
+    readForwardedHeader(request.headers["x-forwarded-host"]) ??
+    request.headers.host ??
+    "127.0.0.1";
   return `${protocol}://${host}`;
 }
 

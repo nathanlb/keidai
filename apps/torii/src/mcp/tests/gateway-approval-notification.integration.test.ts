@@ -82,7 +82,6 @@ async function withGatedGateway(
   });
 
   const configService = new ToriiConfigService({
-    boot_owner_id: "test-owner",
     oauth_providers: {},
     servers: [
       {
@@ -277,7 +276,6 @@ describe("Gateway MCP approval notifications", () => {
     });
 
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         {

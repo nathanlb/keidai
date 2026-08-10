@@ -9,7 +9,6 @@ import {
 } from "../project-config-api.js";
 
 const fullConfig: ToriiConfig = {
-  boot_owner_id: "test-owner",
   oauth_providers: {
     github: {
       token_url: "https://github.com/login/oauth/access_token",
@@ -113,7 +112,6 @@ describe("project-config-api", () => {
 
   it("returns empty collections for empty config", () => {
     const empty: ToriiConfig = {
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [],
     };

@@ -67,7 +67,6 @@ export function createCredentialServices(
 } {
   const tokenRepository = persistence.tokenRepository;
   const configService = new ToriiConfigService({
-    boot_owner_id: "test-owner",
     oauth_providers: config.oauth_providers,
     servers: [],
   });

@@ -48,7 +48,6 @@ describe("Gateway MCP tools/list", () => {
     });
 
     const configService = new ToriiConfigService({
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [serverConfig("github", backend.url)],
       groups: [

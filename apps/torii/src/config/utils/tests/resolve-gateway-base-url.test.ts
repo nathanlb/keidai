@@ -7,7 +7,6 @@ describe("resolveGatewayBaseUrl", () => {
   it("prefers gateway_base_url from config", () => {
     const config: ToriiConfig = {
       gateway_base_url: "https://torii.example.com",
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         {
@@ -24,7 +23,6 @@ describe("resolveGatewayBaseUrl", () => {
   it("strips trailing slash from configured base URL", () => {
     const config: ToriiConfig = {
       gateway_base_url: "https://torii.example.com/",
-      boot_owner_id: "test-owner",
       oauth_providers: {},
       servers: [
         {
@@ -47,7 +45,6 @@ describe("resolveGatewayBaseUrl", () => {
     try {
       assert.equal(
         resolveGatewayBaseUrl({
-          boot_owner_id: "test-owner",
           oauth_providers: {},
           servers: [],
         }),
@@ -65,5 +62,20 @@ describe("resolveGatewayBaseUrl", () => {
         process.env.TORII_PORT = previousPort;
       }
     }
+  });
+
+  it("prefers X-Forwarded-Host and X-Forwarded-Proto from the operator edge", () => {
+    const base = resolveGatewayBaseUrl(
+      { oauth_providers: {}, servers: [] },
+      {
+        headers: {
+          host: "127.0.0.1:3100",
+          "x-forwarded-host": "localhost:3000",
+          "x-forwarded-proto": "https",
+        },
+      } as never,
+    );
+
+    assert.equal(base, "https://localhost:3000");
   });
 });

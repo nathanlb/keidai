@@ -1,0 +1,14 @@
+# Platform operators — source of truth for Google identity ↔ opaque owner_id.
+#
+# Consumed by:
+#   - keidai-ui BFF at boot (KEIDAI_OPERATORS_PATH) for login allowlist + mapping
+#   - Fuda at boot (FUDA_OPERATORS_PATH) to reconcile the owners table
+#
+# Invariant: one google_sub (and/or google_email) ↔ one owner_id.
+# Display name/avatar come from Google IdP claims at login, not from this file.
+
+operators:
+  - owner_id: nathan-lafranceb
+    # Prefer google_sub once known (stable). Email is useful for first bootstrap.
+    google_email: nathan.lafranceb@gmail.com
+    # google_sub: "1182..."
