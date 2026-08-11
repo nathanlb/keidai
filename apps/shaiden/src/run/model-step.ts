@@ -10,10 +10,16 @@ import {
 import type { DiscoveredTool } from "../mcp/types/index.js";
 import {
   parseStepAssessment,
+  REPORT_STEP_ASSESSMENT_DESCRIPTION,
   REPORT_STEP_ASSESSMENT_TOOL,
   resolveModelStepAssessment,
   stepAssessmentSchema,
 } from "./step-assessment.js";
+import {
+  REPORT_TASK_OUTPUT_DESCRIPTION,
+  REPORT_TASK_OUTPUT_TOOL,
+  taskOutputSchema,
+} from "./task-output.js";
 import type { ConversationEntry, ModelStep } from "./types/task-loop.js";
 
 const EMPTY_INPUT_SCHEMA: JSONSchema7 = { type: "object", properties: {} };
@@ -26,9 +32,12 @@ const EMPTY_INPUT_SCHEMA: JSONSchema7 = { type: "object", properties: {} };
 export function buildToolSet(tools: DiscoveredTool[]): ToolSet {
   const toolSet: ToolSet = {
     [REPORT_STEP_ASSESSMENT_TOOL]: {
-      description:
-        "Report a terminal outcome when the task is finished. Call alone (no other tools) with status goal_met or cannot_complete.",
+      description: REPORT_STEP_ASSESSMENT_DESCRIPTION,
       inputSchema: zodSchema(stepAssessmentSchema),
+    },
+    [REPORT_TASK_OUTPUT_TOOL]: {
+      description: REPORT_TASK_OUTPUT_DESCRIPTION,
+      inputSchema: zodSchema(taskOutputSchema),
     },
   };
 
@@ -104,10 +113,18 @@ export function createModelStepCaller(
         input: (call.input ?? {}) as Record<string, unknown>,
       }));
 
+    // Only Torii tools suppress an explicit terminal assessment. Output may
+    // share a turn with report_step_assessment. Output alone must continue —
+    // do not invent cannot_complete from accompanying narration.
+    const toriiToolCalls = toolCalls.filter(
+      (call) => call.toolName !== REPORT_TASK_OUTPUT_TOOL,
+    );
+
     const assessment = resolveModelStepAssessment(
       parseStepAssessment(assessmentCall?.input),
-      toolCalls,
+      toriiToolCalls,
       result.text,
+      toolCalls,
     );
 
     return {

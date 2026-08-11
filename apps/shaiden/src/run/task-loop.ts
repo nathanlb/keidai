@@ -1,5 +1,6 @@
 import type { TerminationOutcome } from "@keidai/shared";
 import { mapTerminalAssessmentToOutcome } from "./step-assessment.js";
+import { isHarnessLocalTool } from "./task-output.js";
 import type { ConversationEntry } from "./types/conversation-history.js";
 import {
   TaskLoopDeps,
@@ -40,6 +41,7 @@ function formatApprovalDenial(reason?: string): string {
  * calls, feed results back, repeat. Every exit funnels through exactly one
  * typed TerminationOutcome:
  * - final text-only step with assessment -> goal_met | human_reject | failed(reason)
+ * - harness-only tools (e.g. report_task_output) + assessment -> terminate after dispatch
  * - Torii tool calls                     -> continue (implicit; no assessment needed)
  * - human approval rejection             -> human_reject (harness-driven; no model round-trip)
  * - iteration cap reached                -> iteration_exhausted
@@ -207,6 +209,19 @@ export async function runTaskLoop(
         return terminate({ status: "human_reject" }, iteration);
       }
     }
+
+    // Assessment may share a turn with harness-local tools (e.g. output). Torii
+    // tools still suppress assessment upstream; if one leaked through, continue.
+    if (
+      step.assessment &&
+      step.toolCalls.every((call) => isHarnessLocalTool(call.toolName))
+    ) {
+      return terminate(
+        mapTerminalAssessmentToOutcome(step.assessment),
+        iteration,
+      );
+    }
+
     checkpoint();
   }
 

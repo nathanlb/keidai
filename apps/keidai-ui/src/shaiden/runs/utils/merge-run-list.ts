@@ -13,11 +13,11 @@ export function compareRunListItems(
   return right.id.localeCompare(left.id);
 }
 
-export function mergeRunListItem(
-  current: readonly RunListItem[],
-  run: RunListItem,
+export function mergeRunListItem<T extends RunListItem>(
+  current: readonly T[],
+  run: T,
   limit = LIST_BUFFER_LIMIT,
-): RunListItem[] {
+): T[] {
   const without = current.filter((item) => item.id !== run.id);
   return [...without, run]
     .sort(compareRunListItems)

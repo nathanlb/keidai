@@ -1,5 +1,5 @@
 import "../load-env.js";
-import type { Task, TerminationOutcome } from "@keidai/shared";
+import type { RunStep, Task, TerminationOutcome } from "@keidai/shared";
 import type { RuntimeConfig } from "../../src/config/runtime-config.js";
 import { startHarnessRun } from "../../src/run/harness.js";
 import { createEvalPersistence } from "../../src/testing/persistence.js";
@@ -34,6 +34,7 @@ export interface LiveHarnessEvalResult {
   outcome: TerminationOutcome;
   iterations: number;
   runId: string;
+  steps: RunStep[];
 }
 
 export async function runLiveHarnessEval(input: {
@@ -62,10 +63,12 @@ export async function runLiveHarnessEval(input: {
       config,
       persistence.runStore,
     );
+    const run = persistence.runStore.getRun(result.run.id);
     return {
       outcome: result.run.outcome,
       iterations: result.iterations,
       runId: result.run.id,
+      steps: run?.steps ?? [],
     };
   } finally {
     driverAbort.abort();

@@ -22,7 +22,7 @@ import { TablePaginationFooter } from "../../shell/components/table-pagination/t
 import { paginateItems } from "../../shell/components/table-pagination/paginate-items.js";
 import { useTablePageIndex } from "../../shell/components/table-pagination/use-table-page-index.js";
 import { useFetchRun } from "../../shell/hooks/use-fetch-run.js";
-import { useRuns } from "../../shell/hooks/use-runs.js";
+import { useRunsVisibility } from "../hooks/use-runs-visibility.js";
 import { NEW_TASK_HREF, NEW_TASK_PARAM } from "../navigation.js";
 import { TaskAuthoringDialog } from "../tasks/task-authoring-dialog.js";
 import { RunDetailDrawer } from "./run-detail-drawer.js";
@@ -44,7 +44,7 @@ const RUN_ID_PARAM = "run";
 function RunsEmptyState() {
   return (
     <PageEmptyState
-      icon={<Workflow className="size-[30px]" aria-hidden />}
+      icon={<Workflow className="size-7.5" aria-hidden />}
       title="No runs yet"
       description="Author a Task and run it to observe step sequence, tool calls, and termination outcome here."
       action={
@@ -63,12 +63,17 @@ function RunsNoMatchEmptyState({
 }) {
   return (
     <PageEmptyState
-      icon={<Search className="size-[18px]" aria-hidden />}
+      icon={<Search className="size-4.5" aria-hidden />}
       title="No runs match these filters"
       description="Try a different status or search term."
       contentClassName="py-12"
       action={
-        <Button type="button" variant="outline" size="sm" onClick={onClearFilters}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onClearFilters}
+        >
           Clear filters
         </Button>
       }
@@ -98,7 +103,14 @@ export function RunVisibilityView() {
     requestedRunId,
   );
   const [drawerOpen, setDrawerOpen] = useState(Boolean(requestedRunId));
-  const { runs, error, isLoading, suspendedRunIds, refresh } = useRuns(true);
+  const {
+    runs,
+    error,
+    isLoading,
+    suspendedRunIds,
+    refresh,
+    resolveAssigneeDisplay,
+  } = useRunsVisibility(true);
   const {
     data: fetchedRun,
     error: fetchRunError,
@@ -227,6 +239,9 @@ export function RunVisibilityView() {
     runDrawer: (
       <RunDetailDrawer
         run={selectedRun}
+        assigneeDisplay={
+          selectedRun ? resolveAssigneeDisplay(selectedRun.assignee) : null
+        }
         open={drawerOpen}
         onOpenChange={onDrawerOpenChange}
         onRunUpdated={onRunUpdated}

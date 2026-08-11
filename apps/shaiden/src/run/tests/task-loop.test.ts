@@ -292,6 +292,64 @@ describe("task loop", () => {
     assert.deepEqual(dispatched, ["search_issues"]);
   });
 
+  it("terminates after harness-only output when assessment is present", async () => {
+    const dispatched: string[] = [];
+    const result = await runGoalLoop("goal", limits, {
+      callModel: async () => ({
+        text: "Deliverable ready.",
+        toolCalls: [
+          {
+            toolCallId: "out-1",
+            toolName: "report_task_output",
+            input: { text: "Here is the summary." },
+          },
+        ],
+        assessment: { status: "goal_met", message: "Deliverable ready." },
+      }),
+      dispatchToolCall: async (call) => {
+        dispatched.push(call.toolName);
+        return { isError: false, text: "Output recorded for the operator." };
+      },
+    });
+
+    assert.deepEqual(result.outcome, { status: "goal_met" });
+    assert.deepEqual(dispatched, ["report_task_output"]);
+    assert.equal(result.iterations, 1);
+  });
+
+  it("continues when output is emitted without a terminal assessment", async () => {
+    const dispatched: string[] = [];
+    const result = await runGoalLoop("goal", limits, {
+      callModel: async () => {
+        if (dispatched.length === 0) {
+          return {
+            text: "Interim note.",
+            toolCalls: [
+              {
+                toolCallId: "out-1",
+                toolName: "report_task_output",
+                input: { text: "Finding so far." },
+              },
+            ],
+          };
+        }
+        return {
+          text: "Done.",
+          toolCalls: [],
+          assessment: { status: "goal_met", message: "Done." },
+        };
+      },
+      dispatchToolCall: async (call) => {
+        dispatched.push(call.toolName);
+        return { isError: false, text: "Output recorded for the operator." };
+      },
+    });
+
+    assert.deepEqual(result.outcome, { status: "goal_met" });
+    assert.deepEqual(dispatched, ["report_task_output"]);
+    assert.equal(result.iterations, 2);
+  });
+
   it("terminates as failed when approval is cancelled by operator", async () => {
     const approval = deferredApprovalDecision();
 

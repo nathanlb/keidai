@@ -1,1 +1,60 @@
 @import "@keidai/ui/globals.css";
+
+@keyframes run-log-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes run-log-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes run-log-result-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.run-log-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    var(--muted),
+    var(--border),
+    var(--muted)
+  );
+  background-size: 200% 100%;
+  animation: run-log-shimmer 1.6s linear infinite;
+}
+
+.run-log-breathe {
+  animation: run-log-breathe 1.6s ease-in-out infinite;
+}
+
+.run-log-result-enter {
+  animation: run-log-result-fade 150ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run-log-shimmer,
+  .run-log-breathe,
+  .run-log-result-enter {
+    animation: none;
+  }
+
+  .run-log-breathe {
+    opacity: 1;
+  }
+}

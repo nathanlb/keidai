@@ -1,5 +1,5 @@
 import { Badge, cn, TableCell, TableRow } from "@keidai/ui";
-import type { RunListItem } from "@keidai/shared";
+import type { RunVisibilityListItem } from "../api/runs-visibility-client.js";
 import {
   CheckCircle2,
   ChevronRight,
@@ -21,14 +21,6 @@ import {
   formatRunRelative,
 } from "./utils/format-run-time.js";
 import { runsTableColumns } from "./runs-table-columns.js";
-
-function agentInitials(agentId: string): string {
-  const parts = agentId.split(/[-_]/).filter(Boolean);
-  if (parts.length >= 2) {
-    return `${parts[0]![0] ?? ""}${parts[1]![0] ?? ""}`.toUpperCase();
-  }
-  return agentId.slice(0, 2).toUpperCase();
-}
 
 function StatusIcon({
   status,
@@ -60,13 +52,16 @@ export function RunsTableRow({
   selected,
   onOpen,
 }: {
-  run: RunListItem;
+  run: RunVisibilityListItem;
   suspendedRunIds: ReadonlySet<string>;
   selected: boolean;
   onOpen: (runId: string) => void;
 }) {
   const status = deriveRunDisplayStatus(run, { suspendedRunIds });
   const meta = RUN_STATUS_META[status];
+  const assigneeLabel = run.assigneeDisplay?.displayName ?? run.assignee;
+  const assigneeInitials =
+    run.assigneeDisplay?.initials ?? run.assignee.slice(0, 2).toUpperCase();
 
   return (
     <TableRow
@@ -84,15 +79,9 @@ export function RunsTableRow({
         >
           {run.goalPreview}
         </div>
-        <div
-          className="mt-0.5 truncate font-mono text-[11.5px] text-muted-foreground"
-          title={run.id}
-        >
-          {run.id}
-        </div>
         <Link
           to={`/shaiden/tasks?task=${encodeURIComponent(run.taskId)}`}
-          className="mt-0.5 inline truncate font-mono text-[11px] text-primary hover:underline"
+          className="mt-0.5 inline truncate font-mono text-[11px] text-muted-foreground hover:underline"
           title={run.taskId}
           onClick={(event) => event.stopPropagation()}
         >
@@ -143,11 +132,11 @@ export function RunsTableRow({
       >
         <div className="flex min-w-0 items-center gap-2">
           <OwnerAvatar
-            initials={agentInitials(run.assignee)}
-            className="size-[22px] shrink-0 bg-secondary text-[9px] text-secondary-foreground"
+            initials={assigneeInitials}
+            className="size-5.5 shrink-0 bg-secondary text-[9px] text-secondary-foreground"
           />
-          <span className="truncate font-mono text-xs" title={run.assignee}>
-            {run.assignee}
+          <span className="truncate text-xs" title={run.assignee}>
+            {assigneeLabel}
           </span>
         </div>
       </TableCell>

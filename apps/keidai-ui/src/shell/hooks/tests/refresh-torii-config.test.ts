@@ -6,7 +6,7 @@ import { OAUTH_PROVIDERS_KEY } from "../use-fetch-oauth-providers.js";
 import { SERVERS_KEY } from "../use-fetch-servers.js";
 import { TASKS_KEY } from "../../../shaiden/hooks/use-fetch-tasks.js";
 import { TORII_STATUS_KEY, SHAIDEN_STATUS_KEY } from "../backend-health.js";
-import { RUNS_KEY } from "../use-runs.js";
+import { RUNS_VISIBILITY_KEY } from "../../../shaiden/hooks/use-runs-visibility.js";
 
 describe("refreshToriiConfig", () => {
   it("revalidates config and oauth connection caches", () => {
@@ -45,7 +45,7 @@ describe("refreshToriiConfig", () => {
     expect(mutate).toHaveBeenCalledWith(TASKS_KEY, undefined, {
       revalidate: true,
     });
-    expect(mutate).toHaveBeenCalledWith(RUNS_KEY, undefined, {
+    expect(mutate).toHaveBeenCalledWith(RUNS_VISIBILITY_KEY, undefined, {
       revalidate: true,
     });
   });

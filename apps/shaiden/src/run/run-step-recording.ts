@@ -1,5 +1,6 @@
 import type { ToriiCallMeta } from "@keidai/shared";
 import type { RunReporter } from "./run-reporter.js";
+import { clipTaskOutput } from "./task-output.js";
 import type { ModelToolCall } from "./types/task-loop.js";
 
 export function previewOf(value: string, maxLength = 200): string {
@@ -49,5 +50,12 @@ export function recordToolResult(
     charCount: result.text.length,
     outputPreview: previewOf(result.text, result.isError ? 500 : 200),
     ...(result.meta?.traceId ? { traceId: result.meta.traceId } : {}),
+  });
+}
+
+export function recordTaskOutput(reporter: RunReporter, text: string): void {
+  reporter.recordStep({
+    kind: "output",
+    text: clipTaskOutput(text),
   });
 }

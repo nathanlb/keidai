@@ -5,6 +5,10 @@ import { createTestPersistence, createTestRun } from "../../testing/persistence.
 import type { RunStore } from "../../runs/run-store.js";
 import { createHarnessToolDispatcher } from "../harness-tool-dispatch.js";
 import { createLocalRunReporter } from "../run-reporter.js";
+import {
+  REPORT_TASK_OUTPUT_TOOL,
+  TASK_OUTPUT_MAX_LENGTH,
+} from "../task-output.js";
 import { toolCall } from "../testing/task-loop-harness.js";
 
 const sampleTask = {
@@ -109,6 +113,80 @@ describe("harness tool dispatch", () => {
     assert.equal(steps[1]?.status, "error");
     assert.equal(steps[1]?.outputPreview, "policy denied");
     assert.equal(steps[1]?.toolCallId, "call-1");
+  });
+
+  it("records an output step for report_task_output without Torii dispatch", async () => {
+    const { store, reporter } = createHarnessReporter();
+    let toriiCalls = 0;
+    const dispatch = createHarnessToolDispatcher({
+      runId: "run-1",
+      reporter,
+      availableToolNames: new Set(["notion_search"]),
+      callTool: async () => {
+        toriiCalls += 1;
+        return { isError: false, text: "ok" };
+      },
+    });
+
+    const result = await dispatch({
+      toolCallId: "out-1",
+      toolName: REPORT_TASK_OUTPUT_TOOL,
+      input: { text: "Weekly summary:\n- shipped NAT-155" },
+    });
+
+    assert.equal(result.isError, false);
+    assert.equal(result.text, "Output recorded for the operator.");
+    assert.equal(toriiCalls, 0);
+
+    const steps = latestSteps(store);
+    assert.equal(steps.length, 1);
+    assert.equal(steps[0]?.kind, "output");
+    if (steps[0]?.kind === "output") {
+      assert.equal(steps[0].text, "Weekly summary:\n- shipped NAT-155");
+    }
+  });
+
+  it("rejects invalid report_task_output input without recording a step", async () => {
+    const { store, reporter } = createHarnessReporter();
+    const dispatch = createHarnessToolDispatcher({
+      runId: "run-1",
+      reporter,
+      availableToolNames: new Set(),
+      callTool: async () => ({ isError: false, text: "ok" }),
+    });
+
+    const result = await dispatch({
+      toolCallId: "out-bad",
+      toolName: REPORT_TASK_OUTPUT_TOOL,
+      input: { text: "" },
+    });
+
+    assert.equal(result.isError, true);
+    assert.equal(result.text, "invalid report_task_output input");
+    assert.equal(latestSteps(store).length, 0);
+  });
+
+  it("clips oversized report_task_output text when recording", async () => {
+    const { store, reporter } = createHarnessReporter();
+    const dispatch = createHarnessToolDispatcher({
+      runId: "run-1",
+      reporter,
+      availableToolNames: new Set(),
+      callTool: async () => ({ isError: false, text: "ok" }),
+    });
+
+    const result = await dispatch({
+      toolCallId: "out-max",
+      toolName: REPORT_TASK_OUTPUT_TOOL,
+      input: { text: "x".repeat(TASK_OUTPUT_MAX_LENGTH) },
+    });
+
+    assert.equal(result.isError, false);
+    const step = latestSteps(store)[0];
+    assert.equal(step?.kind, "output");
+    if (step?.kind === "output") {
+      assert.equal(step.text.length, TASK_OUTPUT_MAX_LENGTH);
+    }
   });
 
   it("records policyDenied when callTool throws PolicyDeniedError", async () => {

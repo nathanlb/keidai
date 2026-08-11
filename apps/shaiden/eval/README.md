@@ -30,6 +30,7 @@ Loaded automatically from the repo root `.env` then `apps/shaiden/.env` (same as
 | Path | Purpose |
 |------|---------|
 | `termination/live/` | NAT-112 termination scenarios through the real harness |
+| `output/live/` | NAT-155 in-band `report_task_output` selection through the real harness |
 | `helpers/` | Eval stack, live harness runner, assertions |
 
 Harness primitives shared with unit tests: `src/run/testing/task-loop-harness.ts`.

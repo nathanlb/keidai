@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { RunListItem } from "@keidai/shared";
+import type { RunVisibilityListItem } from "../../../api/runs-visibility-client.js";
 import { deriveRunDisplayStatus } from "../derive-run-display-status.js";
 import { filterRuns } from "../filter-runs.js";
 
-function sampleRun(overrides: Partial<RunListItem> = {}): RunListItem {
+function sampleRun(
+  overrides: Partial<RunListItem> = {},
+  assigneeDisplay: RunVisibilityListItem["assigneeDisplay"] = null,
+): RunVisibilityListItem {
   return {
     id: "run-1",
     taskId: "task-1",
@@ -12,6 +16,7 @@ function sampleRun(overrides: Partial<RunListItem> = {}): RunListItem {
     goalPreview: "Newsletter draft",
     status: "running",
     stepCount: 3,
+    assigneeDisplay,
     ...overrides,
   };
 }
@@ -37,6 +42,36 @@ describe("filterRuns", () => {
     expect(
       filterRuns(runs, { query: "demo-agent", status: "all" }, new Set()),
     ).toHaveLength(2);
+  });
+
+  it("filters by agent display name and slug", () => {
+    const enrichedRuns = [
+      sampleRun(
+        { id: "run-3", assignee: "agent-1" },
+        {
+          id: "agent-1",
+          name: "Newsletter Writer",
+          slug: "newsletter-writer",
+          displayName: "Newsletter Writer",
+          initials: "NW",
+        },
+      ),
+    ];
+
+    expect(
+      filterRuns(
+        enrichedRuns,
+        { query: "newsletter writer", status: "all" },
+        new Set(),
+      ),
+    ).toHaveLength(1);
+    expect(
+      filterRuns(
+        enrichedRuns,
+        { query: "newsletter-writer", status: "all" },
+        new Set(),
+      ),
+    ).toHaveLength(1);
   });
 
   it("filters by status group", () => {

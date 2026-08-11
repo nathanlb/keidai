@@ -21,6 +21,7 @@ import {
 } from "./auth/enforce-session-owner.js";
 import { registerOperatorAuth } from "./auth/register-auth.js";
 import type { OperatorAuthConfig } from "./auth/types.js";
+import { registerUiRoutes } from "./ui/register-ui-routes.js";
 
 const serverDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -250,6 +251,8 @@ export async function createServer(
   if (authConfig) {
     await registerOperatorAuth(app, authConfig);
   }
+
+  await registerUiRoutes(app, { backends, bffServiceToken });
 
   await registerApiProxy(app, backends, {
     enforceSessionOwner: Boolean(authConfig),
