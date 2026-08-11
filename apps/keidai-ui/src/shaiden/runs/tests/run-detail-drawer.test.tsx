@@ -118,6 +118,98 @@ describe("RunDetailDrawer run log loader", () => {
     ).toBeInTheDocument();
   });
 
+  it("groups a tool call and its result into one run-log row", () => {
+    renderRunDetailDrawer({
+      ...baseRun,
+      status: "completed",
+      outcome: { status: "goal_met" },
+      steps: [
+        {
+          id: "step-1",
+          timestamp: "2026-07-14T12:00:01.000Z",
+          kind: "model",
+          text: "Planning next action",
+        },
+        {
+          id: "step-2",
+          timestamp: "2026-07-14T12:00:02.000Z",
+          kind: "tool_dispatch",
+          toolName: "linear.list_projects",
+          toolCallId: "call-1",
+          inputPreview: '{"limit":50}',
+        },
+        {
+          id: "step-3",
+          timestamp: "2026-07-14T12:00:03.000Z",
+          kind: "tool_result",
+          toolName: "linear.list_projects",
+          toolCallId: "call-1",
+          status: "ok",
+          outputPreview: '{"projects":[]}',
+          charCount: 16,
+          traceId: "trace-1",
+        },
+      ],
+    });
+
+    expect(
+      screen.getByText("Tool call · linear.list_projects"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Tool result · linear.list_projects"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Result · 16 chars")).toBeInTheDocument();
+    expect(screen.getByText("ok")).toBeInTheDocument();
+    expect(screen.getByText("1.0s")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /view trace in torii/i }),
+    ).toHaveAttribute("href", "/activity?trace_id=trace-1");
+  });
+
+  it("shows a running affordance for an in-flight tool call", () => {
+    renderRunDetailDrawer({
+      ...baseRun,
+      steps: [
+        {
+          id: "step-1",
+          timestamp: "2026-07-14T12:00:01.000Z",
+          kind: "tool_dispatch",
+          toolName: "linear.list_initiatives",
+          toolCallId: "call-1",
+          inputPreview: '{"limit":50}',
+        },
+      ],
+    });
+
+    expect(screen.getByText("running")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Tool result · linear.list_initiatives"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows orphaned tool results as standalone rows", () => {
+    renderRunDetailDrawer({
+      ...baseRun,
+      status: "completed",
+      outcome: { status: "goal_met" },
+      steps: [
+        {
+          id: "step-1",
+          timestamp: "2026-07-14T12:00:01.000Z",
+          kind: "tool_result",
+          toolName: "linear.list_projects",
+          toolCallId: "orphan-1",
+          status: "ok",
+          outputPreview: '{"projects":[]}',
+        },
+      ],
+    });
+
+    expect(
+      screen.getByText("Tool result · linear.list_projects"),
+    ).toBeInTheDocument();
+  });
+
   it("hides the spinner when the run is waiting for approval", () => {
     renderRunDetailDrawer({
       ...baseRun,

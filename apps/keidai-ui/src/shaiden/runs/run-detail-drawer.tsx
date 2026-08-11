@@ -7,21 +7,17 @@ import {
   cn,
   Textarea,
 } from "@keidai/ui";
-import type { RunReport, RunStep } from "@keidai/shared";
+import type { RunReport } from "@keidai/shared";
 import {
   CheckCircle2,
   CircleX,
-  ExternalLink,
-  FileOutput,
   Loader2,
-  MessageSquare,
   Pause,
   Play,
   RotateCw,
   Send,
   Timer,
   UserX,
-  Wrench,
 } from "lucide-react";
 import { Link } from "react-router";
 import { useCallback, useEffect, useId, useState } from "react";
@@ -37,58 +33,13 @@ import {
   deriveRunDisplayStatus,
   isRunSuspended,
 } from "./utils/derive-run-display-status.js";
-import {
-  formatRunStepDescription,
-  formatRunStepMeta,
-  formatRunStepTitle,
-} from "./utils/format-run-step.js";
+import { RunLogEntryRow, runLogEntryKey } from "./run-log-entry-row.js";
 import { RUN_STATUS_META } from "./utils/format-run-status.js";
 import {
   formatRunDuration,
   formatRunIterations,
 } from "./utils/format-run-time.js";
-
-function StepIcon({ step }: { step: RunStep }) {
-  const className = "size-3.5 shrink-0";
-  switch (step.kind) {
-    case "model":
-      return (
-        <MessageSquare
-          className={cn(className, "text-muted-foreground")}
-          aria-hidden
-        />
-      );
-    case "output":
-      return (
-        <FileOutput className={cn(className, "text-primary")} aria-hidden />
-      );
-    case "tool_dispatch":
-      return <Wrench className={cn(className, "text-success")} aria-hidden />;
-    case "tool_result":
-      return (
-        <Wrench
-          className={cn(
-            className,
-            step.status === "error" ? "text-destructive" : "text-success",
-          )}
-          aria-hidden
-        />
-      );
-    case "waiting_approval":
-      return <Pause className={cn(className, "text-warning")} aria-hidden />;
-    case "user_message":
-      return (
-        <MessageSquare className={cn(className, "text-primary")} aria-hidden />
-      );
-    case "outcome":
-      return (
-        <CheckCircle2
-          className={cn(className, "text-muted-foreground")}
-          aria-hidden
-        />
-      );
-  }
-}
+import { groupRunSteps } from "./utils/group-run-steps.js";
 
 function StatusIcon({
   status,
@@ -219,6 +170,9 @@ export function RunDetailDrawer({
   const suspended = isRunSuspended(run.steps);
   const followUpEnabled = canSendFollowUp(run, run.steps);
   const assigneeLabel = assigneeDisplay?.displayName ?? run.assignee;
+  const runLogEntries = groupRunSteps(run.steps, {
+    runEnded: status !== "running",
+  });
 
   return (
     <DetailDrawer
@@ -313,43 +267,8 @@ export function RunDetailDrawer({
           Run log
         </div>
         <div className="divide-y divide-border rounded-lg border border-border">
-          {run.steps.map((step) => (
-            <div key={step.id} className="min-w-0 px-4 py-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <StepIcon step={step} />
-                  <div className="truncate text-[13px] font-medium">
-                    {formatRunStepTitle(step)}
-                  </div>
-                </div>
-                {formatRunStepMeta(step) ? (
-                  <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
-                    {formatRunStepMeta(step)}
-                  </span>
-                ) : null}
-              </div>
-              <p
-                className={cn(
-                  "mt-1 pl-[22px] text-[12.5px] leading-normal wrap-break-word",
-                  step.kind === "output" &&
-                    "whitespace-pre-wrap text-foreground",
-                  step.kind === "tool_result" && step.status === "error"
-                    ? "text-destructive"
-                    : step.kind !== "output" && "text-muted-foreground",
-                )}
-              >
-                {formatRunStepDescription(step)}
-              </p>
-              {step.kind === "tool_result" && step.traceId ? (
-                <Link
-                  to={`/activity?trace_id=${encodeURIComponent(step.traceId)}`}
-                  className="mt-1 inline-flex items-center gap-1 pl-[22px] text-[11px] text-primary hover:underline"
-                >
-                  <ExternalLink className="size-3" aria-hidden />
-                  View trace in Torii
-                </Link>
-              ) : null}
-            </div>
+          {runLogEntries.map((entry) => (
+            <RunLogEntryRow key={runLogEntryKey(entry)} entry={entry} />
           ))}
           {status === "running" ? (
             <div

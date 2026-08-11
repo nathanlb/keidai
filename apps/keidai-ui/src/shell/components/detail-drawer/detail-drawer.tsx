@@ -7,6 +7,7 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
+  TooltipProvider,
   cn,
 } from "@keidai/ui";
 import { X } from "lucide-react";
@@ -77,55 +78,61 @@ export function DetailDrawer({
         style={{ width }}
         className="flex h-full max-w-none flex-col gap-0 p-0 sm:max-w-none"
       >
-        <div
-          role="separator"
-          aria-orientation="vertical"
-          aria-label="Resize drawer"
-          className="absolute inset-y-0 left-0 z-20 w-1.5 -translate-x-1/2 cursor-col-resize touch-none before:absolute before:inset-y-0 before:-left-1.5 before:w-4 hover:bg-border/80 active:bg-border"
-          onPointerDown={startResize}
-        />
+        {/*
+          Sheet portals to document.body, outside AppShell's TooltipProvider.
+          Provide one here so tooltips in the drawer actually mount.
+        */}
+        <TooltipProvider delayDuration={200}>
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize drawer"
+            className="absolute inset-y-0 left-0 z-20 w-1.5 -translate-x-1/2 cursor-col-resize touch-none before:absolute before:inset-y-0 before:-left-1.5 before:w-4 hover:bg-border/80 active:bg-border"
+            onPointerDown={startResize}
+          />
 
-        <SheetHeader className="space-y-0 border-b border-border px-5 py-[18px] text-left">
-          <div className="flex items-start gap-3 pr-8">
-            {headerBadge}
-            <div className="min-w-0 flex-1">
-              <SheetTitle className="text-base">{title}</SheetTitle>
-              {description ? (
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {description}
-                </div>
-              ) : null}
+          <SheetHeader className="space-y-0 border-b border-border px-5 py-[18px] text-left">
+            <div className="flex items-start gap-3 pr-8">
+              {headerBadge}
+              <div className="min-w-0 flex-1">
+                <SheetTitle className="text-base">{title}</SheetTitle>
+                {description ? (
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {description}
+                  </div>
+                ) : null}
+              </div>
+              <SheetClose className="absolute top-4 right-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none">
+                <X className="size-4" />
+                <span className="sr-only">Close</span>
+              </SheetClose>
             </div>
-            <SheetClose className="absolute top-4 right-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none">
-              <X className="size-4" />
-              <span className="sr-only">Close</span>
-            </SheetClose>
+          </SheetHeader>
+
+          <div
+            className={cn(
+              "flex-1 overflow-y-auto px-5 py-[18px]",
+              bodyClassName,
+            )}
+          >
+            {children}
           </div>
-        </SheetHeader>
 
-        <div
-          className={cn(
-            "flex-1 overflow-y-auto px-5 py-[18px]",
-            bodyClassName,
-          )}
-        >
-          {children}
-        </div>
-
-        <Separator />
-        <SheetFooter
-          className={cn(
-            "flex-row px-5 py-3.5",
-            footerLeading
-              ? "justify-between sm:justify-between"
-              : "justify-end sm:justify-end",
-          )}
-        >
-          {footerLeading ?? null}
-          <SheetClose asChild>
-            <Button type="button">Close</Button>
-          </SheetClose>
-        </SheetFooter>
+          <Separator />
+          <SheetFooter
+            className={cn(
+              "flex-row px-5 py-3.5",
+              footerLeading
+                ? "justify-between sm:justify-between"
+                : "justify-end sm:justify-end",
+            )}
+          >
+            {footerLeading ?? null}
+            <SheetClose asChild>
+              <Button type="button">Close</Button>
+            </SheetClose>
+          </SheetFooter>
+        </TooltipProvider>
       </SheetContent>
     </Sheet>
   );
