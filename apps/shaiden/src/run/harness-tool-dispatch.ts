@@ -10,9 +10,14 @@ import type { RunReporter } from "./run-reporter.js";
 import {
   describeError,
   previewOf,
+  recordTaskOutput,
   recordToolDispatch,
   recordToolResult,
 } from "./run-step-recording.js";
+import {
+  parseTaskOutput,
+  REPORT_TASK_OUTPUT_TOOL,
+} from "./task-output.js";
 import type {
   ModelToolCall,
   ToolDispatchOptions,
@@ -39,6 +44,30 @@ export function createHarnessToolDispatcher({
 }: HarnessToolDispatcherDeps) {
   return async (call: ModelToolCall, options?: ToolDispatchOptions) => {
     const correlationStepId = options?.stepId ?? randomUUID();
+
+    if (call.toolName === REPORT_TASK_OUTPUT_TOOL) {
+      const parsed = parseTaskOutput(call.input);
+      if (!parsed) {
+        const errorMessage = "invalid report_task_output input";
+        logger?.info("run.task_output", {
+          runId,
+          status: "error",
+          error: errorMessage,
+        });
+        return { isError: true, text: errorMessage };
+      }
+
+      recordTaskOutput(reporter, parsed.text);
+      logger?.info("run.task_output", {
+        runId,
+        status: "ok",
+        charCount: parsed.text.length,
+      });
+      return {
+        isError: false,
+        text: "Output recorded for the operator.",
+      };
+    }
 
     if (!availableToolNames.has(call.toolName)) {
       const errorMessage = "tool is not available from Torii";

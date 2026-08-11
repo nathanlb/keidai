@@ -15,7 +15,7 @@ export interface ModelToolCall {
 export interface ModelStep {
   text: string;
   toolCalls: ModelToolCall[];
-  /** Present only for terminal steps (no Torii tools). Working steps omit this. */
+  /** Present for terminal steps (no Torii tools). May accompany harness-local tools. */
   assessment?: StepAssessment;
 }
 

@@ -14,7 +14,9 @@ export const stepAssessmentSchema = z.object({
   ),
   message: z
     .string()
-    .describe("Human-readable final explanation for this outcome"),
+    .describe(
+      "Human-readable outcome explanation (why the run ended / what failed). Not the in-band deliverable body.",
+    ),
 });
 
 export type StepAssessmentStatus = z.infer<typeof stepAssessmentStatusSchema>;
@@ -22,6 +24,10 @@ export type StepAssessment = z.infer<typeof stepAssessmentSchema>;
 
 /** Harness-local tool the model calls to report a terminal step assessment. */
 export const REPORT_STEP_ASSESSMENT_TOOL = "report_step_assessment";
+
+/** Model-facing how/when guidance for the terminal assessment tool. */
+export const REPORT_STEP_ASSESSMENT_DESCRIPTION =
+  "Report a terminal outcome when the task is finished. Call alone (no Torii tools) with status goal_met or cannot_complete. message is the human-readable outcome explanation (why the run ended / what failed) — not the deliverable body; put in-band deliverable text on the dedicated deliverable tool instead (they may share a turn). A plain text summary is not a substitute for this call.";
 
 const MISSING_TERMINAL_ASSESSMENT =
   "model returned no step assessment" as const;
@@ -80,20 +86,28 @@ export function parseStepAssessment(
 
 /**
  * Resolve assessment from an optional terminal report tool call.
- * Torii tool calls imply continue — assessment is ignored/omitted.
- * Text-only with no assessment falls back to cannot_complete when message is present.
+ * - Torii tool calls imply continue — assessment is ignored/omitted.
+ * - Explicit assessment may share a turn with non-Torii harness tools (e.g. output).
+ * - Harness tools without an explicit assessment imply continue — do not treat
+ *   accompanying narration as cannot_complete.
+ * - Text-only with no assessment falls back to cannot_complete when message is present.
  */
 export function resolveModelStepAssessment(
   assessment: StepAssessment | undefined,
-  toolCalls: ModelStep["toolCalls"],
+  toriiToolCalls: ModelStep["toolCalls"],
   fallbackText: string,
+  continuingToolCalls: ModelStep["toolCalls"] = [],
 ): StepAssessment | undefined {
-  if (toolCalls.length > 0) {
+  if (toriiToolCalls.length > 0) {
     return undefined;
   }
 
   if (assessment) {
     return assessment;
+  }
+
+  if (continuingToolCalls.length > 0) {
+    return undefined;
   }
 
   const message = fallbackText.trim();

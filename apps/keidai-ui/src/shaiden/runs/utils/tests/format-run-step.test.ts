@@ -25,6 +25,25 @@ describe("formatRunStepTitle", () => {
     expect(formatRunStepTitle(dispatchStep)).toBe("Tool call · notion_search");
   });
 
+  it("labels output distinctly from reasoning", () => {
+    const outputStep: RunStep = {
+      id: "7",
+      timestamp: "2026-07-14T12:00:06.000Z",
+      kind: "output",
+      text: "## Summary\n- item one",
+    };
+    const modelStep: RunStep = {
+      id: "8",
+      timestamp: "2026-07-14T12:00:07.000Z",
+      kind: "model",
+      text: "Planning next action",
+    };
+
+    expect(formatRunStepTitle(outputStep)).toBe("Output");
+    expect(formatRunStepTitle(modelStep)).toBe("Reasoning");
+    expect(formatRunStepDescription(outputStep)).toBe("## Summary\n- item one");
+  });
+
   it("labels tool result and approval steps", () => {
     const resultStep: RunStep = {
       id: "3",

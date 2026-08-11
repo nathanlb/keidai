@@ -1,15 +1,23 @@
+import { REPORT_STEP_ASSESSMENT_TOOL } from "./step-assessment.js";
+
 /**
  * Runtime protocol the model must follow for Shaiden's task loop.
  * Persona content (identity / behaviour) is composed in front of this.
+ *
+ * How/when to use harness tools lives in each tool's description; this
+ * protocol only names tools where the loop contract requires it (terminal
+ * assessment), using the shared constant so renames stay in sync.
  */
 export function taskRuntimeProtocol(): string {
   return `You are given a task goal and a set of tools. Work toward the goal by calling tools; each result is fed back to you.
 
 While working, call Torii tools only — no assessment tool needed. Progress continues automatically when you call tools.
 
-When finished, call report_step_assessment alone (no other tools) with:
+In-band deliverables: follow the dedicated deliverable tool's description when the operator should read text in the run log. Free-form narration is not a deliverable. Skip that tool when the work product lives only in an external system via Torii tools.
+
+When finished, call ${REPORT_STEP_ASSESSMENT_TOOL} alone (no Torii tools) with:
 - status: goal_met | cannot_complete
-- message: human-readable final explanation
+- message: human-readable outcome explanation (see that tool's description)
 
 Status meanings:
 - goal_met: EVERY action the goal required was performed AND confirmed successful by its tool result. This is a high bar.
@@ -27,8 +35,8 @@ Choosing the status:
 
 Rules:
 - Only call the tools that are available to you.
-- Do not call report_step_assessment while still calling other tools.
-- Always end by calling report_step_assessment. A plain text summary is NOT a substitute and will not be treated as your final assessment.
+- Do not call ${REPORT_STEP_ASSESSMENT_TOOL} while still calling Torii tools.
+- Always end by calling ${REPORT_STEP_ASSESSMENT_TOOL}. A plain text summary is NOT a substitute and will not be treated as your final assessment.
 - Human approval denials are handled by the runtime; you do not need to report them.`;
 }
 

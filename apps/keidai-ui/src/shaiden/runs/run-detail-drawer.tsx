@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   CircleX,
   ExternalLink,
+  FileOutput,
   Loader2,
   MessageSquare,
   Pause,
@@ -55,6 +56,10 @@ function StepIcon({ step }: { step: RunStep }) {
           className={cn(className, "text-muted-foreground")}
           aria-hidden
         />
+      );
+    case "output":
+      return (
+        <FileOutput className={cn(className, "text-primary")} aria-hidden />
       );
     case "tool_dispatch":
       return <Wrench className={cn(className, "text-success")} aria-hidden />;
@@ -322,9 +327,11 @@ export function RunDetailDrawer({
               <p
                 className={cn(
                   "mt-1 pl-[22px] text-[12.5px] leading-normal wrap-break-word",
+                  step.kind === "output" &&
+                    "whitespace-pre-wrap text-foreground",
                   step.kind === "tool_result" && step.status === "error"
                     ? "text-destructive"
-                    : "text-muted-foreground",
+                    : step.kind !== "output" && "text-muted-foreground",
                 )}
               >
                 {formatRunStepDescription(step)}

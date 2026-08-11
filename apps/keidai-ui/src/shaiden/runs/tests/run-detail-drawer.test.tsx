@@ -61,6 +61,40 @@ describe("RunDetailDrawer run log loader", () => {
     expect(loader?.querySelector(".animate-spin")).toBeInTheDocument();
   });
 
+  it("labels output steps distinctly from reasoning", () => {
+    renderRunDetailDrawer({
+      ...baseRun,
+      status: "completed",
+      outcome: { status: "goal_met" },
+      steps: [
+        {
+          id: "step-1",
+          timestamp: "2026-07-14T12:00:01.000Z",
+          kind: "model",
+          text: "Planning next action",
+        },
+        {
+          id: "step-2",
+          timestamp: "2026-07-14T12:00:02.000Z",
+          kind: "output",
+          text: "Final answer for the operator",
+        },
+        {
+          id: "step-3",
+          timestamp: "2026-07-14T12:00:03.000Z",
+          kind: "outcome",
+          outcomeStatus: "goal_met",
+        },
+      ],
+    });
+
+    expect(screen.getByText("Reasoning")).toBeInTheDocument();
+    expect(screen.getByText("Output")).toBeInTheDocument();
+    expect(
+      screen.getByText("Final answer for the operator"),
+    ).toBeInTheDocument();
+  });
+
   it("hides the spinner when the run is waiting for approval", () => {
     renderRunDetailDrawer({
       ...baseRun,

@@ -5,6 +5,7 @@ export type RunStatus = "running" | "completed";
 
 export type RunStepKind =
   | "model"
+  | "output"
   | "tool_dispatch"
   | "tool_result"
   | "waiting_approval"
@@ -19,6 +20,12 @@ interface RunStepBase {
 export interface ModelRunStep extends RunStepBase {
   kind: "model";
   text?: string;
+}
+
+/** In-band task deliverable text for the operator (not reasoning, not outcome). */
+export interface OutputRunStep extends RunStepBase {
+  kind: "output";
+  text: string;
 }
 
 export interface ToolDispatchRunStep extends RunStepBase {
@@ -60,6 +67,7 @@ export interface OutcomeRunStep extends RunStepBase {
 
 export type RunStep =
   | ModelRunStep
+  | OutputRunStep
   | ToolDispatchRunStep
   | ToolResultRunStep
   | WaitingApprovalRunStep

@@ -95,6 +95,42 @@ describe("step assessment", () => {
     );
   });
 
+  it("does not invent cannot_complete when only harness output tools are present", () => {
+    assert.equal(
+      resolveModelStepAssessment(
+        undefined,
+        [],
+        "Here is a summary for the operator.",
+        [
+          {
+            toolCallId: "out-1",
+            toolName: "report_task_output",
+            input: { text: "Summary" },
+          },
+        ],
+      ),
+      undefined,
+    );
+  });
+
+  it("keeps an explicit assessment alongside harness output tools", () => {
+    assert.deepEqual(
+      resolveModelStepAssessment(
+        { status: "goal_met", message: "Deliverable ready." },
+        [],
+        "",
+        [
+          {
+            toolCallId: "out-1",
+            toolName: "report_task_output",
+            input: { text: "Summary" },
+          },
+        ],
+      ),
+      { status: "goal_met", message: "Deliverable ready." },
+    );
+  });
+
   it("parses assessment from report_step_assessment tool input", () => {
     assert.deepEqual(
       parseStepAssessment({

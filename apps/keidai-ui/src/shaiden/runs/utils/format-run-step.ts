@@ -5,6 +5,8 @@ export function formatRunStepTitle(step: RunStep): string {
   switch (step.kind) {
     case "model":
       return "Reasoning";
+    case "output":
+      return "Output";
     case "tool_dispatch":
       return `Tool call · ${step.toolName ?? "unknown"}`;
     case "tool_result":
@@ -22,6 +24,8 @@ export function formatRunStepDescription(step: RunStep): string {
   switch (step.kind) {
     case "model":
       return step.text ?? "Model responded with tool calls";
+    case "output":
+      return step.text;
     case "tool_dispatch":
       return step.inputPreview
         ? `Arguments: ${step.inputPreview}`
