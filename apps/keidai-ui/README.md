@@ -75,9 +75,11 @@ Browser → Vite (http://localhost:3000, HMR)
 ```
 
 The BFF owns operator Google OIDC, session cookies, `ownerId` enforcement on
-writes, the shared `OPERATOR_API_ROUTES` reverse-proxy table, and injection of
-`BFF_SERVICE_TOKEN` on upstream management API calls. Vite does not
-reimplement that routing.
+writes, the shared `OPERATOR_API_ROUTES` reverse-proxy table, injection of
+`BFF_SERVICE_TOKEN` on upstream management API calls, and view-specific
+`/api/ui/*` routes that aggregate upstream data for a single screen (paths
+mirror UI routes — e.g. `/shaiden/runs` → `GET /api/ui/shaiden/runs`). Vite
+does not reimplement that routing.
 
 **Production** (`pnpm start` → `dist/server/index.js`):
 

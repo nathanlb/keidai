@@ -6,7 +6,7 @@ import { OAUTH_PROVIDERS_KEY } from "./use-fetch-oauth-providers.js";
 import { SERVERS_KEY } from "./use-fetch-servers.js";
 import { TORII_STATUS_KEY, SHAIDEN_STATUS_KEY } from "./backend-health.js";
 import { TASKS_KEY } from "../../shaiden/hooks/use-fetch-tasks.js";
-import { RUNS_KEY } from "./use-runs.js";
+import { RUNS_VISIBILITY_KEY } from "../../shaiden/hooks/use-runs-visibility.js";
 
 type SwrMutate = ReturnType<typeof useSWRConfig>["mutate"];
 
@@ -21,5 +21,5 @@ export function refreshToriiConfig(mutate: SwrMutate): void {
   void mutate(isOAuthConnectionsKey, undefined, revalidate);
   void mutate(TRACE_STATS_KEY, undefined, revalidate);
   void mutate(TASKS_KEY, undefined, revalidate);
-  void mutate(RUNS_KEY, undefined, revalidate);
+  void mutate(RUNS_VISIBILITY_KEY, undefined, revalidate);
 }

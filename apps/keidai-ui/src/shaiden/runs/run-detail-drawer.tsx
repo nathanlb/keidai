@@ -30,6 +30,7 @@ import {
   rejectApproval,
 } from "../../torii/api/torii-client.js";
 import { sendRunFollowUp } from "../api/shaiden-client.js";
+import type { RunAssigneeDisplay } from "../api/runs-visibility-client.js";
 import { DetailDrawer } from "../../shell/components/detail-drawer/detail-drawer.js";
 import {
   canSendFollowUp,
@@ -122,11 +123,13 @@ function pendingApprovalId(run: RunReport): string | undefined {
 
 export function RunDetailDrawer({
   run,
+  assigneeDisplay,
   open,
   onOpenChange,
   onRunUpdated,
 }: {
   run: RunReport | null;
+  assigneeDisplay?: RunAssigneeDisplay | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onRunUpdated: () => void;
@@ -215,6 +218,7 @@ export function RunDetailDrawer({
   const meta = RUN_STATUS_META[status];
   const suspended = isRunSuspended(run.steps);
   const followUpEnabled = canSendFollowUp(run, run.steps);
+  const assigneeLabel = assigneeDisplay?.displayName ?? run.assignee;
 
   return (
     <DetailDrawer
@@ -232,7 +236,7 @@ export function RunDetailDrawer({
       title={run.goalPreview}
       description={
         <span className="font-mono">
-          {run.id} · {run.assignee} ·{" "}
+          {run.id} · {assigneeLabel} ·{" "}
           <Link
             to={`/shaiden/tasks?task=${encodeURIComponent(run.taskId)}`}
             className="text-primary hover:underline"

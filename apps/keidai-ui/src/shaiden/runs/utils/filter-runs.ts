@@ -1,4 +1,4 @@
-import type { RunListItem } from "@keidai/shared";
+import type { RunVisibilityListItem } from "../../api/runs-visibility-client.js";
 import {
   deriveRunDisplayStatus,
   matchesRunStatusFilter,
@@ -16,10 +16,10 @@ export const EMPTY_RUN_FILTERS: RunFilters = {
 };
 
 export function filterRuns(
-  runs: readonly RunListItem[],
+  runs: readonly RunVisibilityListItem[],
   filters: RunFilters,
   suspendedRunIds: ReadonlySet<string>,
-): RunListItem[] {
+): RunVisibilityListItem[] {
   const query = filters.query.trim().toLowerCase();
 
   return runs.filter((run) => {
@@ -32,10 +32,15 @@ export function filterRuns(
       return true;
     }
 
+    const assigneeDisplay = run.assigneeDisplay;
+
     return (
       run.goalPreview.toLowerCase().includes(query) ||
       run.id.toLowerCase().includes(query) ||
-      run.assignee.toLowerCase().includes(query)
+      run.assignee.toLowerCase().includes(query) ||
+      (assigneeDisplay?.displayName.toLowerCase().includes(query) ?? false) ||
+      (assigneeDisplay?.slug.toLowerCase().includes(query) ?? false) ||
+      (assigneeDisplay?.id.toLowerCase().includes(query) ?? false)
     );
   });
 }

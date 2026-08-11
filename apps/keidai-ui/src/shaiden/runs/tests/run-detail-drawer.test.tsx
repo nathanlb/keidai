@@ -34,11 +34,21 @@ const baseRun: RunReport = {
   ],
 };
 
-function renderRunDetailDrawer(run: RunReport) {
+function renderRunDetailDrawer(
+  run: RunReport,
+  assigneeDisplay?: {
+    id: string;
+    name: string;
+    slug: string;
+    displayName: string;
+    initials: string;
+  } | null,
+) {
   return render(
     <MemoryRouter>
       <RunDetailDrawer
         run={run}
+        assigneeDisplay={assigneeDisplay}
         open
         onOpenChange={vi.fn()}
         onRunUpdated={vi.fn()}
@@ -59,6 +69,19 @@ describe("RunDetailDrawer run log loader", () => {
     expect(loader).toBeInTheDocument();
     expect(loader).toHaveAttribute("aria-live", "polite");
     expect(loader?.querySelector(".animate-spin")).toBeInTheDocument();
+  });
+
+  it("shows assignee display name in the header when provided", () => {
+    renderRunDetailDrawer(baseRun, {
+      id: "agent-1",
+      name: "Weekly Reporter",
+      slug: "weekly-reporter",
+      displayName: "Weekly Reporter",
+      initials: "WR",
+    });
+
+    expect(screen.getByText(/Weekly Reporter/)).toBeInTheDocument();
+    expect(screen.queryByText(/agent-1/)).not.toBeInTheDocument();
   });
 
   it("labels output steps distinctly from reasoning", () => {

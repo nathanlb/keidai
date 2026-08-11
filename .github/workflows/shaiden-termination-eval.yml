@@ -9,9 +9,11 @@ on:
     paths:
       - apps/shaiden/src/run/task-loop.ts
       - apps/shaiden/src/run/step-assessment.ts
+      - apps/shaiden/src/run/task-output.ts
       - apps/shaiden/src/run/model-step.ts
       - apps/shaiden/src/run/prompts.ts
       - apps/shaiden/src/run/run-completion.ts
+      - apps/shaiden/src/run/run-step-recording.ts
       - apps/shaiden/src/run/harness.ts
       - apps/shaiden/src/run/harness-tool-dispatch.ts
       - apps/shaiden/src/run/types/task-loop.ts
@@ -19,6 +21,7 @@ on:
       - apps/shaiden/eval/**
       - apps/torii/src/connections/tests/mock-mcp-server.ts
       - packages/shared/src/run.ts
+      - packages/shared/src/dto/runs.dto.ts
       - .github/workflows/shaiden-termination-eval.yml
 
 concurrency:

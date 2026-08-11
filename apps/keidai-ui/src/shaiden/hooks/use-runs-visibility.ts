@@ -5,13 +5,18 @@ import {
 } from "@keidai/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import useSWR, { mutate as globalMutate } from "swr";
-import { fetchRuns, getRunsEventsUrl } from "../../shaiden/api/shaiden-client.js";
-import { isRunSuspended } from "../../shaiden/runs/utils/derive-run-display-status.js";
-import { mergeRunListItem } from "../../shaiden/runs/utils/merge-run-list.js";
-import { LIST_BUFFER_LIMIT } from "../constants/list-limits.js";
-import { RUN_KEY } from "./use-fetch-run.js";
+import { getRunsEventsUrl } from "../api/shaiden-client.js";
+import {
+  fetchRunsVisibility,
+  type RunAssigneeDisplay,
+  type RunVisibilityListItem,
+} from "../api/runs-visibility-client.js";
+import { isRunSuspended } from "../runs/utils/derive-run-display-status.js";
+import { mergeRunListItem } from "../runs/utils/merge-run-list.js";
+import { LIST_BUFFER_LIMIT } from "../../shell/constants/list-limits.js";
+import { RUN_KEY } from "../../shell/hooks/use-fetch-run.js";
 
-export const RUNS_KEY = "runs-list";
+export const RUNS_VISIBILITY_KEY = "runs-visibility";
 
 function toListItem(run: RunReport): RunListItem {
   return {
@@ -23,6 +28,16 @@ function toListItem(run: RunReport): RunListItem {
     status: run.status,
     outcome: run.outcome,
     stepCount: run.steps.length,
+  };
+}
+
+function toVisibilityListItem(
+  run: RunListItem,
+  agentsById: Record<string, RunAssigneeDisplay>,
+): RunVisibilityListItem {
+  return {
+    ...run,
+    assigneeDisplay: agentsById[run.assignee] ?? null,
   };
 }
 
@@ -58,17 +73,21 @@ function cacheRunReport(
   void globalMutate([RUN_KEY, run.id], run, { revalidate: false });
 }
 
-export function useRuns(isLive: boolean) {
-  const [runs, setRuns] = useState<RunListItem[]>([]);
+export function useRunsVisibility(isLive: boolean) {
+  const [runs, setRuns] = useState<RunVisibilityListItem[]>([]);
+  const [agentsById, setAgentsById] = useState<
+    Record<string, RunAssigneeDisplay>
+  >({});
   const [suspendedRunIds, setSuspendedRunIds] = useState<Set<string>>(
     () => new Set(),
   );
   const eventSourceRef = useRef<EventSource | null>(null);
   const fullRunsRef = useRef<Map<string, RunReport>>(new Map());
+  const agentsByIdRef = useRef<Record<string, RunAssigneeDisplay>>({});
 
   const { data, error, isLoading, mutate } = useSWR(
-    RUNS_KEY,
-    async () => fetchRuns({ limit: LIST_BUFFER_LIMIT }),
+    RUNS_VISIBILITY_KEY,
+    async () => fetchRunsVisibility({ limit: LIST_BUFFER_LIMIT }),
     { revalidateOnFocus: false },
   );
 
@@ -77,6 +96,8 @@ export function useRuns(isLive: boolean) {
       return;
     }
 
+    agentsByIdRef.current = data.agentsById;
+    setAgentsById(data.agentsById);
     setRuns(data.runs);
     setSuspendedRunIds(
       suspendedIdsFromList(data.runs, fullRunsRef.current),
@@ -96,7 +117,12 @@ export function useRuns(isLive: boolean) {
     const handleRunUpdated = (event: MessageEvent<string>) => {
       const run = JSON.parse(event.data) as RunReport;
       cacheRunReport(fullRunsRef.current, run);
-      setRuns((current) => mergeRunListItem(current, toListItem(run)));
+      const listItem = toListItem(run);
+      const visibilityItem = toVisibilityListItem(
+        listItem,
+        agentsByIdRef.current,
+      );
+      setRuns((current) => mergeRunListItem(current, visibilityItem));
       setSuspendedRunIds(deriveSuspendedRunIds([...fullRunsRef.current.values()]));
     };
 
@@ -115,6 +141,8 @@ export function useRuns(isLive: boolean) {
   const refresh = useCallback(async () => {
     const response = await mutate();
     if (response) {
+      agentsByIdRef.current = response.agentsById;
+      setAgentsById(response.agentsById);
       setRuns(response.runs);
       setSuspendedRunIds(
         suspendedIdsFromList(response.runs, fullRunsRef.current),
@@ -122,8 +150,16 @@ export function useRuns(isLive: boolean) {
     }
   }, [mutate]);
 
+  const resolveAssigneeDisplay = useCallback(
+    (assigneeId: string): RunAssigneeDisplay | null =>
+      agentsById[assigneeId] ?? null,
+    [agentsById],
+  );
+
   return {
     runs,
+    agentsById,
+    resolveAssigneeDisplay,
     error,
     isLoading,
     suspendedRunIds,
