@@ -141,7 +141,7 @@ describe("loadConfigFromDocument", () => {
           },
           validEnv,
         ),
-      ["Unrecognized key(s) in object: 'agents'"],
+      ['Unrecognized key: "agents"'],
     );
   });
 
@@ -182,7 +182,7 @@ describe("loadConfigFromDocument", () => {
           },
           validEnv,
         ),
-      ["Unrecognized key(s) in object: 'boot_owner_id'"],
+      ['Unrecognized key: "boot_owner_id"'],
     );
   });
 
@@ -276,7 +276,7 @@ describe("loadConfigFromDocument", () => {
           },
           validEnv,
         ),
-      ["Unrecognized key(s) in object: 'key'"],
+      ['Unrecognized key: "key"'],
     );
   });
 
@@ -299,7 +299,7 @@ describe("loadConfigFromDocument", () => {
           },
           validEnv,
         ),
-      ["Unrecognized key(s) in object: 'subject'"],
+      ['Unrecognized key: "subject"'],
     );
   });
 
@@ -324,7 +324,9 @@ describe("loadConfigFromDocument", () => {
           },
           validEnv,
         ),
-      ["servers.0.credential.key: Required"],
+      [
+        "servers.0.credential.key: Invalid input: expected string, received undefined",
+      ],
     );
   });
 

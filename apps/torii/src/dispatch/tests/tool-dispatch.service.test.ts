@@ -372,14 +372,17 @@ describe("ToolDispatchService", () => {
         const result = await toolDispatch.callTool("github.search_issues", {});
 
         assert.equal(result.isError, true);
-        assert.deepEqual(result.structuredContent, {
+        const structuredContent = result.structuredContent as
+          | Record<string, unknown>
+          | undefined;
+        assert.deepEqual(structuredContent, {
           code: LINKING_REQUIRED_CODE,
           provider: "github",
           ownerId: TEST_AGENT_PRINCIPAL.ownerId,
           backend: "github",
-          linkUrl: result.structuredContent?.linkUrl,
+          linkUrl: structuredContent?.linkUrl,
         });
-        assert.match(String(result.structuredContent?.linkUrl), /client_id=client/);
+        assert.match(String(structuredContent?.linkUrl), /client_id=client/);
         assert.doesNotMatch(JSON.stringify(result), /gho_valid/);
       });
     } finally {

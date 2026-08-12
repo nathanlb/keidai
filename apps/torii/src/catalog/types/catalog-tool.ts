@@ -1,4 +1,4 @@
-import type { Tool } from "@modelcontextprotocol/sdk/types.js";
+import type { Tool } from "@modelcontextprotocol/server";
 
 /** Tool surfaced to agents — same MCP shape; `name` is namespaced at runtime. */
 export type AgentTool = Tool;

@@ -2,8 +2,7 @@ import type {
   AgentIdentityResolver,
   AgentPrincipal,
 } from "@keidai/shared";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { InboundIdentityService } from "../inbound-identity.service.js";
 import { TEST_AGENT_PRINCIPAL } from "./test-agent-principal.js";
 

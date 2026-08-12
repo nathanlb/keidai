@@ -1,4 +1,4 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/server";
 import { TORII_CALL_META_KEY } from "@keidai/shared";
 
 export function withToriiTraceMeta(

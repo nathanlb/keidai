@@ -1,4 +1,4 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/server";
 import {
   APPROVAL_DENIED_STATUS,
   APPROVAL_REQUIRED_STATUS,

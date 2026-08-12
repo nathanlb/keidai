@@ -1,10 +1,10 @@
 import type { AgentPrincipal } from "@keidai/shared";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import type { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { injectable } from "tsyringe";
 
 export interface McpSessionEntry {
-  transport: StreamableHTTPServerTransport;
+  transport: NodeStreamableHTTPServerTransport;
   mcpServer: McpServer;
   principal: AgentPrincipal;
 }

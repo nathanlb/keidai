@@ -1,10 +1,6 @@
-import {
-  CallToolResultSchema,
-  type CallToolResult,
-} from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult, Client } from "@modelcontextprotocol/client";
 import type { AgentPrincipal, CallTracePrincipal } from "@keidai/shared";
 import { PolicyDecision } from "@keidai/shared";
-import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { inject, injectable } from "tsyringe";
 import type { CatalogTool } from "../catalog/types/catalog-tool.js";
 import { ConnectionManager } from "../connections/connection-manager.service.js";
@@ -314,8 +310,7 @@ export class ToolDispatchService {
         {
           name: entry.bareName,
           arguments: ctx.parsedArgs.upstreamArgs,
-        },
-        CallToolResultSchema,
+        }
       )) as CallToolResult;
 
       if (ctx.parsedArgs.approvalId) {

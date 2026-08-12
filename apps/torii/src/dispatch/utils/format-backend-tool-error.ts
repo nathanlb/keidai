@@ -1,4 +1,4 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/server";
 
 /** Pull human-readable error text from an MCP tool result when `isError` is set. */
 export function formatBackendToolError(result: CallToolResult): string {
