@@ -54,7 +54,11 @@ export function createStubToolCatalog(
     getServerTools: (serverName: string) => serverTools[serverName] ?? [],
     findTool: () => undefined,
     refresh: async () => [...catalog],
-    listToolsForAgent: async () => [],
+    listToolsForAgent: async () => ({
+      tools: [],
+      ttlMs: 0,
+      cacheScope: "private",
+    }),
   } as unknown as ToolCatalogService;
 }
 

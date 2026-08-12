@@ -68,7 +68,7 @@ describe("none credentials with tools/list", () => {
 
     try {
       await bootBackends(connectionManager, catalogService);
-      const tools = await withTestAgentPrincipal(() =>
+      const { tools } = await withTestAgentPrincipal(() =>
         catalogService.listToolsForAgent(),
       );
 
@@ -76,6 +76,10 @@ describe("none credentials with tools/list", () => {
         "deepwiki.read_wiki_structure",
       ]);
       assertNoAuthorizationHeader(receivedHeaders);
+      const listHeaders = receivedHeaders.find(
+        (headerSet) => headerSet["mcp-method"] === "tools/list",
+      );
+      assert.ok(listHeaders, "outbound tools/list must send Mcp-Method");
     } finally {
       await closeManagerConnections(connectionManager);
       await mockServer.close();
@@ -117,6 +121,11 @@ describe("none credentials with tools/call", () => {
 
       assert.notEqual(result.isError, true);
       assertNoAuthorizationHeader(receivedHeaders);
+      const callHeaders = receivedHeaders.find(
+        (headerSet) => headerSet["mcp-method"] === "tools/call",
+      );
+      assert.ok(callHeaders, "outbound tools/call must send Mcp-Method");
+      assert.equal(callHeaders["mcp-name"], "read_wiki_structure");
     } finally {
       await closeManagerConnections(connectionManager);
       await mockServer.close();
@@ -146,7 +155,7 @@ describe("none credentials with DeepWiki MCP", () => {
 
     try {
       await bootBackends(connectionManager, catalogService);
-      const tools = await withTestAgentPrincipal(() =>
+      const { tools } = await withTestAgentPrincipal(() =>
         catalogService.listToolsForAgent(),
       );
 

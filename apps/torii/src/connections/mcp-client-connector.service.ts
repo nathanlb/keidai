@@ -4,6 +4,7 @@ import type { ServerConfig } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
 import { CredentialResolverService } from "../credentials/credential-resolver.service.js";
 import { CredentialResolutionError, LinkingRequiredError } from "../credentials/types/credential-resolution.js";
+import { ensureOutboundMcpRoutingHeaders } from "./utils/outbound-mcp-headers.js";
 import type {
   McpClient,
   McpClientConnector,
@@ -28,7 +29,10 @@ function createCredentialFetch(
       }
     }
 
+    // Preserve SDK-set routing headers (`Mcp-Method`, `Mcp-Name`) and overlay
+    // resolved credentials so backends see SEP-2243 headers on every POST.
     const headers = new Headers(init?.headers);
+    ensureOutboundMcpRoutingHeaders(headers, init?.body);
 
     for (const [name, value] of Object.entries(credentialHeaders)) {
       headers.set(name, value);

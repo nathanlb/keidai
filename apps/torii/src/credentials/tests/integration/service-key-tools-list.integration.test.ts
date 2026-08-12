@@ -68,7 +68,7 @@ describe("service_key credentials with tools/list", () => {
 
     try {
       await bootBackends(connectionManager, catalogService);
-      const tools = await withTestAgentPrincipal(() =>
+      const { tools } = await withTestAgentPrincipal(() =>
         catalogService.listToolsForAgent(),
       );
 
@@ -111,7 +111,7 @@ describe("service_key credentials with tools/list", () => {
 
     try {
       await bootBackends(connectionManager, catalogService);
-      const tools = await withTestAgentPrincipal(() =>
+      const { tools } = await withTestAgentPrincipal(() =>
         catalogService.listToolsForAgent(),
       );
 
@@ -169,7 +169,7 @@ describe("service_key credentials with Stripe MCP", () => {
 
     try {
       await bootBackends(connectionManager, catalogService);
-      const tools = await withTestAgentPrincipal(() =>
+      const { tools } = await withTestAgentPrincipal(() =>
         catalogService.listToolsForAgent(),
       );
 
