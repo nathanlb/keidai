@@ -35,7 +35,6 @@ import {
 import { resolveFudaJwtConfig } from "./identity/utils/resolve-fuda-jwt-config.js";
 import { GatewayHttpServer } from "./http/gateway-http-server.service.js";
 import { GatewayMcpServer } from "./mcp/gateway-mcp-server.service.js";
-import { McpSessionRegistry } from "./mcp/mcp-session-registry.service.js";
 import { PolicyEnforcementService } from "./policy/policy-enforcement.service.js";
 import { ApprovalGateService } from "./policy/approval-gate.service.js";
 import { ApprovalNotificationService } from "./policy/approval-notification.service.js";
@@ -186,11 +185,6 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
   appContainer.register(
     PolicyEnforcementService,
     { useClass: PolicyEnforcementService },
-    SINGLETON,
-  );
-  appContainer.register(
-    McpSessionRegistry,
-    { useClass: McpSessionRegistry },
     SINGLETON,
   );
   appContainer.register(

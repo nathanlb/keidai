@@ -2,9 +2,7 @@ import "reflect-metadata";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-  APPROVAL_DECIDED_NOTIFICATION_METHOD,
   APPROVAL_REQUIRED_STATUS,
-  type ApprovalDecidedNotificationParams,
 } from "@keidai/shared";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
 import { ConnectionManager } from "../../connections/connection-manager.service.js";
@@ -27,7 +25,6 @@ import {
   type ApprovalServices,
 } from "../../policy/tests/test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
-import { McpSessionRegistry } from "../mcp-session-registry.service.js";
 import { testAgentsGroup } from "../../testing/test-config.js";
 
 function parseApprovalRequired(result: unknown): { approval_id: string } {
@@ -51,24 +48,6 @@ async function closeManagerConnections(
       .map((connection) => connection.client?.close())
       .filter((close): close is Promise<void> => close !== undefined),
   );
-}
-
-async function waitForNotification(
-  notifications: ApprovalDecidedNotificationParams[],
-  approvalId: string,
-  timeoutMs = 5_000,
-): Promise<ApprovalDecidedNotificationParams> {
-  const startedAt = Date.now();
-  while (Date.now() - startedAt < timeoutMs) {
-    const match = notifications.find(
-      (notification) => notification.approval_id === approvalId,
-    );
-    if (match) {
-      return match;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 25));
-  }
-  throw new Error(`timed out waiting for approval notification ${approvalId}`);
 }
 
 async function withGatedGateway(
@@ -95,8 +74,7 @@ async function withGatedGateway(
       [TEST_AGENT_PRINCIPAL.agentId]: ["gmail.create_draft"],
     },
   });
-  const sessionRegistry = new McpSessionRegistry();
-  const approvalServices = createApprovalServices(configService, sessionRegistry);
+  const approvalServices = createApprovalServices(configService);
   const { credentialResolver } = createCredentialServices();
   const connectionManager = new ConnectionManager(
     configService,
@@ -139,8 +117,8 @@ async function withGatedGateway(
   }
 }
 
-describe("Gateway MCP approval notifications", () => {
-  it("pushes approval decisions over the stateful MCP session", async () => {
+describe("Gateway MCP approval gate (stateless)", () => {
+  it("parks gated calls and allows HTTP-approved replay without a session push", async () => {
     await withGatedGateway(async ({ gateway, approvalServices }) => {
       assert.equal(
         approvalServices.approvalGate.requiresApproval(
@@ -150,14 +128,6 @@ describe("Gateway MCP approval notifications", () => {
         true,
       );
       const agent = await connectAgentToGateway(gateway.url, TEST_AGENT_BEARER);
-      const notifications: ApprovalDecidedNotificationParams[] = [];
-      agent.client.fallbackNotificationHandler = async (notification) => {
-        if (notification.method === APPROVAL_DECIDED_NOTIFICATION_METHOD) {
-          notifications.push(
-            notification.params as unknown as ApprovalDecidedNotificationParams,
-          );
-        }
-      };
 
       try {
         await agent.client.listTools();
@@ -174,9 +144,6 @@ describe("Gateway MCP approval notifications", () => {
         );
         assert.equal(approveResponse.status, 200);
 
-        const notification = await waitForNotification(notifications, approvalId);
-        assert.equal(notification.status, "approved");
-
         const replayResult = await agent.client.callTool({
           name: "gmail.create_draft",
           arguments: {
@@ -191,17 +158,9 @@ describe("Gateway MCP approval notifications", () => {
     });
   });
 
-  it("pushes rejection decisions over the stateful MCP session", async () => {
-    await withGatedGateway(async ({ gateway }) => {
+  it("records rejections in the ledger without a session push", async () => {
+    await withGatedGateway(async ({ gateway, approvalServices }) => {
       const agent = await connectAgentToGateway(gateway.url, TEST_AGENT_BEARER);
-      const notifications: ApprovalDecidedNotificationParams[] = [];
-      agent.client.fallbackNotificationHandler = async (notification) => {
-        if (notification.method === APPROVAL_DECIDED_NOTIFICATION_METHOD) {
-          notifications.push(
-            notification.params as unknown as ApprovalDecidedNotificationParams,
-          );
-        }
-      };
 
       try {
         await agent.client.listTools();
@@ -222,55 +181,16 @@ describe("Gateway MCP approval notifications", () => {
         );
         assert.equal(rejectResponse.status, 200);
 
-        const notification = await waitForNotification(notifications, approvalId);
-        assert.deepEqual(notification, {
-          approval_id: approvalId,
-          status: "rejected",
-          reason: "not allowed",
-        });
+        const record = approvalServices.approvalStore.getApproval(approvalId);
+        assert.equal(record?.status, "rejected");
+        assert.equal(record?.rejectionReason, "not allowed");
       } finally {
         await agent.close();
       }
     });
   });
 
-  it("pushes cancel decisions over the stateful MCP session", async () => {
-    await withGatedGateway(async ({ gateway }) => {
-      const agent = await connectAgentToGateway(gateway.url, TEST_AGENT_BEARER);
-      const notifications: ApprovalDecidedNotificationParams[] = [];
-      agent.client.fallbackNotificationHandler = async (notification) => {
-        if (notification.method === APPROVAL_DECIDED_NOTIFICATION_METHOD) {
-          notifications.push(
-            notification.params as unknown as ApprovalDecidedNotificationParams,
-          );
-        }
-      };
-
-      try {
-        await agent.client.listTools();
-
-        const gatedResult = await agent.client.callTool({
-          name: "gmail.create_draft",
-          arguments: { subject: "Cancel me" },
-        });
-        const { approval_id: approvalId } = parseApprovalRequired(gatedResult);
-
-        const cancelResponse = await fetch(
-          `${gateway.baseUrl}/api/approvals/${approvalId}/cancel`,
-          { method: "POST" },
-        );
-        assert.equal(cancelResponse.status, 200);
-
-        const notification = await waitForNotification(notifications, approvalId);
-        assert.equal(notification.status, "cancelled");
-        assert.equal(notification.approval_id, approvalId);
-      } finally {
-        await agent.close();
-      }
-    });
-  });
-
-  it("rejects GET /mcp without a valid session id", async () => {
+  it("does not expose GET /mcp (session stream removed)", async () => {
     const backend = await startMockMcpServer({
       tools: [{ name: "create_draft", description: "Create a draft email" }],
     });
@@ -325,7 +245,7 @@ describe("Gateway MCP approval notifications", () => {
             Accept: "text/event-stream",
           },
         });
-        assert.equal(response.status, 400);
+        assert.equal(response.status, 404);
       } finally {
         await gateway.close();
       }
