@@ -2,6 +2,10 @@ import type { ToriiConfig } from "@keidai/shared";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
 import { McpSessionRegistry } from "../../mcp/mcp-session-registry.service.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
+import {
+  createTestGatewayPersistence,
+  type TestGatewayPersistence,
+} from "../../testing/gateway-persistence.js";
 import { ApprovalGateService } from "../approval-gate.service.js";
 import { ApprovalNotificationService } from "../approval-notification.service.js";
 import { ApprovalReadService } from "../approval-read.service.js";
@@ -22,12 +26,15 @@ export function createPolicyEnforcement(
 export function createApprovalServices(
   config: ToriiConfig | ToriiConfigService,
   sessionRegistry: McpSessionRegistry = new McpSessionRegistry(),
+  persistence: TestGatewayPersistence = createTestGatewayPersistence("sqlite"),
 ) {
   const configService =
     config instanceof ToriiConfigService
       ? config
       : new ToriiConfigService(config);
-  const approvalStore = new ApprovalStoreService();
+  const approvalStore =
+    persistence.approvalStore ??
+    new ApprovalStoreService(persistence.database!);
   const approvalGate = new ApprovalGateService(configService, approvalStore);
   const approvalRead = new ApprovalReadService(approvalStore);
   const approvalNotifications = new ApprovalNotificationService(
@@ -47,6 +54,8 @@ export function createApprovalServices(
     approvalsApi,
     sessionRegistry,
     approvalNotifications,
+    persistence,
+    close: persistence.close,
   };
 }
 

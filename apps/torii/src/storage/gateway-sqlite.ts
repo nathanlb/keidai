@@ -50,6 +50,39 @@ CREATE TABLE IF NOT EXISTS pending_oauth_links (
 
 CREATE INDEX IF NOT EXISTS idx_pending_oauth_links_owner_provider_created
   ON pending_oauth_links(owner_id, provider, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS approvals (
+  id TEXT NOT NULL PRIMARY KEY,
+  agent_id TEXT NOT NULL,
+  owner_id TEXT NOT NULL,
+  tool_name TEXT NOT NULL,
+  params TEXT NOT NULL,
+  params_hash TEXT NOT NULL,
+  run_id TEXT,
+  step_id TEXT,
+  mcp_session_id TEXT,
+  status TEXT NOT NULL,
+  rejection_reason TEXT,
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
+  decided_at INTEGER,
+  used_at INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_approvals_status_created
+  ON approvals(status, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS approval_rejections (
+  agent_id TEXT NOT NULL,
+  tool_name TEXT NOT NULL,
+  params_hash TEXT NOT NULL,
+  rejection_reason TEXT,
+  rejected_at INTEGER NOT NULL,
+  PRIMARY KEY (agent_id, tool_name, params_hash)
+);
+
+CREATE INDEX IF NOT EXISTS idx_approval_rejections_rejected_at
+  ON approval_rejections(rejected_at);
 `;
 
 function ensureOAuthClientRedirectUriColumn(db: DatabaseSync): void {
@@ -77,6 +110,7 @@ function ensureCallTraceCorrelationColumns(db: DatabaseSync): void {
 export function openGatewayDatabase(databasePath: string): DatabaseSync {
   const db = new DatabaseSync(databasePath);
   db.exec("PRAGMA journal_mode = WAL");
+  db.exec("PRAGMA busy_timeout = 5000");
   db.exec(SCHEMA_SQL);
   ensureOAuthClientRedirectUriColumn(db);
   ensureCallTraceCorrelationColumns(db);

@@ -64,6 +64,7 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
   let oauthClientRepository: SqliteOAuthClientRepository | undefined;
   let pendingLinkStore: SqlitePendingLinkStore | undefined;
   let traceRepository: SqliteTraceRepository | undefined;
+  let approvalStore: ApprovalStoreService | undefined;
   appContainer.register(ToriiConfigService, {
     useValue: new ToriiConfigService(config),
   });
@@ -197,11 +198,12 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
     { useClass: ApprovalNotificationService },
     SINGLETON,
   );
-  appContainer.register(
-    ApprovalStoreService,
-    { useClass: ApprovalStoreService },
-    SINGLETON,
-  );
+  appContainer.register(ApprovalStoreService, {
+    useFactory: () => {
+      approvalStore ??= new ApprovalStoreService(resolveGatewayDatabase());
+      return approvalStore;
+    },
+  });
   appContainer.register(
     ApprovalGateService,
     { useClass: ApprovalGateService },

@@ -11,7 +11,12 @@ import {
   cn,
 } from "@keidai/ui";
 import { X } from "lucide-react";
-import { useCallback, useState, type PointerEvent, type ReactNode } from "react";
+import {
+  useCallback,
+  useState,
+  type PointerEvent,
+  type ReactNode,
+} from "react";
 
 const DEFAULT_DRAWER_WIDTH = 560;
 const MIN_DRAWER_WIDTH = 360;
@@ -91,7 +96,7 @@ export function DetailDrawer({
             onPointerDown={startResize}
           />
 
-          <SheetHeader className="space-y-0 border-b border-border px-5 py-[18px] text-left">
+          <SheetHeader className="space-y-0 border-b border-border px-5 py-4.5 text-left">
             <div className="flex items-start gap-3 pr-8">
               {headerBadge}
               <div className="min-w-0 flex-1">
@@ -110,10 +115,7 @@ export function DetailDrawer({
           </SheetHeader>
 
           <div
-            className={cn(
-              "flex-1 overflow-y-auto px-5 py-[18px]",
-              bodyClassName,
-            )}
+            className={cn("flex-1 overflow-y-auto px-5 py-4.5", bodyClassName)}
           >
             {children}
           </div>
