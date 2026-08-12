@@ -1,4 +1,5 @@
-import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
+import { createMcpFastifyApp } from "@modelcontextprotocol/fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import { inject, injectable } from "tsyringe";
 import { ConnectionsApiController } from "../connections/connections-api.controller.js";
 import { ConfigApiController } from "../config/config-api.controller.js";
@@ -46,8 +47,11 @@ export class GatewayHttpServer {
     private readonly logger: Logger,
   ) {}
 
-  async createApp(): Promise<FastifyInstance> {
-    const app = Fastify({ logger: false });
+  async createApp(options: Pick<GatewayHttpServerOptions, "host"> = {}): Promise<FastifyInstance> {
+    const host = options.host ?? "127.0.0.1";
+    // MCP Fastify defaults (JSON body parsing + localhost DNS-rebinding guards).
+    const app = createMcpFastifyApp({ host });
+    app.log.level = "silent";
     const bffServiceToken = resolveBffServiceToken();
 
     app.addHook("onRequest", async (request) => {
@@ -100,7 +104,7 @@ export class GatewayHttpServer {
     options: GatewayHttpServerOptions = {},
   ): Promise<GatewayHttpServerHandle> {
     const host = options.host ?? "127.0.0.1";
-    const app = await this.createApp();
+    const app = await this.createApp({ host });
     this.app = app;
 
     const port = options.port ?? 0;

@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type Server } from "node:http";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+import { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod";
 
 export type MockToolHandler = (
@@ -99,13 +99,13 @@ export async function startMockMcpServer(
           tool.name,
           {
             description: tool.description,
-            inputSchema: {
+            inputSchema: z.object({
               query: z.string().optional().describe("Example query"),
               to: z.union([z.string(), z.array(z.string())]).optional(),
               subject: z.string().optional(),
               body: z.string().optional(),
               project: z.string().optional(),
-            },
+            }),
           },
           async (input) => {
             const args =
@@ -128,7 +128,7 @@ export async function startMockMcpServer(
         );
       }
 
-      const transport = new StreamableHTTPServerTransport({
+      const transport = new NodeStreamableHTTPServerTransport({
         sessionIdGenerator: undefined,
       });
 

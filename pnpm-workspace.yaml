@@ -2,8 +2,11 @@ packages:
   - "apps/*"
   - "packages/*"
 allowBuilds:
+  "@modelcontextprotocol/inspector": true
   esbuild: true
   protobufjs: true
+minimumReleaseAgeExclude:
+  - "@modelcontextprotocol/inspector@2.2.0"
 # thread-stream@4.2.0 ships package/.claude/settings.local.json which Cursor's
 # agent sandbox blocks during pnpm install (EPERM on .claude paths).
 overrides:

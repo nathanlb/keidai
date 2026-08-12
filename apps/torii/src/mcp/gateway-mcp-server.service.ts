@@ -1,19 +1,20 @@
 import { randomUUID } from "node:crypto";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 import {
-  CallToolRequestSchema,
-  ErrorCode,
+  McpServer,
   isInitializeRequest,
-  ListToolsRequestSchema,
-  McpError,
-} from "@modelcontextprotocol/sdk/types.js";
+  ProtocolError,
+  ProtocolErrorCode,
+} from "@modelcontextprotocol/server";
 import { PolicyDecision } from "@keidai/shared";
 import type { AgentPrincipal } from "@keidai/shared";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { inject, injectable } from "tsyringe";
 import { ToolCatalogService } from "../catalog/tool-catalog.service.js";
-import { CredentialResolutionError, LinkingRequiredError } from "../credentials/types/credential-resolution.js";
+import {
+  CredentialResolutionError,
+  LinkingRequiredError,
+} from "../credentials/types/credential-resolution.js";
 import { ToolDispatchService } from "../dispatch/tool-dispatch.service.js";
 import { runWithAgentPrincipal } from "../identity/agent-principal-context.js";
 import { InboundIdentityService } from "../identity/inbound-identity.service.js";
@@ -48,6 +49,7 @@ import {
 } from "./utils/mcp-http-errors.js";
 import { parseInboundMcpRequest } from "./utils/parse-inbound-mcp-request.js";
 import { readMcpSessionId } from "./utils/read-mcp-session-id.js";
+import { handleMcpFastifyRequest } from "./utils/handle-mcp-fastify-request.js";
 
 function principalsMatch(
   left: AgentPrincipal,
@@ -150,9 +152,9 @@ export class GatewayMcpServer {
     }
 
     const mcpServer = this.createMcpServer();
-    let transport!: StreamableHTTPServerTransport;
+    let transport!: NodeStreamableHTTPServerTransport;
 
-    transport = new StreamableHTTPServerTransport({
+    transport = new NodeStreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
       onsessioninitialized: (initializedSessionId) => {
         this.sessionRegistry.register(initializedSessionId, {
@@ -189,8 +191,7 @@ export class GatewayMcpServer {
     try {
       await mcpServer.connect(transport);
       await runWithAgentPrincipal(principal, async () => {
-        await transport.handleRequest(request.raw, reply.raw, request.body);
-        reply.hijack();
+        await handleMcpFastifyRequest(transport, request, reply);
       });
     } catch (error) {
       const message =
@@ -308,7 +309,7 @@ export class GatewayMcpServer {
   }
 
   private async handleSessionRequest(
-    transport: StreamableHTTPServerTransport,
+    transport: NodeStreamableHTTPServerTransport,
     sessionId: string,
     principal: AgentPrincipal,
     request: FastifyRequest,
@@ -316,12 +317,7 @@ export class GatewayMcpServer {
   ): Promise<void> {
     await runWithAgentPrincipal(principal, async () =>
       runWithMcpSessionId(sessionId, async () => {
-        await transport.handleRequest(
-          request.raw,
-          reply.raw,
-          request.method === "POST" ? request.body : undefined,
-        );
-        reply.hijack();
+        await handleMcpFastifyRequest(transport, request, reply);
       }),
     );
   }
@@ -357,12 +353,12 @@ export class GatewayMcpServer {
       { capabilities: { tools: {} } },
     );
 
-    mcpServer.server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    mcpServer.server.setRequestHandler("tools/list", async () => ({
       tools: await this.toolCatalog.listToolsForAgent(),
     }));
 
     mcpServer.server.setRequestHandler(
-      CallToolRequestSchema,
+      "tools/call",
       async (request) => {
         try {
           return await this.toolDispatch.callTool(
@@ -378,28 +374,60 @@ export class GatewayMcpServer {
     return mcpServer;
   }
 
-  private toMcpError(error: unknown): McpError {
-    if (error instanceof McpError) {
+  /**
+   * Map domain failures to JSON-RPC / MCP protocol errors.
+   *
+   * Code allocation (MCP 2025-11-25+ / SDK v2):
+   * - `-32700`…`-32600` standard JSON-RPC
+   * - `-32000`…`-32019` implementation-defined (Torii session HTTP errors)
+   * - `-32020`…`-32099` reserved for the MCP spec (do not invent app codes here)
+   * - Resource-not-found vocabulary is `-32602` on the wire (`InvalidParams`);
+   *   `ProtocolErrorCode.ResourceNotFound` (`-32002`) is receive-tolerated only
+   */
+  private toMcpError(error: unknown): ProtocolError {
+    if (error instanceof ProtocolError) {
       return error;
     }
     if (error instanceof PolicyDeniedError) {
-      return McpError.fromError(ErrorCode.InvalidRequest, error.message);
+      return ProtocolError.fromError(
+        ProtocolErrorCode.InvalidRequest,
+        error.message,
+      );
     }
     if (error instanceof ToolNotFoundError) {
-      return McpError.fromError(ErrorCode.InvalidParams, error.message);
+      // Unknown tool → InvalidParams (-32602), same wire code as resource-not-found.
+      return ProtocolError.fromError(
+        ProtocolErrorCode.InvalidParams,
+        error.message,
+      );
     }
     if (error instanceof BackendUnavailableError) {
-      return McpError.fromError(ErrorCode.InvalidRequest, error.message);
+      return ProtocolError.fromError(
+        ProtocolErrorCode.InvalidRequest,
+        error.message,
+      );
     }
     if (error instanceof LinkingRequiredError) {
-      return McpError.fromError(ErrorCode.InvalidRequest, error.message);
+      return ProtocolError.fromError(
+        ProtocolErrorCode.InvalidRequest,
+        error.message,
+      );
     }
     if (error instanceof CredentialResolutionError) {
-      return McpError.fromError(ErrorCode.InvalidRequest, error.message);
+      return ProtocolError.fromError(
+        ProtocolErrorCode.InvalidRequest,
+        error.message,
+      );
     }
     if (error instanceof Error) {
-      return McpError.fromError(ErrorCode.InternalError, error.message);
+      return ProtocolError.fromError(
+        ProtocolErrorCode.InternalError,
+        error.message,
+      );
     }
-    return McpError.fromError(ErrorCode.InternalError, String(error));
+    return ProtocolError.fromError(
+      ProtocolErrorCode.InternalError,
+      String(error),
+    );
   }
 }
