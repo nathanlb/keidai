@@ -12,7 +12,7 @@ Eval suites live here, separate from `src/**/tests/**` unit and integration test
 
 ## Live eval stack
 
-`eval/helpers/torii-eval-stack.ts` boots an **in-process Torii gateway** wired to **mock MCP backends** with deterministic tool handlers. Shaiden connects over the same MCP/HTTP path as production (`startHarnessRun` → `connectToriiSession` → `createHarnessToolDispatcher`), so tool dispatch, approvals, and recording are real; only downstream connector payloads are fixed.
+`eval/helpers/torii-eval-stack.ts` boots an **in-process Torii gateway** wired to **mock MCP backends** with deterministic tool handlers. Shaiden connects over the same MCP/HTTP path as production (`startHarnessRun` → `connectToriiSession` → `createHarnessToolDispatcher`), so tool dispatch, approvals, and recording are real; only downstream connector payloads are fixed. `connectToriiSession` is a per-request caller (URL + JWT), not a held MCP session.
 
 ### Environment
 

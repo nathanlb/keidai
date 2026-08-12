@@ -23,13 +23,18 @@ export interface ToriiSessionCredential {
   ensureToken: (options?: { force?: boolean }) => Promise<string>;
 }
 
+/**
+ * Per-run Torii MCP caller: Torii URL + JWT provider, not a held protocol session.
+ * Each list/call is a self-contained request (with a temporary held stream only
+ * while waiting on `notifications/approval_decided` until NAT-147).
+ */
 export interface ToriiSession {
   tools: DiscoveredTool[];
   callTool: (
     name: string,
     args: Record<string, unknown>,
   ) => Promise<ToolCallResult>;
-  /** Force a fresh mint (approval resume) and update the session Authorization header. */
+  /** Force a fresh mint (approval resume) before the next tools/call. */
   remintCredentials: () => Promise<void>;
   createApprovalResumeSignal: () => ApprovalResumeSignal;
   close: () => Promise<void>;
