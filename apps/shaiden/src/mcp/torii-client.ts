@@ -1,5 +1,8 @@
-import { Client } from "@modelcontextprotocol/sdk/client";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import {
+  Client,
+  StreamableHTTPClientTransport,
+  type PriorDiscovery,
+} from "@modelcontextprotocol/client";
 import {
   APPROVAL_DECIDED_NOTIFICATION_METHOD,
   TORII_CALL_META_KEY,
@@ -10,6 +13,11 @@ import {
   createMcpNotificationApprovalResumeSignal,
   type ApprovalResumeSignal,
 } from "../run/approval-resume-signal.js";
+import {
+  listToolsCacheIsStale,
+  listToolsExpiresAtMs,
+  readListToolsCacheHint,
+} from "./list-tools-cache.js";
 import { enrichToolCallResult } from "./parse-tool-result.js";
 import { PolicyDeniedError } from "./types/policy-denied-error.js";
 import type {
@@ -17,6 +25,18 @@ import type {
   ToriiSession,
   ToriiSessionCredential,
 } from "./types/index.js";
+
+const CLIENT_INFO = { name: "shaiden", version: "0.1.0" } as const;
+
+/** Declared on every Client; modern era also re-sends these via per-request `_meta`. */
+const CLIENT_CAPABILITIES = {} as const;
+
+const RECONNECTION_OPTIONS = {
+  maxReconnectionDelay: 1000,
+  initialReconnectionDelay: 100,
+  reconnectionDelayGrowFactor: 1.5,
+  maxRetries: 0,
+} as const;
 
 function extractToriiCallMeta(meta: unknown): ToriiCallMeta | undefined {
   if (!meta || typeof meta !== "object") {
@@ -71,14 +91,33 @@ function toToolCallError(error: unknown): Error {
   return error instanceof Error ? error : new Error(message);
 }
 
+function mapCallToolResponse(response: {
+  isError?: boolean;
+  content?: unknown;
+  _meta?: unknown;
+}) {
+  const result = enrichToolCallResult(
+    response.isError === true,
+    flattenToolContent(response.content),
+  );
+  const meta = extractToriiCallMeta(response._meta);
+  const withMeta = meta ? { ...result, meta } : result;
+  if (withMeta.isError && /(^|\b)policy_denied\b/i.test(withMeta.text)) {
+    return { ...withMeta, policyDenied: true };
+  }
+  return withMeta;
+}
+
 /**
- * Connect to Torii over MCP and keep the session open for the duration of a
- * run: tool discovery happens once at connect, tool calls dispatch through
- * the same session so they show up in Torii traces.
+ * Build a Torii MCP caller for one harness run.
  *
- * Authorization uses a Fuda-minted agent JWT from `credential.ensureToken`.
- * The header is refreshed before each tools/call (and on explicit remint) so
- * short TTLs outlive long tasks without reconnecting.
+ * This is not a protocol session: each `listTools` / `callTool` opens a fresh
+ * Client + Streamable HTTP transport, negotiates the era (`auto`: modern
+ * `server/discover` when Torii speaks 2026-07-28, else legacy initialize), and
+ * closes afterward. Token refresh still happens before every call.
+ *
+ * Until NAT-147, a client that receives `approval_required` is kept open so
+ * Torii can push `notifications/approval_decided` on the legacy GET stream.
  */
 export async function connectToriiSession(
   toriiMcpUrl: string,
@@ -93,56 +132,128 @@ export async function connectToriiSession(
     authHeaders.Authorization = `Bearer ${token}`;
   };
 
-  const client = new Client({
-    name: "shaiden",
-    version: "0.1.0",
-  });
-  const transport = new StreamableHTTPClientTransport(new URL(toriiMcpUrl), {
-    requestInit: {
-      headers: authHeaders,
-    },
-    reconnectionOptions: {
-      maxReconnectionDelay: 1000,
-      initialReconnectionDelay: 100,
-      reconnectionDelayGrowFactor: 1.5,
-      maxRetries: 0,
-    },
-  });
+  /** Cached after the first successful connect so later requests skip the probe. */
+  let prior: PriorDiscovery | undefined;
 
-  await client.connect(transport);
-  const result = await client.listTools();
+  const tools: DiscoveredTool[] = [];
+  let toolsExpiresAtMs: number | undefined;
 
+  let approvalHandler:
+    | ((params: ApprovalDecidedNotificationParams) => void)
+    | undefined;
   let activeResumeSignal: ApprovalResumeSignal | undefined;
+  /** Client held only while waiting on `notifications/approval_decided` (pre–NAT-147). */
+  let parkedClient: Client | undefined;
 
   const failParkedApprovals = () => {
     activeResumeSignal?.dispose();
   };
-  // SSE drop (maxRetries: 0) fires onerror without onclose; both paths must
-  // unblock parked approval waiters so the run can terminate as failed.
-  client.onerror = failParkedApprovals;
-  client.onclose = failParkedApprovals;
+
+  const openClient = async (): Promise<Client> => {
+    const client = new Client(CLIENT_INFO, {
+      capabilities: CLIENT_CAPABILITIES,
+      versionNegotiation: { mode: "auto" },
+    });
+    const transport = new StreamableHTTPClientTransport(new URL(toriiMcpUrl), {
+      requestInit: {
+        headers: authHeaders,
+      },
+      reconnectionOptions: RECONNECTION_OPTIONS,
+    });
+    await client.connect(transport, prior ? { prior } : undefined);
+
+    const discover = client.getDiscoverResult();
+    if (discover) {
+      prior = { kind: "modern", discover };
+    } else if (client.getProtocolEra() === "legacy") {
+      prior = { kind: "legacy" };
+    }
+
+    return client;
+  };
+
+  const attachApprovalHandler = (client: Client): void => {
+    if (!approvalHandler) {
+      return;
+    }
+    client.fallbackNotificationHandler = async (notification) => {
+      if (notification.method !== APPROVAL_DECIDED_NOTIFICATION_METHOD) {
+        return;
+      }
+      approvalHandler?.(
+        notification.params as unknown as ApprovalDecidedNotificationParams,
+      );
+    };
+    // SSE drop (maxRetries: 0) fires onerror without onclose; both paths must
+    // unblock parked approval waiters so the run can terminate as failed.
+    client.onerror = failParkedApprovals;
+    client.onclose = failParkedApprovals;
+  };
+
+  const closeClientQuietly = async (client: Client): Promise<void> => {
+    client.fallbackNotificationHandler = undefined;
+    client.onerror = undefined;
+    client.onclose = undefined;
+    try {
+      await client.close();
+    } catch {
+      // Best-effort teardown between per-request calls.
+    }
+  };
+
+  const releaseParkedClient = async (): Promise<void> => {
+    if (!parkedClient) {
+      return;
+    }
+    const client = parkedClient;
+    parkedClient = undefined;
+    await closeClientQuietly(client);
+  };
+
+  const replaceTools = (next: DiscoveredTool[]): void => {
+    tools.splice(0, tools.length, ...next);
+  };
+
+  const refreshTools = async (): Promise<void> => {
+    const client = await openClient();
+    try {
+      const listed = await client.listTools(undefined, { cacheMode: "refresh" });
+      replaceTools(listed.tools.map(toDiscoveredTool));
+      toolsExpiresAtMs = listToolsExpiresAtMs(readListToolsCacheHint(listed));
+    } finally {
+      await closeClientQuietly(client);
+    }
+  };
+
+  await refreshTools();
 
   const callTool: ToriiSession["callTool"] = async (name, args) => {
     await applyToken();
+    if (listToolsCacheIsStale(toolsExpiresAtMs)) {
+      await refreshTools();
+    }
+    // Prior approval wait finished (or never parked); drop any leftover stream.
+    await releaseParkedClient();
+
+    const client = await openClient();
+    attachApprovalHandler(client);
     try {
       const response = await client.callTool({ name, arguments: args });
-      const result = enrichToolCallResult(
-        response.isError === true,
-        flattenToolContent(response.content),
-      );
-      const meta = extractToriiCallMeta(response._meta);
-      const withMeta = meta ? { ...result, meta } : result;
-      if (withMeta.isError && /(^|\b)policy_denied\b/i.test(withMeta.text)) {
-        return { ...withMeta, policyDenied: true };
+      const result = mapCallToolResponse(response);
+      if (result.approvalRequired) {
+        parkedClient = client;
+        return result;
       }
-      return withMeta;
+      await closeClientQuietly(client);
+      return result;
     } catch (error) {
+      await closeClientQuietly(client);
       throw toToolCallError(error);
     }
   };
 
   return {
-    tools: result.tools.map(toDiscoveredTool),
+    tools,
     callTool,
     remintCredentials: async () => {
       await applyToken({ force: true });
@@ -154,16 +265,15 @@ export async function connectToriiSession(
 
       activeResumeSignal = createMcpNotificationApprovalResumeSignal(
         (handler) => {
-          client.fallbackNotificationHandler = async (notification) => {
-            if (notification.method !== APPROVAL_DECIDED_NOTIFICATION_METHOD) {
-              return;
-            }
-            handler(
-              notification.params as unknown as ApprovalDecidedNotificationParams,
-            );
-          };
+          approvalHandler = handler;
+          if (parkedClient) {
+            attachApprovalHandler(parkedClient);
+          }
           return () => {
-            client.fallbackNotificationHandler = undefined;
+            approvalHandler = undefined;
+            if (parkedClient) {
+              parkedClient.fallbackNotificationHandler = undefined;
+            }
           };
         },
         () => {
@@ -175,7 +285,7 @@ export async function connectToriiSession(
     },
     close: async () => {
       activeResumeSignal?.dispose();
-      await client.close();
+      await releaseParkedClient();
     },
   };
 }
