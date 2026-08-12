@@ -11,13 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@keidai/ui";
-import {
-  Check,
-  ExternalLink,
-  Loader2,
-  TriangleAlert,
-  X,
-} from "lucide-react";
+import { Check, ExternalLink, Loader2, TriangleAlert, X } from "lucide-react";
 import type { OAuthLinkDialogStep } from "./hooks/use-oauth-link-dialog.js";
 import type { OAuthLinkDialogContext } from "./hooks/use-oauth-link-dialog.js";
 
@@ -57,7 +51,7 @@ function InitiatingStep({
 
       {hasConfiguredScopes ? (
         <Card className="mt-4 shadow-none">
-          <CardContent className="flex flex-col gap-[7px] px-3.5 py-3">
+          <CardContent className="flex flex-col gap-1.75 px-3.5 py-3">
             <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               Scopes requested
             </div>
@@ -81,8 +75,8 @@ function InitiatingStep({
               Authorization
             </div>
             <p className="text-[13px] leading-normal text-muted-foreground">
-              {providerLabel} does not declare scopes in <Mono>torii.yaml</Mono>.
-              Torii requests provider-default access during authorization.
+              {providerLabel} does not declare scopes in <Mono>torii.yaml</Mono>
+              . Torii requests provider-default access during authorization.
             </p>
           </CardContent>
         </Card>
@@ -123,21 +117,18 @@ function WaitingStep({
   return (
     <>
       <div className="flex flex-col items-center px-1 pt-2 text-center">
-        <Loader2
-          className="size-[34px] animate-spin text-primary"
-          aria-hidden
-        />
+        <Loader2 className="size-8.5 animate-spin text-primary" aria-hidden />
         <div className="mt-4 text-base font-semibold">
           Waiting for authorization in {providerLabel}
         </div>
-        <p className="mt-1.5 max-w-[330px] text-[13px] leading-normal text-muted-foreground">
+        <p className="mt-1.5 max-w-82.5 text-3.25 leading-normal text-muted-foreground">
           Finish authorization in the popup window. This dialog will close
           automatically when Torii receives the callback at{" "}
           <Mono>{redirectUri}</Mono>.
         </p>
       </div>
 
-      <DialogFooter className="mt-[18px] gap-2 sm:justify-stretch">
+      <DialogFooter className="mt-4.5 gap-0.5 sm:justify-stretch">
         <Button
           variant="ghost"
           className="flex-1 text-muted-foreground"
@@ -174,13 +165,13 @@ function LinkedStep({ providerLabel, ownerId, onClose }: LinkedStepProps) {
   return (
     <>
       <div className="flex flex-col items-center px-1 pt-2 text-center">
-        <span className="flex size-[42px] items-center justify-center rounded-full bg-success/20 text-success">
-          <Check className="size-[22px]" aria-hidden />
+        <span className="flex size-10.5 items-center justify-center rounded-full bg-success/20 text-success">
+          <Check className="size-5.5" aria-hidden />
         </span>
         <div className="mt-3.5 text-base font-semibold">
           {providerLabel} linked
         </div>
-        <p className="mt-1.5 max-w-[330px] text-[13px] leading-normal text-muted-foreground">
+        <p className="mt-1.5 max-w-82.5 text-[13px] leading-normal text-muted-foreground">
           Torii stored the grant for owner <Mono>{ownerId}</Mono> and will
           refresh it automatically. Calls needing {providerLabel} will now
           resolve.
@@ -188,7 +179,7 @@ function LinkedStep({ providerLabel, ownerId, onClose }: LinkedStepProps) {
       </div>
 
       <DialogFooter className="mt-3.5 justify-center sm:justify-center">
-        <Button className="min-w-[120px]" onClick={onClose}>
+        <Button className="min-w-30" onClick={onClose}>
           Done
         </Button>
       </DialogFooter>
@@ -206,16 +197,16 @@ function ErrorStep({ errorMessage, onClose, onRetry }: ErrorStepProps) {
   return (
     <>
       <div className="flex flex-col items-center px-1 pt-2 text-center">
-        <span className="flex size-[42px] items-center justify-center rounded-full bg-destructive/15 text-destructive">
-          <TriangleAlert className="size-[22px]" aria-hidden />
+        <span className="flex size-10.5 items-center justify-center rounded-full bg-destructive/15 text-destructive">
+          <TriangleAlert className="size-5.5" aria-hidden />
         </span>
         <div className="mt-3.5 text-base font-semibold">
           Authorization didn&apos;t complete
         </div>
-        <p className="mt-1.5 max-w-[330px] text-[13px] leading-normal text-muted-foreground">
+        <p className="mt-1.5 max-w-82.5 text-[13px] leading-normal text-muted-foreground">
           <Mono>{errorMessage ?? "access_denied"}</Mono> — the request was
-          cancelled, or the provider&apos;s <Mono>redirect_uri</Mono> doesn&apos;t
-          match the gateway. No grant was stored.
+          cancelled, or the provider&apos;s <Mono>redirect_uri</Mono>{" "}
+          doesn&apos;t match the gateway. No grant was stored.
         </p>
       </div>
 
