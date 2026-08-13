@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS approvals (
   params_hash TEXT NOT NULL,
   run_id TEXT,
   step_id TEXT,
-  mcp_session_id TEXT,
+  task_id TEXT UNIQUE,
   status TEXT NOT NULL,
   rejection_reason TEXT,
   created_at INTEGER NOT NULL,
@@ -127,6 +127,20 @@ function ensureCallTraceCorrelationColumns(db: DatabaseSync): void {
   }
 }
 
+function ensureApprovalsTaskIdColumn(db: DatabaseSync): void {
+  const columns = db
+    .prepare("PRAGMA table_info(approvals)")
+    .all() as Array<{ name: string }>;
+  if (!columns.some((column) => column.name === "task_id")) {
+    db.exec("ALTER TABLE approvals ADD COLUMN task_id TEXT");
+  }
+  db.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_approvals_task_id
+    ON approvals(task_id)
+    WHERE task_id IS NOT NULL
+  `);
+}
+
 export function openGatewayDatabase(databasePath: string): DatabaseSync {
   const db = new DatabaseSync(databasePath);
   db.exec("PRAGMA journal_mode = WAL");
@@ -134,5 +148,6 @@ export function openGatewayDatabase(databasePath: string): DatabaseSync {
   db.exec(SCHEMA_SQL);
   ensureOAuthClientRedirectUriColumn(db);
   ensureCallTraceCorrelationColumns(db);
+  ensureApprovalsTaskIdColumn(db);
   return db;
 }

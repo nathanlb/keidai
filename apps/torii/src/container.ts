@@ -37,7 +37,6 @@ import { GatewayHttpServer } from "./http/gateway-http-server.service.js";
 import { GatewayMcpServer } from "./mcp/gateway-mcp-server.service.js";
 import { PolicyEnforcementService } from "./policy/policy-enforcement.service.js";
 import { ApprovalGateService } from "./policy/approval-gate.service.js";
-import { ApprovalNotificationService } from "./policy/approval-notification.service.js";
 import { ApprovalReadService } from "./policy/approval-read.service.js";
 import { ApprovalStoreService } from "./policy/approval-store.service.js";
 import { TaskStoreService } from "./tasks/task-store.service.js";
@@ -187,11 +186,6 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
   appContainer.register(
     PolicyEnforcementService,
     { useClass: PolicyEnforcementService },
-    SINGLETON,
-  );
-  appContainer.register(
-    ApprovalNotificationService,
-    { useClass: ApprovalNotificationService },
     SINGLETON,
   );
   appContainer.register(ApprovalStoreService, {

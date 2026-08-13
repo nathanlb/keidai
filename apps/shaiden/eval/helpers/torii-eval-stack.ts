@@ -159,6 +159,7 @@ export async function startEvalToriiStack(
     traceEmitter,
     policyEnforcement,
     approvalServices.approvalGate,
+    approvalServices.taskStore,
   );
   const gatewayHttpServer = createTestGatewayHttpServer(
     toolCatalog,

@@ -10,6 +10,7 @@ import {
   MCP_TASKS_GET_METHOD,
   MCP_TASKS_UPDATE_METHOD,
   clientDeclaresTasksExtension,
+  isMcpTaskTerminalStatus,
   toGetTaskResult,
   type McpInputResponses,
   type McpTasksMethod,
@@ -40,12 +41,14 @@ export type McpTasksDispatchResult =
  * the 2025-11-25 `tasks/*` methods, so `tasks/get` and `tasks/cancel` would
  * be answered Method not found before a registered handler could run.
  */
-export function dispatchMcpTasksMethod(input: {
+export async function dispatchMcpTasksMethod(input: {
   method: McpTasksMethod;
   body: unknown;
   principal: AgentPrincipal;
   taskStore: TaskStoreService;
-}): McpTasksDispatchResult {
+  executeApprovedTask?: (taskId: string) => Promise<void>;
+  onTaskCancelled?: (taskId: string) => void;
+}): Promise<McpTasksDispatchResult> {
   if (!clientDeclaresTasksExtension(readClientCapabilities(input.body))) {
     return { ok: false, error: MISSING_TASKS_EXTENSION_ERROR };
   }
@@ -64,13 +67,24 @@ export function dispatchMcpTasksMethod(input: {
 
   try {
     switch (input.method) {
-      case MCP_TASKS_GET_METHOD:
+      case MCP_TASKS_GET_METHOD: {
+        const current = input.taskStore.getDetailedTask(
+          input.principal.agentId,
+          taskId,
+        );
+        if (
+          !isMcpTaskTerminalStatus(current.status) &&
+          input.executeApprovedTask
+        ) {
+          await input.executeApprovedTask(taskId);
+        }
         return {
           ok: true,
           result: { ...toGetTaskResult(
             input.taskStore.getDetailedTask(input.principal.agentId, taskId),
           ) },
         };
+      }
       case MCP_TASKS_UPDATE_METHOD: {
         const inputResponses = params.inputResponses;
         if (
@@ -98,6 +112,7 @@ export function dispatchMcpTasksMethod(input: {
       }
       case MCP_TASKS_CANCEL_METHOD:
         input.taskStore.requestCancel(input.principal.agentId, taskId);
+        input.onTaskCancelled?.(taskId);
         return {
           ok: true,
           result: { resultType: MCP_COMPLETE_RESULT_TYPE },

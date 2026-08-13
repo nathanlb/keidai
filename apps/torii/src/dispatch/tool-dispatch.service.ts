@@ -1,6 +1,15 @@
 import type { CallToolResult, Client } from "@modelcontextprotocol/client";
-import type { AgentPrincipal, CallTracePrincipal } from "@keidai/shared";
-import { PolicyDecision } from "@keidai/shared";
+import { ProtocolErrorCode } from "@modelcontextprotocol/server";
+import type {
+  AgentPrincipal,
+  CallTracePrincipal,
+  McpCreateTaskResult,
+} from "@keidai/shared";
+import {
+  PolicyDecision,
+  TORII_RUN_ID_ARG,
+  TORII_STEP_ID_ARG,
+} from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
 import type { CatalogTool } from "../catalog/types/catalog-tool.js";
 import { ConnectionManager } from "../connections/connection-manager.service.js";
@@ -13,15 +22,14 @@ import {
 } from "../credentials/types/credential-resolution.js";
 import { getAgentPrincipal } from "../identity/agent-principal-context.js";
 import { PolicyDeniedError } from "../policy/types/policy-denied.js";
-import {
-  ApprovalGateService,
-  ApprovalReplayError,
-} from "../policy/approval-gate.service.js";
+import { ApprovalGateService } from "../policy/approval-gate.service.js";
 import { PolicyEnforcementService } from "../policy/policy-enforcement.service.js";
+import { callToolResultToRecord } from "../policy/utils/approval-tool-results.js";
 import {
   parseToolArguments,
   type ParsedToolArguments,
 } from "../policy/utils/approval-tool-args.js";
+import { TaskStoreService } from "../tasks/task-store.service.js";
 import type { TraceEmitter } from "../trace/types/trace-emitter.js";
 import { TraceEmitterService } from "../trace/trace-emitter.service.js";
 import {
@@ -39,6 +47,7 @@ import {
   ToolNotFoundError,
 } from "./types/tool-dispatch.js";
 import { formatBackendToolError } from "./utils/format-backend-tool-error.js";
+import { isParkedTaskResult } from "./utils/is-parked-task-result.js";
 import { withToriiTraceMeta } from "./utils/with-torii-trace-meta.js";
 
 type TraceFields = Omit<
@@ -78,24 +87,79 @@ export class ToolDispatchService {
     private readonly policyEnforcement: PolicyEnforcementService,
     @inject(ApprovalGateService)
     private readonly approvalGate: ApprovalGateService,
+    @inject(TaskStoreService)
+    private readonly taskStore: TaskStoreService,
   ) {}
+
+  requiresApproval(toolName: string): boolean {
+    return this.approvalGate.requiresApproval(getAgentPrincipal(), toolName);
+  }
 
   async callTool(
     namespacedName: string,
     args?: Record<string, unknown>,
-  ): Promise<CallToolResult> {
+  ): Promise<CallToolResult | McpCreateTaskResult> {
     const ctx = this.createCallContext(namespacedName, args);
 
     this.enforcePolicyOrThrow(ctx);
 
     const gatedResult = this.tryHandleApprovalGate(ctx);
     if (gatedResult) {
+      if (isParkedTaskResult(gatedResult)) {
+        return gatedResult;
+      }
       return withToriiTraceMeta(gatedResult, ctx.traceId);
     }
 
     const target = await this.resolveConnectedBackend(ctx);
     const result = await this.proxyCallToBackend(ctx, target);
     return withToriiTraceMeta(result, ctx.traceId);
+  }
+
+  /**
+   * Option A: when `tasks/get` finds an approved-but-unexecuted gated call,
+   * proxy to the backend inline and complete the task. `markUsed` is the
+   * single-use claim so concurrent polls cannot double-execute.
+   */
+  async executeApprovedTask(taskId: string): Promise<void> {
+    const principal = getAgentPrincipal();
+    if (!principal) {
+      return;
+    }
+
+    const claimed = this.approvalGate.claimApprovedExecution(taskId, principal);
+    if (!claimed) {
+      return;
+    }
+
+    const stored = this.taskStore.getDetailedTask(principal.agentId, taskId);
+    if (stored.status !== "working") {
+      return;
+    }
+
+    const args: Record<string, unknown> = { ...claimed.params };
+    if (claimed.runId) {
+      args[TORII_RUN_ID_ARG] = claimed.runId;
+    }
+    if (claimed.stepId) {
+      args[TORII_STEP_ID_ARG] = claimed.stepId;
+    }
+
+    const ctx = this.createCallContext(claimed.toolName, args);
+    try {
+      const target = await this.resolveConnectedBackend(ctx);
+      const result = await this.proxyCallToBackend(ctx, target);
+      this.taskStore.complete(taskId, callToolResultToRecord(result));
+    } catch (error) {
+      this.taskStore.fail(taskId, {
+        code: ProtocolErrorCode.InternalError,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  cancelPendingApprovalForTask(taskId: string): void {
+    this.approvalGate.cancelPendingForTask(taskId);
   }
 
   private createCallContext(
@@ -152,12 +216,7 @@ export class ToolDispatchService {
 
   private tryHandleApprovalGate(
     ctx: DispatchCallContext,
-  ): CallToolResult | undefined {
-    if (ctx.parsedArgs.approvalId) {
-      this.validateApprovalReplay(ctx);
-      return undefined;
-    }
-
+  ): CallToolResult | McpCreateTaskResult | undefined {
     if (
       !ctx.agentPrincipal ||
       !this.approvalGate.requiresApproval(
@@ -168,7 +227,7 @@ export class ToolDispatchService {
       return undefined;
     }
 
-    const approvalResult = this.approvalGate.interceptGatedCall({
+    const intercepted = this.approvalGate.interceptGatedCall({
       principal: ctx.agentPrincipal,
       toolName: ctx.namespacedName,
       upstreamArgs: ctx.parsedArgs.upstreamArgs,
@@ -184,33 +243,7 @@ export class ToolDispatchService {
       durationMs: Date.now() - ctx.startedAt,
     });
 
-    return approvalResult;
-  }
-
-  private validateApprovalReplay(ctx: DispatchCallContext): void {
-    if (!ctx.agentPrincipal) {
-      throw new ApprovalReplayError("approval replay requires agent identity");
-    }
-
-    try {
-      this.approvalGate.validateReplay({
-        approvalId: ctx.parsedArgs.approvalId!,
-        principal: ctx.agentPrincipal,
-        toolName: ctx.namespacedName,
-        upstreamArgs: ctx.parsedArgs.upstreamArgs,
-      });
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "approval replay failed";
-      ctx.emit({
-        server: ctx.parsed.server,
-        tool: ctx.parsed.tool,
-        principal: ctx.principal,
-        policyDecision: PolicyDecision.Allowed,
-        error: message,
-      });
-      throw error;
-    }
+    return intercepted.kind === "parked" ? intercepted.task : intercepted.result;
   }
 
   private async resolveConnectedBackend(
@@ -312,10 +345,6 @@ export class ToolDispatchService {
           arguments: ctx.parsedArgs.upstreamArgs,
         }
       )) as CallToolResult;
-
-      if (ctx.parsedArgs.approvalId) {
-        this.approvalGate.markReplayUsed(ctx.parsedArgs.approvalId);
-      }
 
       ctx.emit({
         server: entry.server,

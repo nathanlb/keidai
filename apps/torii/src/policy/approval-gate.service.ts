@@ -1,22 +1,20 @@
-import type { AgentPrincipal } from "@keidai/shared";
+import type { CallToolResult } from "@modelcontextprotocol/server";
+import type { AgentPrincipal, McpCreateTaskResult } from "@keidai/shared";
+import { toCreateTaskResult } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
 import { ToriiConfigService } from "../config/torii-config.service.js";
-import { ApprovalStoreService } from "./approval-store.service.js";
+import { TaskStoreService } from "../tasks/task-store.service.js";
+import { DEFAULT_MCP_TASK_TTL_MS } from "../tasks/types/mcp-task.js";
+import { ApprovalStoreService, type ApprovalRecord } from "./approval-store.service.js";
 import {
   hashToolParams,
   isGatedToolForAgent,
 } from "./utils/approval-tool-args.js";
-import {
-  toApprovalDeniedToolResult,
-  toApprovalRequiredToolResult,
-} from "./utils/approval-tool-results.js";
+import { toApprovalDeniedToolResult } from "./utils/approval-tool-results.js";
 
-export class ApprovalReplayError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ApprovalReplayError";
-  }
-}
+export type GatedCallIntercept =
+  | { kind: "denied"; result: CallToolResult }
+  | { kind: "parked"; task: McpCreateTaskResult };
 
 @injectable()
 export class ApprovalGateService {
@@ -27,6 +25,8 @@ export class ApprovalGateService {
     configService: ToriiConfigService,
     @inject(ApprovalStoreService)
     private readonly approvalStore: ApprovalStoreService,
+    @inject(TaskStoreService)
+    private readonly taskStore: TaskStoreService,
   ) {
     this.gatedToolsByAgentId = new Map(
       Object.entries(configService.get().gated_tools ?? {}),
@@ -51,7 +51,7 @@ export class ApprovalGateService {
     runId?: string;
     stepId?: string;
     now?: number;
-  }) {
+  }): GatedCallIntercept {
     const paramsHash = hashToolParams(input.upstreamArgs);
     const suppressed = this.approvalStore.findRecentRejection({
       agentId: input.principal.agentId,
@@ -61,56 +61,67 @@ export class ApprovalGateService {
     });
 
     if (suppressed) {
-      return toApprovalDeniedToolResult(suppressed.rejectionReason);
+      return {
+        kind: "denied",
+        result: toApprovalDeniedToolResult(suppressed.rejectionReason),
+      };
     }
 
-    const approval = this.approvalStore.createPendingApproval({
-      principal: input.principal,
-      toolName: input.toolName,
-      params: input.upstreamArgs,
-      paramsHash,
-      runId: input.runId,
-      stepId: input.stepId,
-      now: input.now,
+    const now = input.now ?? Date.now();
+    const ttlMs = DEFAULT_MCP_TASK_TTL_MS;
+    const task = this.approvalStore.runInTransaction(() => {
+      const created = this.taskStore.createWorkingTask({
+        agentId: input.principal.agentId,
+        ownerId: input.principal.ownerId,
+        statusMessage: `Awaiting operator approval for ${input.toolName}`,
+        ttlMs,
+        now,
+      });
+      this.approvalStore.createPendingApproval({
+        principal: input.principal,
+        toolName: input.toolName,
+        params: input.upstreamArgs,
+        paramsHash,
+        runId: input.runId,
+        stepId: input.stepId,
+        taskId: created.taskId,
+        now,
+        ttlMs,
+      });
+      return created;
     });
 
-    return toApprovalRequiredToolResult(approval.id);
+    return { kind: "parked", task: toCreateTaskResult(task) };
   }
 
-  validateReplay(input: {
-    approvalId: string;
-    principal: AgentPrincipal;
-    toolName: string;
-    upstreamArgs: Record<string, unknown>;
-    now?: number;
-  }): void {
-    const now = input.now ?? Date.now();
-    const record = this.approvalStore.getApproval(input.approvalId);
-
-    if (!record) {
-      throw new ApprovalReplayError("approval not found");
+  /**
+   * Atomically claim an approved-but-unexecuted gated call. Returns undefined
+   * when there is nothing to execute (still pending, already used, expired,
+   * or not this agent's task).
+   */
+  claimApprovedExecution(
+    taskId: string,
+    principal: AgentPrincipal,
+    now = Date.now(),
+  ): ApprovalRecord | undefined {
+    const record = this.approvalStore.getApprovalByTaskId(taskId);
+    if (!record || record.agentId !== principal.agentId) {
+      return undefined;
     }
     if (record.status !== "approved") {
-      throw new ApprovalReplayError(`approval is ${record.status}`);
-    }
-    if (record.usedAt !== undefined) {
-      throw new ApprovalReplayError("approval already used");
+      return undefined;
     }
     if (record.expiresAt <= now) {
-      throw new ApprovalReplayError("approval expired");
+      return undefined;
     }
-    if (record.agentId !== input.principal.agentId) {
-      throw new ApprovalReplayError("approval agent mismatch");
-    }
-    if (record.toolName !== input.toolName) {
-      throw new ApprovalReplayError("approval tool mismatch");
-    }
-    if (record.paramsHash !== hashToolParams(input.upstreamArgs)) {
-      throw new ApprovalReplayError("approval params mismatch");
-    }
+    return this.approvalStore.markUsed(record.id, now);
   }
 
-  markReplayUsed(approvalId: string, now?: number): void {
-    this.approvalStore.markUsed(approvalId, now);
+  cancelPendingForTask(taskId: string, now = Date.now()): void {
+    const record = this.approvalStore.getApprovalByTaskId(taskId);
+    if (record?.status !== "pending") {
+      return;
+    }
+    this.approvalStore.cancel(record.id, now);
   }
 }

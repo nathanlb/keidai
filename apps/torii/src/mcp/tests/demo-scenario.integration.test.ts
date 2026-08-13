@@ -160,6 +160,7 @@ describe("Demo scenario — open-torii status digest", () => {
       traceEmitter,
       createPolicyEnforcement(configService),
       createApprovalServices(configService).approvalGate,
+      createApprovalServices(configService).taskStore,
     );
     const gatewayHttpServer = createTestGatewayHttpServer(
       toolCatalog,

@@ -19,10 +19,21 @@ import { createPolicyEnforcement, createApprovalServices } from "../../policy/te
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 import { testAgentsGroup } from "../../testing/test-config.js";
 import { ToolDispatchService } from "../tool-dispatch.service.js";
+import { isParkedTaskResult } from "../utils/is-parked-task-result.js";
 import {
   BackendUnavailableError,
   ToolNotFoundError,
 } from "../types/tool-dispatch.js";
+
+function expectCallToolResult(
+  result: Awaited<ReturnType<ToolDispatchService["callTool"]>>,
+) {
+  assert.equal(isParkedTaskResult(result), false);
+  if (isParkedTaskResult(result)) {
+    assert.fail("expected a CallToolResult, not a parked task");
+  }
+  return result;
+}
 
 function noneServer(
   name: string,
@@ -102,7 +113,7 @@ async function createDispatchStack(
   const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
   const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
   const traceEmitter = new CapturingTraceEmitter();
-  const { approvalGate } = createApprovalServices(configService);
+  const { approvalGate, taskStore } = createApprovalServices(configService);
   const toolDispatch = new ToolDispatchService(
     toolCatalog,
     connectionManager,
@@ -110,6 +121,7 @@ async function createDispatchStack(
     traceEmitter,
     createPolicyEnforcement(configService),
     approvalGate,
+    taskStore,
   );
 
   return {
@@ -134,8 +146,10 @@ describe("ToolDispatchService", () => {
     try {
       await bootBackends(stack.connectionManager, stack.toolCatalog);
 
-      const result = await withTestAgentPrincipal(() =>
-        stack.toolDispatch.callTool("deepwiki.read_wiki_structure", {}),
+      const result = expectCallToolResult(
+        await withTestAgentPrincipal(() =>
+          stack.toolDispatch.callTool("deepwiki.read_wiki_structure", {}),
+        ),
       );
 
       assert.notEqual(result.isError, true);
@@ -347,7 +361,7 @@ describe("ToolDispatchService", () => {
     const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
     const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
     const traceEmitter = new CapturingTraceEmitter();
-    const { approvalGate } = createApprovalServices(configService);
+    const { approvalGate, taskStore } = createApprovalServices(configService);
     const toolDispatch = new ToolDispatchService(
       toolCatalog,
       connectionManager,
@@ -355,6 +369,7 @@ describe("ToolDispatchService", () => {
       traceEmitter,
       createPolicyEnforcement(configService),
       approvalGate,
+      taskStore,
     );
 
     try {
@@ -369,7 +384,9 @@ describe("ToolDispatchService", () => {
           expiresAt: new Date(0),
         });
 
-        const result = await toolDispatch.callTool("github.search_issues", {});
+        const result = expectCallToolResult(
+          await toolDispatch.callTool("github.search_issues", {}),
+        );
 
         assert.equal(result.isError, true);
         const structuredContent = result.structuredContent as
@@ -406,8 +423,10 @@ describe("ToolDispatchService", () => {
     try {
       await bootBackends(stack.connectionManager, stack.toolCatalog);
 
-      const result = await withTestAgentPrincipal(() =>
-        stack.toolDispatch.callTool("stripe.list_customers", {}),
+      const result = expectCallToolResult(
+        await withTestAgentPrincipal(() =>
+          stack.toolDispatch.callTool("stripe.list_customers", {}),
+        ),
       );
 
       assert.notEqual(result.isError, true);
@@ -431,12 +450,14 @@ describe("ToolDispatchService", () => {
         await stack.connectionManager.connectAll();
         await stack.toolCatalog.refresh();
 
-        const result = await stack.toolDispatch.callTool(
-          "deepwiki.read_wiki_structure",
-          {
-            [TORII_RUN_ID_ARG]: "run-123",
-            [TORII_STEP_ID_ARG]: "step-456",
-          },
+        const result = expectCallToolResult(
+          await stack.toolDispatch.callTool(
+            "deepwiki.read_wiki_structure",
+            {
+              [TORII_RUN_ID_ARG]: "run-123",
+              [TORII_STEP_ID_ARG]: "step-456",
+            },
+          ),
         );
 
         assert.equal(stack.traceEmitter.traces.length, 1);
@@ -467,9 +488,11 @@ describe("ToolDispatchService", () => {
         await stack.connectionManager.connectAll();
         await stack.toolCatalog.refresh();
 
-        const result = await stack.toolDispatch.callTool(
-          "deepwiki.read_wiki_structure",
-          {},
+        const result = expectCallToolResult(
+          await stack.toolDispatch.callTool(
+            "deepwiki.read_wiki_structure",
+            {},
+          ),
         );
 
         const trace = stack.traceEmitter.traces[0]!;

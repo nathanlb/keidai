@@ -6,7 +6,6 @@ import {
   type TestGatewayPersistence,
 } from "../../testing/gateway-persistence.js";
 import { ApprovalGateService } from "../approval-gate.service.js";
-import { ApprovalNotificationService } from "../approval-notification.service.js";
 import { ApprovalReadService } from "../approval-read.service.js";
 import { ApprovalStoreService } from "../approval-store.service.js";
 import { ApprovalsApiController } from "../approvals-api.controller.js";
@@ -33,15 +32,17 @@ export function createApprovalServices(
   const approvalStore =
     persistence.approvalStore ??
     new ApprovalStoreService(persistence.database!);
-  const approvalGate = new ApprovalGateService(configService, approvalStore);
-  const approvalRead = new ApprovalReadService(approvalStore);
-  const approvalNotifications = new ApprovalNotificationService(
-    createNoopLogger(),
+  const taskStore = persistence.taskStore!;
+  const approvalGate = new ApprovalGateService(
+    configService,
+    approvalStore,
+    taskStore,
   );
+  const approvalRead = new ApprovalReadService(approvalStore);
   const approvalsApi = new ApprovalsApiController(
     approvalRead,
     approvalStore,
-    approvalNotifications,
+    taskStore,
   );
 
   return {
@@ -49,7 +50,7 @@ export function createApprovalServices(
     approvalGate,
     approvalRead,
     approvalsApi,
-    approvalNotifications,
+    taskStore,
     persistence,
     close: persistence.close,
   };

@@ -6,7 +6,12 @@ import {
   type McpHttpHandler,
 } from "@modelcontextprotocol/server";
 import { toNodeHandler, type NodeMcpRequestHandler } from "@modelcontextprotocol/node";
-import { PolicyDecision, isMcpTasksMethod, MCP_TASKS_EXTENSION_ID } from "@keidai/shared";
+import {
+  MCP_TASKS_EXTENSION_ID,
+  PolicyDecision,
+  clientDeclaresTasksExtension,
+  isMcpTasksMethod,
+} from "@keidai/shared";
 import type { AgentPrincipal, Logger } from "@keidai/shared";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { inject, injectable } from "tsyringe";
@@ -16,6 +21,7 @@ import {
   LinkingRequiredError,
 } from "../credentials/types/credential-resolution.js";
 import { ToolDispatchService } from "../dispatch/tool-dispatch.service.js";
+import { isParkedTaskResult } from "../dispatch/utils/is-parked-task-result.js";
 import { runWithAgentPrincipal } from "../identity/agent-principal-context.js";
 import { InboundIdentityService } from "../identity/inbound-identity.service.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
@@ -47,7 +53,7 @@ import {
   resolveInboundMcpRequest,
   type InboundMcpRequestContext,
 } from "./utils/parse-inbound-mcp-request.js";
-import { dispatchMcpTasksMethod } from "./utils/dispatch-mcp-tasks.js";
+import { dispatchMcpTasksMethod, readClientCapabilities, MISSING_TASKS_EXTENSION_ERROR } from "./utils/dispatch-mcp-tasks.js";
 import { TaskStoreService } from "../tasks/task-store.service.js";
 
 const GATEWAY_SERVER_INFO = {
@@ -123,11 +129,15 @@ export class GatewayMcpServer {
       const method = mcpRequest.method;
       if (method && isMcpTasksMethod(method)) {
         await runWithAgentPrincipal(principalResult.principal, async () => {
-          const dispatched = dispatchMcpTasksMethod({
+          const dispatched = await dispatchMcpTasksMethod({
             method,
             body: request.body,
             principal: principalResult.principal,
             taskStore: this.taskStore,
+            executeApprovedTask: (taskId) =>
+              this.toolDispatch.executeApprovedTask(taskId),
+            onTaskCancelled: (taskId) =>
+              this.toolDispatch.cancelPendingApprovalForTask(taskId),
           });
           if (dispatched.ok) {
             sendMcpJsonRpc(
@@ -142,6 +152,26 @@ export class GatewayMcpServer {
           );
         });
         return;
+      }
+
+      if (method === "tools/call" && mcpRequest.name) {
+        const gated = await runWithAgentPrincipal(
+          principalResult.principal,
+          async () => {
+            if (!this.toolDispatch.requiresApproval(mcpRequest.name!)) {
+              return false;
+            }
+            await this.handleGatedToolsCall(
+              request,
+              reply,
+              mcpRequest,
+            );
+            return true;
+          },
+        );
+        if (gated) {
+          return;
+        }
       }
 
       // toNodeHandler writes the full HTTP response to reply.raw.
@@ -226,16 +256,60 @@ export class GatewayMcpServer {
 
     mcpServer.server.setRequestHandler("tools/call", async (request) => {
       try {
-        return await this.toolDispatch.callTool(
+        const result = await this.toolDispatch.callTool(
           request.params.name,
           request.params.arguments,
         );
+        if (isParkedTaskResult(result)) {
+          throw ProtocolError.fromError(
+            ProtocolErrorCode.InternalError,
+            "Task-augmented tools/call must bypass the SDK codec",
+          );
+        }
+        return result;
       } catch (error) {
         throw this.toMcpError(error);
       }
     });
 
     return mcpServer;
+  }
+
+  private async handleGatedToolsCall(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    mcpRequest: InboundMcpRequestContext,
+  ): Promise<void> {
+    if (!clientDeclaresTasksExtension(readClientCapabilities(request.body))) {
+      sendMcpJsonRpc(
+        reply,
+        mcpJsonRpcError(mcpRequest.id, MISSING_TASKS_EXTENSION_ERROR),
+      );
+      return;
+    }
+
+    try {
+      const result = await this.toolDispatch.callTool(
+        mcpRequest.name!,
+        readToolCallArguments(request.body),
+      );
+      sendMcpJsonRpc(
+        reply,
+        mcpJsonRpcResult(
+          mcpRequest.id,
+          result as unknown as Record<string, unknown>,
+        ),
+      );
+    } catch (error) {
+      const mapped = this.toMcpError(error);
+      sendMcpJsonRpc(
+        reply,
+        mcpJsonRpcError(mcpRequest.id, {
+          code: mapped.code,
+          message: mapped.message,
+        }),
+      );
+    }
   }
 
   /**
@@ -294,4 +368,24 @@ export class GatewayMcpServer {
       String(error),
     );
   }
+}
+
+function readToolCallArguments(
+  body: unknown,
+): Record<string, unknown> | undefined {
+  if (!body || typeof body !== "object") {
+    return undefined;
+  }
+  const params = (body as { params?: unknown }).params;
+  if (!params || typeof params !== "object") {
+    return undefined;
+  }
+  const args = (params as { arguments?: unknown }).arguments;
+  if (args === undefined) {
+    return undefined;
+  }
+  if (args === null || typeof args !== "object" || Array.isArray(args)) {
+    return {};
+  }
+  return args as Record<string, unknown>;
 }

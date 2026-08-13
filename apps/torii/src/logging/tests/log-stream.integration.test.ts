@@ -63,6 +63,7 @@ describe("gateway log streams", () => {
       traceEmitter,
       createPolicyEnforcement(configService),
       createApprovalServices(configService).approvalGate,
+      createApprovalServices(configService).taskStore,
     );
 
     const stdoutLines: string[] = [];
