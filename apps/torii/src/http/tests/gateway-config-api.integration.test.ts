@@ -147,6 +147,7 @@ describe("Gateway /api/config endpoints", () => {
         {} as ToolCatalogService,
         {} as ToolDispatchService,
         {} as never,
+        {} as never,
         new CapturingTraceEmitter(),
         createNoopLogger(),
       ),

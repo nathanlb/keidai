@@ -4,6 +4,7 @@ export * from "./call-trace.js";
 export * from "./config.js";
 export * from "./dto/index.js";
 export * from "./logging/logger.js";
+export * from "./mcp-tasks.js";
 export * from "./logging/structured-logger.js";
 export * from "./operator-api-routes.js";
 export * from "./operator-principal.js";

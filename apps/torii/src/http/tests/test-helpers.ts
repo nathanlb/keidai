@@ -19,6 +19,7 @@ import type { TokenRepository } from "../../credentials/types/token-repository.j
 import type { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { GatewayHttpServer } from "../gateway-http-server.service.js";
 import { GatewayMcpServer } from "../../mcp/gateway-mcp-server.service.js";
+import { TaskStoreService } from "../../tasks/task-store.service.js";
 import { TraceEmitterService } from "../../trace/trace-emitter.service.js";
 import { TraceReadService } from "../../trace/trace-read.service.js";
 import { TracesApiController } from "../../trace/traces-api.controller.js";
@@ -125,6 +126,7 @@ export function createTestGatewayHttpServer(
     oauthApi?: OAuthApiController;
     approvalServices?: ApprovalServices;
     persistence?: TestGatewayPersistence;
+    taskStore?: TaskStoreService;
   } = {},
 ): GatewayHttpServer {
   const persistence = options.persistence ?? createTestGatewayPersistence();
@@ -160,6 +162,9 @@ export function createTestGatewayHttpServer(
   const mcpServer = new GatewayMcpServer(
     toolCatalog,
     toolDispatch,
+    options.taskStore ??
+      persistence.taskStore ??
+      new TaskStoreService(persistence.database!),
     createInboundIdentityService(options.identityResolver),
     traceEmitter,
     createNoopLogger(),

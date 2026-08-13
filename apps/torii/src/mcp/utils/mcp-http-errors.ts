@@ -27,17 +27,35 @@ export interface McpJsonRpcErrorBody {
   error: {
     code: number;
     message: string;
+    data?: unknown;
   };
+  id: string | number | null;
+}
+
+export interface McpJsonRpcResultBody {
+  jsonrpc: "2.0";
+  result: Record<string, unknown>;
   id: string | number | null;
 }
 
 export function mcpJsonRpcError(
   id: string | number | null,
-  error: { code: number; message: string },
+  error: { code: number; message: string; data?: unknown },
 ): McpJsonRpcErrorBody {
   return {
     jsonrpc: "2.0",
     error,
+    id,
+  };
+}
+
+export function mcpJsonRpcResult(
+  id: string | number | null,
+  result: Record<string, unknown>,
+): McpJsonRpcResultBody {
+  return {
+    jsonrpc: "2.0",
+    result,
     id,
   };
 }
@@ -77,4 +95,11 @@ export function sendMcpHttpError(
   body: McpJsonRpcErrorBody,
 ): void {
   reply.code(statusCode).send(body);
+}
+
+export function sendMcpJsonRpc(
+  reply: FastifyReply,
+  body: McpJsonRpcErrorBody | McpJsonRpcResultBody,
+): void {
+  reply.code(200).type("application/json").send(body);
 }

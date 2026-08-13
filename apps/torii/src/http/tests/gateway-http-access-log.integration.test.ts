@@ -45,6 +45,7 @@ describe("Gateway HTTP access logging", () => {
         {} as never,
         {} as never,
         {} as never,
+        {} as never,
         new CapturingTraceEmitter(),
         logger,
       ),

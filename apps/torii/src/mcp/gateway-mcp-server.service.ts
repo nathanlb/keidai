@@ -6,8 +6,8 @@ import {
   type McpHttpHandler,
 } from "@modelcontextprotocol/server";
 import { toNodeHandler, type NodeMcpRequestHandler } from "@modelcontextprotocol/node";
-import { PolicyDecision } from "@keidai/shared";
-import type { AgentPrincipal } from "@keidai/shared";
+import { PolicyDecision, isMcpTasksMethod, MCP_TASKS_EXTENSION_ID } from "@keidai/shared";
+import type { AgentPrincipal, Logger } from "@keidai/shared";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { inject, injectable } from "tsyringe";
 import { ToolCatalogService } from "../catalog/tool-catalog.service.js";
@@ -19,7 +19,6 @@ import { ToolDispatchService } from "../dispatch/tool-dispatch.service.js";
 import { runWithAgentPrincipal } from "../identity/agent-principal-context.js";
 import { InboundIdentityService } from "../identity/inbound-identity.service.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
-import type { Logger } from "@keidai/shared";
 import { IdentityResolutionError } from "../identity/types/identity-resolution-error.js";
 import {
   BackendUnavailableError,
@@ -39,12 +38,17 @@ import {
   mcpHeaderMismatchError,
   mcpIdentityDeniedError,
   mcpInternalServerError,
+  mcpJsonRpcError,
+  mcpJsonRpcResult,
   sendMcpHttpError,
+  sendMcpJsonRpc,
 } from "./utils/mcp-http-errors.js";
 import {
   resolveInboundMcpRequest,
   type InboundMcpRequestContext,
 } from "./utils/parse-inbound-mcp-request.js";
+import { dispatchMcpTasksMethod } from "./utils/dispatch-mcp-tasks.js";
+import { TaskStoreService } from "../tasks/task-store.service.js";
 
 const GATEWAY_SERVER_INFO = {
   name: "torii-gateway",
@@ -61,6 +65,8 @@ export class GatewayMcpServer {
     private readonly toolCatalog: ToolCatalogService,
     @inject(ToolDispatchService)
     private readonly toolDispatch: ToolDispatchService,
+    @inject(TaskStoreService)
+    private readonly taskStore: TaskStoreService,
     @inject(InboundIdentityService)
     private readonly inboundIdentity: InboundIdentityService,
     @inject(TraceEmitterService)
@@ -114,6 +120,30 @@ export class GatewayMcpServer {
     }
 
     try {
+      const method = mcpRequest.method;
+      if (method && isMcpTasksMethod(method)) {
+        await runWithAgentPrincipal(principalResult.principal, async () => {
+          const dispatched = dispatchMcpTasksMethod({
+            method,
+            body: request.body,
+            principal: principalResult.principal,
+            taskStore: this.taskStore,
+          });
+          if (dispatched.ok) {
+            sendMcpJsonRpc(
+              reply,
+              mcpJsonRpcResult(mcpRequest.id, dispatched.result),
+            );
+            return;
+          }
+          sendMcpJsonRpc(
+            reply,
+            mcpJsonRpcError(mcpRequest.id, dispatched.error),
+          );
+        });
+        return;
+      }
+
       // toNodeHandler writes the full HTTP response to reply.raw.
       reply.hijack();
       await runWithAgentPrincipal(principalResult.principal, async () => {
@@ -177,7 +207,12 @@ export class GatewayMcpServer {
 
   private createMcpServer(): McpServer {
     const mcpServer = new McpServer(GATEWAY_SERVER_INFO, {
-      capabilities: { tools: {} },
+      capabilities: {
+        tools: {},
+        extensions: {
+          [MCP_TASKS_EXTENSION_ID]: {},
+        },
+      },
     });
 
     mcpServer.server.setRequestHandler("tools/list", async () => {

@@ -30,8 +30,16 @@ describe("parseInboundMcpRequest", () => {
     );
   });
 
-  it("returns a null id for a non-object body", () => {
-    assert.deepEqual(parseInboundMcpRequest(undefined), { id: null });
+  it("extracts tasks/get taskId as name", () => {
+    assert.deepEqual(
+      parseInboundMcpRequest({
+        jsonrpc: "2.0",
+        id: 4,
+        method: "tasks/get",
+        params: { taskId: "abc123" },
+      }),
+      { id: 4, method: "tasks/get", name: "abc123" },
+    );
   });
 });
 
@@ -68,6 +76,23 @@ describe("resolveInboundMcpRequest", () => {
     const resolved = resolveInboundMcpRequest(
       { "mcp-method": "tools/call" },
       toolsCallBody,
+    );
+    assert.equal(resolved.ok, false);
+    if (resolved.ok) {
+      return;
+    }
+    assert.match(resolved.message, /Mcp-Name header is missing/);
+  });
+
+  it("rejects a missing Mcp-Name on tasks/get", () => {
+    const resolved = resolveInboundMcpRequest(
+      { "mcp-method": "tasks/get" },
+      {
+        jsonrpc: "2.0",
+        id: 9,
+        method: "tasks/get",
+        params: { taskId: "abc123" },
+      },
     );
     assert.equal(resolved.ok, false);
     if (resolved.ok) {
