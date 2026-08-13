@@ -36,11 +36,15 @@ import {
 import { parseNamespacedToolName } from "../trace/utils/parse-namespaced-tool-name.js";
 import { readPackageVersion } from "../http/utils/read-package-version.js";
 import {
+  mcpHeaderMismatchError,
   mcpIdentityDeniedError,
   mcpInternalServerError,
   sendMcpHttpError,
 } from "./utils/mcp-http-errors.js";
-import { parseInboundMcpRequest } from "./utils/parse-inbound-mcp-request.js";
+import {
+  resolveInboundMcpRequest,
+  type InboundMcpRequestContext,
+} from "./utils/parse-inbound-mcp-request.js";
 
 const GATEWAY_SERVER_INFO = {
   name: "torii-gateway",
@@ -65,11 +69,7 @@ export class GatewayMcpServer {
     private readonly logger: Logger,
   ) {
     this.mcpHandler = createMcpHandler(() => this.createMcpServer(), {
-      // Stateless legacy fallback keeps pre-2026-07-28 clients working without
-      // process-local sessions while Shaiden migrates in parallel (NAT-145).
-      // Modern traffic is served per-request with `_meta` envelopes via the
-      // same factory; flip to `legacy: "reject"` once clients are modern-only.
-      legacy: "stateless",
+      legacy: "reject",
       onerror: (error) => {
         this.logger.error("mcp.request_error", { error: error.message });
       },
@@ -91,7 +91,16 @@ export class GatewayMcpServer {
     request: FastifyRequest,
     reply: FastifyReply,
   ): Promise<void> {
-    const mcpRequest = parseInboundMcpRequest(request.body);
+    const inbound = resolveInboundMcpRequest(request.headers, request.body);
+    if (!inbound.ok) {
+      sendMcpHttpError(
+        reply,
+        400,
+        mcpHeaderMismatchError(inbound.context.id, inbound.message),
+      );
+      return;
+    }
+    const mcpRequest = inbound.context;
 
     const principalResult = await this.resolvePrincipal(request);
     if (!principalResult.ok) {
@@ -142,14 +151,14 @@ export class GatewayMcpServer {
   }
 
   private emitIdentityFailureTrace(
-    mcpRequest: ReturnType<typeof parseInboundMcpRequest>,
+    mcpRequest: InboundMcpRequestContext,
     error: string,
   ): void {
-    if (mcpRequest.method !== "tools/call" || !mcpRequest.toolName) {
+    if (mcpRequest.method !== "tools/call" || !mcpRequest.name) {
       return;
     }
 
-    const parsed = parseNamespacedToolName(mcpRequest.toolName);
+    const parsed = parseNamespacedToolName(mcpRequest.name);
     this.traceEmitter.emit(
       finalizeCallTrace(
         {
@@ -171,9 +180,14 @@ export class GatewayMcpServer {
       capabilities: { tools: {} },
     });
 
-    mcpServer.server.setRequestHandler("tools/list", async () => ({
-      tools: await this.toolCatalog.listToolsForAgent(),
-    }));
+    mcpServer.server.setRequestHandler("tools/list", async () => {
+      const listed = await this.toolCatalog.listToolsForAgent();
+      return {
+        tools: listed.tools,
+        ttlMs: listed.ttlMs,
+        cacheScope: listed.cacheScope,
+      };
+    });
 
     mcpServer.server.setRequestHandler("tools/call", async (request) => {
       try {

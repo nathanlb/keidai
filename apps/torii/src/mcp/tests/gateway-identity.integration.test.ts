@@ -242,6 +242,8 @@ describe("Gateway inbound identity", () => {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${invalidToken}`,
+            "mcp-method": "tools/call",
+            "mcp-name": "deepwiki.read_wiki_structure",
           },
           body: JSON.stringify({
             jsonrpc: "2.0",

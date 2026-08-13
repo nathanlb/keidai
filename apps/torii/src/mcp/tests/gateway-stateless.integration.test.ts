@@ -231,7 +231,7 @@ describe("Gateway MCP stateless protocol core", () => {
         .result;
       assert.ok(result?.tools);
       assert.deepEqual(
-        result.tools.map((tool) => tool.name).sort(),
+        result.tools.map((tool) => tool.name),
         ["github.echo", "github.search_issues"],
       );
       assert.equal(

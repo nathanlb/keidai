@@ -68,7 +68,7 @@ describe("user_oauth credentials with tools/list", () => {
     try {
       await withTestAgentPrincipal(async () => {
         await connectionManager.connectAll();
-        const tools = await catalogService.listToolsForAgent();
+        const { tools } = await catalogService.listToolsForAgent();
 
         assert.deepEqual(tools.map((tool) => tool.name), ["github.search_issues"]);
       });
@@ -103,7 +103,7 @@ describe("user_oauth credentials with tools/list", () => {
     try {
       await withTestAgentPrincipal(async () => {
         await connectionManager.connectAll();
-        const tools = await catalogService.listToolsForAgent();
+        const { tools } = await catalogService.listToolsForAgent();
 
         assert.deepEqual(tools, []);
         assert.equal(logger.logs.length, 1);

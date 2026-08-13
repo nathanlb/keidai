@@ -33,10 +33,15 @@ export async function connectAgentToGateway(
   gatewayUrl: string,
   bearerToken: string = TEST_AGENT_BEARER,
 ): Promise<{ client: Client; close: () => Promise<void> }> {
-  const client = new Client({
-    name: "integration-test-agent",
-    version: "1.0.0",
-  });
+  const client = new Client(
+    {
+      name: "integration-test-agent",
+      version: "1.0.0",
+    },
+    {
+      versionNegotiation: { mode: { pin: "2026-07-28" } },
+    },
+  );
   const transport = new StreamableHTTPClientTransport(new URL(gatewayUrl), {
     requestInit: {
       headers: {

@@ -31,6 +31,8 @@ const CLIENT_INFO = { name: "shaiden", version: "0.1.0" } as const;
 /** Declared on every Client; modern era also re-sends these via per-request `_meta`. */
 const CLIENT_CAPABILITIES = {} as const;
 
+const PROTOCOL_VERSION = "2026-07-28";
+
 const RECONNECTION_OPTIONS = {
   maxReconnectionDelay: 1000,
   initialReconnectionDelay: 100,
@@ -112,12 +114,12 @@ function mapCallToolResponse(response: {
  * Build a Torii MCP caller for one harness run.
  *
  * This is not a protocol session: each `listTools` / `callTool` opens a fresh
- * Client + Streamable HTTP transport, negotiates the era (`auto`: modern
- * `server/discover` when Torii speaks 2026-07-28, else legacy initialize), and
- * closes afterward. Token refresh still happens before every call.
+ * Client + Streamable HTTP transport, pins 2026-07-28 (`server/discover` +
+ * per-request `_meta` and routing headers), and closes afterward. Token
+ * refresh still happens before every call.
  *
  * Until NAT-147, a client that receives `approval_required` is kept open so
- * Torii can push `notifications/approval_decided` on the legacy GET stream.
+ * Torii can push `notifications/approval_decided` on the response stream.
  */
 export async function connectToriiSession(
   toriiMcpUrl: string,
@@ -152,7 +154,7 @@ export async function connectToriiSession(
   const openClient = async (): Promise<Client> => {
     const client = new Client(CLIENT_INFO, {
       capabilities: CLIENT_CAPABILITIES,
-      versionNegotiation: { mode: "auto" },
+      versionNegotiation: { mode: { pin: PROTOCOL_VERSION } },
     });
     const transport = new StreamableHTTPClientTransport(new URL(toriiMcpUrl), {
       requestInit: {
@@ -165,8 +167,6 @@ export async function connectToriiSession(
     const discover = client.getDiscoverResult();
     if (discover) {
       prior = { kind: "modern", discover };
-    } else if (client.getProtocolEra() === "legacy") {
-      prior = { kind: "legacy" };
     }
 
     return client;

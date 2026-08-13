@@ -78,7 +78,7 @@ describe("Gateway MCP tools/list", () => {
         const result = await agent.client.listTools();
 
         assert.deepEqual(
-          result.tools.map((tool) => tool.name).sort(),
+          result.tools.map((tool) => tool.name),
           ["github.get_file_contents", "github.search_issues"],
         );
       } finally {

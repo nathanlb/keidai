@@ -7,7 +7,12 @@ import { getAgentPrincipal } from "../identity/agent-principal-context.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
 import type { Logger } from "@keidai/shared";
 import { PolicyEnforcementService } from "../policy/policy-enforcement.service.js";
-import type { AgentTool, CatalogTool } from "./types/catalog-tool.js";
+import {
+  AGENT_TOOL_LIST_CACHE_SCOPE,
+  AGENT_TOOL_LIST_TTL_MS,
+  type AgentToolsListResult,
+  type CatalogTool,
+} from "./types/catalog-tool.js";
 import { namespaceTool } from "./utils/namespacing.js";
 
 @injectable()
@@ -121,19 +126,26 @@ export class ToolCatalogService {
       }),
     );
 
+    catalog.sort((left, right) =>
+      left.namespacedName.localeCompare(right.namespacedName),
+    );
     this.catalog = catalog;
     this.serverTools = serverTools;
     return catalog;
   }
 
-  /** Agent-facing tool list with namespaced `name` fields. */
-  async listToolsForAgent(): Promise<AgentTool[]> {
+  /**
+   * Agent-facing `tools/list` with namespaced `name` fields, stable order,
+   * and cache hints. `cacheScope` is `private` because the list is filtered
+   * per agent by group policy.
+   */
+  async listToolsForAgent(): Promise<AgentToolsListResult> {
     // user_oauth MCP servers often require Authorization on initialize.
     // Boot connect has no agent principal, so reconnect now that one is set.
     await this.connectionManager.ensureUserOAuthConnected();
     const catalog = await this.refresh();
     const principal = getAgentPrincipal();
-    return catalog
+    const tools = catalog
       .filter(
         (entry) =>
           this.policyEnforcement.evaluate(
@@ -143,5 +155,10 @@ export class ToolCatalogService {
           ).decision !== PolicyDecision.Denied,
       )
       .map((entry) => entry.tool);
+    return {
+      tools,
+      ttlMs: AGENT_TOOL_LIST_TTL_MS,
+      cacheScope: AGENT_TOOL_LIST_CACHE_SCOPE,
+    };
   }
 }
