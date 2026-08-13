@@ -83,6 +83,26 @@ CREATE TABLE IF NOT EXISTS approval_rejections (
 
 CREATE INDEX IF NOT EXISTS idx_approval_rejections_rejected_at
   ON approval_rejections(rejected_at);
+
+CREATE TABLE IF NOT EXISTS mcp_tasks (
+  task_id TEXT NOT NULL PRIMARY KEY,
+  agent_id TEXT NOT NULL,
+  owner_id TEXT NOT NULL,
+  request_method TEXT NOT NULL,
+  status TEXT NOT NULL,
+  status_message TEXT,
+  created_at INTEGER NOT NULL,
+  last_updated_at INTEGER NOT NULL,
+  ttl_ms INTEGER,
+  poll_interval_ms INTEGER,
+  input_requests TEXT,
+  satisfied_input_keys TEXT NOT NULL DEFAULT '[]',
+  result TEXT,
+  error TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_mcp_tasks_agent_created
+  ON mcp_tasks(agent_id, created_at DESC);
 `;
 
 function ensureOAuthClientRedirectUriColumn(db: DatabaseSync): void {

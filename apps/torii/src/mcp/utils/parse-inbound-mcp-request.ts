@@ -1,9 +1,14 @@
 import type { IncomingHttpHeaders } from "node:http";
 
+import { isMcpTasksMethod } from "@keidai/shared";
+
 const METHODS_REQUIRING_NAME = new Set([
   "tools/call",
   "resources/read",
   "prompts/get",
+  "tasks/get",
+  "tasks/update",
+  "tasks/cancel",
 ]);
 
 const BASE64_SENTINEL = /^=\?base64\?(.+)\?=$/;
@@ -140,7 +145,7 @@ function bodyNameForMethod(
     return undefined;
   }
 
-  const named = params as { name?: unknown; uri?: unknown };
+  const named = params as { name?: unknown; uri?: unknown; taskId?: unknown };
   if (method === "resources/read" && typeof named.uri === "string") {
     return named.uri;
   }
@@ -149,6 +154,9 @@ function bodyNameForMethod(
     typeof named.name === "string"
   ) {
     return named.name;
+  }
+  if (isMcpTasksMethod(method) && typeof named.taskId === "string") {
+    return named.taskId;
   }
   return undefined;
 }

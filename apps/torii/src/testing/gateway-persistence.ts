@@ -10,6 +10,7 @@ import type { PendingOAuthLinkStore } from "../credentials/types/pending-oauth-l
 import type { TokenRepository } from "../credentials/types/token-repository.js";
 import { ApprovalStoreService } from "../policy/approval-store.service.js";
 import { openGatewayDatabase } from "../storage/gateway-sqlite.js";
+import { TaskStoreService } from "../tasks/task-store.service.js";
 import { SqliteTraceRepository } from "../trace/sqlite-trace-repository.service.js";
 import type { TraceRepository } from "../trace/types/trace-repository.js";
 import { MockOAuthClientRepository } from "./mocks/mock-oauth-client-repository.js";
@@ -26,6 +27,8 @@ export interface TestGatewayPersistence {
   traceRepository: TraceRepository;
   /** Present when backend is `"sqlite"`. */
   approvalStore?: ApprovalStoreService;
+  /** Present when backend is `"sqlite"`. */
+  taskStore?: TaskStoreService;
   /** Present when backend is `"sqlite"`. */
   database?: DatabaseSync;
   /** Present when backend is `"sqlite"`. */
@@ -64,6 +67,7 @@ export function createTestGatewayPersistence(
     pendingLinkStore: new SqlitePendingLinkStore(database),
     traceRepository: new SqliteTraceRepository(database),
     approvalStore: new ApprovalStoreService(database),
+    taskStore: new TaskStoreService(database),
     close: () => {
       database.close();
     },

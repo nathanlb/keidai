@@ -178,6 +178,10 @@ describe("Gateway MCP stateless protocol core", () => {
           typeof result.capabilities === "object" &&
           "tools" in (result.capabilities as object),
       );
+      assert.deepEqual(
+        (result.capabilities as { extensions?: unknown }).extensions,
+        { "io.modelcontextprotocol/tasks": {} },
+      );
       assert.equal(result.resultType, "complete");
 
       const serverInfo = (

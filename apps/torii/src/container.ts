@@ -40,6 +40,7 @@ import { ApprovalGateService } from "./policy/approval-gate.service.js";
 import { ApprovalNotificationService } from "./policy/approval-notification.service.js";
 import { ApprovalReadService } from "./policy/approval-read.service.js";
 import { ApprovalStoreService } from "./policy/approval-store.service.js";
+import { TaskStoreService } from "./tasks/task-store.service.js";
 import { ApprovalsApiController } from "./policy/approvals-api.controller.js";
 import { StructuredLoggerService } from "./logging/structured-logger.service.js";
 import { TraceEmitterService } from "./trace/trace-emitter.service.js";
@@ -64,6 +65,7 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
   let pendingLinkStore: SqlitePendingLinkStore | undefined;
   let traceRepository: SqliteTraceRepository | undefined;
   let approvalStore: ApprovalStoreService | undefined;
+  let taskStore: TaskStoreService | undefined;
   appContainer.register(ToriiConfigService, {
     useValue: new ToriiConfigService(config),
   });
@@ -196,6 +198,12 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
     useFactory: () => {
       approvalStore ??= new ApprovalStoreService(resolveGatewayDatabase());
       return approvalStore;
+    },
+  });
+  appContainer.register(TaskStoreService, {
+    useFactory: () => {
+      taskStore ??= new TaskStoreService(resolveGatewayDatabase());
+      return taskStore;
     },
   });
   appContainer.register(
