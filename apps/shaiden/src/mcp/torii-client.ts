@@ -5,9 +5,10 @@ import {
 } from "@modelcontextprotocol/client";
 import {
   APPROVAL_DECIDED_NOTIFICATION_METHOD,
-  TORII_CALL_META_KEY,
+  MCP_CREATE_TASK_RESULT_TYPE,
+  MCP_TASKS_GET_METHOD,
+  mcpCreateTaskResultSchema,
   type ApprovalDecidedNotificationParams,
-  type ToriiCallMeta,
 } from "@keidai/shared";
 import {
   createMcpNotificationApprovalResumeSignal,
@@ -18,7 +19,17 @@ import {
   listToolsExpiresAtMs,
   readListToolsCacheHint,
 } from "./list-tools-cache.js";
-import { enrichToolCallResult } from "./parse-tool-result.js";
+import {
+  mapCallToolResponse,
+  mapTerminalMcpTaskToToolCallResult,
+} from "./parse-tool-result.js";
+import { pollUntilTerminalMcpTask } from "./poll-mcp-task.js";
+import {
+  MCP_PROTOCOL_VERSION,
+  SHAIDEN_CLIENT_CAPABILITIES,
+  SHAIDEN_CLIENT_INFO,
+  postMcpJsonRpc,
+} from "./post-mcp-jsonrpc.js";
 import { PolicyDeniedError } from "./types/policy-denied-error.js";
 import type {
   DiscoveredTool,
@@ -26,31 +37,12 @@ import type {
   ToriiSessionCredential,
 } from "./types/index.js";
 
-const CLIENT_INFO = { name: "shaiden", version: "0.1.0" } as const;
-
-/** Declared on every Client; modern era also re-sends these via per-request `_meta`. */
-const CLIENT_CAPABILITIES = {} as const;
-
-const PROTOCOL_VERSION = "2026-07-28";
-
 const RECONNECTION_OPTIONS = {
   maxReconnectionDelay: 1000,
   initialReconnectionDelay: 100,
   reconnectionDelayGrowFactor: 1.5,
   maxRetries: 0,
 } as const;
-
-function extractToriiCallMeta(meta: unknown): ToriiCallMeta | undefined {
-  if (!meta || typeof meta !== "object") {
-    return undefined;
-  }
-  const toriiMeta = (meta as Record<string, unknown>)[TORII_CALL_META_KEY];
-  if (!toriiMeta || typeof toriiMeta !== "object") {
-    return undefined;
-  }
-  const traceId = (toriiMeta as Record<string, unknown>).traceId;
-  return typeof traceId === "string" ? { traceId } : undefined;
-}
 
 function toDiscoveredTool(tool: {
   name: string;
@@ -62,23 +54,6 @@ function toDiscoveredTool(tool: {
     description: tool.description,
     inputSchema: tool.inputSchema,
   };
-}
-
-function flattenToolContent(content: unknown): string {
-  if (!Array.isArray(content)) {
-    return "";
-  }
-  return content
-    .map((part) =>
-      part &&
-      typeof part === "object" &&
-      "type" in part &&
-      part.type === "text" &&
-      "text" in part
-        ? String(part.text)
-        : JSON.stringify(part),
-    )
-    .join("\n");
 }
 
 function describeUnknownError(error: unknown): string {
@@ -93,33 +68,18 @@ function toToolCallError(error: unknown): Error {
   return error instanceof Error ? error : new Error(message);
 }
 
-function mapCallToolResponse(response: {
-  isError?: boolean;
-  content?: unknown;
-  _meta?: unknown;
-}) {
-  const result = enrichToolCallResult(
-    response.isError === true,
-    flattenToolContent(response.content),
-  );
-  const meta = extractToriiCallMeta(response._meta);
-  const withMeta = meta ? { ...result, meta } : result;
-  if (withMeta.isError && /(^|\b)policy_denied\b/i.test(withMeta.text)) {
-    return { ...withMeta, policyDenied: true };
-  }
-  return withMeta;
-}
-
 /**
  * Build a Torii MCP caller for one harness run.
  *
  * This is not a protocol session: each `listTools` / `callTool` opens a fresh
- * Client + Streamable HTTP transport, pins 2026-07-28 (`server/discover` +
- * per-request `_meta` and routing headers), and closes afterward. Token
- * refresh still happens before every call.
+ * request, pins 2026-07-28 (`server/discover` + per-request `_meta` and routing
+ * headers), and closes afterward. Token refresh still happens before every call.
  *
- * Until NAT-147, a client that receives `approval_required` is kept open so
- * Torii can push `notifications/approval_decided` on the response stream.
+ * Gated tools return `resultType: "task"`. The SDK cannot consume that on
+ * 2026-07-28, so `callTool` POSTs JSON-RPC directly, polls `tasks/get`, and
+ * surfaces only the terminal tool result. Until NAT-147, a leftover
+ * `approval_required` payload still parks a Client for
+ * `notifications/approval_decided`.
  */
 export async function connectToriiSession(
   toriiMcpUrl: string,
@@ -152,9 +112,9 @@ export async function connectToriiSession(
   };
 
   const openClient = async (): Promise<Client> => {
-    const client = new Client(CLIENT_INFO, {
-      capabilities: CLIENT_CAPABILITIES,
-      versionNegotiation: { mode: { pin: PROTOCOL_VERSION } },
+    const client = new Client(SHAIDEN_CLIENT_INFO, {
+      capabilities: SHAIDEN_CLIENT_CAPABILITIES,
+      versionNegotiation: { mode: { pin: MCP_PROTOCOL_VERSION } },
     });
     const transport = new StreamableHTTPClientTransport(new URL(toriiMcpUrl), {
       requestInit: {
@@ -225,6 +185,22 @@ export async function connectToriiSession(
     }
   };
 
+  const postJsonRpc = async (
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> => {
+    const authorization = authHeaders.Authorization;
+    if (!authorization) {
+      throw new Error("missing Authorization header for MCP request");
+    }
+    return postMcpJsonRpc({
+      mcpUrl: toriiMcpUrl,
+      authorization,
+      method,
+      params,
+    });
+  };
+
   await refreshTools();
 
   const callTool: ToriiSession["callTool"] = async (name, args) => {
@@ -232,22 +208,35 @@ export async function connectToriiSession(
     if (listToolsCacheIsStale(toolsExpiresAtMs)) {
       await refreshTools();
     }
-    // Prior approval wait finished (or never parked); drop any leftover stream.
     await releaseParkedClient();
 
-    const client = await openClient();
-    attachApprovalHandler(client);
     try {
-      const response = await client.callTool({ name, arguments: args });
+      const response = await postJsonRpc("tools/call", {
+        name,
+        arguments: args,
+      });
+
+      if (response.resultType === MCP_CREATE_TASK_RESULT_TYPE) {
+        const created = mcpCreateTaskResultSchema.parse(response);
+        const terminal = await pollUntilTerminalMcpTask({
+          initialPollIntervalMs: created.pollIntervalMs,
+          getTask: async () => {
+            await applyToken();
+            return postJsonRpc(MCP_TASKS_GET_METHOD, { taskId: created.taskId });
+          },
+        });
+        return mapTerminalMcpTaskToToolCallResult(terminal);
+      }
+
       const result = mapCallToolResponse(response);
       if (result.approvalRequired) {
+        const client = await openClient();
+        attachApprovalHandler(client);
         parkedClient = client;
         return result;
       }
-      await closeClientQuietly(client);
       return result;
     } catch (error) {
-      await closeClientQuietly(client);
       throw toToolCallError(error);
     }
   };

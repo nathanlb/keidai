@@ -6,6 +6,7 @@ import {
   type Logger,
 } from "@keidai/shared";
 import { PolicyDeniedError } from "../mcp/types/policy-denied-error.js";
+import { TaskCancelledError } from "../mcp/types/task-cancelled-error.js";
 import type { RunReporter } from "./run-reporter.js";
 import {
   describeError,
@@ -99,6 +100,9 @@ export function createHarnessToolDispatcher({
     try {
       result = await callTool(call.toolName, args);
     } catch (error) {
+      if (error instanceof TaskCancelledError) {
+        throw error;
+      }
       const errorMessage = describeError(error);
       const policyDenied = error instanceof PolicyDeniedError;
       logger?.info("run.tool_result", {

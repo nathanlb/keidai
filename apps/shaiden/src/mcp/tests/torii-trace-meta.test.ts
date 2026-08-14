@@ -1,13 +1,16 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { TORII_CALL_META_KEY } from "@keidai/shared";
-import { enrichToolCallResult } from "../parse-tool-result.js";
+import { mapCallToolResponse } from "../parse-tool-result.js";
 import type { ToolCallResult } from "../types/index.js";
 
 describe("Torii call metadata", () => {
   it("nests ToriiCallMeta on ToolCallResult without mixing into functional fields", () => {
     const result: ToolCallResult = {
-      ...enrichToolCallResult(false, "ok"),
+      ...mapCallToolResponse({
+        isError: false,
+        content: [{ type: "text", text: "ok" }],
+      }),
       meta: { traceId: "trace-123" },
     };
 
