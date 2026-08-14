@@ -129,13 +129,16 @@ export function createTestGatewayHttpServer(
     taskStore?: TaskStoreService;
   } = {},
 ): GatewayHttpServer {
-  const persistence = options.persistence ?? createTestGatewayPersistence();
   const configService =
     options.configService ??
     new ToriiConfigService({
       oauth_providers: {},
       servers: [],
     });
+  const approvalServices =
+    options.approvalServices ??
+    createApprovalServices(configService, options.persistence);
+  const persistence = options.persistence ?? approvalServices.persistence;
   const configRead = new ConfigReadService(configService);
   const connectionManager =
     options.connectionManager ??
@@ -157,14 +160,10 @@ export function createTestGatewayHttpServer(
   const traceEmitter =
     options.traceEmitter ?? new TraceEmitterService(traceRepository);
   const traceRead = new TraceReadService(traceRepository, traceEmitter);
-  const approvalServices =
-    options.approvalServices ?? createApprovalServices(configService);
   const mcpServer = new GatewayMcpServer(
     toolCatalog,
     toolDispatch,
-    options.taskStore ??
-      persistence.taskStore ??
-      new TaskStoreService(persistence.database!),
+    options.taskStore ?? approvalServices.taskStore,
     createInboundIdentityService(options.identityResolver),
     traceEmitter,
     createNoopLogger(),

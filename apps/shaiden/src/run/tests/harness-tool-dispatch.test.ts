@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { PolicyDeniedError } from "../../mcp/types/policy-denied-error.js";
+import { TaskCancelledError } from "../../mcp/types/task-cancelled-error.js";
 import { createTestPersistence, createTestRun } from "../../testing/persistence.js";
 import type { RunStore } from "../../runs/run-store.js";
 import { createHarnessToolDispatcher } from "../harness-tool-dispatch.js";
@@ -211,5 +212,22 @@ describe("harness tool dispatch", () => {
     if (resultStep?.kind === "tool_result") {
       assert.equal(resultStep.status, "error");
     }
+  });
+
+  it("rethrows TaskCancelledError so the run can fail closed", async () => {
+    const { reporter } = createHarnessReporter();
+    const dispatch = createHarnessToolDispatcher({
+      runId: "run-1",
+      reporter,
+      availableToolNames: new Set(["gmail.create_draft"]),
+      callTool: async () => {
+        throw new TaskCancelledError();
+      },
+    });
+
+    await assert.rejects(
+      () => dispatch(toolCall("gmail.create_draft", "call-1")),
+      TaskCancelledError,
+    );
   });
 });

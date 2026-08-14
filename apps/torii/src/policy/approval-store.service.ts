@@ -6,6 +6,7 @@ import type {
   ApprovalRecordView,
 } from "@keidai/shared";
 import { injectable } from "tsyringe";
+import { runGatewayTransaction } from "../storage/run-gateway-transaction.js";
 import {
   DEFAULT_APPROVAL_LIST_LIMIT,
   MAX_APPROVAL_LIST_LIMIT,
@@ -25,7 +26,7 @@ export interface ApprovalRecord {
   runId?: string;
   /** Opaque correlation ref — Torii stores and echoes only. */
   stepId?: string;
-  mcpSessionId?: string;
+  taskId?: string;
   status: ApprovalRecordStatus;
   rejectionReason?: string;
   createdAt: number;
@@ -51,7 +52,7 @@ interface ApprovalRow {
   params_hash: string;
   run_id: string | null;
   step_id: string | null;
-  mcp_session_id: string | null;
+  task_id: string | null;
   status: ApprovalRecordStatus;
   rejection_reason: string | null;
   created_at: number;
@@ -72,6 +73,7 @@ interface RejectionRow {
 export class ApprovalStoreService {
   private readonly insertApprovalStatement;
   private readonly getApprovalStatement;
+  private readonly getApprovalByTaskIdStatement;
   private readonly listApprovalsStatement;
   private readonly listApprovalsByStatusStatement;
   private readonly decidePendingStatement;
@@ -91,7 +93,7 @@ export class ApprovalStoreService {
         params_hash,
         run_id,
         step_id,
-        mcp_session_id,
+        task_id,
         status,
         rejection_reason,
         created_at,
@@ -111,7 +113,7 @@ export class ApprovalStoreService {
         params_hash,
         run_id,
         step_id,
-        mcp_session_id,
+        task_id,
         status,
         rejection_reason,
         created_at,
@@ -120,6 +122,26 @@ export class ApprovalStoreService {
         used_at
       FROM approvals
       WHERE id = ?
+    `);
+    this.getApprovalByTaskIdStatement = db.prepare(`
+      SELECT
+        id,
+        agent_id,
+        owner_id,
+        tool_name,
+        params,
+        params_hash,
+        run_id,
+        step_id,
+        task_id,
+        status,
+        rejection_reason,
+        created_at,
+        expires_at,
+        decided_at,
+        used_at
+      FROM approvals
+      WHERE task_id = ?
     `);
     this.listApprovalsStatement = db.prepare(`
       SELECT
@@ -131,7 +153,7 @@ export class ApprovalStoreService {
         params_hash,
         run_id,
         step_id,
-        mcp_session_id,
+        task_id,
         status,
         rejection_reason,
         created_at,
@@ -152,7 +174,7 @@ export class ApprovalStoreService {
         params_hash,
         run_id,
         step_id,
-        mcp_session_id,
+        task_id,
         status,
         rejection_reason,
         created_at,
@@ -219,7 +241,7 @@ export class ApprovalStoreService {
     paramsHash: string;
     runId?: string;
     stepId?: string;
-    mcpSessionId?: string;
+    taskId?: string;
     now?: number;
     ttlMs?: number;
   }): ApprovalRecord {
@@ -233,7 +255,7 @@ export class ApprovalStoreService {
       paramsHash: input.paramsHash,
       runId: input.runId,
       stepId: input.stepId,
-      mcpSessionId: input.mcpSessionId,
+      taskId: input.taskId,
       status: "pending",
       createdAt: now,
       expiresAt: now + (input.ttlMs ?? DEFAULT_APPROVAL_TTL_MS),
@@ -248,7 +270,7 @@ export class ApprovalStoreService {
       record.paramsHash,
       record.runId ?? null,
       record.stepId ?? null,
-      record.mcpSessionId ?? null,
+      record.taskId ?? null,
       record.status,
       null,
       record.createdAt,
@@ -262,6 +284,17 @@ export class ApprovalStoreService {
   getApproval(id: string): ApprovalRecord | undefined {
     const row = this.getApprovalStatement.get(id) as ApprovalRow | undefined;
     return row ? rowToApproval(row) : undefined;
+  }
+
+  getApprovalByTaskId(taskId: string): ApprovalRecord | undefined {
+    const row = this.getApprovalByTaskIdStatement.get(taskId) as
+      | ApprovalRow
+      | undefined;
+    return row ? rowToApproval(row) : undefined;
+  }
+
+  runInTransaction<T>(fn: () => T): T {
+    return runGatewayTransaction(this.db, fn);
   }
 
   listApprovals(
@@ -386,9 +419,7 @@ function rowToApproval(row: ApprovalRow): ApprovalRecord {
     paramsHash: row.params_hash,
     ...(row.run_id !== null ? { runId: row.run_id } : {}),
     ...(row.step_id !== null ? { stepId: row.step_id } : {}),
-    ...(row.mcp_session_id !== null
-      ? { mcpSessionId: row.mcp_session_id }
-      : {}),
+    ...(row.task_id !== null ? { taskId: row.task_id } : {}),
     status: row.status,
     ...(row.rejection_reason !== null
       ? { rejectionReason: row.rejection_reason }

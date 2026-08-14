@@ -10,6 +10,32 @@ import { ApprovalStoreService } from "../approval-store.service.js";
 import { hashToolParams } from "../utils/approval-tool-args.js";
 
 describe("ApprovalStoreService sqlite persistence", () => {
+  it("binds a pending approval to a task id across store instances", () => {
+    const persistence = createTestGatewayPersistence("sqlite");
+    assert.ok(persistence.databasePath);
+    assert.ok(persistence.approvalStore);
+
+    const params = { subject: "Hello" };
+    const pending = persistence.approvalStore.createPendingApproval({
+      principal: TEST_AGENT_PRINCIPAL,
+      toolName: "gmail.create_draft",
+      params,
+      paramsHash: hashToolParams(params),
+      taskId: "task-from-gate",
+    });
+    persistence.close();
+
+    const reopenedDb = openGatewayDatabase(persistence.databasePath);
+    const reopened = new ApprovalStoreService(reopenedDb);
+    try {
+      const byTask = reopened.getApprovalByTaskId("task-from-gate");
+      assert.equal(byTask?.id, pending.id);
+      assert.equal(byTask?.taskId, "task-from-gate");
+    } finally {
+      reopenedDb.close();
+    }
+  });
+
   it("survives process restart so a pending approval can still be approved", () => {
     const persistence = createTestGatewayPersistence("sqlite");
     assert.ok(persistence.databasePath);

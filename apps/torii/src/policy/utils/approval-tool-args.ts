@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
 import {
-  TORII_APPROVAL_ID_ARG,
   TORII_RUN_ID_ARG,
   TORII_STEP_ID_ARG,
   type AgentPrincipal,
@@ -8,7 +7,6 @@ import {
 
 export interface ParsedToolArguments {
   upstreamArgs: Record<string, unknown>;
-  approvalId?: string;
   /** Opaque correlation ref — stored/echoed only. */
   runId?: string;
   /** Opaque correlation ref — stored/echoed only. */
@@ -23,10 +21,6 @@ export function parseToolArguments(
   }
 
   const upstreamArgs = { ...args };
-  const approvalId =
-    typeof upstreamArgs[TORII_APPROVAL_ID_ARG] === "string"
-      ? upstreamArgs[TORII_APPROVAL_ID_ARG]
-      : undefined;
   const runId =
     typeof upstreamArgs[TORII_RUN_ID_ARG] === "string"
       ? upstreamArgs[TORII_RUN_ID_ARG]
@@ -36,11 +30,10 @@ export function parseToolArguments(
       ? upstreamArgs[TORII_STEP_ID_ARG]
       : undefined;
 
-  delete upstreamArgs[TORII_APPROVAL_ID_ARG];
   delete upstreamArgs[TORII_RUN_ID_ARG];
   delete upstreamArgs[TORII_STEP_ID_ARG];
 
-  return { upstreamArgs, approvalId, runId, stepId };
+  return { upstreamArgs, runId, stepId };
 }
 
 export function hashToolParams(params: Record<string, unknown>): string {

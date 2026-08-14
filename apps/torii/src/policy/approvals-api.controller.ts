@@ -1,13 +1,18 @@
 import type { ApprovalRecordStatus } from "@keidai/shared";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { inject, injectable } from "tsyringe";
-import { ApprovalNotificationService } from "./approval-notification.service.js";
+import { TaskStoreService } from "../tasks/task-store.service.js";
+import { McpTaskLookupError } from "../tasks/types/mcp-task.js";
 import { ApprovalReadService } from "./approval-read.service.js";
 import { ApprovalStoreService } from "./approval-store.service.js";
 import {
   DEFAULT_APPROVAL_LIST_LIMIT,
   MAX_APPROVAL_LIST_LIMIT,
 } from "./types/approval-list.js";
+import {
+  callToolResultToRecord,
+  toApprovalDeniedToolResult,
+} from "./utils/approval-tool-results.js";
 
 function parseStatus(
   request: FastifyRequest,
@@ -40,8 +45,8 @@ export class ApprovalsApiController {
     private readonly approvalRead: ApprovalReadService,
     @inject(ApprovalStoreService)
     private readonly approvalStore: ApprovalStoreService,
-    @inject(ApprovalNotificationService)
-    private readonly approvalNotifications: ApprovalNotificationService,
+    @inject(TaskStoreService)
+    private readonly taskStore: TaskStoreService,
   ) {}
 
   registerRoutes(app: FastifyInstance): void {
@@ -71,7 +76,6 @@ export class ApprovalsApiController {
         reply.code(404).send({ error: "approval not found or not pending" });
         return;
       }
-      this.approvalNotifications.notifyDecision(approval);
       reply.send(this.approvalRead.getApproval(id));
     });
 
@@ -86,7 +90,14 @@ export class ApprovalsApiController {
         reply.code(404).send({ error: "approval not found or not pending" });
         return;
       }
-      this.approvalNotifications.notifyDecision(approval);
+      if (approval.taskId) {
+        this.taskStore.complete(
+          approval.taskId,
+          callToolResultToRecord(
+            toApprovalDeniedToolResult(approval.rejectionReason),
+          ),
+        );
+      }
       reply.send(this.approvalRead.getApproval(id));
     });
 
@@ -97,7 +108,15 @@ export class ApprovalsApiController {
         reply.code(404).send({ error: "approval not found or not pending" });
         return;
       }
-      this.approvalNotifications.notifyDecision(approval);
+      if (approval.taskId) {
+        try {
+          this.taskStore.requestCancel(approval.agentId, approval.taskId);
+        } catch (error) {
+          if (!(error instanceof McpTaskLookupError)) {
+            throw error;
+          }
+        }
+      }
       reply.send(this.approvalRead.getApproval(id));
     });
   }

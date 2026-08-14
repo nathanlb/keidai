@@ -148,6 +148,7 @@ describe("Gateway inbound identity", () => {
       traceEmitter,
       createPolicyEnforcement(configService),
       createApprovalServices(configService).approvalGate,
+      createApprovalServices(configService).taskStore,
     );
     const gatewayHttpServer = createTestGatewayHttpServer(
       toolCatalog,
@@ -221,6 +222,7 @@ describe("Gateway inbound identity", () => {
       traceEmitter,
       createPolicyEnforcement(configService),
       createApprovalServices(configService).approvalGate,
+      createApprovalServices(configService).taskStore,
     );
     const gatewayHttpServer = createTestGatewayHttpServer(
       toolCatalog,

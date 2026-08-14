@@ -1,9 +1,13 @@
 import {
   APPROVAL_DENIED_STATUS,
   APPROVAL_REQUIRED_STATUS,
+  TORII_CALL_META_KEY,
   type ApprovalDeniedPayload,
   type ApprovalRequiredPayload,
+  type McpGetTaskResult,
+  type ToriiCallMeta,
 } from "@keidai/shared";
+import { TaskCancelledError } from "./types/task-cancelled-error.js";
 import type { ToolCallResult } from "./types/index.js";
 
 function tryParseJson(text: string): unknown {
@@ -70,4 +74,69 @@ export function formatApprovalDeniedForModel(
   }
 
   return "Human review denied this tool call. This denial is authoritative — do not retry this call or attempt the same action through a different tool.";
+}
+
+function flattenToolContent(content: unknown): string {
+  if (!Array.isArray(content)) {
+    return "";
+  }
+  return content
+    .map((part) =>
+      part &&
+      typeof part === "object" &&
+      "type" in part &&
+      part.type === "text" &&
+      "text" in part
+        ? String(part.text)
+        : JSON.stringify(part),
+    )
+    .join("\n");
+}
+
+function extractToriiCallMeta(meta: unknown): ToriiCallMeta | undefined {
+  if (!meta || typeof meta !== "object") {
+    return undefined;
+  }
+  const toriiMeta = (meta as Record<string, unknown>)[TORII_CALL_META_KEY];
+  if (!toriiMeta || typeof toriiMeta !== "object") {
+    return undefined;
+  }
+  const traceId = (toriiMeta as Record<string, unknown>).traceId;
+  return typeof traceId === "string" ? { traceId } : undefined;
+}
+
+export function mapCallToolResponse(response: {
+  isError?: boolean;
+  content?: unknown;
+  _meta?: unknown;
+}): ToolCallResult {
+  const result = enrichToolCallResult(
+    response.isError === true,
+    flattenToolContent(response.content),
+  );
+  const meta = extractToriiCallMeta(response._meta);
+  const withMeta = meta ? { ...result, meta } : result;
+  if (withMeta.isError && /(^|\b)policy_denied\b/i.test(withMeta.text)) {
+    return { ...withMeta, policyDenied: true };
+  }
+  return withMeta;
+}
+
+export function mapTerminalMcpTaskToToolCallResult(
+  task: McpGetTaskResult,
+): ToolCallResult {
+  if (task.status === "cancelled") {
+    throw new TaskCancelledError();
+  }
+  if (task.status === "failed") {
+    const message =
+      typeof task.error.message === "string" && task.error.message.length > 0
+        ? task.error.message
+        : "MCP task failed";
+    return { isError: true, text: message };
+  }
+  if (task.status !== "completed") {
+    throw new Error(`MCP task is not terminal: ${task.status}`);
+  }
+  return mapCallToolResponse(task.result);
 }

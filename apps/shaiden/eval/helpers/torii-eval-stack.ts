@@ -159,6 +159,7 @@ export async function startEvalToriiStack(
     traceEmitter,
     policyEnforcement,
     approvalServices.approvalGate,
+    approvalServices.taskStore,
   );
   const gatewayHttpServer = createTestGatewayHttpServer(
     toolCatalog,
@@ -169,6 +170,7 @@ export async function startEvalToriiStack(
       configService,
       connectionManager,
       approvalServices,
+      persistence: approvalServices.persistence,
     },
   );
 
@@ -185,10 +187,12 @@ export async function startEvalToriiStack(
     close: async () => {
       await gateway.close();
       await closeManagerConnections(connectionManager);
-      await Promise.all([
-        linearBackend.close(),
-        gmailBackend?.close(),
-      ].filter((close): close is Promise<void> => close !== undefined));
+      await Promise.all(
+        [linearBackend.close(), gmailBackend?.close()].filter(
+          (close): close is Promise<void> => close !== undefined,
+        ),
+      );
+      approvalServices.close();
     },
   };
 }

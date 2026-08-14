@@ -5,7 +5,7 @@ import type { ToriiConfig } from "@keidai/shared";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
 import { TEST_AGENT_PRINCIPAL } from "../../identity/tests/test-helpers.js";
 import { createTestGatewayPersistence } from "../../testing/gateway-persistence.js";
-import { ApprovalGateService, ApprovalReplayError } from "../approval-gate.service.js";
+import { ApprovalGateService } from "../approval-gate.service.js";
 import { ApprovalReadService } from "../approval-read.service.js";
 import {
   hashToolParams,
@@ -20,9 +20,10 @@ function createGate(gatedTools: NonNullable<ToriiConfig["gated_tools"]>) {
   });
   const persistence = createTestGatewayPersistence("sqlite");
   const store = persistence.approvalStore!;
-  const gate = new ApprovalGateService(configService, store);
+  const taskStore = persistence.taskStore!;
+  const gate = new ApprovalGateService(configService, store, taskStore);
   const read = new ApprovalReadService(store);
-  return { gate, store, read, close: persistence.close };
+  return { gate, store, taskStore, read, close: persistence.close };
 }
 
 const gatedTools = {
@@ -46,22 +47,36 @@ describe("approval ledger", () => {
     }
   });
 
-  it("returns approval_required for gated calls", () => {
-    const { gate, close } = createGate(gatedTools);
+  it("parks a gated call as a working task and a pending approval", () => {
+    const { gate, store, taskStore, close } = createGate(gatedTools);
     try {
-      const result = gate.interceptGatedCall({
+      const outcome = gate.interceptGatedCall({
         principal: TEST_AGENT_PRINCIPAL,
         toolName: "gmail.create_draft",
         upstreamArgs: { subject: "Hello" },
       });
 
-      assert.equal(result.isError, false);
-      const textPart = result.content?.find((part) => part.type === "text");
-      const payload = JSON.parse(
-        textPart && "text" in textPart ? textPart.text : "{}",
+      assert.equal(outcome.kind, "parked");
+      if (outcome.kind !== "parked") {
+        return;
+      }
+      assert.equal(outcome.task.resultType, "task");
+      assert.equal(outcome.task.status, "working");
+      assert.match(outcome.task.statusMessage ?? "", /Awaiting operator approval/);
+      assert.equal(typeof outcome.task.ttlMs, "number");
+      assert.equal(typeof outcome.task.pollIntervalMs, "number");
+
+      const approval = store.getApprovalByTaskId(outcome.task.taskId);
+      assert.equal(approval?.status, "pending");
+      assert.equal(approval?.toolName, "gmail.create_draft");
+      assert.deepEqual(approval?.params, { subject: "Hello" });
+      assert.equal(
+        taskStore.getDetailedTask(
+          TEST_AGENT_PRINCIPAL.agentId,
+          outcome.task.taskId,
+        ).status,
+        "working",
       );
-      assert.equal(payload.status, "approval_required");
-      assert.equal(typeof payload.approval_id, "string");
     } finally {
       close();
     }
@@ -79,13 +94,17 @@ describe("approval ledger", () => {
       });
       store.reject(approval.id, "not now");
 
-      const result = gate.interceptGatedCall({
+      const outcome = gate.interceptGatedCall({
         principal: TEST_AGENT_PRINCIPAL,
         toolName: "gmail.create_draft",
         upstreamArgs: params,
       });
 
-      const textPart = result.content?.find((part) => part.type === "text");
+      assert.equal(outcome.kind, "denied");
+      if (outcome.kind !== "denied") {
+        return;
+      }
+      const textPart = outcome.result.content?.find((part) => part.type === "text");
       const payload = JSON.parse(
         textPart && "text" in textPart ? textPart.text : "{}",
       );
@@ -97,12 +116,12 @@ describe("approval ledger", () => {
   });
 
   it("round-trips opaque runId and stepId unmodified and uninterpreted", () => {
-    const { gate, read, close } = createGate(gatedTools);
+    const { gate, read, store, close } = createGate(gatedTools);
     try {
       const runId = "opaque-run-ref-≠-uuid";
       const stepId = "opaque-step/ref with spaces";
 
-      const result = gate.interceptGatedCall({
+      const outcome = gate.interceptGatedCall({
         principal: TEST_AGENT_PRINCIPAL,
         toolName: "gmail.create_draft",
         upstreamArgs: { subject: "Hello" },
@@ -110,11 +129,13 @@ describe("approval ledger", () => {
         stepId,
       });
 
-      const textPart = result.content?.find((part) => part.type === "text");
-      const payload = JSON.parse(
-        textPart && "text" in textPart ? textPart.text : "{}",
-      );
-      const view = read.getApproval(payload.approval_id);
+      assert.equal(outcome.kind, "parked");
+      if (outcome.kind !== "parked") {
+        return;
+      }
+      const approval = store.getApprovalByTaskId(outcome.task.taskId);
+      assert.ok(approval);
+      const view = read.getApproval(approval.id);
       assert.equal(view?.runId, runId);
       assert.equal(view?.stepId, stepId);
     } finally {
@@ -125,13 +146,11 @@ describe("approval ledger", () => {
   it("strips correlation meta-args before hashing upstream params", () => {
     const parsed = parseToolArguments({
       subject: "Hello",
-      approval_id: "should-strip",
       _torii_run_id: "run-1",
       _torii_step_id: "step-1",
     });
 
     assert.deepEqual(parsed.upstreamArgs, { subject: "Hello" });
-    assert.equal(parsed.approvalId, "should-strip");
     assert.equal(parsed.runId, "run-1");
     assert.equal(parsed.stepId, "step-1");
     assert.equal(
@@ -161,62 +180,39 @@ describe("approval ledger", () => {
         upstreamArgs: params,
       });
 
-      const textPart = repeat.content?.find((part) => part.type === "text");
-      const payload = JSON.parse(
-        textPart && "text" in textPart ? textPart.text : "{}",
-      );
-      assert.equal(payload.status, "approval_required");
+      assert.equal(repeat.kind, "parked");
     } finally {
       close();
     }
   });
 
-  it("validates params hash and single-use consumption on replay", () => {
+  it("claims an approved task for execution exactly once", () => {
     const { gate, store, close } = createGate(gatedTools);
     try {
-      const params = { subject: "Hello" };
-
-      const pending = store.createPendingApproval({
+      const parked = gate.interceptGatedCall({
         principal: TEST_AGENT_PRINCIPAL,
         toolName: "gmail.create_draft",
-        params,
-        paramsHash: hashToolParams(params),
+        upstreamArgs: { subject: "Hello" },
       });
-      store.approve(pending.id);
+      assert.equal(parked.kind, "parked");
+      if (parked.kind !== "parked") {
+        return;
+      }
 
-      assert.throws(
-        () =>
-          gate.validateReplay({
-            approvalId: pending.id,
-            principal: TEST_AGENT_PRINCIPAL,
-            toolName: "gmail.create_draft",
-            upstreamArgs: { subject: "Different" },
-          }),
-        (error: unknown) =>
-          error instanceof ApprovalReplayError &&
-          error.message === "approval params mismatch",
+      const approval = store.getApprovalByTaskId(parked.task.taskId);
+      assert.ok(approval);
+      store.approve(approval.id);
+
+      const first = gate.claimApprovedExecution(
+        parked.task.taskId,
+        TEST_AGENT_PRINCIPAL,
       );
-
-      gate.validateReplay({
-        approvalId: pending.id,
-        principal: TEST_AGENT_PRINCIPAL,
-        toolName: "gmail.create_draft",
-        upstreamArgs: params,
-      });
-      gate.markReplayUsed(pending.id);
-
-      assert.throws(
-        () =>
-          gate.validateReplay({
-            approvalId: pending.id,
-            principal: TEST_AGENT_PRINCIPAL,
-            toolName: "gmail.create_draft",
-            upstreamArgs: params,
-          }),
-        (error: unknown) =>
-          error instanceof ApprovalReplayError &&
-          error.message === "approval already used",
+      const second = gate.claimApprovedExecution(
+        parked.task.taskId,
+        TEST_AGENT_PRINCIPAL,
       );
+      assert.ok(first);
+      assert.equal(second, undefined);
     } finally {
       close();
     }

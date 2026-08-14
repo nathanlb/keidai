@@ -66,6 +66,7 @@ describe("Gateway MCP tools/list", () => {
       new CapturingTraceEmitter(),
       createPolicyEnforcement(configService),
       createApprovalServices(configService).approvalGate,
+      createApprovalServices(configService).taskStore,
     );
     const gatewayHttpServer = createTestGatewayHttpServer(toolCatalog, toolDispatch);
 

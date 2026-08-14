@@ -61,6 +61,7 @@ function createGateway(): GatewayHttpServer {
     new CapturingTraceEmitter(),
       createPolicyEnforcement(configService),
       createApprovalServices(configService).approvalGate,
+      createApprovalServices(configService).taskStore,
     );
 
   return createTestGatewayHttpServer(toolCatalog, toolDispatch, {

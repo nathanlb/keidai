@@ -101,6 +101,7 @@ async function withGateway(
     new CapturingTraceEmitter(),
     createPolicyEnforcement(configService),
     createApprovalServices(configService).approvalGate,
+    createApprovalServices(configService).taskStore,
   );
   const gatewayHttpServer = createTestGatewayHttpServer(
     toolCatalog,

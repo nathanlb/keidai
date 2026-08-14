@@ -25,8 +25,9 @@ export interface ToriiSessionCredential {
 
 /**
  * Per-run Torii MCP caller: Torii URL + JWT provider, not a held protocol session.
- * Each list/call is a self-contained request (with a temporary held stream only
- * while waiting on `notifications/approval_decided` until NAT-147).
+ * Each list/call is a self-contained request. Gated tools poll `tasks/get`
+ * until terminal; a leftover `approval_required` payload still holds a stream
+ * for `notifications/approval_decided` until NAT-147.
  */
 export interface ToriiSession {
   tools: DiscoveredTool[];

@@ -122,6 +122,7 @@ describe("Gateway MCP tools/call", () => {
       new CapturingTraceEmitter(),
       createPolicyEnforcement(configService),
       createApprovalServices(configService).approvalGate,
+      createApprovalServices(configService).taskStore,
     );
     const gatewayHttpServer = createTestGatewayHttpServer(toolCatalog, toolDispatch);
 
@@ -195,6 +196,7 @@ describe("Gateway MCP tools/call", () => {
       new CapturingTraceEmitter(),
       createPolicyEnforcement(configService),
       createApprovalServices(configService).approvalGate,
+      createApprovalServices(configService).taskStore,
     );
     const gatewayHttpServer = createTestGatewayHttpServer(toolCatalog, toolDispatch);
 
@@ -261,6 +263,7 @@ describe("Gateway MCP tools/call", () => {
       new CapturingTraceEmitter(),
       createPolicyEnforcement(configService),
       createApprovalServices(configService).approvalGate,
+      createApprovalServices(configService).taskStore,
     );
     const gatewayHttpServer = createTestGatewayHttpServer(toolCatalog, toolDispatch);
 
