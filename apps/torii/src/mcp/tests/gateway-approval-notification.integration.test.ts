@@ -112,6 +112,7 @@ async function withGatedGateway(
     backendCallCount: () => number;
   }) => Promise<void>,
   persistence?: TestGatewayPersistence,
+  options: { passPersistenceToHttp?: boolean } = {},
 ): Promise<void> {
   const ownedPersistence = persistence === undefined;
   const gatewayPersistence =
@@ -176,7 +177,9 @@ async function withGatedGateway(
     {
       approvalServices,
       configService,
-      persistence: gatewayPersistence,
+      ...(options.passPersistenceToHttp === false
+        ? {}
+        : { persistence: gatewayPersistence }),
     },
   );
 
@@ -260,6 +263,29 @@ describe("Gateway MCP approval gate (tasks)", () => {
       assert.equal(serialized.includes("approval_id"), false);
       assert.equal(serialized.includes("approval_required"), false);
     });
+  });
+
+  it("finds the parked task on tasks/get when the HTTP server is given only approvalServices (eval wiring)", async () => {
+    await withGatedGateway(
+      async ({ gateway }) => {
+        const created = jsonResult(
+          (await callGatedTool(gateway.mcpUrl, "Hello", "call-eval-wire")).json,
+        );
+        const taskId = String(created.taskId);
+        const { json } = await getTask(gateway.mcpUrl, taskId, "get-eval-wire");
+        const error = (json as { error?: { message?: string } }).error;
+        assert.equal(
+          error,
+          undefined,
+          error?.message ?? "expected tasks/get result",
+        );
+        const result = jsonResult(json);
+        assert.equal(result.taskId, taskId);
+        assert.equal(result.status, "working");
+      },
+      undefined,
+      { passPersistenceToHttp: false },
+    );
   });
 
   it("rejects a gated tools/call when the client has not declared the tasks extension", async () => {
