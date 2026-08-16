@@ -24,6 +24,10 @@
     "./clients": {
       "types": "./dist/clients/index.d.ts",
       "import": "./dist/clients/index.js"
+    },
+    "./mcp-jsonrpc": {
+      "types": "./dist/mcp-jsonrpc.d.ts",
+      "import": "./dist/mcp-jsonrpc.js"
     }
   },
   "main": "./dist/index.js",
@@ -34,6 +38,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@modelcontextprotocol/client": "^2.0.0",
     "dotenv": "^16.6.1",
     "zod": "^3.25.76"
   },

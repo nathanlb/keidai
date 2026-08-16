@@ -35,6 +35,10 @@ export interface StoredMcpTask {
   satisfiedInputKeys: string[];
   result?: Record<string, unknown>;
   error?: Record<string, unknown>;
+  /** Backend that minted the origin task, when this row is a reminted handle. */
+  backendServer?: string;
+  /** Backend task id. Torii never echoes this as the agent-facing taskId. */
+  backendTaskId?: string;
 }
 
 export interface CreateMcpTaskInput {

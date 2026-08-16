@@ -20,5 +20,6 @@ describe("withToriiTraceMeta", () => {
     assert.deepEqual(wrapped._meta?.[TORII_CALL_META_KEY], {
       traceId: "trace-abc",
     });
+    assert.equal(wrapped.resultType, "complete");
   });
 });

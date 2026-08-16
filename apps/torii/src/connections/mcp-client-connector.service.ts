@@ -5,6 +5,10 @@ import { inject, injectable } from "tsyringe";
 import { CredentialResolverService } from "../credentials/credential-resolver.service.js";
 import { CredentialResolutionError, LinkingRequiredError } from "../credentials/types/credential-resolution.js";
 import { ensureOutboundMcpRoutingHeaders } from "./utils/outbound-mcp-headers.js";
+import {
+  TORII_OUTBOUND_CLIENT_CAPABILITIES,
+  TORII_OUTBOUND_CLIENT_INFO,
+} from "./utils/post-backend-mcp.js";
 import type {
   McpClient,
   McpClientConnector,
@@ -56,9 +60,8 @@ export class DefaultMcpClientConnector implements McpClientConnector {
       );
     }
 
-    const client = new Client({
-      name: "torii-gateway",
-      version: "0.0.0",
+    const client = new Client(TORII_OUTBOUND_CLIENT_INFO, {
+      capabilities: TORII_OUTBOUND_CLIENT_CAPABILITIES,
     });
     const transport = new StreamableHTTPClientTransport(
       new URL(server.transport.url),

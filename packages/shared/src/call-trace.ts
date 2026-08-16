@@ -31,4 +31,8 @@ export interface CallTrace {
   runId?: string;
   /** Opaque correlation ref — stored/echoed only. */
   stepId?: string;
+  /** Gateway task id when this call created or attached an MCP task. */
+  taskId?: string;
+  /** Backend-minted task id when the upstream returned CreateTaskResult. */
+  backendTaskId?: string;
 }

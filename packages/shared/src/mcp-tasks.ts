@@ -26,6 +26,8 @@ export type McpTasksMethod = (typeof MCP_TASKS_METHODS)[number];
 
 export const MCP_CREATE_TASK_RESULT_TYPE = "task" as const;
 export const MCP_COMPLETE_RESULT_TYPE = "complete" as const;
+/** MRTR interim result (`InputRequiredResult`), distinct from task status. */
+export const MCP_INPUT_REQUIRED_RESULT_TYPE = "input_required" as const;
 
 export const mcpTaskStatusSchema = z.enum([
   "working",

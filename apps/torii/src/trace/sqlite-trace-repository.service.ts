@@ -27,6 +27,8 @@ interface TraceRow {
   error: string | null;
   run_id: string | null;
   step_id: string | null;
+  task_id: string | null;
+  backend_task_id: string | null;
 }
 
 function rowToTrace(row: TraceRow): CallTrace {
@@ -44,6 +46,8 @@ function rowToTrace(row: TraceRow): CallTrace {
     ...(row.error ? { error: row.error } : {}),
     ...(row.run_id ? { runId: row.run_id } : {}),
     ...(row.step_id ? { stepId: row.step_id } : {}),
+    ...(row.task_id ? { taskId: row.task_id } : {}),
+    ...(row.backend_task_id ? { backendTaskId: row.backend_task_id } : {}),
   };
 }
 
@@ -61,6 +65,8 @@ function traceToRow(trace: CallTrace): TraceRow {
     error: trace.error ?? null,
     run_id: trace.runId ?? null,
     step_id: trace.stepId ?? null,
+    task_id: trace.taskId ?? null,
+    backend_task_id: trace.backendTaskId ?? null,
   };
 }
 
@@ -109,9 +115,11 @@ export class SqliteTraceRepository implements TraceRepository {
         duration_ms,
         error,
         run_id,
-        step_id
+        step_id,
+        task_id,
+        backend_task_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     this.getStatement = db.prepare(`
       SELECT
@@ -126,7 +134,9 @@ export class SqliteTraceRepository implements TraceRepository {
         duration_ms,
         error,
         run_id,
-        step_id
+        step_id,
+        task_id,
+        backend_task_id
       FROM call_traces
       WHERE trace_id = ?
     `);
@@ -156,6 +166,8 @@ export class SqliteTraceRepository implements TraceRepository {
       row.error,
       row.run_id,
       row.step_id,
+      row.task_id,
+      row.backend_task_id,
     );
     this.trimStatement.run(this.retentionCount);
   }
@@ -217,7 +229,9 @@ export class SqliteTraceRepository implements TraceRepository {
         duration_ms,
         error,
         run_id,
-        step_id
+        step_id,
+        task_id,
+        backend_task_id
       FROM call_traces
       ${whereClause}
       ORDER BY timestamp DESC, trace_id DESC
@@ -252,7 +266,9 @@ export class SqliteTraceRepository implements TraceRepository {
         duration_ms,
         error,
         run_id,
-        step_id
+        step_id,
+        task_id,
+        backend_task_id
       FROM call_traces
       WHERE timestamp >= ?
       ORDER BY timestamp ASC
