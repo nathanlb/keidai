@@ -1,7 +1,7 @@
 import type { RunSseEvent, RunStep } from "@keidai/shared";
 import { RUN_SSE_EVENT } from "@keidai/shared";
 import type { ConversationEntry } from "../run/types/conversation-history.js";
-import type { RunRepository } from "./types/run-repository.js";
+import type { ParkedMcpTask, RunRepository } from "./types/run-repository.js";
 import type { BeginContinuationResult } from "./utils/conversation-history.js";
 import { createRunStep } from "./utils/create-run-step.js";
 import { projectRunListItem } from "./utils/project-run-api.js";
@@ -66,6 +66,25 @@ export class RunStore {
 
   getConversationHistory(runId: string): ConversationEntry[] | null {
     return this.repository.getConversationHistory(runId);
+  }
+
+  setParkedMcpTask(
+    runId: string,
+    parked: Omit<ParkedMcpTask, "runId">,
+  ): boolean {
+    return this.repository.setParkedMcpTask(runId, parked);
+  }
+
+  clearParkedMcpTask(runId: string): boolean {
+    return this.repository.clearParkedMcpTask(runId);
+  }
+
+  getParkedMcpTask(runId: string): ParkedMcpTask | null {
+    return this.repository.getParkedMcpTask(runId);
+  }
+
+  listParkedMcpTasks(): ParkedMcpTask[] {
+    return this.repository.listParkedMcpTasks();
   }
 
   beginContinuation(

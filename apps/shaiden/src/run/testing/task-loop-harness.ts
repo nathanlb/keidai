@@ -3,7 +3,6 @@ import type { TaskLimits } from "@keidai/shared";
 import { normalizeModelStep } from "../step-assessment.js";
 import { runTaskLoop } from "../task-loop.js";
 import type {
-  ApprovalDecision,
   ModelStep,
   ModelToolCall,
   StepAssessment,
@@ -62,27 +61,31 @@ export const okDispatch = async (): Promise<ToolDispatchResult> => ({
   text: "ok",
 });
 
-export function deferredApprovalDecision(): {
-  waitForApproval: (approvalId: string) => Promise<ApprovalDecision>;
+export function deferredParkedResult(): {
+  waitForApproval: (approvalId: string) => Promise<ToolDispatchResult>;
   whenPending: Promise<string>;
-  resolve: (decision: ApprovalDecision) => void;
+  resolve: (result: ToolDispatchResult) => void;
+  reject: (error: Error) => void;
 } {
-  let resolveDecision!: (decision: ApprovalDecision) => void;
+  let resolveResult!: (result: ToolDispatchResult) => void;
+  let rejectResult!: (error: Error) => void;
   let notifyPending!: (approvalId: string) => void;
   const whenPending = new Promise<string>((res) => {
     notifyPending = res;
   });
 
   const waitForApproval = (approvalId: string) =>
-    new Promise<ApprovalDecision>((res) => {
+    new Promise<ToolDispatchResult>((res, rej) => {
       notifyPending(approvalId);
-      resolveDecision = res;
+      resolveResult = res;
+      rejectResult = rej;
     });
 
   return {
     waitForApproval,
     whenPending,
-    resolve: (decision) => resolveDecision(decision),
+    resolve: (result) => resolveResult(result),
+    reject: (error) => rejectResult(error),
   };
 }
 
@@ -92,17 +95,9 @@ export function approvalRequiredDispatch(
   call: ModelToolCall,
   options?: ToolDispatchOptions,
 ) => Promise<ToolDispatchResult> {
-  return async (_call, options) => {
-    if (options?.approvalId) {
-      return { isError: false, text: "approved result" };
-    }
-    return {
-      isError: false,
-      text: JSON.stringify({
-        status: "approval_required",
-        approval_id: approvalId,
-      }),
-      approvalRequired: { approvalId },
-    };
-  };
+  return async () => ({
+    isError: false,
+    text: "",
+    approvalRequired: { approvalId },
+  });
 }

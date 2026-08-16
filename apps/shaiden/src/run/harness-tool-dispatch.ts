@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import {
-  TORII_APPROVAL_ID_ARG,
   TORII_RUN_ID_ARG,
   TORII_STEP_ID_ARG,
   type Logger,
@@ -84,9 +83,6 @@ export function createHarnessToolDispatcher({
       ...call.input,
       [TORII_RUN_ID_ARG]: options?.runId ?? runId,
       [TORII_STEP_ID_ARG]: correlationStepId,
-      ...(options?.approvalId
-        ? { [TORII_APPROVAL_ID_ARG]: options.approvalId }
-        : {}),
     };
 
     logger?.info("run.tool_dispatch", {
@@ -145,6 +141,7 @@ export function createHarnessToolDispatcher({
         approvalRequired: {
           approvalId: result.approvalRequired.approvalId,
           stepId: correlationStepId,
+          pollIntervalMs: result.approvalRequired.pollIntervalMs,
         },
       };
     }

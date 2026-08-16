@@ -7,6 +7,7 @@ import type {
 import type { ConversationEntry } from "../../run/types/conversation-history.js";
 import {
   DEFAULT_RUN_RETENTION_COUNT,
+  type ParkedMcpTask,
   type RunRepository,
 } from "../types/run-repository.js";
 import {
@@ -26,6 +27,8 @@ function compareRuns(left: RunReport, right: RunReport): number {
 
 interface StoredRun extends RunReport {
   conversationHistory?: ConversationEntry[];
+  mcpTaskId?: string;
+  mcpTaskPollIntervalMs?: number;
 }
 
 /** @internal Test-only. Not for production use. */
@@ -83,6 +86,8 @@ export class MockRunRepository implements RunRepository {
       ...run,
       status: "completed",
       outcome: input.outcome,
+      mcpTaskId: undefined,
+      mcpTaskPollIntervalMs: undefined,
     };
     this.runs.set(runId, updated);
     return updated;
@@ -136,6 +141,65 @@ export class MockRunRepository implements RunRepository {
       return null;
     }
     return [...run.conversationHistory];
+  }
+
+  setParkedMcpTask(
+    runId: string,
+    parked: Omit<ParkedMcpTask, "runId">,
+  ): boolean {
+    const run = this.runs.get(runId);
+    if (!run || run.status !== "running") {
+      return false;
+    }
+    this.runs.set(runId, {
+      ...run,
+      mcpTaskId: parked.mcpTaskId,
+      mcpTaskPollIntervalMs: parked.pollIntervalMs,
+    });
+    return true;
+  }
+
+  clearParkedMcpTask(runId: string): boolean {
+    const run = this.runs.get(runId);
+    if (!run) {
+      return false;
+    }
+    this.runs.set(runId, {
+      ...run,
+      mcpTaskId: undefined,
+      mcpTaskPollIntervalMs: undefined,
+    });
+    return true;
+  }
+
+  getParkedMcpTask(runId: string): ParkedMcpTask | null {
+    const run = this.runs.get(runId);
+    if (!run?.mcpTaskId) {
+      return null;
+    }
+    return {
+      runId,
+      mcpTaskId: run.mcpTaskId,
+      ...(run.mcpTaskPollIntervalMs != null
+        ? { pollIntervalMs: run.mcpTaskPollIntervalMs }
+        : {}),
+    };
+  }
+
+  listParkedMcpTasks(): ParkedMcpTask[] {
+    return [...this.runs.values()]
+      .filter((run) => run.status === "running" && Boolean(run.mcpTaskId))
+      .sort((left, right) => {
+        const byTime = left.startedAt.localeCompare(right.startedAt);
+        return byTime !== 0 ? byTime : left.id.localeCompare(right.id);
+      })
+      .map((run) => ({
+        runId: run.id,
+        mcpTaskId: run.mcpTaskId as string,
+        ...(run.mcpTaskPollIntervalMs != null
+          ? { pollIntervalMs: run.mcpTaskPollIntervalMs }
+          : {}),
+      }));
   }
 
   beginContinuation(

@@ -359,4 +359,96 @@ describe("SqliteRunRepository", () => {
 
     assert.deepEqual(result, { ok: false, reason: "missing_history" });
   });
+
+  it("persists a parked MCP task id across repository instances", () => {
+    const databasePath = path.join(
+      mkdtempSync(path.join(tmpdir(), "shaiden-run-store-")),
+      "shaiden.db",
+    );
+    const db = openShaidenDatabase(databasePath);
+    db.prepare(`
+      INSERT INTO tasks (
+        id, goal, trigger_json, assignee, limits_json, created_at, updated_at
+      ) VALUES (
+        'task-1', @goal, @trigger_json, @assignee, @limits_json, @created_at, @updated_at
+      )
+    `).run({
+      goal: sampleTask.goal,
+      trigger_json: JSON.stringify(sampleTask.trigger),
+      assignee: sampleTask.assignee,
+      limits_json: JSON.stringify(sampleTask.limits),
+      created_at: "2026-07-08T12:00:00.000Z",
+      updated_at: "2026-07-08T12:00:00.000Z",
+    });
+
+    const repository = createRepository(databasePath);
+    repository.create({
+      id: "run-1",
+      taskId: "task-1",
+      task: sampleTask,
+      assignee: sampleTask.assignee,
+      goal: sampleTask.goal,
+      startedAt: "2026-07-08T12:00:00.000Z",
+    });
+    assert.equal(
+      repository.setParkedMcpTask("run-1", {
+        mcpTaskId: "a".repeat(64),
+        pollIntervalMs: 1_500,
+      }),
+      true,
+    );
+
+    const reloaded = createRepository(databasePath);
+    assert.deepEqual(reloaded.getParkedMcpTask("run-1"), {
+      runId: "run-1",
+      mcpTaskId: "a".repeat(64),
+      pollIntervalMs: 1_500,
+    });
+    assert.deepEqual(reloaded.listParkedMcpTasks(), [
+      {
+        runId: "run-1",
+        mcpTaskId: "a".repeat(64),
+        pollIntervalMs: 1_500,
+      },
+    ]);
+
+    reloaded.clearParkedMcpTask("run-1");
+    assert.equal(createRepository(databasePath).getParkedMcpTask("run-1"), null);
+  });
+
+  it("clears a parked MCP task when the run completes", () => {
+    const databasePath = path.join(
+      mkdtempSync(path.join(tmpdir(), "shaiden-run-store-")),
+      "shaiden.db",
+    );
+    const db = openShaidenDatabase(databasePath);
+    db.prepare(`
+      INSERT INTO tasks (
+        id, goal, trigger_json, assignee, limits_json, created_at, updated_at
+      ) VALUES (
+        'task-1', @goal, @trigger_json, @assignee, @limits_json, @created_at, @updated_at
+      )
+    `).run({
+      goal: sampleTask.goal,
+      trigger_json: JSON.stringify(sampleTask.trigger),
+      assignee: sampleTask.assignee,
+      limits_json: JSON.stringify(sampleTask.limits),
+      created_at: "2026-07-08T12:00:00.000Z",
+      updated_at: "2026-07-08T12:00:00.000Z",
+    });
+
+    const repository = createRepository(databasePath);
+    repository.create({
+      id: "run-1",
+      taskId: "task-1",
+      task: sampleTask,
+      assignee: sampleTask.assignee,
+      goal: sampleTask.goal,
+    });
+    repository.setParkedMcpTask("run-1", { mcpTaskId: "parked-1" });
+    repository.complete("run-1", { outcome: { status: "goal_met" } });
+
+    assert.equal(repository.getParkedMcpTask("run-1"), null);
+    assert.deepEqual(repository.listParkedMcpTasks(), []);
+  });
 });

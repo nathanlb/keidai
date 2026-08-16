@@ -9,8 +9,8 @@ const DEFAULT_REFRESH_SKEW_MS = 30_000;
 export interface AgentTokenProvider {
   /**
    * Returns a Torii-facing agent JWT. Remints when missing, expired, within
-   * skew, or when `force` is set (approval resume). Mid-run Fuda unavailability
-   * keeps a still-valid cached token rather than failing the run.
+   * skew, or when `force` is set. Mid-run Fuda unavailability keeps a
+   * still-valid cached token rather than failing the run.
    */
   ensureToken(options?: { force?: boolean }): Promise<string>;
 }
@@ -75,7 +75,7 @@ export function createAgentTokenProvider(
         return cached.accessToken;
       } catch (error) {
         // Mid-task Fuda outage must not kill an already-minted run — even on
-        // force remint (approval resume) — when the cached JWT is still valid.
+        // a forced remint — when the cached JWT is still valid.
         // Grant revocation and other rejections still fail hard.
         if (
           cached &&

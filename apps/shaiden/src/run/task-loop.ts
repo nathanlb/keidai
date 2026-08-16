@@ -1,4 +1,5 @@
 import type { TerminationOutcome } from "@keidai/shared";
+import { findUnansweredToolCalls } from "./pending-tool-calls.js";
 import { mapTerminalAssessmentToOutcome } from "./step-assessment.js";
 import { isHarnessLocalTool } from "./task-output.js";
 import type { ConversationEntry } from "./types/conversation-history.js";
@@ -28,12 +29,6 @@ function cloneHistory(
     }
     return { ...entry };
   });
-}
-
-function formatApprovalDenial(reason?: string): string {
-  return reason
-    ? `Human review denied this tool call. Reason: ${reason}. This denial is authoritative — do not retry this call or attempt the same action through a different tool.`
-    : "Human review denied this tool call. This denial is authoritative — do not retry this call or attempt the same action through a different tool.";
 }
 
 /**
@@ -96,6 +91,31 @@ export async function runTaskLoop(
     return { outcome, history, iterations };
   };
 
+  const waitForParkedResult = async (
+    call: ModelToolCall,
+    approvalId: string,
+    parked?: { stepId?: string; pollIntervalMs?: number },
+  ): Promise<ToolDispatchResult> => {
+    if (!deps.waitForApproval) {
+      throw new Error(
+        `tool call "${call.toolName}" requires approval but no waiter is configured`,
+      );
+    }
+
+    const pauseStart = now();
+    const result = await deps.waitForApproval(approvalId, {
+      stepId: parked?.stepId,
+      pollIntervalMs: parked?.pollIntervalMs,
+      call,
+    });
+    deadline += now() - pauseStart;
+
+    if (result.policyDenied) {
+      throw new Error(`policy denied after approval resume: ${result.text}`);
+    }
+    return result;
+  };
+
   const resolveToolResult = async (
     call: ModelToolCall,
     options?: ToolDispatchOptions,
@@ -103,48 +123,102 @@ export async function runTaskLoop(
     let result = await deps.dispatchToolCall(call, options);
 
     while (result.approvalRequired) {
-      if (!deps.waitForApproval) {
-        throw new Error(
-          `tool call "${call.toolName}" requires approval but no waiter is configured`,
-        );
-      }
-
-      const pauseStart = now();
-      const decision = await deps.waitForApproval(
+      result = await waitForParkedResult(
+        call,
         result.approvalRequired.approvalId,
-        { stepId: result.approvalRequired.stepId },
+        {
+          stepId: result.approvalRequired.stepId,
+          pollIntervalMs: result.approvalRequired.pollIntervalMs,
+        },
       );
-      deadline += now() - pauseStart;
-
-      if (decision.status === "rejected") {
-        return {
-          isError: false,
-          text: formatApprovalDenial(decision.reason),
-          approvalDenied: true,
-        };
-      }
-      if (decision.status === "cancelled") {
-        throw new Error("cancelled by operator");
-      }
-
-      result = await deps.dispatchToolCall(call, {
-        ...options,
-        approvalId: result.approvalRequired.approvalId,
-        stepId: result.approvalRequired.stepId,
-      });
-
-      // Remint on resume can change groups/grants; a replayed call may fail
-      // policy that passed at request time. Treat as a real termination, not a
-      // model-retryable tool error.
-      if (result.policyDenied) {
-        throw new Error(
-          `policy denied after approval resume: ${result.text}`,
-        );
-      }
     }
 
     return result;
   };
+
+  const appendToolResult = (
+    call: ModelToolCall,
+    result: ToolDispatchResult,
+  ): void => {
+    history.push({
+      role: "tool",
+      toolCallId: call.toolCallId,
+      toolName: call.toolName,
+      output: result.text,
+      ...(result.isError ? { isError: true } : {}),
+    });
+    checkpoint();
+  };
+
+  const dispatchCall = async (
+    call: ModelToolCall,
+    iterations: number,
+    options?: ToolDispatchOptions,
+  ): Promise<TaskLoopResult | undefined> => {
+    let result: ToolDispatchResult;
+    try {
+      result = await resolveToolResult(call, options);
+    } catch (error) {
+      pushToolErrorResult(call, error);
+      return terminate(
+        {
+          status: "failed",
+          reason: `tool call "${call.toolName}" failed: ${describeError(error)}`,
+        },
+        iterations,
+      );
+    }
+
+    appendToolResult(call, result);
+
+    if (result.approvalDenied) {
+      return terminate({ status: "human_reject" }, iterations);
+    }
+    return undefined;
+  };
+
+  if (start.resumeParkedApproval) {
+    const unanswered = findUnansweredToolCalls(history);
+    const parkedCall = unanswered[0];
+    if (!parkedCall) {
+      return terminate(
+        {
+          status: "failed",
+          reason: `parked MCP task ${start.resumeParkedApproval.approvalId} has no pending tool call in history`,
+        },
+        0,
+      );
+    }
+
+    let parkedResult: ToolDispatchResult;
+    try {
+      parkedResult = await waitForParkedResult(
+        parkedCall,
+        start.resumeParkedApproval.approvalId,
+      );
+    } catch (error) {
+      pushToolErrorResult(parkedCall, error);
+      return terminate(
+        {
+          status: "failed",
+          reason: `tool call "${parkedCall.toolName}" failed: ${describeError(error)}`,
+        },
+        0,
+      );
+    }
+
+    appendToolResult(parkedCall, parkedResult);
+    if (parkedResult.approvalDenied) {
+      return terminate({ status: "human_reject" }, 0);
+    }
+
+    for (const call of unanswered.slice(1)) {
+      const failed = await dispatchCall(call, 0);
+      if (failed) {
+        return failed;
+      }
+    }
+  }
 
   for (let iteration = 1; iteration <= start.limits.max_iterations; iteration++) {
     if (now() >= deadline) {
@@ -181,32 +255,9 @@ export async function runTaskLoop(
     }
 
     for (const call of step.toolCalls) {
-      let result: ToolDispatchResult;
-      try {
-        result = await resolveToolResult(call);
-      } catch (error) {
-        pushToolErrorResult(call, error);
-        return terminate(
-          {
-            status: "failed",
-            reason: `tool call "${call.toolName}" failed: ${describeError(error)}`,
-          },
-          iteration,
-        );
-      }
-
-      history.push({
-        role: "tool",
-        toolCallId: call.toolCallId,
-        toolName: call.toolName,
-        output: result.text,
-        ...(result.isError ? { isError: true } : {}),
-      });
-      checkpoint();
-
-      // Human denial is authoritative — terminate here; do not ask the model.
-      if (result.approvalDenied) {
-        return terminate({ status: "human_reject" }, iteration);
+      const failed = await dispatchCall(call, iteration);
+      if (failed) {
+        return failed;
       }
     }
 

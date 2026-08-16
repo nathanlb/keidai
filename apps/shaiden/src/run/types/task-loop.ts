@@ -23,11 +23,15 @@ export interface ModelStep {
 export interface ToolDispatchResult {
   isError: boolean;
   text: string;
-  approvalRequired?: { approvalId: string; stepId?: string };
+  approvalRequired?: {
+    approvalId: string;
+    stepId?: string;
+    pollIntervalMs?: number;
+  };
   approvalDenied?: boolean;
   /**
    * Torii group policy denied the call. Ordinary calls feed this back as an
-   * error tool result; approval-replay denials terminate as failed(reason).
+   * error tool result; post-approval denials terminate as failed(reason).
    */
   policyDenied?: boolean;
   /** Out-of-band Torii metadata from MCP `_meta` (never model-facing). */
@@ -35,18 +39,14 @@ export interface ToolDispatchResult {
 }
 
 export interface ToolDispatchOptions {
-  approvalId?: string;
   runId?: string;
   stepId?: string;
 }
 
-export interface ApprovalDecision {
-  status: "approved" | "rejected" | "cancelled";
-  reason?: string;
-}
-
 export interface ApprovalWaitContext {
   stepId?: string;
+  pollIntervalMs?: number;
+  call?: ModelToolCall;
 }
 
 export interface TaskLoopDeps {
@@ -55,11 +55,14 @@ export interface TaskLoopDeps {
     call: ModelToolCall,
     options?: ToolDispatchOptions,
   ) => Promise<ToolDispatchResult>;
-  /** Blocks while Torii holds a pending approval; wall-clock pause is handled here. */
+  /**
+   * Parks until a gated tool's MCP task is terminal, then returns that tool
+   * result. Wall-clock pause is handled by the task loop.
+   */
   waitForApproval?: (
     approvalId: string,
     context?: ApprovalWaitContext,
-  ) => Promise<ApprovalDecision>;
+  ) => Promise<ToolDispatchResult>;
   /** Injectable clock for tests; defaults to Date.now. */
   now?: () => number;
   /** Drains queued follow-up user messages immediately before each model call. */
@@ -71,6 +74,8 @@ export interface TaskLoopDeps {
 export interface TaskLoopStart {
   initialHistory: ConversationEntry[];
   limits: TaskLimits;
+  /** Durable MCP task handle for a tool call parked when this process died. */
+  resumeParkedApproval?: { approvalId: string };
 }
 
 export interface TaskLoopResult {

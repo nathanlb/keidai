@@ -21,6 +21,11 @@ describe("ActiveRunRegistry", () => {
     assert.equal(handle.queueUserMessageIfWaiting("after resume"), false);
   });
 
+  it("queues follow-ups immediately when created already waiting", () => {
+    const handle = createActiveRunHandle("run-1", { waitingForApproval: true });
+    assert.equal(handle.queueUserMessageIfWaiting("while reconnecting"), true);
+  });
+
   it("drains queued messages in FIFO order", () => {
     const handle = createActiveRunHandle("run-1");
     handle.setWaitingForApproval(true);

@@ -36,7 +36,10 @@ const TIMESTAMPS = {
   lastUpdatedAt: "2026-08-13T12:00:00.000Z",
 };
 
-async function startGatedToriiStub(): Promise<{
+async function startGatedToriiStub(options?: {
+  failFirstTaskGet?: boolean;
+  completeOnCall?: boolean;
+}): Promise<{
   url: string;
   calls: Array<{
     method: string;
@@ -44,6 +47,7 @@ async function startGatedToriiStub(): Promise<{
     mcpName?: string;
     capabilities?: unknown;
     protocolVersion?: string;
+    authorization?: string;
   }>;
   close: () => Promise<void>;
 }> {
@@ -53,8 +57,10 @@ async function startGatedToriiStub(): Promise<{
     mcpName?: string;
     capabilities?: unknown;
     protocolVersion?: string;
+    authorization?: string;
   }> = [];
   let taskGets = 0;
+  let failedOnce = false;
 
   const tools = [
     {
@@ -83,6 +89,7 @@ async function startGatedToriiStub(): Promise<{
       mcpName: req.headers["mcp-name"] as string | undefined,
       capabilities: meta?.[CLIENT_CAPABILITIES_META_KEY],
       protocolVersion: req.headers["mcp-protocol-version"] as string | undefined,
+      authorization: req.headers.authorization,
     });
 
     if (!("id" in message) || message.id === undefined) {
@@ -127,19 +134,37 @@ async function startGatedToriiStub(): Promise<{
       sendJson(res, 200, {
         jsonrpc: "2.0",
         id: message.id,
-        result: {
-          resultType: "task",
-          taskId: TASK_ID,
-          status: "working",
-          ttlMs: 60_000,
-          pollIntervalMs: 20,
-          ...TIMESTAMPS,
-        },
+        result: options?.completeOnCall
+          ? {
+              resultType: "task",
+              taskId: TASK_ID,
+              status: "completed",
+              ttlMs: 60_000,
+              pollIntervalMs: 20,
+              result: {
+                content: [{ type: "text", text: "draft created" }],
+                isError: false,
+              },
+              ...TIMESTAMPS,
+            }
+          : {
+              resultType: "task",
+              taskId: TASK_ID,
+              status: "working",
+              ttlMs: 60_000,
+              pollIntervalMs: 20,
+              ...TIMESTAMPS,
+            },
       });
       return;
     }
 
     if (message.method === "tasks/get") {
+      if (options?.failFirstTaskGet && !failedOnce) {
+        failedOnce = true;
+        res.writeHead(502).end("bad gateway");
+        return;
+      }
       taskGets += 1;
       sendJson(res, 200, {
         jsonrpc: "2.0",
@@ -194,8 +219,78 @@ async function startGatedToriiStub(): Promise<{
 }
 
 describe("connectToriiSession task-augmented tools/call", () => {
-  it("polls tasks/get and returns the terminal CallToolResult", async () => {
+  it("returns a park handle from tools/call without polling", async () => {
     const stub = await startGatedToriiStub();
+    try {
+      const session = await connectToriiSession(stub.url, {
+        ensureToken: async () => "test-token",
+      });
+      try {
+        const result = await session.callTool("gmail.create_draft", {
+          subject: "hi",
+        });
+        assert.equal(result.isError, false);
+        assert.deepEqual(result.approvalRequired, {
+          approvalId: TASK_ID,
+          pollIntervalMs: 20,
+        });
+
+        const callTools = stub.calls.filter((call) => call.method === "tools/call");
+        assert.equal(callTools.length, 1);
+        assert.equal(callTools[0]?.mcpMethod, "tools/call");
+        assert.equal(callTools[0]?.mcpName, "gmail.create_draft");
+        assert.deepEqual(callTools[0]?.capabilities, {
+          extensions: { [MCP_TASKS_EXTENSION_ID]: {} },
+        });
+        assert.equal(
+          stub.calls.filter((call) => call.method === "tasks/get").length,
+          0,
+        );
+      } finally {
+        await session.close();
+      }
+    } finally {
+      await stub.close();
+    }
+  });
+
+  it("polls tasks/get until terminal and refreshes the JWT per poll", async () => {
+    const stub = await startGatedToriiStub();
+    let tokenCalls = 0;
+    try {
+      const session = await connectToriiSession(stub.url, {
+        ensureToken: async () => {
+          tokenCalls += 1;
+          return `token-${tokenCalls}`;
+        },
+      });
+      try {
+        const mintedBeforePoll = tokenCalls;
+        const result = await session.pollMcpTask(TASK_ID, 20);
+        assert.equal(result.isError, false);
+        assert.equal(result.text, "draft created");
+        assert.equal(result.approvalRequired, undefined);
+
+        const gets = stub.calls.filter((call) => call.method === "tasks/get");
+        assert.equal(gets.length, 2);
+        assert.equal(gets[0]?.mcpMethod, "tasks/get");
+        assert.equal(gets[0]?.mcpName, TASK_ID);
+        assert.deepEqual(gets[0]?.capabilities, {
+          extensions: { [MCP_TASKS_EXTENSION_ID]: {} },
+        });
+        assert.ok(tokenCalls > mintedBeforePoll);
+        assert.equal(gets[0]?.authorization, `Bearer token-${mintedBeforePoll + 1}`);
+        assert.equal(gets[1]?.authorization, `Bearer token-${mintedBeforePoll + 2}`);
+      } finally {
+        await session.close();
+      }
+    } finally {
+      await stub.close();
+    }
+  });
+
+  it("maps an already-terminal tools/call without polling", async () => {
+    const stub = await startGatedToriiStub({ completeOnCall: true });
     try {
       const session = await connectToriiSession(stub.url, {
         ensureToken: async () => "test-token",
@@ -207,23 +302,28 @@ describe("connectToriiSession task-augmented tools/call", () => {
         assert.equal(result.isError, false);
         assert.equal(result.text, "draft created");
         assert.equal(result.approvalRequired, undefined);
+        assert.equal(
+          stub.calls.filter((call) => call.method === "tasks/get").length,
+          0,
+        );
+      } finally {
+        await session.close();
+      }
+    } finally {
+      await stub.close();
+    }
+  });
 
-        const callTools = stub.calls.filter((call) => call.method === "tools/call");
-        assert.equal(callTools.length, 1);
-        assert.equal(callTools[0]?.mcpMethod, "tools/call");
-        assert.equal(callTools[0]?.mcpName, "gmail.create_draft");
-        assert.equal(callTools[0]?.protocolVersion, "2026-07-28");
-        assert.deepEqual(callTools[0]?.capabilities, {
-          extensions: { [MCP_TASKS_EXTENSION_ID]: {} },
-        });
-
-        const gets = stub.calls.filter((call) => call.method === "tasks/get");
-        assert.equal(gets.length, 2);
-        assert.equal(gets[0]?.mcpMethod, "tasks/get");
-        assert.equal(gets[0]?.mcpName, TASK_ID);
-        assert.deepEqual(gets[0]?.capabilities, {
-          extensions: { [MCP_TASKS_EXTENSION_ID]: {} },
-        });
+  it("retries tasks/get after a transient Torii failure", async () => {
+    const stub = await startGatedToriiStub({ failFirstTaskGet: true });
+    try {
+      const session = await connectToriiSession(stub.url, {
+        ensureToken: async () => "test-token",
+      });
+      try {
+        const result = await session.pollMcpTask(TASK_ID, 50);
+        assert.equal(result.isError, false);
+        assert.equal(result.text, "draft created");
       } finally {
         await session.close();
       }

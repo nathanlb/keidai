@@ -23,7 +23,7 @@ Working steps continue implicitly when the model calls Torii tools. `report_step
 | Shaiden → Fuda (`POST /token`) | Subject token (`SHAIDEN_BEARER` locally, or projected SA file via `SHAIDEN_SUBJECT_TOKEN_FILE` in-cluster) |
 | Shaiden → Torii (tools/list, tools/call) | Fuda-minted agent JWT (`aud=torii`, ~5 min TTL) |
 
-Tokens are minted when the harness needs Torii credentials and reminted when near expiry or on resume from `waiting_approval`, so a long-parked task picks up revoked grants and group changes. Fuda unreachable at first mint fails the run clearly; mid-run Fuda outages keep a still-valid cached JWT.
+Tokens are minted when the harness needs Torii credentials and reminted when near expiry, including on each `tasks/get` poll while parked, so a long-parked task picks up revoked grants and group changes. Fuda unreachable at first mint fails the run clearly; mid-run Fuda outages keep a still-valid cached JWT.
 
 ### Evals (NAT-112)
 
@@ -42,11 +42,12 @@ CI gate: `.github/workflows/shaiden-termination-eval.yml` runs `eval` on PRs tha
 - **Shaiden** owns task execution, harness runtime, and **run visibility** (`POST /api/tasks/run`, `GET /api/runs`, SSE `/api/runs/events`)
 - **Shared** (`@keidai/shared`) owns cross-app Task/Run types, schemas, and structured logging
 
-Gated tools are declared in Torii operator config (`gated_tools` in `torii.yaml`, keyed by Fuda agent id). When the model calls a gated tool, Torii returns an `approval_required` sentinel. Shaiden parks the loop (wall-clock frozen) and waits for an MCP `notifications/approval_decided` push on the temporary response stream held for that call (until NAT-147 moves wakeups to Tasks polling), then remints credentials and replays the call with `approval_id` on approve. On reject, the harness records the denial in history and terminates as `human_reject` immediately — denials are not fed back to the model. A replay that fails Torii policy after remint terminates as `failed(reason)` with a policy-denial message (distinct from transport failure).
+Gated tools are declared in Torii operator config (`gated_tools` in `torii.yaml`, keyed by Fuda agent id). When the model calls a gated tool, Torii returns a task-augmented `tools/call` result (`resultType: "task"`). Shaiden parks the loop (wall-clock frozen), persists the MCP task id on the run, and polls `tasks/get` at the server's `pollIntervalMs` — no held connection to Torii, and a dropped poll is a retry. The completed task's `result` is the tool result; there is no `approval_id` replay. A denial arrives as a `completed` task with a denial-shaped payload and terminates as `human_reject` immediately — denials are not fed back to the model. A `cancelled` task fails the run. A post-approval policy denial terminates as `failed(reason)` with a policy-denial message (distinct from transport failure).
 
-If that stream drops while parked, the wait fails and the run terminates as `failed` (the approval decision may still be recorded in Torii's ledger for UI/audit).
+Killing Shaiden mid-pause resumes the parked run from the persisted task id. Killing Torii mid-pause does not fail the run; the next poll retries.
 
 Opaque correlation refs (`_torii_run_id`, `_torii_step_id`) are attached to gated calls so Torii can echo them on the ledger without interpreting run/step semantics.
+
 ## Log streams
 
 During normal harness operation Shaiden emits structured operational logs to **stderr**, using the same `StructuredLogger` from `@keidai/shared` as Torii:
@@ -85,7 +86,7 @@ Saved tasks are listed at `GET /api/tasks` and persist in SQLite (`SHAIDEN_DB_PA
 | `waiting_approval` | Message is queued for the parked loop and recorded in the run log; approval is unchanged |
 | Terminal (`failed`, `goal_met`, `iteration_exhausted`, `timeout`) | Run reopens, message is appended, and the loop resumes with persisted conversation history |
 
-Iteration cap and wall-clock timeout reset on each terminal continuation. Runs created before conversation-history persistence was added cannot be resumed (`409`). If the process restarts while a run is parked on approval, the in-memory follow-up channel is lost (`409`). `human_reject` continuations are not supported in v0.
+Iteration cap and wall-clock timeout reset on each terminal continuation. Runs created before conversation-history persistence was added cannot be resumed (`409`). If the process restarts while a run is parked on approval, polling resumes from the persisted MCP task id; in-memory queued follow-ups from before the restart are lost. `human_reject` continuations are not supported in v0.
 
 Conversation history is checkpointed during execution and stored in SQLite (`conversation_history_json`) so terminal resumes can rebuild the model transcript. The run log records `user_message` and `outcome` milestone steps so prior outcomes remain visible after a continuation.
 
