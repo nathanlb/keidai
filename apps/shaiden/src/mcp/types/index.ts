@@ -1,5 +1,4 @@
 import type { ToriiCallMeta } from "@keidai/shared";
-import type { ApprovalResumeSignal } from "../../run/approval-resume-signal.js";
 
 export interface DiscoveredTool {
   name: string;
@@ -11,7 +10,7 @@ export interface DiscoveredTool {
 export interface ToolCallResult {
   isError: boolean;
   text: string;
-  approvalRequired?: { approvalId: string };
+  approvalRequired?: { approvalId: string; pollIntervalMs?: number };
   approvalDenied?: boolean;
   policyDenied?: boolean;
   /** Out-of-band Torii metadata from MCP `_meta` (never model-facing). */
@@ -25,9 +24,8 @@ export interface ToriiSessionCredential {
 
 /**
  * Per-run Torii MCP caller: Torii URL + JWT provider, not a held protocol session.
- * Each list/call is a self-contained request. Gated tools poll `tasks/get`
- * until terminal; a leftover `approval_required` payload still holds a stream
- * for `notifications/approval_decided` until NAT-147.
+ * Each list/call/poll is a self-contained request. Gated tools return a park
+ * handle from `callTool`; `pollMcpTask` reads `tasks/get` until terminal.
  */
 export interface ToriiSession {
   tools: DiscoveredTool[];
@@ -35,8 +33,9 @@ export interface ToriiSession {
     name: string,
     args: Record<string, unknown>,
   ) => Promise<ToolCallResult>;
-  /** Force a fresh mint (approval resume) before the next tools/call. */
-  remintCredentials: () => Promise<void>;
-  createApprovalResumeSignal: () => ApprovalResumeSignal;
+  pollMcpTask: (
+    taskId: string,
+    pollIntervalMs?: number,
+  ) => Promise<ToolCallResult>;
   close: () => Promise<void>;
 }

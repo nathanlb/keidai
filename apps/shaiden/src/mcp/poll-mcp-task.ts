@@ -3,10 +3,21 @@ import {
   mcpGetTaskResultSchema,
   type McpGetTaskResult,
 } from "@keidai/shared";
+import { McpJsonRpcError } from "./post-mcp-jsonrpc.js";
 
 export const DEFAULT_TASK_POLL_INTERVAL_MS = 5_000;
 export const MAX_TASK_POLL_INTERVAL_MS = 30_000;
 export const MIN_TASK_POLL_INTERVAL_MS = 50;
+
+/** JSON-RPC parse error — truncated or garbled body while a server restarts. */
+const JSONRPC_PARSE_ERROR = -32700;
+/** JSON-RPC internal error — typical while a server is coming back. */
+const JSONRPC_INTERNAL_ERROR = -32603;
+
+const RETRYABLE_JSONRPC_CODES = new Set([
+  JSONRPC_PARSE_ERROR,
+  JSONRPC_INTERNAL_ERROR,
+]);
 
 export function nextTaskPollDelayMs(
   pollIntervalMs: number | undefined,
@@ -23,6 +34,13 @@ export function nextTaskPollDelayMs(
   return Math.round(capped * jitter);
 }
 
+export function isFatalMcpPollError(error: unknown): boolean {
+  if (!(error instanceof McpJsonRpcError)) {
+    return false;
+  }
+  return !RETRYABLE_JSONRPC_CODES.has(error.code);
+}
+
 export async function pollUntilTerminalMcpTask(input: {
   getTask: () => Promise<unknown>;
   initialPollIntervalMs?: number;
@@ -35,9 +53,20 @@ export async function pollUntilTerminalMcpTask(input: {
   let intervalMs = input.initialPollIntervalMs;
 
   for (;;) {
-    const parsed = mcpGetTaskResultSchema.safeParse(await input.getTask());
+    let raw: unknown;
+    try {
+      raw = await input.getTask();
+    } catch (error) {
+      if (isFatalMcpPollError(error)) {
+        throw error;
+      }
+      await sleep(nextTaskPollDelayMs(intervalMs, input.random));
+      continue;
+    }
+    const parsed = mcpGetTaskResultSchema.safeParse(raw);
     if (!parsed.success) {
-      throw new Error(`Invalid tasks/get result: ${parsed.error.message}`);
+      await sleep(nextTaskPollDelayMs(intervalMs, input.random));
+      continue;
     }
     const task = parsed.data;
     if (isMcpTaskTerminalStatus(task.status)) {

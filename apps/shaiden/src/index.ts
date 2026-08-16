@@ -9,6 +9,7 @@ import { ShaidenHttpServer } from "./http/shaiden-http-server.js";
 import { defaultLogger } from "./logging/logger.js";
 import { ActiveRunRegistry } from "./run/active-run-registry.js";
 import { launchHarnessRun, resumeHarnessRun } from "./run/harness.js";
+import { resumeParkedHarnessRuns } from "./run/resume-parked-runs.js";
 
 function waitForShutdown(): Promise<void> {
   return new Promise((resolve) => {
@@ -52,6 +53,18 @@ async function main(): Promise<void> {
         },
       }),
   });
+
+  resumeParkedHarnessRuns({
+    runStore,
+    resumeHarnessRun: (input) =>
+      resumeHarnessRun({
+        ...input,
+        config,
+        options: { activeRunRegistry, logger: defaultLogger, fudaClient },
+      }),
+    logger: defaultLogger,
+  });
+
   const http = await httpServer.start({
     host: config.httpHost,
     port: config.httpPort,

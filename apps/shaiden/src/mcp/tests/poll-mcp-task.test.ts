@@ -7,6 +7,7 @@ import {
   MAX_TASK_POLL_INTERVAL_MS,
   MIN_TASK_POLL_INTERVAL_MS,
 } from "../poll-mcp-task.js";
+import { McpJsonRpcError } from "../post-mcp-jsonrpc.js";
 
 const timestamps = {
   createdAt: "2026-08-13T12:00:00.000Z",
@@ -109,5 +110,83 @@ describe("pollUntilTerminalMcpTask", () => {
         }),
       /does not support/,
     );
+  });
+
+  it("retries a transient getTask failure then completes", async () => {
+    const sleeps: number[] = [];
+    let calls = 0;
+    const terminal = await pollUntilTerminalMcpTask({
+      initialPollIntervalMs: 1_000,
+      getTask: async () => {
+        calls += 1;
+        if (calls === 1) {
+          throw new Error("fetch failed");
+        }
+        return completedTask();
+      },
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+      random: () => 0,
+    });
+    assert.equal(terminal.status, "completed");
+    assert.equal(calls, 2);
+    assert.deepEqual(sleeps, [800]);
+  });
+
+  it("does not retry a JSON-RPC application error", async () => {
+    await assert.rejects(
+      () =>
+        pollUntilTerminalMcpTask({
+          getTask: async () => {
+            throw new McpJsonRpcError(-32001, "task not found");
+          },
+        }),
+      /task not found/,
+    );
+  });
+
+  it("retries a JSON-RPC internal error then completes", async () => {
+    const sleeps: number[] = [];
+    let calls = 0;
+    const terminal = await pollUntilTerminalMcpTask({
+      initialPollIntervalMs: 1_000,
+      getTask: async () => {
+        calls += 1;
+        if (calls === 1) {
+          throw new McpJsonRpcError(-32603, "Internal server error");
+        }
+        return completedTask();
+      },
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+      random: () => 0,
+    });
+    assert.equal(terminal.status, "completed");
+    assert.equal(calls, 2);
+    assert.deepEqual(sleeps, [800]);
+  });
+
+  it("retries an invalid tasks/get body then completes", async () => {
+    const sleeps: number[] = [];
+    let calls = 0;
+    const terminal = await pollUntilTerminalMcpTask({
+      initialPollIntervalMs: 1_000,
+      getTask: async () => {
+        calls += 1;
+        if (calls === 1) {
+          return { truncated: true };
+        }
+        return completedTask();
+      },
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+      random: () => 0,
+    });
+    assert.equal(terminal.status, "completed");
+    assert.equal(calls, 2);
+    assert.deepEqual(sleeps, [800]);
   });
 });

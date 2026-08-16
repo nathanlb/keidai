@@ -35,9 +35,12 @@ export class ActiveRunRegistry {
   }
 }
 
-export function createActiveRunHandle(runId: string): ActiveRunHandle {
+export function createActiveRunHandle(
+  runId: string,
+  options?: { waitingForApproval?: boolean },
+): ActiveRunHandle {
   const pendingUserMessages: ConversationEntry[] = [];
-  let waitingForApproval = false;
+  let waitingForApproval = options?.waitingForApproval === true;
 
   return {
     runId,

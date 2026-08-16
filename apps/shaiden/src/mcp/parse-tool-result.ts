@@ -1,9 +1,9 @@
 import {
   APPROVAL_DENIED_STATUS,
-  APPROVAL_REQUIRED_STATUS,
+  MCP_COMPLETE_RESULT_TYPE,
   TORII_CALL_META_KEY,
+  mcpGetTaskResultSchema,
   type ApprovalDeniedPayload,
-  type ApprovalRequiredPayload,
   type McpGetTaskResult,
   type ToriiCallMeta,
 } from "@keidai/shared";
@@ -16,19 +16,6 @@ function tryParseJson(text: string): unknown {
   } catch {
     return undefined;
   }
-}
-
-function isApprovalRequiredPayload(
-  value: unknown,
-): value is ApprovalRequiredPayload {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "status" in value &&
-    value.status === APPROVAL_REQUIRED_STATUS &&
-    "approval_id" in value &&
-    typeof value.approval_id === "string"
-  );
 }
 
 function isApprovalDeniedPayload(
@@ -47,14 +34,6 @@ export function enrichToolCallResult(
   text: string,
 ): ToolCallResult {
   const parsed = tryParseJson(text);
-  if (isApprovalRequiredPayload(parsed)) {
-    return {
-      isError: false,
-      text,
-      approvalRequired: { approvalId: parsed.approval_id },
-    };
-  }
-
   if (isApprovalDeniedPayload(parsed)) {
     return {
       isError: false,
@@ -120,6 +99,24 @@ export function mapCallToolResponse(response: {
     return { ...withMeta, policyDenied: true };
   }
   return withMeta;
+}
+
+/**
+ * Map a tools/call payload that is already terminal. Create-task results are
+ * the flat Task shape, so a completed call only maps when `result` is present;
+ * otherwise the caller should poll `tasks/get`.
+ */
+export function tryMapTerminalCreateTaskResult(
+  response: Record<string, unknown>,
+): ToolCallResult | undefined {
+  const parsed = mcpGetTaskResultSchema.safeParse({
+    ...response,
+    resultType: MCP_COMPLETE_RESULT_TYPE,
+  });
+  if (!parsed.success) {
+    return undefined;
+  }
+  return mapTerminalMcpTaskToToolCallResult(parsed.data);
 }
 
 export function mapTerminalMcpTaskToToolCallResult(

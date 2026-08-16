@@ -4,7 +4,7 @@ import { runGoalLoop, limits,
   modelStep,
   runTaskLoop,
   approvalRequiredDispatch,
-  deferredApprovalDecision,
+  deferredParkedResult,
   okDispatch,
   scriptedModel,
   toolCall,
@@ -148,22 +148,18 @@ describe("task loop", () => {
     assert.deepEqual(result.outcome, { status: "timeout" });
   });
 
-  it("parks on approval_required, replays on approve, and continues", async () => {
+  it("parks on approval_required, resumes with the polled tool result, and continues", async () => {
     const dispatched: string[] = [];
-    const approval = deferredApprovalDecision();
+    const approval = deferredParkedResult();
 
     const loop = runGoalLoop("goal", limits, {
       callModel: scriptedModel([
         { text: "", toolCalls: [toolCall("gmail.create_draft")] },
         { text: "Done.", toolCalls: [] },
       ]),
-      dispatchToolCall: async (call, options) => {
-        dispatched.push(
-          options?.approvalId
-            ? `${call.toolName}:replay`
-            : call.toolName,
-        );
-        return approvalRequiredDispatch("approval-1")(call, options);
+      dispatchToolCall: async (call) => {
+        dispatched.push(call.toolName);
+        return approvalRequiredDispatch("approval-1")(call);
       },
       waitForApproval: approval.waitForApproval,
     });
@@ -171,36 +167,36 @@ describe("task loop", () => {
     await approval.whenPending;
     assert.deepEqual(dispatched, ["gmail.create_draft"]);
 
-    approval.resolve({ status: "approved" });
+    approval.resolve({ isError: false, text: "approved result" });
     const result = await loop;
 
     assert.deepEqual(result.outcome, { status: "goal_met" });
-    assert.deepEqual(dispatched, ["gmail.create_draft", "gmail.create_draft:replay"]);
+    assert.deepEqual(dispatched, ["gmail.create_draft"]);
+    const toolEntry = result.history.find((entry) => entry.role === "tool");
+    assert.equal(toolEntry?.role, "tool");
+    if (toolEntry?.role === "tool") {
+      assert.equal(toolEntry.output, "approved result");
+    }
   });
 
-  it("terminates as failed when approval replay is denied by policy", async () => {
-    const approval = deferredApprovalDecision();
+  it("terminates as failed when a parked poll is denied by policy", async () => {
+    const approval = deferredParkedResult();
 
     const loop = runGoalLoop("goal", limits, {
       callModel: scriptedModel([
         { text: "", toolCalls: [toolCall("gmail.create_draft")] },
         { text: "should not run", toolCalls: [] },
       ]),
-      dispatchToolCall: async (_call, options) => {
-        if (options?.approvalId) {
-          return {
-            isError: true,
-            text: "policy_denied: gmail.create_draft",
-            policyDenied: true,
-          };
-        }
-        return approvalRequiredDispatch("approval-1")(_call, options);
-      },
+      dispatchToolCall: approvalRequiredDispatch("approval-1"),
       waitForApproval: approval.waitForApproval,
     });
 
     await approval.whenPending;
-    approval.resolve({ status: "approved" });
+    approval.resolve({
+      isError: true,
+      text: "policy_denied: gmail.create_draft",
+      policyDenied: true,
+    });
     const result = await loop;
 
     assert.equal(result.outcome.status, "failed");
@@ -212,7 +208,7 @@ describe("task loop", () => {
   });
 
   it("terminates as human_reject immediately when approval is rejected", async () => {
-    const approval = deferredApprovalDecision();
+    const approval = deferredParkedResult();
     let modelCalls = 0;
 
     const loop = runGoalLoop("goal", limits, {
@@ -228,7 +224,11 @@ describe("task loop", () => {
     });
 
     await approval.whenPending;
-    approval.resolve({ status: "rejected", reason: "too risky" });
+    approval.resolve({
+      isError: false,
+      text: "Human review denied this tool call. Reason: too risky. This denial is authoritative — do not retry this call or attempt the same action through a different tool.",
+      approvalDenied: true,
+    });
     const settled = await loop;
 
     assert.deepEqual(settled.outcome, { status: "human_reject" });
@@ -351,7 +351,7 @@ describe("task loop", () => {
   });
 
   it("terminates as failed when approval is cancelled by operator", async () => {
-    const approval = deferredApprovalDecision();
+    const approval = deferredParkedResult();
 
     const loop = runGoalLoop("goal", limits, {
       callModel: scriptedModel([
@@ -363,7 +363,7 @@ describe("task loop", () => {
     });
 
     await approval.whenPending;
-    approval.resolve({ status: "cancelled" });
+    approval.reject(new Error("cancelled by operator"));
     const result = await loop;
 
     assert.equal(result.outcome.status, "failed");
@@ -374,7 +374,7 @@ describe("task loop", () => {
 
   it("does not count approval wait time against the wall-clock timeout", async () => {
     let clock = 0;
-    const approval = deferredApprovalDecision();
+    const approval = deferredParkedResult();
 
     const loop = runGoalLoop(
       "goal",
@@ -394,7 +394,7 @@ describe("task loop", () => {
     );
 
     await approval.whenPending;
-    approval.resolve({ status: "approved" });
+    approval.resolve({ isError: false, text: "approved result" });
     const result = await loop;
 
     assert.deepEqual(result.outcome, { status: "goal_met" });
@@ -428,7 +428,7 @@ describe("task loop", () => {
 
   it("drains queued follow-up messages before the next model call", async () => {
     const seenUserMessages: string[] = [];
-    const approval = deferredApprovalDecision();
+    const approval = deferredParkedResult();
     let releaseQueued = false;
     let modelCalls = 0;
 
@@ -461,14 +461,14 @@ describe("task loop", () => {
 
     await approval.whenPending;
     releaseQueued = true;
-    approval.resolve({ status: "approved" });
+    approval.resolve({ isError: false, text: "approved result" });
     await loop;
 
     assert.deepEqual(seenUserMessages, ["queued guidance"]);
   });
 
   it("drains queued follow-up messages and records a tool error before failing on cancellation", async () => {
-    const approval = deferredApprovalDecision();
+    const approval = deferredParkedResult();
     let releaseQueued = false;
 
     const loop = runGoalLoop("goal", limits, {
@@ -488,7 +488,7 @@ describe("task loop", () => {
 
     await approval.whenPending;
     releaseQueued = true;
-    approval.resolve({ status: "cancelled" });
+    approval.reject(new Error("cancelled by operator"));
     const result = await loop;
 
     assert.equal(result.outcome.status, "failed");
@@ -522,6 +522,125 @@ describe("task loop", () => {
     if (toolEntry?.role === "tool") {
       assert.equal(toolEntry.isError, true);
       assert.match(toolEntry.output, /unexpected harness fault/);
+    }
+  });
+
+  it("resumes a parked tool call from restored history without calling the model first", async () => {
+    let modelCalls = 0;
+    let dispatched = 0;
+    const approval = deferredParkedResult();
+
+    const loop = runTaskLoop(
+      {
+        initialHistory: [
+          { role: "user", text: "goal" },
+          {
+            role: "assistant",
+            text: "",
+            toolCalls: [toolCall("gmail.create_draft")],
+          },
+        ],
+        limits,
+        resumeParkedApproval: { approvalId: "task-1" },
+      },
+      {
+        callModel: async () => {
+          modelCalls += 1;
+          return modelStep({ text: "Done.", toolCalls: [] });
+        },
+        dispatchToolCall: async () => {
+          dispatched += 1;
+          return { isError: false, text: "should not dispatch" };
+        },
+        waitForApproval: approval.waitForApproval,
+      },
+    );
+
+    await approval.whenPending;
+    assert.equal(modelCalls, 0);
+    assert.equal(dispatched, 0);
+    approval.resolve({ isError: false, text: "draft created" });
+    const result = await loop;
+
+    assert.deepEqual(result.outcome, { status: "goal_met" });
+    assert.equal(modelCalls, 1);
+    assert.equal(dispatched, 0);
+    const toolEntry = result.history.find((entry) => entry.role === "tool");
+    assert.equal(toolEntry?.role, "tool");
+    if (toolEntry?.role === "tool") {
+      assert.equal(toolEntry.output, "draft created");
+    }
+  });
+
+  it("resumes a parked tool call and terminates as human_reject", async () => {
+    const approval = deferredParkedResult();
+    let modelCalls = 0;
+
+    const loop = runTaskLoop(
+      {
+        initialHistory: [
+          { role: "user", text: "goal" },
+          {
+            role: "assistant",
+            text: "",
+            toolCalls: [toolCall("gmail.create_draft")],
+          },
+        ],
+        limits,
+        resumeParkedApproval: { approvalId: "task-1" },
+      },
+      {
+        callModel: async () => {
+          modelCalls += 1;
+          return modelStep({ text: "should not run", toolCalls: [] });
+        },
+        dispatchToolCall: async () => ({ isError: false, text: "should not dispatch" }),
+        waitForApproval: approval.waitForApproval,
+      },
+    );
+
+    await approval.whenPending;
+    approval.resolve({
+      isError: false,
+      text: "Human review denied this tool call.",
+      approvalDenied: true,
+    });
+    const result = await loop;
+
+    assert.deepEqual(result.outcome, { status: "human_reject" });
+    assert.equal(modelCalls, 0);
+  });
+
+  it("resumes a parked tool call and fails when the task is cancelled", async () => {
+    const approval = deferredParkedResult();
+
+    const loop = runTaskLoop(
+      {
+        initialHistory: [
+          { role: "user", text: "goal" },
+          {
+            role: "assistant",
+            text: "",
+            toolCalls: [toolCall("gmail.create_draft")],
+          },
+        ],
+        limits,
+        resumeParkedApproval: { approvalId: "task-1" },
+      },
+      {
+        callModel: async () => modelStep({ text: "should not run", toolCalls: [] }),
+        dispatchToolCall: async () => ({ isError: false, text: "should not dispatch" }),
+        waitForApproval: approval.waitForApproval,
+      },
+    );
+
+    await approval.whenPending;
+    approval.reject(new Error("cancelled by operator"));
+    const result = await loop;
+
+    assert.equal(result.outcome.status, "failed");
+    if (result.outcome.status === "failed") {
+      assert.match(result.outcome.reason, /cancelled by operator/);
     }
   });
 });

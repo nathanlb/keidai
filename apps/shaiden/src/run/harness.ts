@@ -31,6 +31,7 @@ import { completeRunWithOutcomeStep } from "./run-completion.js";
 import { previewOf } from "./run-step-recording.js";
 import { createLocalRunReporter } from "./run-reporter.js";
 import { completeRun, createRun } from "./run-lifecycle.js";
+import { createParkedMcpTaskWaiter } from "./parked-mcp-task-waiter.js";
 import type {
   DriveHarnessRunInput,
   HarnessRunOptions,
@@ -274,7 +275,10 @@ async function driveHarnessRun({
   fudaClient,
 }: DriveHarnessRunInput): Promise<HarnessRunResult> {
   const limits = resolveTaskLimits(task);
-  const activeHandle = createActiveRunHandle(runId);
+  const parked = runStore.getParkedMcpTask(runId);
+  const activeHandle = createActiveRunHandle(runId, {
+    waitingForApproval: parked != null,
+  });
   const unregisterActiveRun = activeRunRegistry.register(activeHandle);
 
   const runDraft = {
@@ -288,7 +292,6 @@ async function driveHarnessRun({
       config.toriiMcpUrl,
       createToriiCredential(config, fudaClient, task.assignee),
     );
-    const resumeSignal = session.createApprovalResumeSignal();
 
     try {
       logger.info("run.tools_discovered", {
@@ -324,40 +327,15 @@ async function driveHarnessRun({
         return step;
       };
 
-      const waitForApproval = async (
-        approvalId: string,
-        context?: { stepId?: string },
-      ) => {
-        logger.info("run.waiting_approval", {
-          runId,
-          approvalId,
-          stepId: context?.stepId,
-          wakeup: "mcp_notification",
-        });
-        reporter.recordStep({
-          id: context?.stepId,
-          kind: "waiting_approval",
-          approvalId,
-        });
-        activeHandle.setWaitingForApproval(true);
-        try {
-          const decision = await resumeSignal.waitForDecision(approvalId);
-          // Re-mint on resume so revoked grants and group changes take effect
-          // before the approved call is replayed.
-          if (decision.status === "approved") {
-            try {
-              await session.remintCredentials();
-            } catch (error) {
-              throw new Error(
-                `failed to remint agent token on approval resume: ${describeTokenExchangeFailure(error)}`,
-              );
-            }
-          }
-          return decision;
-        } finally {
-          activeHandle.setWaitingForApproval(false);
-        }
-      };
+      const waitForApproval = createParkedMcpTaskWaiter({
+        runId,
+        runStore,
+        pollMcpTask: (taskId, pollIntervalMs) =>
+          session.pollMcpTask(taskId, pollIntervalMs),
+        reporter,
+        logger,
+        activeHandle,
+      });
 
       logger.info("run.started", {
         runId,
@@ -366,7 +344,17 @@ async function driveHarnessRun({
       });
 
       const { outcome, iterations, history } = await runTaskLoop(
-        { initialHistory, limits },
+        {
+          initialHistory,
+          limits,
+          ...(parked
+            ? {
+                resumeParkedApproval: {
+                  approvalId: parked.mcpTaskId,
+                },
+              }
+            : {}),
+        },
         {
           callModel,
           dispatchToolCall,

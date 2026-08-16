@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   APPROVAL_DENIED_STATUS,
-  APPROVAL_REQUIRED_STATUS,
   TORII_CALL_META_KEY,
 } from "@keidai/shared";
 import {
@@ -10,22 +9,11 @@ import {
   formatApprovalDeniedForModel,
   mapCallToolResponse,
   mapTerminalMcpTaskToToolCallResult,
+  tryMapTerminalCreateTaskResult,
 } from "../parse-tool-result.js";
 import { TaskCancelledError } from "../types/task-cancelled-error.js";
 
 describe("parse tool result", () => {
-  it("detects approval_required payloads", () => {
-    const result = enrichToolCallResult(
-      false,
-      JSON.stringify({
-        status: APPROVAL_REQUIRED_STATUS,
-        approval_id: "abc",
-      }),
-    );
-
-    assert.deepEqual(result.approvalRequired, { approvalId: "abc" });
-  });
-
   it("formats approval_denied payloads for the model", () => {
     const result = enrichToolCallResult(
       false,
@@ -108,6 +96,36 @@ describe("parse tool result", () => {
           ttlMs: 60_000,
         }),
       TaskCancelledError,
+    );
+  });
+
+  it("maps an already-terminal tools/call when the result is present", () => {
+    const result = tryMapTerminalCreateTaskResult({
+      resultType: "task",
+      taskId: "task-1",
+      status: "completed",
+      createdAt: "2026-08-13T12:00:00.000Z",
+      lastUpdatedAt: "2026-08-13T12:00:00.000Z",
+      ttlMs: 60_000,
+      result: {
+        content: [{ type: "text", text: "draft created" }],
+        isError: false,
+      },
+    });
+    assert.equal(result?.text, "draft created");
+  });
+
+  it("returns undefined when a completed create payload has no result", () => {
+    assert.equal(
+      tryMapTerminalCreateTaskResult({
+        resultType: "task",
+        taskId: "task-1",
+        status: "completed",
+        createdAt: "2026-08-13T12:00:00.000Z",
+        lastUpdatedAt: "2026-08-13T12:00:00.000Z",
+        ttlMs: 60_000,
+      }),
+      undefined,
     );
   });
 });

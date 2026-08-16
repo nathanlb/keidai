@@ -84,6 +84,18 @@ function ensureSchemaMigrations(db: DatabaseSync): void {
     "archived_at",
     "ALTER TABLE tasks ADD COLUMN archived_at TEXT",
   );
+  ensureColumn(
+    db,
+    "runs",
+    "mcp_task_id",
+    "ALTER TABLE runs ADD COLUMN mcp_task_id TEXT",
+  );
+  ensureColumn(
+    db,
+    "runs",
+    "mcp_task_poll_interval_ms",
+    "ALTER TABLE runs ADD COLUMN mcp_task_poll_interval_ms INTEGER",
+  );
 }
 
 export function openShaidenDatabase(databasePath: string): DatabaseSync {

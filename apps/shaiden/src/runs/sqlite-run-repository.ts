@@ -12,6 +12,7 @@ import {
 import type { ConversationEntry } from "../run/types/conversation-history.js";
 import {
   DEFAULT_RUN_RETENTION_COUNT,
+  type ParkedMcpTask,
   type RunRepository,
 } from "./types/run-repository.js";
 import {
@@ -64,6 +65,20 @@ function parseOutcome(json: string | null): TerminationOutcome | undefined {
   return JSON.parse(json) as TerminationOutcome;
 }
 
+function parkedMcpTaskFromRow(row: {
+  id: string;
+  mcp_task_id: string;
+  mcp_task_poll_interval_ms: number | null;
+}): ParkedMcpTask {
+  return {
+    runId: row.id,
+    mcpTaskId: row.mcp_task_id,
+    ...(row.mcp_task_poll_interval_ms != null
+      ? { pollIntervalMs: row.mcp_task_poll_interval_ms }
+      : {}),
+  };
+}
+
 function stepPayloadFromRow(row: RunStepRow): RunStep {
   const payload = JSON.parse(row.payload_json) as RunStepPayload;
   return {
@@ -92,6 +107,10 @@ export class SqliteRunRepository implements RunRepository {
   private readonly trimRunsStatement;
   private readonly deleteStepsForRunStatement;
   private readonly deleteRunStatement;
+  private readonly setParkedMcpTaskStatement;
+  private readonly clearParkedMcpTaskStatement;
+  private readonly getParkedMcpTaskStatement;
+  private readonly listParkedMcpTasksStatement;
 
   constructor(
     private readonly db: DatabaseSync,
@@ -125,7 +144,10 @@ export class SqliteRunRepository implements RunRepository {
     `);
     this.updateRunCompleteStatement = db.prepare(`
       UPDATE runs
-      SET status = 'completed', outcome_json = @outcome_json
+      SET status = 'completed',
+          outcome_json = @outcome_json,
+          mcp_task_id = NULL,
+          mcp_task_poll_interval_ms = NULL
       WHERE id = @id
     `);
     this.updateConversationHistoryStatement = db.prepare(`
@@ -164,6 +186,29 @@ export class SqliteRunRepository implements RunRepository {
       DELETE FROM run_steps WHERE run_id = ?
     `);
     this.deleteRunStatement = db.prepare(`DELETE FROM runs WHERE id = ?`);
+    this.setParkedMcpTaskStatement = db.prepare(`
+      UPDATE runs
+      SET mcp_task_id = @mcp_task_id,
+          mcp_task_poll_interval_ms = @poll_interval_ms
+      WHERE id = @id AND status = 'running'
+    `);
+    this.clearParkedMcpTaskStatement = db.prepare(`
+      UPDATE runs
+      SET mcp_task_id = NULL,
+          mcp_task_poll_interval_ms = NULL
+      WHERE id = ?
+    `);
+    this.getParkedMcpTaskStatement = db.prepare(`
+      SELECT id, mcp_task_id, mcp_task_poll_interval_ms
+      FROM runs
+      WHERE id = ? AND mcp_task_id IS NOT NULL
+    `);
+    this.listParkedMcpTasksStatement = db.prepare(`
+      SELECT id, mcp_task_id, mcp_task_poll_interval_ms
+      FROM runs
+      WHERE status = 'running' AND mcp_task_id IS NOT NULL
+      ORDER BY started_at ASC, id ASC
+    `);
   }
 
   create(input: CreateRunRequest): RunReport {
@@ -297,6 +342,43 @@ export class SqliteRunRepository implements RunRepository {
       return null;
     }
     return parseConversationHistory(runRow.conversation_history_json);
+  }
+
+  setParkedMcpTask(
+    runId: string,
+    parked: Omit<ParkedMcpTask, "runId">,
+  ): boolean {
+    const result = this.setParkedMcpTaskStatement.run({
+      id: runId,
+      mcp_task_id: parked.mcpTaskId,
+      poll_interval_ms: parked.pollIntervalMs ?? null,
+    });
+    return result.changes > 0;
+  }
+
+  clearParkedMcpTask(runId: string): boolean {
+    const result = this.clearParkedMcpTaskStatement.run(runId);
+    return result.changes > 0;
+  }
+
+  getParkedMcpTask(runId: string): ParkedMcpTask | null {
+    const row = this.getParkedMcpTaskStatement.get(runId) as
+      | {
+          id: string;
+          mcp_task_id: string;
+          mcp_task_poll_interval_ms: number | null;
+        }
+      | undefined;
+    return row ? parkedMcpTaskFromRow(row) : null;
+  }
+
+  listParkedMcpTasks(): ParkedMcpTask[] {
+    const rows = this.listParkedMcpTasksStatement.all() as Array<{
+      id: string;
+      mcp_task_id: string;
+      mcp_task_poll_interval_ms: number | null;
+    }>;
+    return rows.map(parkedMcpTaskFromRow);
   }
 
   beginContinuation(
