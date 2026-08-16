@@ -12,4 +12,6 @@ minimumReleaseAgeExclude:
 overrides:
   thread-stream: 4.1.0
   brace-expansion@1: 1.1.18
-  undici: ">=7.24.0"
+  # CVE floor from #71. Cap at 7.x: jsdom@29 deep-imports
+  # undici/lib/handler/wrap-handler.js, which undici 8 removed.
+  undici: "^7.24.0"
