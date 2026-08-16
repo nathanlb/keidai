@@ -93,6 +93,24 @@ function runTraceRepositoryContract(
       }
     });
 
+    it("persists gateway and backend task ids", () => {
+      const { repository, close } = createRepository();
+      try {
+        repository.append(
+          sampleTrace("trace-task", "2026-06-20T12:00:00.000Z", {
+            taskId: "gateway-task",
+            backendTaskId: "backend-task",
+          }),
+        );
+
+        const trace = repository.get("trace-task");
+        assert.equal(trace?.taskId, "gateway-task");
+        assert.equal(trace?.backendTaskId, "backend-task");
+      } finally {
+        close();
+      }
+    });
+
     it("filters by outcome, server, and free text", () => {
       const { repository, close } = createRepository();
       try {

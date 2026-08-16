@@ -1,17 +1,10 @@
-import {
-  Badge,
-  Button,
-  cn,
-} from "@keidai/ui";
-import {
-  Ban,
-  Check,
-  Copy,
-  Link2,
-  ShieldCheck,
-} from "lucide-react";
+import { Badge, Button, cn } from "@keidai/ui";
+import { Ban, Check, Copy, Link2, ShieldCheck } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { DetailDrawer, DetailDrawerSectionLabel } from "../../shell/components/detail-drawer/detail-drawer.js";
+import {
+  DetailDrawer,
+  DetailDrawerSectionLabel,
+} from "../../shell/components/detail-drawer/detail-drawer.js";
 import { useActivityTracesPage } from "./context/use-activity-traces.js";
 import { buildLinkingResolutionKey } from "../linking/format-linking-required-prompt.js";
 import { deriveAgentInitials } from "../../fuda/agents/utils/derive-agent-initials.js";
@@ -38,17 +31,9 @@ import {
   formatTraceRelative,
 } from "./utils/format-trace-time.js";
 
-function SectionLabel({
-  children,
-  hint,
-}: {
-  children: string;
-  hint?: string;
-}) {
+function SectionLabel({ children, hint }: { children: string; hint?: string }) {
   return (
-    <DetailDrawerSectionLabel hint={hint}>
-      {children}
-    </DetailDrawerSectionLabel>
+    <DetailDrawerSectionLabel hint={hint}>{children}</DetailDrawerSectionLabel>
   );
 }
 
@@ -139,228 +124,249 @@ export function TraceDetailDrawer() {
         </Button>
       }
     >
-          <div className="flex items-center gap-2.5 rounded-lg border border-border bg-muted/30 px-2.5 py-2 pl-3.5">
-            <span className="shrink-0 text-[10.5px] font-semibold tracking-wider text-muted-foreground uppercase">
-              trace id
-            </span>
-            <span className="min-w-0 flex-1 truncate font-mono text-[12.5px]">
-              {trace.traceId}
-            </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="shrink-0 gap-1.5"
-              onClick={() => void copyTraceId()}
-            >
-              {copied ? (
-                <Check className="size-3.5" aria-hidden />
-              ) : (
-                <Copy className="size-3.5" aria-hidden />
-              )}
-              {copied ? "Copied" : "Copy"}
-            </Button>
-          </div>
+      <div className="flex items-center gap-2.5 rounded-lg border border-border bg-muted/30 px-2.5 py-2 pl-3.5">
+        <span className="shrink-0 text-[10.5px] font-semibold tracking-wider text-muted-foreground uppercase">
+          trace id
+        </span>
+        <span className="min-w-0 flex-1 truncate font-mono text-[12.5px]">
+          {trace.traceId}
+        </span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="shrink-0 gap-1.5"
+          onClick={() => void copyTraceId()}
+        >
+          {copied ? (
+            <Check className="size-3.5" aria-hidden />
+          ) : (
+            <Copy className="size-3.5" aria-hidden />
+          )}
+          {copied ? "Copied" : "Copy"}
+        </Button>
+      </div>
 
-          <div>
-            <div className="mb-2.5 flex items-baseline justify-between">
-              <SectionLabel>Trace timeline</SectionLabel>
-              <div className="font-mono text-[11.5px] text-muted-foreground">
-                {totalMs}ms total
-              </div>
-            </div>
-            <div className="flex flex-col gap-2">
-              {spans.map((span) => (
-                <div
-                  key={span.label}
-                  className="grid grid-cols-[142px_1fr_52px] items-center gap-2.5"
-                >
-                  <span
-                    className={cn(
-                      "truncate font-mono text-[11.5px]",
-                      span.labelClass,
-                    )}
-                  >
-                    {span.label}
-                  </span>
-                  <div className="relative h-[9px] rounded-sm bg-muted/55">
-                    <span
-                      className={cn(
-                        "absolute top-0 bottom-0 rounded-sm",
-                        span.barClass,
-                      )}
-                      style={{
-                        left: span.leftPct,
-                        width: span.widthPct,
-                      }}
-                    />
-                  </div>
-                  <span className="text-right font-mono text-[11px] text-muted-foreground">
-                    {span.durLabel}
-                  </span>
-                </div>
-              ))}
-            </div>
+      <div>
+        <div className="mb-2.5 flex items-baseline justify-between">
+          <SectionLabel>Trace timeline</SectionLabel>
+          <div className="font-mono text-[11.5px] text-muted-foreground">
+            {totalMs}ms total
           </div>
-
-          <div>
-            <SectionLabel hint="who acted">Principal</SectionLabel>
-            <div className="grid grid-cols-2 gap-2.5">
-              <div className="rounded-lg border border-border p-3">
-                <div className="font-mono text-[11px] text-muted-foreground">
-                  agent
-                </div>
-                <div className="mt-1.5 flex items-center gap-2">
-                  <OwnerAvatar
-                    initials={agentLabel ? deriveAgentInitials(agentLabel) : "—"}
-                    className="size-[22px] bg-secondary text-[9px] text-secondary-foreground"
-                  />
-                  <div className="min-w-0 leading-tight">
-                    <div className="font-mono text-[13px] font-semibold">
-                      {agentSlug ?? agentId ?? "—"}
-                    </div>
-                    {agentSlug && agentId ? (
-                      <div className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
-                        {agentId}
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-lg border border-border p-3">
-                <div className="font-mono text-[11px] text-muted-foreground">
-                  ownerId
-                </div>
-                <div className="mt-1.5 flex items-center gap-2">
-                  <OwnerAvatar
-                    initials={ownerId ? deriveOwnerInitials(ownerId) : "—"}
-                    className="size-[22px] text-[9px]"
-                  />
-                  <span className="font-mono text-[13px] font-semibold">
-                    {ownerId ?? "—"}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-              Strict ownership — the agent is bound to this owner at
-              registration; the resolved{" "}
-              <span className="font-mono">owner_id</span> selected the grant used
-              below.
-            </p>
-          </div>
-
-          <div>
-            <SectionLabel>Policy decision</SectionLabel>
+        </div>
+        <div className="flex flex-col gap-2">
+          {spans.map((span) => (
             <div
-              className={cn(
-                "rounded-lg border p-3.5",
-                policyDenied
-                  ? "border-destructive/40 bg-destructive/8"
-                  : "border-border",
-              )}
+              key={span.label}
+              className="grid grid-cols-[142px_1fr_52px] items-center gap-2.5"
             >
-              <div className="flex items-center gap-2">
-                {policyDenied ? (
-                  <Ban className="size-[15px] text-destructive" aria-hidden />
-                ) : (
-                  <ShieldCheck
-                    className={cn(
-                      "size-[15px]",
-                      trace.outcome === "success"
-                        ? "text-success"
-                        : "text-muted-foreground",
-                    )}
-                    aria-hidden
-                  />
+              <span
+                className={cn(
+                  "truncate font-mono text-[11.5px]",
+                  span.labelClass,
                 )}
+              >
+                {span.label}
+              </span>
+              <div className="relative h-[9px] rounded-sm bg-muted/55">
                 <span
                   className={cn(
-                    "text-[13.5px] font-semibold",
-                    policyDenied
-                      ? "text-destructive"
-                      : trace.outcome === "success"
-                        ? "text-success"
-                        : "text-foreground",
+                    "absolute top-0 bottom-0 rounded-sm",
+                    span.barClass,
                   )}
-                >
-                  {policy.headline}
-                </span>
+                  style={{
+                    left: span.leftPct,
+                    width: span.widthPct,
+                  }}
+                />
               </div>
-              <p className="mt-1.5 text-[12.5px] leading-normal text-muted-foreground">
-                {policy.reason}
-              </p>
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
-                <Badge
-                  variant="outline"
-                  className="font-mono text-[11px] font-normal"
-                >
-                  default: {policy.policyDefault}
-                </Badge>
-                {policy.matchedRule ? (
-                  <Badge
-                    variant="outline"
-                    className="font-mono text-[11px] font-normal"
-                  >
-                    matched: {policy.matchedRule}
-                  </Badge>
+              <span className="text-right font-mono text-[11px] text-muted-foreground">
+                {span.durLabel}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <SectionLabel hint="who acted">Principal</SectionLabel>
+        <div className="grid grid-cols-2 gap-2.5">
+          <div className="rounded-lg border border-border p-3">
+            <div className="font-mono text-[11px] text-muted-foreground">
+              agent
+            </div>
+            <div className="mt-1.5 flex items-center gap-2">
+              <OwnerAvatar
+                initials={agentLabel ? deriveAgentInitials(agentLabel) : "—"}
+                className="size-[22px] bg-secondary text-[9px] text-secondary-foreground"
+              />
+              <div className="min-w-0 leading-tight">
+                <div className="font-mono text-[13px] font-semibold">
+                  {agentSlug ?? agentId ?? "—"}
+                </div>
+                {agentSlug && agentId ? (
+                  <div className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
+                    {agentId}
+                  </div>
                 ) : null}
               </div>
             </div>
           </div>
-
-          <div>
-            <SectionLabel>Credential resolution</SectionLabel>
-            <div className="flex flex-col gap-2 rounded-lg border border-border p-3.5 text-[12.5px]">
-              <div className="flex justify-between gap-3">
-                <span className="text-muted-foreground">credentialRef</span>
-                <span className="max-w-[300px] truncate text-right font-mono">
-                  {formatCredentialRef(trace)}
-                </span>
-              </div>
-              <div className="flex justify-between gap-3">
-                <span className="text-muted-foreground">strategy</span>
-                <span className="font-mono">
-                  {formatCredentialStrategy(server)}
-                </span>
-              </div>
-              <div className="flex justify-between gap-3">
-                <span className="text-muted-foreground">provider</span>
-                <span className="font-mono">
-                  {formatCredentialProvider(server)}
-                </span>
-              </div>
+          <div className="rounded-lg border border-border p-3">
+            <div className="font-mono text-[11px] text-muted-foreground">
+              ownerId
             </div>
-            {showLinkingCta ? (
-              <div className="mt-2.5 flex items-center gap-3 rounded-lg border border-warning/40 bg-warning/8 p-3">
-                <p className="flex-1 text-[12.5px] leading-snug text-foreground">
-                  {linkingReason}
-                </p>
-                <Button
-                  type="button"
-                  size="sm"
-                  className="shrink-0 gap-1.5"
-                  onClick={() => linkProvider(linkProviderId, ownerId)}
-                >
-                  <Link2 className="size-3.5" aria-hidden />
-                  Link
-                </Button>
-              </div>
-            ) : linkingReason && !linkingResolved ? (
-              <p className="mt-2.5 rounded-lg border border-warning/40 bg-warning/8 p-3 text-[12.5px] leading-snug text-foreground">
-                {linkingReason}
-              </p>
+            <div className="mt-1.5 flex items-center gap-2">
+              <OwnerAvatar
+                initials={ownerId ? deriveOwnerInitials(ownerId) : "—"}
+                className="size-[22px] text-[9px]"
+              />
+              <span className="font-mono text-[13px] font-semibold">
+                {ownerId ?? "—"}
+              </span>
+            </div>
+          </div>
+        </div>
+        <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+          Strict ownership — the agent is bound to this owner at registration;
+          the resolved <span className="font-mono">owner_id</span> selected the
+          grant used below.
+        </p>
+      </div>
+
+      <div>
+        <SectionLabel>Policy decision</SectionLabel>
+        <div
+          className={cn(
+            "rounded-lg border p-3.5",
+            policyDenied
+              ? "border-destructive/40 bg-destructive/8"
+              : "border-border",
+          )}
+        >
+          <div className="flex items-center gap-2">
+            {policyDenied ? (
+              <Ban className="size-[15px] text-destructive" aria-hidden />
+            ) : (
+              <ShieldCheck
+                className={cn(
+                  "size-[15px]",
+                  trace.outcome === "success"
+                    ? "text-success"
+                    : "text-muted-foreground",
+                )}
+                aria-hidden
+              />
+            )}
+            <span
+              className={cn(
+                "text-[13.5px] font-semibold",
+                policyDenied
+                  ? "text-destructive"
+                  : trace.outcome === "success"
+                    ? "text-success"
+                    : "text-foreground",
+              )}
+            >
+              {policy.headline}
+            </span>
+          </div>
+          <p className="mt-1.5 text-[12.5px] leading-normal text-muted-foreground">
+            {policy.reason}
+          </p>
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            <Badge
+              variant="outline"
+              className="font-mono text-[11px] font-normal"
+            >
+              default: {policy.policyDefault}
+            </Badge>
+            {policy.matchedRule ? (
+              <Badge
+                variant="outline"
+                className="font-mono text-[11px] font-normal"
+              >
+                matched: {policy.matchedRule}
+              </Badge>
             ) : null}
           </div>
+        </div>
+      </div>
 
-          {trace.error ? (
-            <div>
-              <SectionLabel>Backend error</SectionLabel>
-              <pre className="overflow-x-auto rounded-lg border border-destructive/35 bg-destructive/8 p-3.5 font-mono text-xs leading-normal whitespace-pre-wrap text-destructive">
-                {trace.error}
-              </pre>
+      <div>
+        <SectionLabel>Credential resolution</SectionLabel>
+        <div className="flex flex-col gap-2 rounded-lg border border-border p-3.5 text-[12.5px]">
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">credentialRef</span>
+            <span className="max-w-[300px] truncate text-right font-mono">
+              {formatCredentialRef(trace)}
+            </span>
+          </div>
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">strategy</span>
+            <span className="font-mono">
+              {formatCredentialStrategy(server)}
+            </span>
+          </div>
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">provider</span>
+            <span className="font-mono">
+              {formatCredentialProvider(server)}
+            </span>
+          </div>
+        </div>
+        {showLinkingCta ? (
+          <div className="mt-2.5 flex items-center gap-3 rounded-lg border border-warning/40 bg-warning/8 p-3">
+            <p className="flex-1 text-[12.5px] leading-snug text-foreground">
+              {linkingReason}
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              className="shrink-0 gap-1.5"
+              onClick={() => linkProvider(linkProviderId, ownerId)}
+            >
+              <Link2 className="size-3.5" aria-hidden />
+              Link
+            </Button>
+          </div>
+        ) : linkingReason && !linkingResolved ? (
+          <p className="mt-2.5 rounded-lg border border-warning/40 bg-warning/8 p-3 text-[12.5px] leading-snug text-foreground">
+            {linkingReason}
+          </p>
+        ) : null}
+      </div>
+
+      {trace.error ? (
+        <div>
+          <SectionLabel>Backend error</SectionLabel>
+          <pre className="overflow-x-auto rounded-lg border border-destructive/35 bg-destructive/8 p-3.5 font-mono text-xs leading-normal whitespace-pre-wrap text-destructive">
+            {trace.error}
+          </pre>
+        </div>
+      ) : null}
+
+      {trace.taskId || trace.backendTaskId ? (
+        <div>
+          <SectionLabel hint="Gateway remints backend task ids so two servers cannot collide.">
+            MCP task
+          </SectionLabel>
+          <div className="flex flex-col gap-2 rounded-lg border border-border p-3.5 text-[12.5px]">
+            <div className="flex justify-between gap-3">
+              <span className="text-muted-foreground">taskId</span>
+              <span className="max-w-[300px] truncate text-right font-mono">
+                {trace.taskId ?? "—"}
+              </span>
             </div>
-          ) : null}
+            <div className="flex justify-between gap-3">
+              <span className="text-muted-foreground">backendTaskId</span>
+              <span className="max-w-[300px] truncate text-right font-mono">
+                {trace.backendTaskId ?? "—"}
+              </span>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </DetailDrawer>
   );
 }

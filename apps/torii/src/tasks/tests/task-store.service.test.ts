@@ -257,4 +257,84 @@ describe("TaskStoreService sqlite persistence", () => {
       close();
     }
   });
+
+  it("attaches a backend origin without exposing it on the wire task", () => {
+    const { store, close } = createStore();
+    try {
+      const created = store.createWorkingTask({
+        agentId: TEST_AGENT_PRINCIPAL.agentId,
+        ownerId: TEST_AGENT_PRINCIPAL.ownerId,
+      });
+      const attached = store.attachBackendOrigin(created.taskId, {
+        server: "github",
+        backendTaskId: "same-id-from-two-backends",
+        pollIntervalMs: 100,
+        statusMessage: "Waiting on github task",
+      });
+      assert.equal(attached?.backendServer, "github");
+      assert.equal(attached?.backendTaskId, "same-id-from-two-backends");
+
+      const stored = store.requireOwnedTask(
+        TEST_AGENT_PRINCIPAL.agentId,
+        created.taskId,
+      );
+      assert.equal(stored.backendServer, "github");
+      assert.equal(stored.pollIntervalMs, 100);
+
+      const wire = store.getDetailedTask(
+        TEST_AGENT_PRINCIPAL.agentId,
+        created.taskId,
+      );
+      assert.equal(wire.taskId, created.taskId);
+      assert.equal(
+        (wire as { backendTaskId?: string }).backendTaskId,
+        undefined,
+      );
+      assert.equal(wire.pollIntervalMs, 100);
+      assert.equal(wire.statusMessage, "Waiting on github task");
+    } finally {
+      close();
+    }
+  });
+
+  it("refuses to attach a backend origin to a terminal task", () => {
+    const { store, close } = createStore();
+    try {
+      const created = store.createWorkingTask({
+        agentId: TEST_AGENT_PRINCIPAL.agentId,
+        ownerId: TEST_AGENT_PRINCIPAL.ownerId,
+      });
+      store.requestCancel(TEST_AGENT_PRINCIPAL.agentId, created.taskId);
+
+      const attached = store.attachBackendOrigin(created.taskId, {
+        server: "github",
+        backendTaskId: "orphan",
+      });
+
+      assert.equal(attached, undefined);
+      const stored = store.requireOwnedTask(
+        TEST_AGENT_PRINCIPAL.agentId,
+        created.taskId,
+      );
+      assert.equal(stored.status, "cancelled");
+      assert.equal(stored.backendTaskId, undefined);
+    } finally {
+      close();
+    }
+  });
+
+  it("returns undefined when attaching to an unknown task", () => {
+    const { store, close } = createStore();
+    try {
+      assert.equal(
+        store.attachBackendOrigin("does-not-exist", {
+          server: "github",
+          backendTaskId: "orphan",
+        }),
+        undefined,
+      );
+    } finally {
+      close();
+    }
+  });
 });

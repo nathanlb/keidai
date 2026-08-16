@@ -1,3 +1,5 @@
+import { mcpRoutingName } from "@keidai/shared/mcp-jsonrpc";
+
 /**
  * Ensure Streamable HTTP POSTs carry `Mcp-Method` / `Mcp-Name` (SEP-2243).
  * The SDK client already sets these on modern `_meta`-enveloped requests;
@@ -42,20 +44,7 @@ function readJsonRpcMessage(
     return undefined;
   }
 
-  let name: string | undefined;
-  if (request.params && typeof request.params === "object") {
-    const params = request.params as { name?: unknown; uri?: unknown };
-    if (method === "resources/read" && typeof params.uri === "string") {
-      name = params.uri;
-    } else if (
-      (method === "tools/call" || method === "prompts/get") &&
-      typeof params.name === "string"
-    ) {
-      name = params.name;
-    }
-  }
-
-  return { method, name };
+  return { method, name: mcpRoutingName(method, request.params) };
 }
 
 function parseJsonBody(body: unknown): unknown {

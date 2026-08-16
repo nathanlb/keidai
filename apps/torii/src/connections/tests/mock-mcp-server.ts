@@ -21,6 +21,13 @@ export interface MockMcpServer {
   close(): Promise<void>;
 }
 
+export type MockJsonRpcMessage = {
+  jsonrpc?: string;
+  id?: unknown;
+  method?: string;
+  params?: Record<string, unknown>;
+};
+
 export interface MockMcpServerOptions {
   rejectConnections?: boolean;
   requireAuth?: boolean;
@@ -28,6 +35,14 @@ export interface MockMcpServerOptions {
   expectedBearer?: string;
   tools?: MockToolDefinition[];
   onRequest?: (req: IncomingMessage) => void;
+  /**
+   * Intercept a JSON-RPC request before the SDK handler. Return a result
+   * object to short-circuit, or `undefined` to fall through (initialize /
+   * tools/list).
+   */
+  onJsonRpc?: (
+    message: MockJsonRpcMessage,
+  ) => Record<string, unknown> | undefined | Promise<Record<string, unknown> | undefined>;
 }
 
 async function readJsonBody(req: IncomingMessage): Promise<unknown> {
@@ -89,6 +104,20 @@ export async function startMockMcpServer(
 
     if (req.method === "POST") {
       const body = await readJsonBody(req);
+      if (options?.onJsonRpc && body && typeof body === "object") {
+        const message = body as MockJsonRpcMessage;
+        const intercepted = await options.onJsonRpc(message);
+        if (intercepted !== undefined) {
+          res.writeHead(200, { "content-type": "application/json" }).end(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              id: message.id ?? null,
+              result: intercepted,
+            }),
+          );
+          return;
+        }
+      }
       const mcpServer = new McpServer({
         name: "mock-mcp-server",
         version: "1.0.0",

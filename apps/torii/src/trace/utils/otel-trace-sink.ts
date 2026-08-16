@@ -75,6 +75,10 @@ export function emitOtelSpan(callTrace: CallTrace): void {
       ? { "torii.duration_ms": callTrace.durationMs }
       : {}),
     ...(callTrace.error ? { "torii.error": callTrace.error } : {}),
+    ...(callTrace.taskId ? { "torii.task_id": callTrace.taskId } : {}),
+    ...(callTrace.backendTaskId
+      ? { "torii.backend_task_id": callTrace.backendTaskId }
+      : {}),
   });
 
   if (callTrace.error) {

@@ -47,7 +47,7 @@ export async function dispatchMcpTasksMethod(input: {
   principal: AgentPrincipal;
   taskStore: TaskStoreService;
   executeApprovedTask?: (taskId: string) => Promise<void>;
-  onTaskCancelled?: (taskId: string) => void;
+  onTaskCancelled?: (taskId: string) => void | Promise<void>;
 }): Promise<McpTasksDispatchResult> {
   if (!clientDeclaresTasksExtension(readClientCapabilities(input.body))) {
     return { ok: false, error: MISSING_TASKS_EXTENSION_ERROR };
@@ -112,7 +112,7 @@ export async function dispatchMcpTasksMethod(input: {
       }
       case MCP_TASKS_CANCEL_METHOD:
         input.taskStore.requestCancel(input.principal.agentId, taskId);
-        input.onTaskCancelled?.(taskId);
+        await input.onTaskCancelled?.(taskId);
         return {
           ok: true,
           result: { resultType: MCP_COMPLETE_RESULT_TYPE },

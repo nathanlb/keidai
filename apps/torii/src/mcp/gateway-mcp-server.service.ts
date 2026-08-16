@@ -21,7 +21,6 @@ import {
   LinkingRequiredError,
 } from "../credentials/types/credential-resolution.js";
 import { ToolDispatchService } from "../dispatch/tool-dispatch.service.js";
-import { isParkedTaskResult } from "../dispatch/utils/is-parked-task-result.js";
 import { runWithAgentPrincipal } from "../identity/agent-principal-context.js";
 import { InboundIdentityService } from "../identity/inbound-identity.service.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
@@ -135,9 +134,9 @@ export class GatewayMcpServer {
             principal: principalResult.principal,
             taskStore: this.taskStore,
             executeApprovedTask: (taskId) =>
-              this.toolDispatch.executeApprovedTask(taskId),
+              this.toolDispatch.syncNonTerminalTask(taskId),
             onTaskCancelled: (taskId) =>
-              this.toolDispatch.cancelPendingApprovalForTask(taskId),
+              this.toolDispatch.cancelParkedTask(taskId),
           });
           if (dispatched.ok) {
             sendMcpJsonRpc(
@@ -155,23 +154,10 @@ export class GatewayMcpServer {
       }
 
       if (method === "tools/call" && mcpRequest.name) {
-        const gated = await runWithAgentPrincipal(
-          principalResult.principal,
-          async () => {
-            if (!this.toolDispatch.requiresApproval(mcpRequest.name!)) {
-              return false;
-            }
-            await this.handleGatedToolsCall(
-              request,
-              reply,
-              mcpRequest,
-            );
-            return true;
-          },
-        );
-        if (gated) {
-          return;
-        }
+        await runWithAgentPrincipal(principalResult.principal, async () => {
+          await this.handleToolsCall(request, reply, mcpRequest);
+        });
+        return;
       }
 
       // toNodeHandler writes the full HTTP response to reply.raw.
@@ -254,33 +240,25 @@ export class GatewayMcpServer {
       };
     });
 
-    mcpServer.server.setRequestHandler("tools/call", async (request) => {
-      try {
-        const result = await this.toolDispatch.callTool(
-          request.params.name,
-          request.params.arguments,
-        );
-        if (isParkedTaskResult(result)) {
-          throw ProtocolError.fromError(
-            ProtocolErrorCode.InternalError,
-            "Task-augmented tools/call must bypass the SDK codec",
-          );
-        }
-        return result;
-      } catch (error) {
-        throw this.toMcpError(error);
-      }
-    });
+    // No `tools/call` handler: every inbound call carries `Mcp-Name`, so
+    // `handlePost` always diverts to `handleToolsCall`. The SDK codec would
+    // reject the task-augmented results Torii has to return.
 
     return mcpServer;
   }
 
-  private async handleGatedToolsCall(
+  private async handleToolsCall(
     request: FastifyRequest,
     reply: FastifyReply,
     mcpRequest: InboundMcpRequestContext,
   ): Promise<void> {
-    if (!clientDeclaresTasksExtension(readClientCapabilities(request.body))) {
+    const clientDeclaresTasks = clientDeclaresTasksExtension(
+      readClientCapabilities(request.body),
+    );
+    if (
+      this.toolDispatch.requiresApproval(mcpRequest.name!) &&
+      !clientDeclaresTasks
+    ) {
       sendMcpJsonRpc(
         reply,
         mcpJsonRpcError(mcpRequest.id, MISSING_TASKS_EXTENSION_ERROR),
@@ -292,6 +270,7 @@ export class GatewayMcpServer {
       const result = await this.toolDispatch.callTool(
         mcpRequest.name!,
         readToolCallArguments(request.body),
+        { clientDeclaresTasks },
       );
       sendMcpJsonRpc(
         reply,

@@ -28,6 +28,21 @@ describe("ensureOutboundMcpRoutingHeaders", () => {
     assert.equal(headers.get("mcp-name"), "search_issues");
   });
 
+  it("sets Mcp-Name from a tasks/get JSON body", () => {
+    const headers = new Headers();
+    ensureOutboundMcpRoutingHeaders(
+      headers,
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id: 4,
+        method: "tasks/get",
+        params: { taskId: "abc" },
+      }),
+    );
+    assert.equal(headers.get("mcp-method"), "tasks/get");
+    assert.equal(headers.get("mcp-name"), "abc");
+  });
+
   it("does not overwrite headers the SDK already set", () => {
     const headers = new Headers({ "mcp-method": "tools/list" });
     ensureOutboundMcpRoutingHeaders(

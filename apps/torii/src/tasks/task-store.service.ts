@@ -39,6 +39,8 @@ interface McpTaskRow {
   satisfied_input_keys: string;
   result: string | null;
   error: string | null;
+  backend_server: string | null;
+  backend_task_id: string | null;
 }
 
 @injectable()
@@ -82,7 +84,9 @@ export class TaskStoreService {
         input_requests,
         satisfied_input_keys,
         result,
-        error
+        error,
+        backend_server,
+        backend_task_id
       FROM mcp_tasks
       WHERE task_id = ?
     `);
@@ -92,10 +96,13 @@ export class TaskStoreService {
         status = ?,
         status_message = ?,
         last_updated_at = ?,
+        poll_interval_ms = ?,
         input_requests = ?,
         satisfied_input_keys = ?,
         result = ?,
-        error = ?
+        error = ?,
+        backend_server = ?,
+        backend_task_id = ?
       WHERE task_id = ?
     `);
   }
@@ -145,7 +152,66 @@ export class TaskStoreService {
     taskId: string,
     now = Date.now(),
   ): McpDetailedTask {
-    return toDetailedMcpTask(this.requireOwnedLiveTask(agentId, taskId, now));
+    return toDetailedMcpTask(this.requireOwnedTask(agentId, taskId, now));
+  }
+
+  /**
+   * The stored task, including terminal ones and the backend-origin fields the
+   * wire types omit. Throws `McpTaskLookupError` when the task is unknown,
+   * owned by another agent, or past its TTL — an agent must not be able to
+   * tell those apart.
+   */
+  requireOwnedTask(
+    agentId: string,
+    taskId: string,
+    now = Date.now(),
+  ): StoredMcpTask {
+    const record = this.getRecord(taskId);
+    if (!record || record.agentId !== agentId) {
+      throw new McpTaskLookupError("not_found");
+    }
+    if (isMcpTaskExpired(record, now)) {
+      throw new McpTaskLookupError("expired");
+    }
+    return record;
+  }
+
+  /**
+   * Bind a reminted gateway task to a backend-originated task.
+   *
+   * Returns `undefined` when there is nothing to bind to — the task is unknown,
+   * or already terminal because the agent cancelled it while the backend call
+   * was in flight. Callers must treat that as a refusal and cancel upstream,
+   * otherwise the backend keeps working on a task nobody will read.
+   */
+  attachBackendOrigin(
+    taskId: string,
+    origin: {
+      server: string;
+      backendTaskId: string;
+      pollIntervalMs?: number;
+      statusMessage?: string;
+    },
+    now = Date.now(),
+  ): StoredMcpTask | undefined {
+    const record = this.getRecord(taskId);
+    if (!record || isMcpTaskTerminalStatus(record.status)) {
+      return undefined;
+    }
+    const next: StoredMcpTask = {
+      ...record,
+      backendServer: origin.server,
+      backendTaskId: origin.backendTaskId,
+      ...(origin.pollIntervalMs !== undefined
+        ? { pollIntervalMs: origin.pollIntervalMs }
+        : {}),
+      ...(origin.statusMessage !== undefined
+        ? { statusMessage: origin.statusMessage }
+        : {}),
+      lastUpdatedAtMs: now,
+    };
+    this.save(next);
+    return next;
   }
 
   /**
@@ -159,7 +225,7 @@ export class TaskStoreService {
     inputResponses: McpInputResponses,
     now = Date.now(),
   ): void {
-    const record = this.requireOwnedLiveTask(agentId, taskId, now);
+    const record = this.requireOwnedTask(agentId, taskId, now);
     if (record.status !== "input_required") {
       return;
     }
@@ -189,7 +255,7 @@ export class TaskStoreService {
    * Non-terminal tasks move to `cancelled`.
    */
   requestCancel(agentId: string, taskId: string, now = Date.now()): void {
-    const record = this.requireOwnedLiveTask(agentId, taskId, now);
+    const record = this.requireOwnedTask(agentId, taskId, now);
     if (isMcpTaskTerminalStatus(record.status)) {
       return;
     }
@@ -274,21 +340,6 @@ export class TaskStoreService {
     return next;
   }
 
-  private requireOwnedLiveTask(
-    agentId: string,
-    taskId: string,
-    now: number,
-  ): StoredMcpTask {
-    const record = this.getRecord(taskId);
-    if (!record || record.agentId !== agentId) {
-      throw new McpTaskLookupError("not_found");
-    }
-    if (isMcpTaskExpired(record, now)) {
-      throw new McpTaskLookupError("expired");
-    }
-    return record;
-  }
-
   private getRecord(taskId: string): StoredMcpTask | undefined {
     const row = this.getStatement.get(taskId) as McpTaskRow | undefined;
     return row ? rowToRecord(row) : undefined;
@@ -299,12 +350,15 @@ export class TaskStoreService {
       record.status,
       record.statusMessage ?? null,
       record.lastUpdatedAtMs,
+      record.pollIntervalMs ?? null,
       record.inputRequests === undefined
         ? null
         : JSON.stringify(record.inputRequests),
       JSON.stringify(record.satisfiedInputKeys),
       record.result === undefined ? null : JSON.stringify(record.result),
       record.error === undefined ? null : JSON.stringify(record.error),
+      record.backendServer ?? null,
+      record.backendTaskId ?? null,
       record.taskId,
     );
   }
@@ -334,5 +388,7 @@ function rowToRecord(row: McpTaskRow): StoredMcpTask {
     ...(row.error !== null
       ? { error: JSON.parse(row.error) as Record<string, unknown> }
       : {}),
+    ...(row.backend_server !== null ? { backendServer: row.backend_server } : {}),
+    ...(row.backend_task_id !== null ? { backendTaskId: row.backend_task_id } : {}),
   };
 }

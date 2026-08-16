@@ -28,7 +28,9 @@ CREATE TABLE IF NOT EXISTS call_traces (
   duration_ms INTEGER,
   error TEXT,
   run_id TEXT,
-  step_id TEXT
+  step_id TEXT,
+  task_id TEXT,
+  backend_task_id TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_call_traces_timestamp
@@ -98,7 +100,9 @@ CREATE TABLE IF NOT EXISTS mcp_tasks (
   input_requests TEXT,
   satisfied_input_keys TEXT NOT NULL DEFAULT '[]',
   result TEXT,
-  error TEXT
+  error TEXT,
+  backend_server TEXT,
+  backend_task_id TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_mcp_tasks_agent_created
@@ -125,6 +129,12 @@ function ensureCallTraceCorrelationColumns(db: DatabaseSync): void {
   if (!columnNames.has("step_id")) {
     db.exec("ALTER TABLE call_traces ADD COLUMN step_id TEXT");
   }
+  if (!columnNames.has("task_id")) {
+    db.exec("ALTER TABLE call_traces ADD COLUMN task_id TEXT");
+  }
+  if (!columnNames.has("backend_task_id")) {
+    db.exec("ALTER TABLE call_traces ADD COLUMN backend_task_id TEXT");
+  }
 }
 
 function ensureApprovalsTaskIdColumn(db: DatabaseSync): void {
@@ -141,6 +151,19 @@ function ensureApprovalsTaskIdColumn(db: DatabaseSync): void {
   `);
 }
 
+function ensureMcpTaskBackendOriginColumns(db: DatabaseSync): void {
+  const columns = db
+    .prepare("PRAGMA table_info(mcp_tasks)")
+    .all() as Array<{ name: string }>;
+  const columnNames = new Set(columns.map((column) => column.name));
+  if (!columnNames.has("backend_server")) {
+    db.exec("ALTER TABLE mcp_tasks ADD COLUMN backend_server TEXT");
+  }
+  if (!columnNames.has("backend_task_id")) {
+    db.exec("ALTER TABLE mcp_tasks ADD COLUMN backend_task_id TEXT");
+  }
+}
+
 export function openGatewayDatabase(databasePath: string): DatabaseSync {
   const db = new DatabaseSync(databasePath);
   db.exec("PRAGMA journal_mode = WAL");
@@ -149,5 +172,6 @@ export function openGatewayDatabase(databasePath: string): DatabaseSync {
   ensureOAuthClientRedirectUriColumn(db);
   ensureCallTraceCorrelationColumns(db);
   ensureApprovalsTaskIdColumn(db);
+  ensureMcpTaskBackendOriginColumns(db);
   return db;
 }
