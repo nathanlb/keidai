@@ -28,7 +28,9 @@ function rowToToken(row: TokenRow): OAuthToken {
 export class SqliteTokenRepository implements TokenRepository {
   private readonly getStatement;
   private readonly listByOwnerStatement;
+  private readonly listOwnerIdsStatement;
   private readonly deleteStatement;
+  private readonly deleteByOwnerStatement;
   private readonly upsertStatement;
 
   constructor(private readonly db: DatabaseSync) {
@@ -42,9 +44,17 @@ export class SqliteTokenRepository implements TokenRepository {
       FROM oauth_tokens
       WHERE owner_id = ?
     `);
+    this.listOwnerIdsStatement = db.prepare(`
+      SELECT DISTINCT owner_id
+      FROM oauth_tokens
+    `);
     this.deleteStatement = db.prepare(`
       DELETE FROM oauth_tokens
       WHERE owner_id = ? AND provider = ?
+    `);
+    this.deleteByOwnerStatement = db.prepare(`
+      DELETE FROM oauth_tokens
+      WHERE owner_id = ?
     `);
     this.upsertStatement = db.prepare(`
       INSERT INTO oauth_tokens (
@@ -92,5 +102,15 @@ export class SqliteTokenRepository implements TokenRepository {
       provider: row.provider,
       token: rowToToken(row),
     }));
+  }
+
+  async listOwnerIds(): Promise<string[]> {
+    const rows = this.listOwnerIdsStatement.all() as Array<{ owner_id: string }>;
+    return rows.map((row) => row.owner_id);
+  }
+
+  async deleteByOwner(ownerId: string): Promise<number> {
+    const result = this.deleteByOwnerStatement.run(ownerId);
+    return Number(result.changes ?? 0);
   }
 }

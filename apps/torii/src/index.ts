@@ -9,6 +9,9 @@ import { createContainer } from "./container.js";
 import { ConnectionManager } from "./connections/connection-manager.service.js";
 import { ToolCatalogService } from "./catalog/tool-catalog.service.js";
 import { ToriiConfigService } from "./config/torii-config.service.js";
+import { applyOperatorsFile } from "./credentials/apply-operators-file.js";
+import { PENDING_OAUTH_LINK_STORE } from "./credentials/types/pending-oauth-link-store.js";
+import { TOKEN_REPOSITORY } from "./credentials/types/token-repository.js";
 import { GatewayHttpServer } from "./http/gateway-http-server.service.js";
 import { StructuredLoggerService } from "./logging/structured-logger.service.js";
 
@@ -33,6 +36,20 @@ export async function startServer(): Promise<void> {
   logger.info("boot.config_loaded", {
     serverCount: configService.get().servers.length,
   });
+
+  const oauthReconcile = await applyOperatorsFile(
+    app.resolve(TOKEN_REPOSITORY),
+    app.resolve(PENDING_OAUTH_LINK_STORE),
+  );
+  if (oauthReconcile) {
+    logger.info("boot.operators_oauth_reconciled", {
+      path: process.env.TORII_OPERATORS_PATH,
+      tokensDeleted: oauthReconcile.tokensDeleted,
+      pendingLinksDeleted: oauthReconcile.pendingLinksDeleted,
+      ownersWiped: oauthReconcile.ownersWiped,
+      wipedOwnerIds: oauthReconcile.wipedOwnerIds,
+    });
+  }
 
   await connectionManager.connectAll();
 

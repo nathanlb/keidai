@@ -41,7 +41,7 @@ JWKS: `GET /.well-known/jwks.json` → `{ keys: [...] }` (unauthenticated; publi
 
 SQLite path defaults to `./data/fuda.db` (`FUDA_DB_PATH`). Migrations run at boot before the HTTP server starts, then structural integrity is checked (duplicate slugs, orphan grants).
 
-When `FUDA_OPERATORS_PATH` points at an `operators.yaml`, Fuda reconciles the `owners` table at boot (upsert listed owners; delete absent ones and cascade their agents). Create agents, bearers, and grants through the management API / keidai-ui — there is no config-based seed in the server.
+When `FUDA_OPERATORS_PATH` points at an `operators.yaml`, Fuda reconciles the `owners` table at boot (upsert listed owners; delete absent ones and cascade their agents). Torii separately wipes that `owner_id`'s OAuth tokens when `TORII_OPERATORS_PATH` is set — restart Torii after editing the registry. Create agents, bearers, and grants through the management API / keidai-ui — there is no config-based seed in the server.
 
 ### Management API
 

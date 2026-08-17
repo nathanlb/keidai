@@ -68,6 +68,31 @@ function runTokenRepositoryContract(
       }
     });
 
+    it("deletes every grant for an owner and lists remaining owner ids", async () => {
+      const { repository, close } = createRepository();
+      try {
+        await repository.set("owner-a", "github", { accessToken: "gh-token" });
+        await repository.set("owner-a", "linear", {
+          accessToken: "linear-token",
+        });
+        await repository.set("owner-b", "github", {
+          accessToken: "other-token",
+        });
+
+        assert.equal(await repository.deleteByOwner("owner-a"), 2);
+        assert.equal(await repository.get("owner-a", "github"), null);
+        assert.equal(await repository.get("owner-a", "linear"), null);
+        assert.equal(
+          (await repository.get("owner-b", "github"))?.accessToken,
+          "other-token",
+        );
+        assert.deepEqual(await repository.listOwnerIds(), ["owner-b"]);
+        assert.equal(await repository.deleteByOwner("owner-a"), 0);
+      } finally {
+        close();
+      }
+    });
+
     it("lists grants for an owner without leaking other owners", async () => {
       const { repository, close } = createRepository();
       try {

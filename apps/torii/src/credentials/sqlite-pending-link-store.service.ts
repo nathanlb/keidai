@@ -35,6 +35,8 @@ export class SqlitePendingLinkStore implements PendingOAuthLinkStore {
   private readonly getStatement;
   private readonly updateStatement;
   private readonly getLatestStatement;
+  private readonly listOwnerIdsStatement;
+  private readonly deleteByOwnerStatement;
 
   constructor(private readonly db: DatabaseSync) {
     this.insertStatement = db.prepare(`
@@ -94,6 +96,14 @@ export class SqlitePendingLinkStore implements PendingOAuthLinkStore {
       ORDER BY created_at DESC
       LIMIT 1
     `);
+    this.listOwnerIdsStatement = db.prepare(`
+      SELECT DISTINCT owner_id
+      FROM pending_oauth_links
+    `);
+    this.deleteByOwnerStatement = db.prepare(`
+      DELETE FROM pending_oauth_links
+      WHERE owner_id = ?
+    `);
   }
 
   async create(link: PendingOAuthLink): Promise<void> {
@@ -137,5 +147,15 @@ export class SqlitePendingLinkStore implements PendingOAuthLinkStore {
       | PendingLinkRow
       | undefined;
     return row ? rowToPendingLink(row) : null;
+  }
+
+  async listOwnerIds(): Promise<string[]> {
+    const rows = this.listOwnerIdsStatement.all() as Array<{ owner_id: string }>;
+    return rows.map((row) => row.owner_id);
+  }
+
+  async deleteByOwner(ownerId: string): Promise<number> {
+    const result = this.deleteByOwnerStatement.run(ownerId);
+    return Number(result.changes ?? 0);
   }
 }

@@ -42,4 +42,28 @@ export class MockTokenRepository implements TokenRepository {
     }
     return grants;
   }
+
+  async listOwnerIds(): Promise<string[]> {
+    const ownerIds = new Set<string>();
+    for (const key of this.tokens.keys()) {
+      const separator = key.indexOf(":");
+      if (separator > 0) {
+        ownerIds.add(key.slice(0, separator));
+      }
+    }
+    return [...ownerIds];
+  }
+
+  async deleteByOwner(ownerId: string): Promise<number> {
+    const prefix = `${ownerId}:`;
+    let deleted = 0;
+    for (const key of [...this.tokens.keys()]) {
+      if (!key.startsWith(prefix)) {
+        continue;
+      }
+      this.tokens.delete(key);
+      deleted += 1;
+    }
+    return deleted;
+  }
 }
