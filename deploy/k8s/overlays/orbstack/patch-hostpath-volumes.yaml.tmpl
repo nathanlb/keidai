@@ -4,7 +4,8 @@
 # hostPath targets the same apps/*/data dirs used by local/native runs so
 # OrbStack and `pnpm --filter` share SQLite. `$patch: replace` on each volumes
 # list so hostPath fully replaces the base PVC (plain strategic merge would
-# leave both volume sources).
+# leave both volume sources). Re-list every other volume from the base
+# Deployment — a replace drops anything omitted (e.g. operators).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -26,6 +27,9 @@ spec:
               - key: dev.pem
                 path: dev.pem
                 mode: 0400
+        - name: operators
+          configMap:
+            name: keidai-operators
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -44,6 +48,9 @@ spec:
         - name: config
           configMap:
             name: torii-config
+        - name: operators
+          configMap:
+            name: keidai-operators
 ---
 apiVersion: apps/v1
 kind: Deployment

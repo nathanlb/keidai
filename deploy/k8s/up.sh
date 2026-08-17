@@ -132,8 +132,16 @@ load_secrets_env() {
   for name in "${required[@]}"; do
     [[ -n "${!name:-}" ]] || die "set ${name} in ${SECRETS_ENV}"
   done
+  local disabled
+  disabled="$(printf '%s' "${BFF_SERVICE_TOKEN_DISABLED:-}" | tr '[:upper:]' '[:lower:]')"
+  if [[ "${disabled}" != "true" && "${disabled}" != "1" && "${disabled}" != "yes" ]]; then
+    [[ -n "${BFF_SERVICE_TOKEN:-}" ]] || die "set BFF_SERVICE_TOKEN in ${SECRETS_ENV} (or BFF_SERVICE_TOKEN_DISABLED=true)"
+  fi
   if [[ -z "${KEIDAI_OPERATORS_FILE:-}" ]]; then
     KEIDAI_OPERATORS_FILE="${ROOT}/deploy/operators.example.yaml"
+  elif [[ "${KEIDAI_OPERATORS_FILE}" != /* ]]; then
+    # Relative paths in secrets.env are from deploy/k8s/ (same as FUDA_SIGNING_KEY_FILE).
+    KEIDAI_OPERATORS_FILE="${K8S_DIR}/${KEIDAI_OPERATORS_FILE}"
   fi
   if [[ ! -f "${KEIDAI_OPERATORS_FILE}" ]]; then
     die "operators file not found: ${KEIDAI_OPERATORS_FILE} (set KEIDAI_OPERATORS_FILE in ${SECRETS_ENV})"
@@ -172,6 +180,8 @@ create_secrets() {
     --from-literal="KEIDAI_GOOGLE_CLIENT_ID=${KEIDAI_GOOGLE_CLIENT_ID}" \
     --from-literal="KEIDAI_GOOGLE_CLIENT_SECRET=${KEIDAI_GOOGLE_CLIENT_SECRET}" \
     --from-literal="KEIDAI_SESSION_SECRET=${KEIDAI_SESSION_SECRET}" \
+    --from-literal="BFF_SERVICE_TOKEN=${BFF_SERVICE_TOKEN:-}" \
+    --from-literal="BFF_SERVICE_TOKEN_DISABLED=${BFF_SERVICE_TOKEN_DISABLED:-}" \
     --dry-run=client -o yaml | kubectl apply -f -
 }
 

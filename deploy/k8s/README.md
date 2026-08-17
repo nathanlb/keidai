@@ -36,7 +36,8 @@ GKE (and other cloud) overlays are intentionally separate and not included yet.
 
 ```bash
 cp deploy/k8s/secrets.example.env deploy/k8s/secrets.env
-# Fill KEIDAI_GOOGLE_*, KEIDAI_SESSION_SECRET (≥32 chars), OPEN_ROUTER_API_KEY.
+# Fill KEIDAI_GOOGLE_*, KEIDAI_SESSION_SECRET (≥32 chars), OPEN_ROUTER_API_KEY,
+# and BFF_SERVICE_TOKEN (`openssl rand -hex 32`).
 # Operators default to deploy/operators.example.yaml (override with KEIDAI_OPERATORS_FILE).
 
 # Default local path (kind):

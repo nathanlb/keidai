@@ -168,7 +168,7 @@ export function TraceDetailDrawer() {
               >
                 {span.label}
               </span>
-              <div className="relative h-[9px] rounded-sm bg-muted/55">
+              <div className="relative h-2.25 rounded-sm bg-muted/55">
                 <span
                   className={cn(
                     "absolute top-0 bottom-0 rounded-sm",
@@ -198,7 +198,7 @@ export function TraceDetailDrawer() {
             <div className="mt-1.5 flex items-center gap-2">
               <OwnerAvatar
                 initials={agentLabel ? deriveAgentInitials(agentLabel) : "—"}
-                className="size-[22px] bg-secondary text-[9px] text-secondary-foreground"
+                className="size-5.5 bg-secondary text-[9px] text-secondary-foreground"
               />
               <div className="min-w-0 leading-tight">
                 <div className="font-mono text-[13px] font-semibold">
@@ -219,7 +219,7 @@ export function TraceDetailDrawer() {
             <div className="mt-1.5 flex items-center gap-2">
               <OwnerAvatar
                 initials={ownerId ? deriveOwnerInitials(ownerId) : "—"}
-                className="size-[22px] text-[9px]"
+                className="size-5.5 text-[9px]"
               />
               <span className="font-mono text-[13px] font-semibold">
                 {ownerId ?? "—"}
@@ -246,11 +246,11 @@ export function TraceDetailDrawer() {
         >
           <div className="flex items-center gap-2">
             {policyDenied ? (
-              <Ban className="size-[15px] text-destructive" aria-hidden />
+              <Ban className="size-3.75 text-destructive" aria-hidden />
             ) : (
               <ShieldCheck
                 className={cn(
-                  "size-[15px]",
+                  "size-3.75",
                   trace.outcome === "success"
                     ? "text-success"
                     : "text-muted-foreground",
@@ -298,7 +298,7 @@ export function TraceDetailDrawer() {
         <div className="flex flex-col gap-2 rounded-lg border border-border p-3.5 text-[12.5px]">
           <div className="flex justify-between gap-3">
             <span className="text-muted-foreground">credentialRef</span>
-            <span className="max-w-[300px] truncate text-right font-mono">
+            <span className="max-w-75 truncate text-right font-mono">
               {formatCredentialRef(trace)}
             </span>
           </div>
@@ -354,13 +354,13 @@ export function TraceDetailDrawer() {
           <div className="flex flex-col gap-2 rounded-lg border border-border p-3.5 text-[12.5px]">
             <div className="flex justify-between gap-3">
               <span className="text-muted-foreground">taskId</span>
-              <span className="max-w-[300px] truncate text-right font-mono">
+              <span className="max-w-75 truncate text-right font-mono">
                 {trace.taskId ?? "—"}
               </span>
             </div>
             <div className="flex justify-between gap-3">
               <span className="text-muted-foreground">backendTaskId</span>
-              <span className="max-w-[300px] truncate text-right font-mono">
+              <span className="max-w-75 truncate text-right font-mono">
                 {trace.backendTaskId ?? "—"}
               </span>
             </div>
