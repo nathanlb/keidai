@@ -74,6 +74,7 @@ pnpm --filter @keidai/torii start
 | `TORII_HOST` | `127.0.0.1` | HTTP bind address |
 | `TORII_UI_CLIENT_ROOT` | — | Legacy: path to built keidai-ui client (`dist/client`). Prefer the keidai-ui BFF as the public edge; leave unset in compose/k8s |
 | `TORII_DB_PATH` | `./data/torii.db` | SQLite path for gateway persistent storage (OAuth tokens, provider clients, call traces, approval ledger) |
+| `TORII_OPERATORS_PATH` | — | Optional `operators.yaml`. When set, boot wipes OAuth tokens and pending links for `owner_id`s absent from the registry. Unset is a no-op (never wipe without a registry). Compose/k8s pin this to the mounted operators file |
 | `TORII_GATEWAY_BASE_URL` | — | Stable **public** base URL for OAuth callbacks (overrides per-request Host derivation). With the BFF edge, set this to the BFF origin (e.g. `http://localhost:3000`), not Torii's ClusterIP/`localhost:3100` |
 | `TORII_FUDA_ISSUER` | — | Expected `iss` on Fuda-minted agent JWTs (required) |
 | `TORII_FUDA_JWKS_URI` | — | Fuda JWKS URL, e.g. `http://127.0.0.1:3300/.well-known/jwks.json` (required) |
@@ -127,6 +128,8 @@ Operator Google login (`KEIDAI_GOOGLE_*` on keidai-ui) is a separate client: red
 
 The `owner_id` must match the registered agent's owner — tokens linked for a different owner will not resolve at call time.
 
+Removing an operator from `operators.yaml` does not revoke IdP tokens by itself. Restart Torii (or roll the Deployment) so boot can wipe that `owner_id`'s rows from `oauth_tokens` and `pending_oauth_links`. Fuda's owner reconcile is separate and does not touch Torii SQLite. Compose and kind set `TORII_OPERATORS_PATH` to the mounted registry; a missing or invalid file fails boot rather than wiping grants. Unset `TORII_OPERATORS_PATH` skips the wipe.
+
 In-cluster wiring: [`deploy/k8s/README.md`](../../deploy/k8s/README.md).
 
 ### Resetting stale OAuth data
@@ -136,6 +139,14 @@ If dynamic clients were registered with an old redirect URI, clear SQLite and re
 ```bash
 sqlite3 ./data/torii.db \
   "DELETE FROM oauth_provider_clients; DELETE FROM oauth_tokens;"
+```
+
+To wipe a single removed operator without waiting for the next boot reconcile:
+
+```bash
+sqlite3 ./data/torii.db \
+  "DELETE FROM oauth_tokens WHERE owner_id = 'the-owner-id';
+   DELETE FROM pending_oauth_links WHERE owner_id = 'the-owner-id';"
 ```
 
 ## MCP Inspector (dev)

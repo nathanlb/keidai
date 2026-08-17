@@ -46,6 +46,45 @@ function runPendingLinkStoreContract(
       }
     });
 
+    it("deletes every link for an owner", async () => {
+      const { store, close } = createStore();
+      try {
+        await store.create({
+          linkId: "link-a-1",
+          ownerId: "owner-a",
+          provider: "github",
+          redirectUri: "http://localhost/callback/github",
+          status: "pending",
+          createdAt: new Date("2026-01-01T00:00:00.000Z"),
+        });
+        await store.create({
+          linkId: "link-a-2",
+          ownerId: "owner-a",
+          provider: "google",
+          redirectUri: "http://localhost/callback/google",
+          status: "completed",
+          createdAt: new Date("2026-01-02T00:00:00.000Z"),
+        });
+        await store.create({
+          linkId: "link-b",
+          ownerId: "owner-b",
+          provider: "github",
+          redirectUri: "http://localhost/callback/github",
+          status: "pending",
+          createdAt: new Date("2026-01-03T00:00:00.000Z"),
+        });
+
+        assert.equal(await store.deleteByOwner("owner-a"), 2);
+        assert.equal(await store.get("link-a-1"), null);
+        assert.equal(await store.get("link-a-2"), null);
+        assert.equal((await store.get("link-b"))?.linkId, "link-b");
+        assert.deepEqual(await store.listOwnerIds(), ["owner-b"]);
+        assert.equal(await store.getLatest("owner-a", "github"), null);
+      } finally {
+        close();
+      }
+    });
+
     it("persists updates to an existing link", async () => {
       const { store, close } = createStore();
       try {

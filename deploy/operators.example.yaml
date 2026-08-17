@@ -3,6 +3,7 @@
 # Consumed by:
 #   - keidai-ui BFF at boot (KEIDAI_OPERATORS_PATH) for login allowlist + mapping
 #   - Fuda at boot (FUDA_OPERATORS_PATH) to reconcile the owners table
+#   - Torii at boot (TORII_OPERATORS_PATH) to wipe OAuth grants for removed owners
 #
 # Invariant: one google_sub (and/or google_email) ↔ one owner_id.
 # Display name/avatar come from Google IdP claims at login, not from this file.

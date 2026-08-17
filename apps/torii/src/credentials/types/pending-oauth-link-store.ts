@@ -8,6 +8,9 @@ export interface PendingOAuthLinkStore {
     ownerId: string,
     provider: string,
   ): Promise<PendingOAuthLink | null>;
+  listOwnerIds(): Promise<string[]>;
+  /** Deletes every pending/completed/failed link for the owner. Returns rows removed. */
+  deleteByOwner(ownerId: string): Promise<number>;
 }
 
 /** tsyringe injection token for {@link PendingOAuthLinkStore}. */

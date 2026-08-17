@@ -2,7 +2,8 @@ import { z } from "zod";
 
 /**
  * Single source of truth for platform operators: opaque owner_id ↔ Google identity.
- * Loaded by the keidai-ui BFF at boot and reconciled into Fuda's owners table.
+ * Loaded by the keidai-ui BFF at boot, reconciled into Fuda's owners table,
+ * and used by Torii to wipe OAuth grants for removed operators.
  */
 export const operatorEntrySchema = z
   .object({
@@ -139,7 +140,7 @@ export function isOperatorInRegistry(
   return resolveOwnerIdFromOperators(operators, claims) !== null;
 }
 
-/** Owner ids only — for Fuda reconcile. */
+/** Owner ids only — for Fuda owner reconcile and Torii OAuth grant wipe. */
 export function ownerIdsFromOperators(
   operators: readonly OperatorEntry[],
 ): string[] {

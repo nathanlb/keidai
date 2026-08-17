@@ -57,8 +57,12 @@ services:
       TORII_FUDA_JWKS_URI: http://fuda:3300/.well-known/jwks.json
       # Public operator edge (keidai-ui BFF), not Torii's listen port.
       TORII_GATEWAY_BASE_URL: http://localhost:3000
+      # Pin container path so a host-relative TORII_OPERATORS_PATH from
+      # apps/torii/.env cannot break in-container boot (mirrors k8s ConfigMap mount).
+      TORII_OPERATORS_PATH: /app/operators/operators.yaml
     volumes:
       - ./apps/torii/torii.demo.yaml:/app/torii.demo.yaml:ro
+      - ./deploy/operators.example.yaml:/app/operators/operators.yaml:ro
       - torii-data:/app/data
     healthcheck:
       test:

@@ -35,6 +35,31 @@ export class MockPendingLinkStore implements PendingOAuthLinkStore {
     }
     return this.get(linkId);
   }
+
+  async listOwnerIds(): Promise<string[]> {
+    const ownerIds = new Set<string>();
+    for (const link of this.links.values()) {
+      ownerIds.add(link.ownerId);
+    }
+    return [...ownerIds];
+  }
+
+  async deleteByOwner(ownerId: string): Promise<number> {
+    let deleted = 0;
+    for (const [linkId, link] of [...this.links.entries()]) {
+      if (link.ownerId !== ownerId) {
+        continue;
+      }
+      this.links.delete(linkId);
+      deleted += 1;
+    }
+    for (const key of [...this.latestByOwnerProvider.keys()]) {
+      if (key.startsWith(`${ownerId}:`)) {
+        this.latestByOwnerProvider.delete(key);
+      }
+    }
+    return deleted;
+  }
 }
 
 function ownerProviderKey(ownerId: string, provider: string): string {

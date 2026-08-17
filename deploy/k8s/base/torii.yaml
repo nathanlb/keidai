@@ -39,6 +39,9 @@ spec:
               mountPath: /app/torii.demo.yaml
               subPath: torii.demo.yaml
               readOnly: true
+            - name: operators
+              mountPath: /app/operators
+              readOnly: true
           readinessProbe:
             httpGet:
               path: /api/health
@@ -58,6 +61,9 @@ spec:
         - name: config
           configMap:
             name: torii-config
+        - name: operators
+          configMap:
+            name: keidai-operators
 ---
 apiVersion: v1
 kind: Service

@@ -14,6 +14,9 @@ export interface TokenRepository {
   set(ownerId: string, provider: string, token: OAuthToken): Promise<void>;
   delete(ownerId: string, provider: string): Promise<boolean>;
   listByOwner(ownerId: string): Promise<StoredOAuthGrant[]>;
+  listOwnerIds(): Promise<string[]>;
+  /** Deletes every stored grant for the owner. Returns rows removed. */
+  deleteByOwner(ownerId: string): Promise<number>;
 }
 
 /** tsyringe injection token for {@link TokenRepository}. */

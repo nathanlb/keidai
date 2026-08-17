@@ -12,6 +12,7 @@ data:
   TORII_FUDA_JWKS_URI: http://fuda:3300/.well-known/jwks.json
   # Public BFF origin for OAuth initiate callbacks. Overlays may patch this.
   TORII_GATEWAY_BASE_URL: http://localhost:3000
+  TORII_OPERATORS_PATH: /app/operators/operators.yaml
 ---
 apiVersion: v1
 kind: ConfigMap

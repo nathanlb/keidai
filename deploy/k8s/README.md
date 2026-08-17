@@ -117,7 +117,10 @@ FUDA_K8S_SA_OIDC_SUBJECT_MAPPINGS=keidai/shaiden=shaiden-runner
 
 Fuda reconciles platform owners from ConfigMap `keidai-operators` at boot
 (`FUDA_OPERATORS_PATH`). Create agents/bearers/grants via the management API
-(or keidai-ui), not a seed YAML.
+(or keidai-ui), not a seed YAML. Torii mounts the same ConfigMap
+(`TORII_OPERATORS_PATH`) and wipes OAuth tokens / pending links for
+`owner_id`s no longer in the registry. Restart Torii after editing operators
+so the wipe runs; Fuda reconcile alone does not touch Torii SQLite.
 
 ## Secrets
 
@@ -131,8 +134,8 @@ Fuda reconciles platform owners from ConfigMap `keidai-operators` at boot
 
 Operators are a Google ↔ opaque `owner_id` registry (`operators.yaml`). `up.sh`
 loads ConfigMap `keidai-operators` from `KEIDAI_OPERATORS_FILE` (default:
-[`deploy/operators.example.yaml`](../operators.example.yaml)). Fuda and the BFF
-both mount that file at boot.
+[`deploy/operators.example.yaml`](../operators.example.yaml)). Fuda, Torii, and
+the BFF all mount that file at boot.
 
 ## Notes
 
