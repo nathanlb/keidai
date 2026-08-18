@@ -13,7 +13,6 @@ import type { TaskRepository } from "../tasks/types/task-repository.js";
 import type { ShaidenHttpServerHandle, ShaidenHttpServerOptions } from "./types/shaiden-http-server.js";
 import { registerShaidenRoutes } from "./utils/register-shaiden-routes.js";
 import { readPackageVersion } from "./utils/read-package-version.js";
-import type { ActiveRunRegistry } from "../run/active-run-registry.js";
 
 const requestStartTime = Symbol("requestStartTime");
 
@@ -32,7 +31,6 @@ export interface ShaidenHttpServerDeps {
   resumeHarnessRun: (
     input: Omit<ResumeHarnessRunInput, "config">,
   ) => LaunchedHarnessRun;
-  activeRunRegistry: ActiveRunRegistry;
   runtimeConfig: import("../config/runtime-config.js").RuntimeConfig;
   /** When set, task create/patch validate assignee against Fuda. */
   fudaClient?: FudaClient;
@@ -46,7 +44,6 @@ export class ShaidenHttpServer {
   constructor(private readonly deps: ShaidenHttpServerDeps) {
     this.runsApi = new RunsApiController({
       runStore: deps.runStore,
-      activeRunRegistry: deps.activeRunRegistry,
       resumeHarnessRun: deps.resumeHarnessRun,
       runtimeConfig: deps.runtimeConfig,
       logger: deps.logger,

@@ -7,8 +7,12 @@ import { getShaidenPersistence } from "./boot/persistence.js";
 import { loadRuntimeConfig } from "./config/runtime-config.js";
 import { ShaidenHttpServer } from "./http/shaiden-http-server.js";
 import { defaultLogger } from "./logging/logger.js";
-import { ActiveRunRegistry } from "./run/active-run-registry.js";
 import { launchHarnessRun, resumeHarnessRun } from "./run/harness.js";
+import {
+  DEFAULT_PARKED_RECLAIM_INTERVAL_MS,
+  DEFAULT_RUN_EVENT_POLL_INTERVAL_MS,
+  resolveReplicaId,
+} from "./run/run-lease.js";
 import { resumeParkedHarnessRuns } from "./run/resume-parked-runs.js";
 
 function waitForShutdown(): Promise<void> {
@@ -24,7 +28,34 @@ async function main(): Promise<void> {
   const { runStore, taskRepository } = getShaidenPersistence();
   // `loadRuntimeConfig` requires FUDA_URL; optional on the type for evals/tests.
   const fudaClient = createHttpFudaClient({ baseUrl: config.fudaBaseUrl! });
-  const activeRunRegistry = new ActiveRunRegistry();
+  const replicaId = resolveReplicaId();
+  const harnessOptions = {
+    replicaId,
+    logger: defaultLogger,
+    fudaClient,
+  };
+
+  const resumeParked = () =>
+    resumeParkedHarnessRuns({
+      runStore,
+      resumeHarnessRun: (input) =>
+        resumeHarnessRun({
+          ...input,
+          config,
+          options: harnessOptions,
+        }),
+      logger: defaultLogger,
+    });
+
+  runStore.pollRemoteUpdates();
+  const eventPoll = setInterval(() => {
+    runStore.pollRemoteUpdates();
+  }, DEFAULT_RUN_EVENT_POLL_INTERVAL_MS);
+  eventPoll.unref();
+
+  resumeParked();
+  const reclaim = setInterval(resumeParked, DEFAULT_PARKED_RECLAIM_INTERVAL_MS);
+  reclaim.unref();
 
   const httpServer = new ShaidenHttpServer({
     runStore,
@@ -32,37 +63,23 @@ async function main(): Promise<void> {
     logger: defaultLogger,
     runtimeConfig: config,
     fudaClient,
-    activeRunRegistry,
     startTaskRun: ({ task, taskId }) =>
       launchHarnessRun({
         task,
         taskId,
         config,
         runStore,
-        options: { activeRunRegistry, fudaClient },
+        options: harnessOptions,
       }),
     resumeHarnessRun: (input) =>
       resumeHarnessRun({
         ...input,
         config,
         options: {
-          activeRunRegistry,
-          logger: defaultLogger,
-          fudaClient,
+          ...harnessOptions,
           ...input.options,
         },
       }),
-  });
-
-  resumeParkedHarnessRuns({
-    runStore,
-    resumeHarnessRun: (input) =>
-      resumeHarnessRun({
-        ...input,
-        config,
-        options: { activeRunRegistry, logger: defaultLogger, fudaClient },
-      }),
-    logger: defaultLogger,
   });
 
   const http = await httpServer.start({
@@ -71,11 +88,14 @@ async function main(): Promise<void> {
   });
   defaultLogger.info("boot.http_listening", {
     baseUrl: http.baseUrl,
+    replicaId,
   });
 
   try {
     await waitForShutdown();
   } finally {
+    clearInterval(eventPoll);
+    clearInterval(reclaim);
     await http.close();
   }
 }

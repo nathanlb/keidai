@@ -8,7 +8,6 @@ import {
 import type { Logger } from "@keidai/shared";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { RuntimeConfig } from "../config/runtime-config.js";
-import type { ActiveRunRegistry } from "../run/active-run-registry.js";
 import type {
   LaunchedHarnessRun,
   ResumeHarnessRunInput,
@@ -38,7 +37,6 @@ function parseRunListLimit(request: FastifyRequest): number {
 
 export interface RunsApiControllerDeps {
   runStore: RunStore;
-  activeRunRegistry: ActiveRunRegistry;
   resumeHarnessRun: (
     input: Omit<ResumeHarnessRunInput, "config">,
   ) => LaunchedHarnessRun;
@@ -128,23 +126,15 @@ export class RunsApiController {
     runId: string,
     message: string,
   ): { status: number; body: FollowUpRunResponse | { error: string } } {
-    const activeHandle = this.deps.activeRunRegistry.get(runId);
-    if (activeHandle) {
-      if (!activeHandle.queueUserMessageIfWaiting(message)) {
-        return {
-          status: 409,
-          body: { error: followUpConflictMessage("not_terminal") },
-        };
-      }
-
-      this.deps.runStore.appendStep(
+    if (run.status === "running") {
+      const queued = this.deps.runStore.enqueueParkedFollowUp(
         runId,
+        message,
         createRunStep(createUserMessageStep(message)),
       );
-      return { status: 202, body: { runId } };
-    }
-
-    if (run.status === "running") {
+      if (queued) {
+        return { status: 202, body: { runId } };
+      }
       return {
         status: 409,
         body: { error: followUpConflictMessage("lost_handle") },
@@ -176,7 +166,6 @@ export class RunsApiController {
       task: run.task,
       runStore: this.deps.runStore,
       options: {
-        activeRunRegistry: this.deps.activeRunRegistry,
         logger: this.deps.logger,
       },
     });

@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Logger } from "@keidai/shared";
 import { createTestPersistence, createTestRun } from "../../testing/persistence.js";
-import { createActiveRunHandle } from "../active-run-registry.js";
 import { createParkedMcpTaskWaiter } from "../parked-mcp-task-waiter.js";
 import { createLocalRunReporter } from "../run-reporter.js";
+import { RunLeaseLostError } from "../run-lease.js";
 import { toolCall } from "../testing/task-loop-harness.js";
 import type { ToolDispatchResult } from "../types/task-loop.js";
 
@@ -23,11 +23,27 @@ function silentLogger(): Logger {
   };
 }
 
+function claimRun(
+  persistence: ReturnType<typeof createTestPersistence>,
+  replicaId = "replica-a",
+) {
+  assert.equal(
+    persistence.runStore.claimRun(
+      "run-1",
+      replicaId,
+      "2026-07-08T12:00:15.000Z",
+      "2026-07-08T12:00:00.000Z",
+    ),
+    true,
+  );
+}
+
 describe("createParkedMcpTaskWaiter", () => {
   it("persists the MCP task id before polling and clears it afterward", async () => {
     const persistence = createTestPersistence();
     try {
       createTestRun(persistence, { runId: "run-1", task: sampleTask });
+      claimRun(persistence);
       const reporter = createLocalRunReporter(persistence.runStore, "run-1");
       let release!: (result: ToolDispatchResult) => void;
       const polling = new Promise<ToolDispatchResult>((resolve) => {
@@ -36,10 +52,11 @@ describe("createParkedMcpTaskWaiter", () => {
       const wait = createParkedMcpTaskWaiter({
         runId: "run-1",
         runStore: persistence.runStore,
+        replicaId: "replica-a",
+        leaseMs: 15_000,
         pollMcpTask: async () => polling,
         reporter,
         logger: silentLogger(),
-        activeHandle: createActiveRunHandle("run-1"),
       });
 
       const pending = wait("task-1", {
@@ -64,15 +81,17 @@ describe("createParkedMcpTaskWaiter", () => {
     const persistence = createTestPersistence();
     try {
       createTestRun(persistence, { runId: "run-1", task: sampleTask });
+      claimRun(persistence);
       const reporter = createLocalRunReporter(persistence.runStore, "run-1");
       const call = toolCall("gmail.create_draft", "call-1");
       const wait = createParkedMcpTaskWaiter({
         runId: "run-1",
         runStore: persistence.runStore,
+        replicaId: "replica-a",
+        leaseMs: 15_000,
         pollMcpTask: async () => ({ isError: false, text: "draft created" }),
         reporter,
         logger: silentLogger(),
-        activeHandle: createActiveRunHandle("run-1"),
       });
 
       await wait("task-1", { call });
@@ -94,10 +113,13 @@ describe("createParkedMcpTaskWaiter", () => {
     const persistence = createTestPersistence();
     try {
       createTestRun(persistence, { runId: "run-1", task: sampleTask });
+      claimRun(persistence);
       const reporter = createLocalRunReporter(persistence.runStore, "run-1");
       const wait = createParkedMcpTaskWaiter({
         runId: "run-1",
         runStore: persistence.runStore,
+        replicaId: "replica-a",
+        leaseMs: 15_000,
         pollMcpTask: async () => ({
           isError: false,
           text: "Human review denied this tool call.",
@@ -105,7 +127,6 @@ describe("createParkedMcpTaskWaiter", () => {
         }),
         reporter,
         logger: silentLogger(),
-        activeHandle: createActiveRunHandle("run-1"),
       });
 
       const result = await wait("task-1", {
@@ -131,6 +152,7 @@ describe("createParkedMcpTaskWaiter", () => {
     const persistence = createTestPersistence();
     try {
       createTestRun(persistence, { runId: "run-1", task: sampleTask });
+      claimRun(persistence);
       persistence.runStore.setParkedMcpTask("run-1", {
         mcpTaskId: "task-1",
         pollIntervalMs: 1_500,
@@ -139,17 +161,51 @@ describe("createParkedMcpTaskWaiter", () => {
       const wait = createParkedMcpTaskWaiter({
         runId: "run-1",
         runStore: persistence.runStore,
+        replicaId: "replica-a",
+        leaseMs: 15_000,
         pollMcpTask: async (_taskId, pollIntervalMs) => {
           seen.push(pollIntervalMs);
           return { isError: false, text: "ok" };
         },
         reporter: createLocalRunReporter(persistence.runStore, "run-1"),
         logger: silentLogger(),
-        activeHandle: createActiveRunHandle("run-1"),
       });
 
       await wait("task-1", { call: toolCall("gmail.create_draft") });
       assert.deepEqual(seen, [1_500]);
+    } finally {
+      persistence.close();
+    }
+  });
+
+  it("leaves the parked task in place when the lease is lost after polling", async () => {
+    const persistence = createTestPersistence();
+    try {
+      createTestRun(persistence, { runId: "run-1", task: sampleTask });
+      const wait = createParkedMcpTaskWaiter({
+        runId: "run-1",
+        runStore: persistence.runStore,
+        replicaId: "replica-a",
+        leaseMs: 15_000,
+        pollMcpTask: async () => ({ isError: false, text: "draft created" }),
+        reporter: createLocalRunReporter(persistence.runStore, "run-1"),
+        logger: silentLogger(),
+      });
+
+      await assert.rejects(
+        () => wait("task-1", { call: toolCall("gmail.create_draft") }),
+        RunLeaseLostError,
+      );
+      assert.equal(
+        persistence.runStore.getParkedMcpTask("run-1")?.mcpTaskId,
+        "task-1",
+      );
+      assert.equal(
+        persistence.runStore
+          .getRun("run-1")
+          ?.steps.some((step) => step.kind === "tool_result"),
+        false,
+      );
     } finally {
       persistence.close();
     }

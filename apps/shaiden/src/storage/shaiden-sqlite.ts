@@ -32,6 +32,9 @@ CREATE TABLE IF NOT EXISTS runs (
 CREATE INDEX IF NOT EXISTS idx_runs_started_at
   ON runs(started_at DESC, id DESC);
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_runs_one_running_per_task
+  ON runs(task_id) WHERE status = 'running';
+
 CREATE TABLE IF NOT EXISTS run_steps (
   id TEXT NOT NULL PRIMARY KEY,
   run_id TEXT NOT NULL,
@@ -43,6 +46,17 @@ CREATE TABLE IF NOT EXISTS run_steps (
 
 CREATE INDEX IF NOT EXISTS idx_run_steps_run_id
   ON run_steps(run_id, timestamp ASC, id ASC);
+
+CREATE TABLE IF NOT EXISTS run_follow_ups (
+  id TEXT NOT NULL PRIMARY KEY,
+  run_id TEXT NOT NULL,
+  text TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (run_id) REFERENCES runs(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_run_follow_ups_run_id
+  ON run_follow_ups(run_id, created_at ASC, id ASC);
 `;
 
 function ensureColumn(
@@ -96,12 +110,35 @@ function ensureSchemaMigrations(db: DatabaseSync): void {
     "mcp_task_poll_interval_ms",
     "ALTER TABLE runs ADD COLUMN mcp_task_poll_interval_ms INTEGER",
   );
+  ensureColumn(
+    db,
+    "runs",
+    "owner_id",
+    "ALTER TABLE runs ADD COLUMN owner_id TEXT",
+  );
+  ensureColumn(
+    db,
+    "runs",
+    "lease_expires_at",
+    "ALTER TABLE runs ADD COLUMN lease_expires_at TEXT",
+  );
+  ensureColumn(
+    db,
+    "runs",
+    "updated_at",
+    "ALTER TABLE runs ADD COLUMN updated_at TEXT",
+  );
+  db.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_runs_one_running_per_task
+      ON runs(task_id) WHERE status = 'running'
+  `);
 }
 
 export function openShaidenDatabase(databasePath: string): DatabaseSync {
   const db = new DatabaseSync(databasePath);
   db.exec("PRAGMA journal_mode = WAL");
   db.exec("PRAGMA foreign_keys = ON");
+  db.exec("PRAGMA busy_timeout = 5000");
   db.exec(SCHEMA_SQL);
   ensureSchemaMigrations(db);
   return db;

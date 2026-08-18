@@ -17,9 +17,14 @@ import { createOpenRouterModel } from "../model/openrouter.js";
 import { connectToriiSession } from "../mcp/torii-client.js";
 import type { ToriiSessionCredential } from "../mcp/types/index.js";
 import {
-  ActiveRunRegistry,
-  createActiveRunHandle,
-} from "./active-run-registry.js";
+  DEFAULT_RUN_LEASE_MS,
+  isRunLeaseError,
+  leaseExpiresAt,
+  resolveReplicaId,
+  RunLeaseLostError,
+  RunNotClaimedError,
+  startRunLeaseHeartbeat,
+} from "./run-lease.js";
 import { createHarnessToolDispatcher } from "./harness-tool-dispatch.js";
 import { buildToolSet, createModelStepCaller } from "./model-step.js";
 import {
@@ -193,7 +198,9 @@ export async function launchHarnessRun({
     logger,
     runStore,
     initialHistory,
-    activeRunRegistry: options.activeRunRegistry ?? new ActiveRunRegistry(),
+    replicaId: options.replicaId ?? resolveReplicaId(),
+    leaseMs: options.leaseMs ?? DEFAULT_RUN_LEASE_MS,
+    now: options.now ?? Date.now,
     systemPrompt,
     fudaClient,
   }).then((result) => result);
@@ -244,10 +251,15 @@ export function resumeHarnessRun({
     logger,
     runStore,
     initialHistory,
-    activeRunRegistry: options.activeRunRegistry ?? new ActiveRunRegistry(),
+    replicaId: options.replicaId ?? resolveReplicaId(),
+    leaseMs: options.leaseMs ?? DEFAULT_RUN_LEASE_MS,
+    now: options.now ?? Date.now,
     systemPrompt,
     fudaClient,
   }).catch((error) => {
+    if (isRunLeaseError(error)) {
+      throw error;
+    }
     const reason = error instanceof Error ? error.message : String(error);
     const existing = runStore.getRun(runId);
     if (existing?.status === "running") {
@@ -270,16 +282,33 @@ async function driveHarnessRun({
   logger,
   runStore,
   initialHistory,
-  activeRunRegistry,
+  replicaId,
+  leaseMs,
+  now,
   systemPrompt,
   fudaClient,
 }: DriveHarnessRunInput): Promise<HarnessRunResult> {
   const limits = resolveTaskLimits(task);
   const parked = runStore.getParkedMcpTask(runId);
-  const activeHandle = createActiveRunHandle(runId, {
-    waitingForApproval: parked != null,
+  const nowIso = () => new Date(now()).toISOString();
+  if (!runStore.claimRun(runId, replicaId, leaseExpiresAt(now(), leaseMs), nowIso())) {
+    logger.info("run.claim_skipped", { runId, replicaId });
+    throw new RunNotClaimedError(runId);
+  }
+
+  let lostLease = false;
+  const leaseAbort = new AbortController();
+  const stopHeartbeat = startRunLeaseHeartbeat({
+    runStore,
+    runId,
+    replicaId,
+    leaseMs,
+    now,
+    onLost: () => {
+      lostLease = true;
+      leaseAbort.abort();
+    },
   });
-  const unregisterActiveRun = activeRunRegistry.register(activeHandle);
 
   const runDraft = {
     id: runId,
@@ -330,11 +359,14 @@ async function driveHarnessRun({
       const waitForApproval = createParkedMcpTaskWaiter({
         runId,
         runStore,
+        replicaId,
+        leaseMs,
+        now,
+        signal: leaseAbort.signal,
         pollMcpTask: (taskId, pollIntervalMs) =>
           session.pollMcpTask(taskId, pollIntervalMs),
         reporter,
         logger,
-        activeHandle,
       });
 
       logger.info("run.started", {
@@ -360,12 +392,16 @@ async function driveHarnessRun({
           dispatchToolCall,
           waitForApproval,
           drainPendingUserMessages: () =>
-            activeHandle.drainPendingUserMessages(),
+            runStore.drainParkedFollowUps(runId),
           onHistoryChanged: (updatedHistory) => {
             runStore.setConversationHistory(runId, updatedHistory);
           },
         },
       );
+
+      if (lostLease) {
+        throw new RunLeaseLostError(runId);
+      }
 
       if (outcome.status === "goal_met") {
         const finalEntry = history.at(-1);
@@ -379,7 +415,6 @@ async function driveHarnessRun({
       }
 
       runStore.setConversationHistory(runId, history);
-      unregisterActiveRun();
       const run = completeRun(runDraft, outcome);
       completeRunWithOutcomeStep(runStore, runId, outcome);
       logger.info("run.completed", {
@@ -393,6 +428,17 @@ async function driveHarnessRun({
       await session.close();
     }
   } catch (error) {
+    if (isRunLeaseError(error) || lostLease) {
+      logger.info("run.lease_released", {
+        runId,
+        replicaId,
+        reason: error instanceof Error ? error.message : String(error),
+      });
+      throw error instanceof RunLeaseLostError ||
+        error instanceof RunNotClaimedError
+        ? error
+        : new RunLeaseLostError(runId);
+    }
     const reason =
       error instanceof TokenExchangeError
         ? describeTokenExchangeFailure(error)
@@ -400,7 +446,6 @@ async function driveHarnessRun({
           ? error.message
           : String(error);
     const existing = runStore.getRun(runId);
-    unregisterActiveRun();
     if (existing?.status === "running") {
       completeRunWithOutcomeStep(runStore, runId, {
         status: "failed",
@@ -409,6 +454,9 @@ async function driveHarnessRun({
     }
     throw error;
   } finally {
-    unregisterActiveRun();
+    stopHeartbeat();
+    if (!lostLease) {
+      runStore.releaseRun(runId, replicaId);
+    }
   }
 }

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import {
   taskSchema,
@@ -12,8 +13,11 @@ import {
 import type { ConversationEntry } from "../run/types/conversation-history.js";
 import {
   DEFAULT_RUN_RETENTION_COUNT,
+  TaskAlreadyRunningError,
   type ParkedMcpTask,
   type RunRepository,
+  type RunUpdateWatermark,
+  type RunningRunRef,
 } from "./types/run-repository.js";
 import {
   appendUserMessageToHistory,
@@ -65,6 +69,30 @@ function parseOutcome(json: string | null): TerminationOutcome | undefined {
   return JSON.parse(json) as TerminationOutcome;
 }
 
+const BEGIN_IMMEDIATE = "BEGIN IMMEDIATE";
+const COMMIT = "COMMIT";
+const ROLLBACK = "ROLLBACK";
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  const errcode = (error as { errcode?: number }).errcode;
+  const code = (error as { code?: string }).code;
+  // SQLITE_CONSTRAINT_UNIQUE = 2067 (not PK / FK / NOT NULL).
+  if (errcode === 2067 || code === "SQLITE_CONSTRAINT_UNIQUE") {
+    return true;
+  }
+  return (
+    /UNIQUE constraint failed/i.test(error.message) &&
+    !/UNIQUE constraint failed: runs\.id/i.test(error.message)
+  );
+}
+
 function parkedMcpTaskFromRow(row: {
   id: string;
   mcp_task_id: string;
@@ -111,6 +139,16 @@ export class SqliteRunRepository implements RunRepository {
   private readonly clearParkedMcpTaskStatement;
   private readonly getParkedMcpTaskStatement;
   private readonly listParkedMcpTasksStatement;
+  private readonly listClaimableParkedMcpTasksStatement;
+  private readonly getParkedForUpdateStatement;
+  private readonly insertFollowUpStatement;
+  private readonly listFollowUpsStatement;
+  private readonly deleteFollowUpsStatement;
+  private readonly claimRunStatement;
+  private readonly renewRunLeaseStatement;
+  private readonly releaseRunStatement;
+  private readonly listRunWatermarksStatement;
+  private readonly listRunningRunsStatement;
 
   constructor(
     private readonly db: DatabaseSync,
@@ -120,11 +158,11 @@ export class SqliteRunRepository implements RunRepository {
       INSERT INTO runs (
         id, task_id, task_snapshot_json, started_at, assignee, goal_preview,
         status, outcome_json, step_count, conversation_history_json,
-        persona_version, persona
+        persona_version, persona, updated_at
       ) VALUES (
         @id, @task_id, @task_snapshot_json, @started_at, @assignee, @goal_preview,
         @status, @outcome_json, @step_count, @conversation_history_json,
-        @persona_version, @persona
+        @persona_version, @persona, @updated_at
       )
     `);
     this.getRunStatement = db.prepare(`
@@ -147,7 +185,10 @@ export class SqliteRunRepository implements RunRepository {
       SET status = 'completed',
           outcome_json = @outcome_json,
           mcp_task_id = NULL,
-          mcp_task_poll_interval_ms = NULL
+          mcp_task_poll_interval_ms = NULL,
+          owner_id = NULL,
+          lease_expires_at = NULL,
+          updated_at = @updated_at
       WHERE id = @id
     `);
     this.updateConversationHistoryStatement = db.prepare(`
@@ -160,11 +201,12 @@ export class SqliteRunRepository implements RunRepository {
       SET status = 'running',
           outcome_json = NULL,
           conversation_history_json = @conversation_history_json,
-          step_count = step_count + 1
+          step_count = step_count + 1,
+          updated_at = @updated_at
       WHERE id = @id AND status = 'completed'
     `);
     this.incrementStepCountStatement = db.prepare(`
-      UPDATE runs SET step_count = step_count + 1 WHERE id = ?
+      UPDATE runs SET step_count = step_count + 1, updated_at = ? WHERE id = ?
     `);
     this.insertStepStatement = db.prepare(`
       INSERT INTO run_steps (id, run_id, timestamp, kind, payload_json)
@@ -189,13 +231,15 @@ export class SqliteRunRepository implements RunRepository {
     this.setParkedMcpTaskStatement = db.prepare(`
       UPDATE runs
       SET mcp_task_id = @mcp_task_id,
-          mcp_task_poll_interval_ms = @poll_interval_ms
+          mcp_task_poll_interval_ms = @poll_interval_ms,
+          updated_at = @updated_at
       WHERE id = @id AND status = 'running'
     `);
     this.clearParkedMcpTaskStatement = db.prepare(`
       UPDATE runs
       SET mcp_task_id = NULL,
-          mcp_task_poll_interval_ms = NULL
+          mcp_task_poll_interval_ms = NULL,
+          updated_at = ?
       WHERE id = ?
     `);
     this.getParkedMcpTaskStatement = db.prepare(`
@@ -209,26 +253,97 @@ export class SqliteRunRepository implements RunRepository {
       WHERE status = 'running' AND mcp_task_id IS NOT NULL
       ORDER BY started_at ASC, id ASC
     `);
+    this.listClaimableParkedMcpTasksStatement = db.prepare(`
+      SELECT id, mcp_task_id, mcp_task_poll_interval_ms
+      FROM runs
+      WHERE status = 'running'
+        AND mcp_task_id IS NOT NULL
+        AND (
+          owner_id IS NULL
+          OR lease_expires_at IS NULL
+          OR lease_expires_at < ?
+        )
+      ORDER BY started_at ASC, id ASC
+    `);
+    this.getParkedForUpdateStatement = db.prepare(`
+      SELECT mcp_task_id FROM runs
+      WHERE id = ? AND status = 'running' AND mcp_task_id IS NOT NULL
+    `);
+    this.insertFollowUpStatement = db.prepare(`
+      INSERT INTO run_follow_ups (id, run_id, text, created_at)
+      VALUES (@id, @run_id, @text, @created_at)
+    `);
+    this.listFollowUpsStatement = db.prepare(`
+      SELECT text FROM run_follow_ups
+      WHERE run_id = ?
+      ORDER BY rowid ASC
+    `);
+    this.deleteFollowUpsStatement = db.prepare(`
+      DELETE FROM run_follow_ups WHERE run_id = ?
+    `);
+    this.claimRunStatement = db.prepare(`
+      UPDATE runs
+      SET owner_id = @owner_id,
+          lease_expires_at = @lease_expires_at
+      WHERE id = @id
+        AND status = 'running'
+        AND (
+          owner_id IS NULL
+          OR lease_expires_at IS NULL
+          OR lease_expires_at < @now
+        )
+    `);
+    this.renewRunLeaseStatement = db.prepare(`
+      UPDATE runs
+      SET lease_expires_at = @lease_expires_at
+      WHERE id = @id
+        AND owner_id = @owner_id
+        AND status = 'running'
+    `);
+    this.releaseRunStatement = db.prepare(`
+      UPDATE runs
+      SET owner_id = NULL,
+          lease_expires_at = NULL
+      WHERE id = @id AND owner_id = @owner_id
+    `);
+    this.listRunWatermarksStatement = db.prepare(`
+      SELECT id, COALESCE(updated_at, started_at) AS updated_at
+      FROM runs
+    `);
+    this.listRunningRunsStatement = db.prepare(`
+      SELECT id, task_id
+      FROM runs
+      WHERE status = 'running'
+      ORDER BY started_at ASC, id ASC
+    `);
   }
 
   create(input: CreateRunRequest): RunReport {
     const startedAt = input.startedAt ?? new Date().toISOString();
     const personaVersion = input.personaVersion ?? null;
     const persona = input.persona ?? null;
-    this.insertRunStatement.run({
-      id: input.id,
-      task_id: input.taskId,
-      task_snapshot_json: JSON.stringify(input.task),
-      started_at: startedAt,
-      assignee: input.assignee,
-      goal_preview: formatGoalPreview(input.goal),
-      status: "running",
-      outcome_json: null,
-      step_count: 0,
-      conversation_history_json: null,
-      persona_version: personaVersion,
-      persona,
-    });
+    try {
+      this.insertRunStatement.run({
+        id: input.id,
+        task_id: input.taskId,
+        task_snapshot_json: JSON.stringify(input.task),
+        started_at: startedAt,
+        assignee: input.assignee,
+        goal_preview: formatGoalPreview(input.goal),
+        status: "running",
+        outcome_json: null,
+        step_count: 0,
+        conversation_history_json: null,
+        persona_version: personaVersion,
+        persona,
+        updated_at: startedAt,
+      });
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new TaskAlreadyRunningError(input.taskId);
+      }
+      throw error;
+    }
     this.trim();
     return this.rowToRunReport(
       {
@@ -256,7 +371,7 @@ export class SqliteRunRepository implements RunRepository {
     }
 
     const normalized = createRunStep(step as Parameters<typeof createRunStep>[0]);
-    this.db.exec("BEGIN IMMEDIATE");
+    this.db.exec(BEGIN_IMMEDIATE);
     try {
       this.insertStepStatement.run({
         id: normalized.id,
@@ -265,10 +380,10 @@ export class SqliteRunRepository implements RunRepository {
         kind: normalized.kind,
         payload_json: stepPayloadToJson(normalized),
       });
-      this.incrementStepCountStatement.run(runId);
-      this.db.exec("COMMIT");
+      this.incrementStepCountStatement.run(nowIso(), runId);
+      this.db.exec(COMMIT);
     } catch (error) {
-      this.db.exec("ROLLBACK");
+      this.db.exec(ROLLBACK);
       throw error;
     }
 
@@ -286,7 +401,9 @@ export class SqliteRunRepository implements RunRepository {
     this.updateRunCompleteStatement.run({
       id: runId,
       outcome_json: serializeOutcome(input.outcome),
+      updated_at: nowIso(),
     });
+    this.deleteFollowUpsStatement.run(runId);
 
     const updatedRow = this.getRunStatement.get(runId) as unknown as RunRow;
     const steps = this.listStepsForRun(runId);
@@ -318,6 +435,14 @@ export class SqliteRunRepository implements RunRepository {
       ...(row.persona != null ? { persona: row.persona } : {}),
     }));
     return { runs };
+  }
+
+  listRunningRuns(): RunningRunRef[] {
+    const rows = this.listRunningRunsStatement.all() as Array<{
+      id: string;
+      task_id: string;
+    }>;
+    return rows.map((row) => ({ id: row.id, taskId: row.task_id }));
   }
 
   setConversationHistory(
@@ -352,12 +477,13 @@ export class SqliteRunRepository implements RunRepository {
       id: runId,
       mcp_task_id: parked.mcpTaskId,
       poll_interval_ms: parked.pollIntervalMs ?? null,
+      updated_at: nowIso(),
     });
     return result.changes > 0;
   }
 
   clearParkedMcpTask(runId: string): boolean {
-    const result = this.clearParkedMcpTaskStatement.run(runId);
+    const result = this.clearParkedMcpTaskStatement.run(nowIso(), runId);
     return result.changes > 0;
   }
 
@@ -379,6 +505,120 @@ export class SqliteRunRepository implements RunRepository {
       mcp_task_poll_interval_ms: number | null;
     }>;
     return rows.map(parkedMcpTaskFromRow);
+  }
+
+  listClaimableParkedMcpTasks(nowIsoValue: string): ParkedMcpTask[] {
+    const rows = this.listClaimableParkedMcpTasksStatement.all(
+      nowIsoValue,
+    ) as Array<{
+      id: string;
+      mcp_task_id: string;
+      mcp_task_poll_interval_ms: number | null;
+    }>;
+    return rows.map(parkedMcpTaskFromRow);
+  }
+
+  enqueueParkedFollowUp(
+    runId: string,
+    message: string,
+    userMessageStep: RunStep,
+  ): boolean {
+    const normalizedStep = userMessageStep.id
+      ? userMessageStep
+      : createRunStep(userMessageStep as Parameters<typeof createRunStep>[0]);
+
+    this.db.exec(BEGIN_IMMEDIATE);
+    try {
+      const parked = this.getParkedForUpdateStatement.get(runId) as
+        | { mcp_task_id: string }
+        | undefined;
+      if (!parked) {
+        this.db.exec(ROLLBACK);
+        return false;
+      }
+
+      this.insertFollowUpStatement.run({
+        id: randomUUID(),
+        run_id: runId,
+        text: message,
+        created_at: nowIso(),
+      });
+      this.insertStepStatement.run({
+        id: normalizedStep.id,
+        run_id: runId,
+        timestamp: normalizedStep.timestamp,
+        kind: normalizedStep.kind,
+        payload_json: stepPayloadToJson(normalizedStep),
+      });
+      this.incrementStepCountStatement.run(nowIso(), runId);
+      this.db.exec(COMMIT);
+    } catch (error) {
+      this.db.exec(ROLLBACK);
+      throw error;
+    }
+
+    return true;
+  }
+
+  drainParkedFollowUps(runId: string): ConversationEntry[] {
+    this.db.exec(BEGIN_IMMEDIATE);
+    try {
+      const rows = this.listFollowUpsStatement.all(runId) as Array<{
+        text: string;
+      }>;
+      if (rows.length > 0) {
+        this.deleteFollowUpsStatement.run(runId);
+      }
+      this.db.exec(COMMIT);
+      return rows.map((row) => ({ role: "user" as const, text: row.text }));
+    } catch (error) {
+      this.db.exec(ROLLBACK);
+      throw error;
+    }
+  }
+
+  claimRun(
+    runId: string,
+    ownerId: string,
+    leaseExpiresAt: string,
+    nowIsoValue: string,
+  ): boolean {
+    const result = this.claimRunStatement.run({
+      id: runId,
+      owner_id: ownerId,
+      lease_expires_at: leaseExpiresAt,
+      now: nowIsoValue,
+    });
+    return result.changes > 0;
+  }
+
+  renewRunLease(
+    runId: string,
+    ownerId: string,
+    leaseExpiresAt: string,
+  ): boolean {
+    const result = this.renewRunLeaseStatement.run({
+      id: runId,
+      owner_id: ownerId,
+      lease_expires_at: leaseExpiresAt,
+    });
+    return result.changes > 0;
+  }
+
+  releaseRun(runId: string, ownerId: string): boolean {
+    const result = this.releaseRunStatement.run({
+      id: runId,
+      owner_id: ownerId,
+    });
+    return result.changes > 0;
+  }
+
+  listRunWatermarks(): RunUpdateWatermark[] {
+    const rows = this.listRunWatermarksStatement.all() as Array<{
+      id: string;
+      updated_at: string;
+    }>;
+    return rows.map((row) => ({ id: row.id, updatedAt: row.updated_at }));
   }
 
   beginContinuation(
@@ -410,14 +650,15 @@ export class SqliteRunRepository implements RunRepository {
       ? userMessageStep
       : createRunStep(userMessageStep as Parameters<typeof createRunStep>[0]);
 
-    this.db.exec("BEGIN IMMEDIATE");
+    this.db.exec(BEGIN_IMMEDIATE);
     try {
       const result = this.beginContinuationStatement.run({
         id: runId,
         conversation_history_json: serializeConversationHistory(updatedHistory),
+        updated_at: nowIso(),
       });
       if (result.changes === 0) {
-        this.db.exec("ROLLBACK");
+        this.db.exec(ROLLBACK);
         return { ok: false, reason: "concurrent_continuation" };
       }
 
@@ -428,9 +669,9 @@ export class SqliteRunRepository implements RunRepository {
         kind: normalizedStep.kind,
         payload_json: stepPayloadToJson(normalizedStep),
       });
-      this.db.exec("COMMIT");
+      this.db.exec(COMMIT);
     } catch (error) {
-      this.db.exec("ROLLBACK");
+      this.db.exec(ROLLBACK);
       throw error;
     }
 

@@ -83,4 +83,39 @@ describe("resumeParkedHarnessRuns", () => {
       persistence.close();
     }
   });
+
+  it("skips a parked run whose lease is still held by another replica", () => {
+    const persistence = createTestPersistence();
+    try {
+      createTestRun(persistence, { runId: "run-1", task: sampleTask });
+      persistence.runStore.setConversationHistory("run-1", [
+        { role: "user", text: "goal" },
+      ]);
+      persistence.runStore.setParkedMcpTask("run-1", {
+        mcpTaskId: "parked-1",
+      });
+      assert.equal(
+        persistence.runStore.claimRun(
+          "run-1",
+          "replica-a",
+          "2026-07-08T12:00:15.000Z",
+          "2026-07-08T12:00:00.000Z",
+        ),
+        true,
+      );
+
+      const count = resumeParkedHarnessRuns({
+        runStore: persistence.runStore,
+        now: () => Date.parse("2026-07-08T12:00:00.000Z"),
+        resumeHarnessRun: () => {
+          throw new Error("should not resume");
+        },
+        logger: silentLogger(),
+      });
+
+      assert.equal(count, 0);
+    } finally {
+      persistence.close();
+    }
+  });
 });
