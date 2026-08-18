@@ -4,7 +4,7 @@ Agent runtime for the Keidai ecosystem. Exchanges a subject token with Fuda for 
 
 ## Task loop
 
-The loop is deliberately thin: call the model (OpenRouter via the AI SDK) with Torii-discovered tools, dispatch tool calls back to Torii over MCP (per-request caller; not a held protocol session), feed results in, repeat. Conversation state is held in memory for a single run and checkpointed to persistent storage for terminal continuations. Every run records exactly one outcome:
+The loop is deliberately thin: call the model (OpenRouter via the AI SDK) with Torii-discovered tools, dispatch tool calls back to Torii over MCP (per-request caller; not a held protocol session), feed results in, repeat. Conversation state is persisted per run in SQLite and used to continue that same run after a terminal outcome. At most one run may be `running` for a given saved task (enforced in the store). Starting a second run while any run is already in progress is a temporary v0 fleet-wide cap, not a runtime invariant. Every run records exactly one outcome:
 
 | Outcome | Meaning |
 |---------|---------|
@@ -83,10 +83,10 @@ Saved tasks are listed at `GET /api/tasks` and persist in SQLite (`SHAIDEN_DB_PA
 
 | Run state | Behavior |
 |-----------|----------|
-| `waiting_approval` | Message is queued for the parked loop and recorded in the run log; approval is unchanged |
+| `waiting_approval` | Message is queued in the run store (any replica can accept it) and recorded in the run log; approval is unchanged |
 | Terminal (`failed`, `goal_met`, `iteration_exhausted`, `timeout`) | Run reopens, message is appended, and the loop resumes with persisted conversation history |
 
-Iteration cap and wall-clock timeout reset on each terminal continuation. Runs created before conversation-history persistence was added cannot be resumed (`409`). If the process restarts while a run is parked on approval, polling resumes from the persisted MCP task id; in-memory queued follow-ups from before the restart are lost. `human_reject` continuations are not supported in v0.
+Iteration cap and wall-clock timeout reset on each terminal continuation. Runs created before conversation-history persistence was added cannot be resumed (`409`). If the process restarts while a run is parked on approval, polling resumes from the persisted MCP task id; queued follow-ups persist in SQLite and are drained before the next model call. A replica claims a parked run with a short lease so two processes cannot drive it at once — another replica may reclaim after the lease expires. `human_reject` continuations are not supported in v0.
 
 Conversation history is checkpointed during execution and stored in SQLite (`conversation_history_json`) so terminal resumes can rebuild the model transcript. The run log records `user_message` and `outcome` milestone steps so prior outcomes remain visible after a continuation.
 
@@ -114,3 +114,4 @@ Starts **Fuda** (identity / token exchange on `:3300`), **Torii** (`torii.demo.y
 | `SHAIDEN_HOST` | HTTP bind host for the runs API (default: `127.0.0.1`) |
 | `SHAIDEN_PORT` | HTTP bind port for the runs API (default: `3200`) |
 | `SHAIDEN_DB_PATH` | SQLite path for saved tasks and run history (default: `./data/shaiden.db`) |
+| `SHAIDEN_REPLICA_ID` | Optional stable replica id for run leases (default: a UUID at boot) |

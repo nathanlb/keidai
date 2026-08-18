@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import type { Logger } from "@keidai/shared";
 import { bffServiceTokenAuthorizationHeader } from "@keidai/shared/bff-service-token";
-import { ActiveRunRegistry } from "../../run/active-run-registry.js";
 import { resumeHarnessRun } from "../../run/harness.js";
 import type { RuntimeConfig } from "../../config/runtime-config.js";
 import { ShaidenHttpServer } from "../shaiden-http-server.js";
@@ -28,18 +27,16 @@ const testRuntimeConfig: RuntimeConfig = {
 
 function createServer() {
   const { runStore, taskRepository } = createTestPersistence();
-  const activeRunRegistry = new ActiveRunRegistry();
   return new ShaidenHttpServer({
     runStore,
     taskRepository,
     logger: silentLogger,
     runtimeConfig: testRuntimeConfig,
-    activeRunRegistry,
     resumeHarnessRun: (input) =>
       resumeHarnessRun({
         ...input,
         config: testRuntimeConfig,
-        options: { activeRunRegistry, logger: silentLogger },
+        options: { logger: silentLogger },
       }),
     startTaskRun: async () => {
       throw new Error("not used");

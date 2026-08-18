@@ -10,6 +10,7 @@ import {
 } from "@keidai/shared/clients";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { RunStore } from "../runs/run-store.js";
+import { TaskAlreadyRunningError } from "../runs/types/run-repository.js";
 import type { LaunchedHarnessRun } from "../run/types/harness.js";
 import type { TaskRepository } from "../tasks/types/task-repository.js";
 import {
@@ -249,10 +250,13 @@ export class TasksApiController {
     }
   }
 
+  /**
+   * v0 fleet-wide start cap: at most one `running` run in the store, any task.
+   * The durable rule is one running run per task (unique index). NAT-164 lifts
+   * this gate so different tasks can run at once.
+   */
   private hasRunningRun(): boolean {
-    return this.runStore
-      .listRuns()
-      .runs.some((run) => run.status === "running");
+    return this.runStore.listRunningRuns().length > 0;
   }
 
   private async startRunForTask(
@@ -295,6 +299,9 @@ export class TasksApiController {
       }
       if (error instanceof AgentDefinitionError) {
         return describeAgentDefinitionFailure(error, "start");
+      }
+      if (error instanceof TaskAlreadyRunningError) {
+        return { error: error.message, status: 409 };
       }
       const message = error instanceof Error ? error.message : String(error);
       return { error: `task start failed: ${message}`, status: 500 };

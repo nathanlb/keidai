@@ -1,6 +1,5 @@
 import { Logger, Run, Task } from "@keidai/shared";
 import { DiscoveredTool } from "../../mcp/types/index.js";
-import { ActiveRunRegistry } from "../active-run-registry.js";
 import { RunStore } from "../../runs/run-store.js";
 import { RuntimeConfig } from "../../config/runtime-config.js";
 import { ConversationEntry } from "./conversation-history.js";
@@ -16,7 +15,9 @@ export interface HarnessRunResult {
 export interface HarnessRunOptions {
   logger?: Logger;
   runStore?: RunStore;
-  activeRunRegistry?: ActiveRunRegistry;
+  replicaId?: string;
+  leaseMs?: number;
+  now?: () => number;
   /** Injectable for tests; defaults to HTTP client when `fudaBaseUrl` is set. */
   fudaClient?: FudaClient;
 }
@@ -51,7 +52,9 @@ export interface DriveHarnessRunInput {
   logger: Logger;
   runStore: RunStore;
   initialHistory: ConversationEntry[];
-  activeRunRegistry: ActiveRunRegistry;
+  replicaId: string;
+  leaseMs: number;
+  now: () => number;
   systemPrompt: string;
   fudaClient?: FudaClient;
 }

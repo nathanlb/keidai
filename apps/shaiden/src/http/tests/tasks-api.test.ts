@@ -7,10 +7,10 @@ import {
 } from "@keidai/shared/clients";
 import type { HarnessRunResult } from "../../run/types/harness.js";
 import type { LaunchedHarnessRun } from "../../run/types/harness.js";
-import { ActiveRunRegistry } from "../../run/active-run-registry.js";
 import { resumeHarnessRun } from "../../run/harness.js";
 import type { RuntimeConfig } from "../../config/runtime-config.js";
 import { ShaidenHttpServer } from "../shaiden-http-server.js";
+import { TaskAlreadyRunningError } from "../../runs/types/run-repository.js";
 import {
   createTestPersistence,
   createTestRun,
@@ -57,7 +57,6 @@ function createTestServer({
 } = {}) {
   const launched: Array<{ task: Task; taskId: string }> = [];
   const { runStore, taskRepository } = persistence;
-  const activeRunRegistry = new ActiveRunRegistry();
   const runtimeConfig = testRuntimeConfig;
   const server = new ShaidenHttpServer({
     runStore,
@@ -65,12 +64,11 @@ function createTestServer({
     logger: silentLogger,
     runtimeConfig,
     fudaClient,
-    activeRunRegistry,
     resumeHarnessRun: (input) =>
       resumeHarnessRun({
         ...input,
         config: runtimeConfig,
-        options: { activeRunRegistry, logger: silentLogger },
+        options: { logger: silentLogger },
       }),
     startTaskRun:
       startTaskRun ??
@@ -319,6 +317,30 @@ describe("tasks API", () => {
         body: JSON.stringify(sampleTask),
       });
       assert.equal(response.status, 409);
+      const body = (await response.json()) as { error: string };
+      assert.equal(body.error, "a run is already in progress");
+    } finally {
+      await handle.close();
+      persistence.close();
+    }
+  });
+
+  it("maps a per-task running constraint to 409", async () => {
+    const { server, persistence } = createTestServer({
+      startTaskRun: async () => {
+        throw new TaskAlreadyRunningError("task-x");
+      },
+    });
+    const handle = await server.start({ host: "127.0.0.1", port: 0 });
+    try {
+      const response = await fetch(`${handle.baseUrl}/api/tasks/run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sampleTask),
+      });
+      assert.equal(response.status, 409);
+      const body = (await response.json()) as { error: string };
+      assert.equal(body.error, "this task already has a running run");
     } finally {
       await handle.close();
       persistence.close();

@@ -1,5 +1,6 @@
 import type { Logger, Task } from "@keidai/shared";
 import type { ConversationEntry } from "./types/conversation-history.js";
+import { isRunLeaseError } from "./run-lease.js";
 import type { RunStore } from "../runs/run-store.js";
 
 export interface ResumeParkedHarnessRun {
@@ -10,9 +11,9 @@ export interface ResumeParkedHarnessRun {
 }
 
 /**
- * Re-attach in-flight gated tool calls after a Shaiden restart. Each parked
- * run still has a durable MCP task id; polling resumes without replaying
- * tools/call.
+ * Re-attach in-flight gated tool calls after a restart or when another
+ * replica's lease has expired. Claim happens inside the harness so two
+ * replicas cannot drive the same parked run.
  */
 export function resumeParkedHarnessRuns(input: {
   runStore: RunStore;
@@ -20,8 +21,10 @@ export function resumeParkedHarnessRuns(input: {
     done: Promise<unknown>;
   };
   logger: Logger;
+  now?: () => number;
 }): number {
-  const parkedRuns = input.runStore.listParkedMcpTasks();
+  const nowIso = new Date((input.now ?? Date.now)()).toISOString();
+  const parkedRuns = input.runStore.listClaimableParkedMcpTasks(nowIso);
   if (parkedRuns.length === 0) {
     return 0;
   }
@@ -53,6 +56,12 @@ export function resumeParkedHarnessRuns(input: {
       runStore: input.runStore,
     });
     done.catch((error: unknown) => {
+      if (isRunLeaseError(error)) {
+        input.logger.info("boot.resume_parked_not_claimed", {
+          runId: parked.runId,
+        });
+        return;
+      }
       input.logger.error("boot.resume_parked_failed", {
         runId: parked.runId,
         error: error instanceof Error ? error.message : String(error),

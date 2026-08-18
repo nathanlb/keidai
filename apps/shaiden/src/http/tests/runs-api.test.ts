@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Logger, Task } from "@keidai/shared";
-import { ActiveRunRegistry, createActiveRunHandle } from "../../run/active-run-registry.js";
 import { ShaidenHttpServer } from "../shaiden-http-server.js";
 import type { RuntimeConfig } from "../../config/runtime-config.js";
 import {
@@ -37,13 +36,11 @@ const testRuntimeConfig: RuntimeConfig = {
 };
 
 async function createServer(persistence: TestPersistence) {
-  const activeRunRegistry = new ActiveRunRegistry();
   const server = new ShaidenHttpServer({
     runStore: persistence.runStore,
     taskRepository: persistence.taskRepository,
     logger: silentLogger,
     runtimeConfig: testRuntimeConfig,
-    activeRunRegistry,
     startTaskRun: async ({ task, taskId }) => {
       persistence.runStore.createRun({
         id: "run-ignored",
@@ -72,7 +69,7 @@ async function createServer(persistence: TestPersistence) {
     }),
   });
   const app = await server.createApp();
-  return { app, activeRunRegistry };
+  return { app };
 }
 
 describe("runs follow-up API", () => {
@@ -106,12 +103,10 @@ describe("runs follow-up API", () => {
 
   it("queues a follow-up while waiting for approval", async () => {
     const persistence = createTestPersistence();
-    const { app, activeRunRegistry } = await createServer(persistence);
+    const { app } = await createServer(persistence);
     try {
       createTestRun(persistence, { runId: "run-1", task: sampleTask });
-      const handle = createActiveRunHandle("run-1");
-      handle.setWaitingForApproval(true);
-      activeRunRegistry.register(handle);
+      persistence.runStore.setParkedMcpTask("run-1", { mcpTaskId: "parked-1" });
 
       const response = await app.inject({
         method: "POST",
@@ -120,7 +115,7 @@ describe("runs follow-up API", () => {
       });
 
       assert.equal(response.statusCode, 202);
-      assert.deepEqual(handle.drainPendingUserMessages(), [
+      assert.deepEqual(persistence.runStore.drainParkedFollowUps("run-1"), [
         { role: "user", text: "use the backup path" },
       ]);
       assert.equal(
