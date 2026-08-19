@@ -28,9 +28,9 @@ const sampleConfig: ToriiConfig = {
 
 describe("Gateway OAuth linking API", () => {
   it("initiate returns an authorization URL for configured providers", async () => {
-    const persistence = createTestGatewayPersistence();
+    const persistence = await createTestGatewayPersistence();
     const configService = new ToriiConfigService(sampleConfig);
-    const gatewayHttpServer = createTestGatewayHttpServer(
+    const gatewayHttpServer = await createTestGatewayHttpServer(
       {} as never,
       {} as never,
       {
@@ -74,15 +74,15 @@ describe("Gateway OAuth linking API", () => {
       assert.doesNotMatch(JSON.stringify(body), /accessToken/);
     } finally {
       await gateway.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("connections reports link status without exposing tokens", async () => {
-    const persistence = createTestGatewayPersistence();
+    const persistence = await createTestGatewayPersistence();
     const { tokenRepository } = persistence;
     const configService = new ToriiConfigService(sampleConfig);
-    const gatewayHttpServer = createTestGatewayHttpServer(
+    const gatewayHttpServer = await createTestGatewayHttpServer(
       {} as never,
       {} as never,
       {
@@ -115,15 +115,15 @@ describe("Gateway OAuth linking API", () => {
       assert.equal(JSON.stringify(body).includes("secret"), false);
     } finally {
       await gateway.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("unlink removes stored grant for owner and provider", async () => {
-    const persistence = createTestGatewayPersistence();
+    const persistence = await createTestGatewayPersistence();
     const { tokenRepository } = persistence;
     const configService = new ToriiConfigService(sampleConfig);
-    const gatewayHttpServer = createTestGatewayHttpServer(
+    const gatewayHttpServer = await createTestGatewayHttpServer(
       {} as never,
       {} as never,
       {
@@ -156,15 +156,15 @@ describe("Gateway OAuth linking API", () => {
       assert.equal(missingResponse.status, 404);
     } finally {
       await gateway.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("callback completes UI-initiated flows on success and error paths", async () => {
-    const persistence = createTestGatewayPersistence();
+    const persistence = await createTestGatewayPersistence();
     const { tokenRepository } = persistence;
     const configService = new ToriiConfigService(sampleConfig);
-    const gatewayHttpServer = createTestGatewayHttpServer(
+    const gatewayHttpServer = await createTestGatewayHttpServer(
       {} as never,
       {} as never,
       {
@@ -247,7 +247,7 @@ describe("Gateway OAuth linking API", () => {
       }
     } finally {
       await gateway.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 });

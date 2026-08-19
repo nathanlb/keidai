@@ -9,7 +9,7 @@ describe("JWKS endpoint", () => {
   it("serves active public keys with kid on the public route group", async () => {
     const oldPath = writeTempSigningKeyPem("old");
     const newPath = writeTempSigningKeyPem("new");
-    const { server } = createTestServerWithKeys({
+    const { server } = await createTestServerWithKeys({
       listenGroups: "public",
       keys: [
         { kid: "old", path: oldPath },
@@ -38,7 +38,7 @@ describe("JWKS endpoint", () => {
   });
 
   it("is reachable without authentication", async () => {
-    const server = createTestServer("public");
+    const server = await createTestServer("public");
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       const response = await fetch(`${handle.baseUrl}/.well-known/jwks.json`);
@@ -49,7 +49,7 @@ describe("JWKS endpoint", () => {
   });
 
   it("is absent when only the management group is enabled", async () => {
-    const server = createTestServer("management");
+    const server = await createTestServer("management");
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       const response = await fetch(`${handle.baseUrl}/.well-known/jwks.json`);
@@ -66,7 +66,7 @@ describe("signing key rotation", () => {
     const newPath = writeTempSigningKeyPem("new");
 
     // Publish both keys; still sign with old.
-    const published = createTestServerWithKeys({
+    const published = await createTestServerWithKeys({
       listenGroups: "public",
       keys: [
         { kid: "old", path: oldPath },
@@ -100,7 +100,7 @@ describe("signing key rotation", () => {
       assert.equal(verifiedOld.payload.agent_id, "agent-1");
 
       // Switch signing to new key (both still published).
-      const switched = createTestServerWithKeys({
+      const switched = await createTestServerWithKeys({
         listenGroups: "public",
         keys: [
           { kid: "old", path: oldPath },
@@ -140,7 +140,7 @@ describe("signing key rotation", () => {
       }
 
       // Retire old key: only new remains.
-      const retired = createTestServerWithKeys({
+      const retired = await createTestServerWithKeys({
         listenGroups: "public",
         keys: [{ kid: "new", path: newPath }],
         signingKid: "new",

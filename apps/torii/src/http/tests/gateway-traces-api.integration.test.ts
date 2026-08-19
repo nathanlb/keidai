@@ -95,7 +95,7 @@ function createTracesGateway(
   persistence: TestGatewayPersistence,
   traceRepository: TraceRepository = persistence.traceRepository,
   traceEmitter = new TraceEmitterService(traceRepository),
-): GatewayHttpServer {
+): Promise<GatewayHttpServer> {
   return createTestGatewayHttpServer(createStubToolCatalog(), {} as never, {
     persistence,
     traceRepository,
@@ -105,16 +105,16 @@ function createTracesGateway(
 
 describe("Gateway /api/traces endpoints", () => {
   it("returns recent traces newest-first with filters and pagination", async () => {
-    const persistence = createTestGatewayPersistence();
+    const persistence = await createTestGatewayPersistence();
     const { traceRepository } = persistence;
     const traceEmitter = new TraceEmitterService(traceRepository);
-    const gatewayHttpServer = createTracesGateway(
+    const gatewayHttpServer = await createTracesGateway(
       persistence,
       traceRepository,
       traceEmitter,
     );
 
-    traceEmitter.emit(
+    await traceEmitter.emit(
       finalizeCallTrace(
         {
           server: "github",
@@ -124,10 +124,10 @@ describe("Gateway /api/traces endpoints", () => {
           policyDecision: PolicyDecision.Allowed,
           durationMs: 10,
         },
-        { traceId: "trace-1", timestamp: "2026-06-20T12:00:00.000Z" },
+        { traceId: "trace-1", timestamp: new Date(Date.now() - 1000).toISOString() },
       ),
     );
-    traceEmitter.emit(
+    await traceEmitter.emit(
       finalizeCallTrace(
         {
           server: "stripe",
@@ -137,7 +137,7 @@ describe("Gateway /api/traces endpoints", () => {
           policyDecision: PolicyDecision.Allowed,
           durationMs: 20,
         },
-        { traceId: "trace-2", timestamp: "2026-06-20T12:00:01.000Z" },
+        { traceId: "trace-2", timestamp: new Date().toISOString() },
       ),
     );
 
@@ -167,21 +167,21 @@ describe("Gateway /api/traces endpoints", () => {
       assert.equal(JSON.stringify(body).includes("gho_"), false);
     } finally {
       await gateway.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("returns a single trace and summary stats", async () => {
-    const persistence = createTestGatewayPersistence();
+    const persistence = await createTestGatewayPersistence();
     const { traceRepository } = persistence;
     const traceEmitter = new TraceEmitterService(traceRepository);
-    const gatewayHttpServer = createTracesGateway(
+    const gatewayHttpServer = await createTracesGateway(
       persistence,
       traceRepository,
       traceEmitter,
     );
 
-    traceEmitter.emit(
+    await traceEmitter.emit(
       finalizeCallTrace(
         {
           server: "github",
@@ -209,15 +209,15 @@ describe("Gateway /api/traces endpoints", () => {
       assert.equal(statsBody.linkingRequiredCount, 0);
     } finally {
       await gateway.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("streams new traces over SSE", async () => {
-    const persistence = createTestGatewayPersistence();
+    const persistence = await createTestGatewayPersistence();
     const { traceRepository } = persistence;
     const traceEmitter = new TraceEmitterService(traceRepository);
-    const gatewayHttpServer = createTracesGateway(
+    const gatewayHttpServer = await createTracesGateway(
       persistence,
       traceRepository,
       traceEmitter,
@@ -231,7 +231,7 @@ describe("Gateway /api/traces endpoints", () => {
           events.some((entry) => entry.trace.traceId === "live-trace"),
       );
 
-      traceEmitter.emit(
+      await traceEmitter.emit(
         finalizeCallTrace(
           {
             server: "deepwiki",
@@ -255,7 +255,7 @@ describe("Gateway /api/traces endpoints", () => {
       );
     } finally {
       await gateway.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 });

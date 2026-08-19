@@ -23,6 +23,7 @@ on:
       - packages/shared/src/run.ts
       - packages/shared/src/dto/runs.dto.ts
       - .github/workflows/shaiden-termination-eval.yml
+      - .github/workflows/with-postgres.yml
 
 concurrency:
   group: shaiden-termination-eval-${{ github.event.pull_request.number || github.ref }}
@@ -30,11 +31,10 @@ concurrency:
 
 jobs:
   termination-eval:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup
-      - run: pnpm turbo run build --filter=@keidai/shaiden...
-      - run: pnpm --filter @keidai/shaiden eval
-        env:
-          OPEN_ROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
+    uses: ./.github/workflows/with-postgres.yml
+    secrets:
+      OPEN_ROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
+    with:
+      command: |
+        pnpm turbo run build --filter=@keidai/shaiden...
+        pnpm --filter @keidai/shaiden eval

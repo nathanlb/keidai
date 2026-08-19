@@ -1,0 +1,44 @@
+# Callable job with a Postgres service. GitHub does not let composite
+# actions declare `services:`, so this is the shared definition.
+name: With Postgres
+
+on:
+  workflow_call:
+    inputs:
+      command:
+        description: Bash to run after checkout and pnpm setup
+        required: true
+        type: string
+    secrets:
+      OPEN_ROUTER_API_KEY:
+        required: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      KEIDAI_TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
+      FUDA_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
+      TORII_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
+      SHAIDEN_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
+      OPEN_ROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - name: Run
+        run: ${{ inputs.command }}
+        shell: bash

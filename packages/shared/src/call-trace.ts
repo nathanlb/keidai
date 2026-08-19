@@ -6,7 +6,7 @@ export interface CallTracePrincipal {
   ownerId: string;
   /**
    * Attested process that vouched for this agent.
-   * Present on newly emitted traces; may be absent on older SQLite rows until
+   * Present on newly emitted traces; may be absent on older stored rows until
    * the trace store persists `bearer_id`.
    */
   bearerId?: string;

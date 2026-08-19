@@ -39,7 +39,7 @@ export interface RunsApiControllerDeps {
   runStore: RunStore;
   resumeHarnessRun: (
     input: Omit<ResumeHarnessRunInput, "config">,
-  ) => LaunchedHarnessRun;
+  ) => LaunchedHarnessRun | Promise<LaunchedHarnessRun>;
   runtimeConfig: RuntimeConfig;
   logger: Logger;
 }
@@ -48,7 +48,7 @@ export class RunsApiController {
   constructor(private readonly deps: RunsApiControllerDeps) {}
 
   registerRoutes(app: FastifyInstance): void {
-    app.get("/api/runs/events", (request, reply) => {
+    app.get("/api/runs/events", async (request, reply) => {
       reply.hijack();
       reply.raw.writeHead(200, {
         "Content-Type": "text/event-stream",
@@ -65,8 +65,8 @@ export class RunsApiController {
         reply.raw.write(`data: ${JSON.stringify(event.run)}\n\n`);
       };
 
-      for (const item of this.deps.runStore.listRuns(50).runs) {
-        const run = this.deps.runStore.getRun(item.id);
+      for (const item of (await this.deps.runStore.listRuns(50)).runs) {
+        const run = await this.deps.runStore.getRun(item.id);
         if (run) {
           writeEvent({
             type: RUN_SSE_EVENT.runUpdated,
@@ -88,7 +88,7 @@ export class RunsApiController {
 
     app.get("/api/runs/:runId", async (request, reply) => {
       const { runId } = request.params as { runId: string };
-      const run = this.deps.runStore.getRun(runId);
+      const run = await this.deps.runStore.getRun(runId);
       if (!run) {
         reply.code(404).send({ error: "run not found" });
         return;
@@ -97,7 +97,7 @@ export class RunsApiController {
     });
 
     app.get("/api/runs", async (request, reply) => {
-      reply.send(this.deps.runStore.listRuns(parseRunListLimit(request)));
+      reply.send(await this.deps.runStore.listRuns(parseRunListLimit(request)));
     });
 
     app.post("/api/runs/:runId/follow-up", async (request, reply) => {
@@ -110,24 +110,24 @@ export class RunsApiController {
         return;
       }
 
-      const run = this.deps.runStore.getRun(runId);
+      const run = await this.deps.runStore.getRun(runId);
       if (!run) {
         reply.code(404).send({ error: "run not found" });
         return;
       }
 
-      const response = this.handleFollowUp(run, runId, message);
+      const response = await this.handleFollowUp(run, runId, message);
       reply.code(response.status).send(response.body);
     });
   }
 
-  private handleFollowUp(
+  private async handleFollowUp(
     run: RunReport,
     runId: string,
     message: string,
-  ): { status: number; body: FollowUpRunResponse | { error: string } } {
+  ): Promise<{ status: number; body: FollowUpRunResponse | { error: string } }> {
     if (run.status === "running") {
-      const queued = this.deps.runStore.enqueueParkedFollowUp(
+      const queued = await this.deps.runStore.enqueueParkedFollowUp(
         runId,
         message,
         createRunStep(createUserMessageStep(message)),
@@ -148,7 +148,7 @@ export class RunsApiController {
       };
     }
 
-    const continuation = this.deps.runStore.beginContinuation(
+    const continuation = await this.deps.runStore.beginContinuation(
       runId,
       message,
       createRunStep(createUserMessageStep(message)),
@@ -160,7 +160,7 @@ export class RunsApiController {
       };
     }
 
-    const { done } = this.deps.resumeHarnessRun({
+    const { done } = await this.deps.resumeHarnessRun({
       runId,
       initialHistory: continuation.history,
       task: run.task,

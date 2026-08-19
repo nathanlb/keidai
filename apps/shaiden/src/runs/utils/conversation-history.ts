@@ -85,17 +85,21 @@ function parseConversationEntry(value: unknown): ConversationEntry | null {
 }
 
 export function parseConversationHistory(
-  json: string | null | undefined,
+  json: unknown,
 ): ConversationEntry[] | null {
-  if (!json) {
+  if (json == null || json === "") {
     return null;
   }
 
   let parsed: unknown;
-  try {
-    parsed = JSON.parse(json);
-  } catch {
-    return null;
+  if (typeof json === "string") {
+    try {
+      parsed = JSON.parse(json);
+    } catch {
+      return null;
+    }
+  } else {
+    parsed = json;
   }
 
   if (!Array.isArray(parsed) || parsed.length === 0) {

@@ -7,7 +7,6 @@ dist/
 .env.*
 !.env.example
 deploy/k8s/secrets.env
-deploy/k8s/overlays/orbstack/patch-hostpath-volumes.yaml
 torii.yaml
 !deploy/k8s/base/torii.yaml
 data/

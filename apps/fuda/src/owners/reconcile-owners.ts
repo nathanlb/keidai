@@ -12,39 +12,39 @@ export interface ReconcileOwnersResult {
  * Deletes absent owners and cascades their agents (personas/grants via
  * AgentRepository.delete).
  */
-export function reconcileOwners(
+export async function reconcileOwners(
   owners: OwnerRepository,
   agents: AgentRepository,
   desiredOwnerIds: readonly string[],
-): ReconcileOwnersResult {
+): Promise<ReconcileOwnersResult> {
   const desired = new Set(desiredOwnerIds);
   let ownersUpserted = 0;
   let ownersDeleted = 0;
   let agentsDeleted = 0;
 
   for (const ownerId of desired) {
-    const before = owners.get(ownerId);
-    owners.upsert(ownerId);
+    const before = await owners.get(ownerId);
+    await owners.upsert(ownerId);
     if (!before) {
       ownersUpserted += 1;
     }
   }
 
-  for (const existing of owners.list()) {
+  for (const existing of await owners.list()) {
     if (desired.has(existing.ownerId)) {
       continue;
     }
 
-    for (const agent of agents.list()) {
+    for (const agent of await agents.list()) {
       if (agent.ownerId !== existing.ownerId) {
         continue;
       }
-      if (agents.delete(agent.id)) {
+      if (await agents.delete(agent.id)) {
         agentsDeleted += 1;
       }
     }
 
-    if (owners.delete(existing.ownerId)) {
+    if (await owners.delete(existing.ownerId)) {
       ownersDeleted += 1;
     }
   }

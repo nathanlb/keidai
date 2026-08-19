@@ -12,8 +12,8 @@ Keidai (境内) is a self-hostable ecosystem for securely configuring, running, 
 - **Runtime:** Node.js 24 (LTS)
 - **Monorepo:** pnpm workspaces + Turborepo
 - **Gateway (Torii):** TypeScript, Fastify, tsyringe, official MCP SDK — see [`apps/torii/README.md`](apps/torii/README.md)
-- **AIdP (Fuda):** TypeScript, Fastify, tsyringe, SQLite — see [`apps/fuda/README.md`](apps/fuda/README.md)
-- **Config:** `torii.yaml` at boot for Torii; Fuda uses env + SQLite migrations; operators live in `deploy/operators.example.yaml`
+- **AIdP (Fuda):** TypeScript, Fastify, tsyringe, Postgres — see [`apps/fuda/README.md`](apps/fuda/README.md)
+- **Config:** `torii.yaml` at boot for Torii; Fuda uses env + Postgres migrations; operators live in `deploy/operators.example.yaml`
 
 ## Layout
 
@@ -25,10 +25,12 @@ apps/
   torii/            # Torii - MCP gateway (see apps/torii/README.md)
 packages/
   shared/           # @keidai/shared - Torii config, catalog, trace types, loadEnv
+  postgres/         # @keidai/postgres - Pool, migrations, transactions, test schemas
   ui/               # @keidai/ui - Shared shadcn-based UI component library
 deploy/
   operators.example.yaml  # Google ↔ opaque owner_id registry (SSOT)
-  k8s/              # In-cluster bring-up (kind / OrbStack)
+  postgres/         # Init script: three logical DBs and roles
+  k8s/              # In-cluster bring-up (kind / OrbStack; single Postgres)
 docs/
   testing.md        # testing strategy and layout
 torii.example.yaml  # example server list + groups
@@ -44,7 +46,7 @@ cp torii.example.yaml torii.yaml   # edit backends as needed
 pnpm --filter @keidai/torii dev
 ```
 
-Day-to-day local UI: run Fuda/Torii/Shaiden, then `pnpm ui:dev` (Vite `:3000` + API-only BFF `:3001`). See [`apps/keidai-ui/README.md`](apps/keidai-ui/README.md).
+Day-to-day local UI: run Postgres (`docker compose up postgres -d`), then Fuda/Torii/Shaiden, then `pnpm ui:dev` (Vite `:3000` + API-only BFF `:3001`). See [`apps/keidai-ui/README.md`](apps/keidai-ui/README.md). Set `*_DATABASE_URL` as in [`.env.example`](.env.example). Database tests start a throwaway Postgres on `:54329` when no reachable `KEIDAI_TEST_DATABASE_URL` is set (Docker required).
 
 ## Demo
 

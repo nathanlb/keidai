@@ -129,13 +129,13 @@ async function resolvePersonaAtTaskStart(input: {
  * Resume must reuse the persona stamped on the run — never re-fetch current
  * from Fuda. When Fuda is configured, a missing stamp is a hard failure.
  */
-function resolveSystemPromptForResume(input: {
+async function resolveSystemPromptForResume(input: {
   runId: string;
   task: Task;
   runStore: RunStore;
   fudaClient: FudaClient | undefined;
-}): string {
-  const saved = input.runStore.getRun(input.runId);
+}): Promise<string> {
+  const saved = await input.runStore.getRun(input.runId);
   if (saved?.persona) {
     return systemPromptFromPersona(saved.persona);
   }
@@ -174,7 +174,7 @@ export async function launchHarnessRun({
     limits,
   });
   const reporter = createLocalRunReporter(runStore, runDraft.id);
-  reporter.startRun({
+  await reporter.startRun({
     id: runDraft.id,
     taskId,
     task,
@@ -188,7 +188,7 @@ export async function launchHarnessRun({
   const initialHistory: ConversationEntry[] = [
     { role: "user", text: taskGoalPrompt(task.goal) },
   ];
-  runStore.setConversationHistory(runDraft.id, initialHistory);
+  await runStore.setConversationHistory(runDraft.id, initialHistory);
 
   const done = driveHarnessRun({
     runId: runDraft.id,
@@ -225,18 +225,18 @@ export async function startHarnessRun(
   return done;
 }
 
-export function resumeHarnessRun({
+export async function resumeHarnessRun({
   runId,
   initialHistory,
   task,
   config,
   runStore,
   options = {},
-}: ResumeHarnessRunInput): LaunchedHarnessRun {
+}: ResumeHarnessRunInput): Promise<LaunchedHarnessRun> {
   const logger = options.logger ?? defaultLogger;
   const reporter = createLocalRunReporter(runStore, runId);
   const fudaClient = resolveFudaClient(config, options);
-  const systemPrompt = resolveSystemPromptForResume({
+  const systemPrompt = await resolveSystemPromptForResume({
     runId,
     task,
     runStore,
@@ -256,14 +256,14 @@ export function resumeHarnessRun({
     now: options.now ?? Date.now,
     systemPrompt,
     fudaClient,
-  }).catch((error) => {
+  }).catch(async (error) => {
     if (isRunLeaseError(error)) {
       throw error;
     }
     const reason = error instanceof Error ? error.message : String(error);
-    const existing = runStore.getRun(runId);
+    const existing = await runStore.getRun(runId);
     if (existing?.status === "running") {
-      completeRunWithOutcomeStep(runStore, runId, {
+      await completeRunWithOutcomeStep(runStore, runId, {
         status: "failed",
         reason: `resume failed: ${reason}`,
       });
@@ -289,9 +289,16 @@ async function driveHarnessRun({
   fudaClient,
 }: DriveHarnessRunInput): Promise<HarnessRunResult> {
   const limits = resolveTaskLimits(task);
-  const parked = runStore.getParkedMcpTask(runId);
+  const parked = await runStore.getParkedMcpTask(runId);
   const nowIso = () => new Date(now()).toISOString();
-  if (!runStore.claimRun(runId, replicaId, leaseExpiresAt(now(), leaseMs), nowIso())) {
+  if (
+    !(await runStore.claimRun(
+      runId,
+      replicaId,
+      leaseExpiresAt(now(), leaseMs),
+      nowIso(),
+    ))
+  ) {
     logger.info("run.claim_skipped", { runId, replicaId });
     throw new RunNotClaimedError(runId);
   }
@@ -313,7 +320,7 @@ async function driveHarnessRun({
   const runDraft = {
     id: runId,
     task,
-    startedAt: runStore.getRun(runId)?.startedAt ?? new Date().toISOString(),
+    startedAt: (await runStore.getRun(runId))?.startedAt ?? new Date().toISOString(),
   };
 
   try {
@@ -349,7 +356,7 @@ async function driveHarnessRun({
         history: Parameters<typeof baseCallModel>[0],
       ) => {
         const step = await baseCallModel(history);
-        reporter.recordStep({
+        await reporter.recordStep({
           kind: "model",
           text: step.text ? previewOf(step.text, 500) : undefined,
         });
@@ -393,8 +400,8 @@ async function driveHarnessRun({
           waitForApproval,
           drainPendingUserMessages: () =>
             runStore.drainParkedFollowUps(runId),
-          onHistoryChanged: (updatedHistory) => {
-            runStore.setConversationHistory(runId, updatedHistory);
+          onHistoryChanged: async (updatedHistory) => {
+            await runStore.setConversationHistory(runId, updatedHistory);
           },
         },
       );
@@ -414,9 +421,9 @@ async function driveHarnessRun({
         }
       }
 
-      runStore.setConversationHistory(runId, history);
+      await runStore.setConversationHistory(runId, history);
       const run = completeRun(runDraft, outcome);
-      completeRunWithOutcomeStep(runStore, runId, outcome);
+      await completeRunWithOutcomeStep(runStore, runId, outcome);
       logger.info("run.completed", {
         runId: run.id,
         iterations,
@@ -445,9 +452,9 @@ async function driveHarnessRun({
         : error instanceof Error
           ? error.message
           : String(error);
-    const existing = runStore.getRun(runId);
+    const existing = await runStore.getRun(runId);
     if (existing?.status === "running") {
-      completeRunWithOutcomeStep(runStore, runId, {
+      await completeRunWithOutcomeStep(runStore, runId, {
         status: "failed",
         reason,
       });
@@ -456,7 +463,7 @@ async function driveHarnessRun({
   } finally {
     stopHeartbeat();
     if (!lostLease) {
-      runStore.releaseRun(runId, replicaId);
+      await runStore.releaseRun(runId, replicaId);
     }
   }
 }

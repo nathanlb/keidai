@@ -39,10 +39,11 @@ async function createServer(persistence: TestPersistence) {
   const server = new ShaidenHttpServer({
     runStore: persistence.runStore,
     taskRepository: persistence.taskRepository,
+    pool: persistence.pool,
     logger: silentLogger,
     runtimeConfig: testRuntimeConfig,
     startTaskRun: async ({ task, taskId }) => {
-      persistence.runStore.createRun({
+      await persistence.runStore.createRun({
         id: "run-ignored",
         taskId,
         task,
@@ -74,15 +75,15 @@ async function createServer(persistence: TestPersistence) {
 
 describe("runs follow-up API", () => {
   it("accepts a follow-up on a terminal failed run", async () => {
-    const persistence = createTestPersistence();
+    const persistence = await createTestPersistence();
     const { app } = await createServer(persistence);
     try {
-      createTestRun(persistence, { runId: "run-1", task: sampleTask });
-      persistence.runStore.setConversationHistory("run-1", [
+      await createTestRun(persistence, { runId: "run-1", task: sampleTask });
+      await persistence.runStore.setConversationHistory("run-1", [
         { role: "user", text: "goal" },
         { role: "assistant", text: "failed", toolCalls: [] },
       ]);
-      persistence.runStore.completeRun("run-1", {
+      await persistence.runStore.completeRun("run-1", {
         outcome: { status: "failed", reason: "tool error" },
       });
 
@@ -93,20 +94,20 @@ describe("runs follow-up API", () => {
       });
 
       assert.equal(response.statusCode, 202);
-      const reopened = persistence.runStore.getRun("run-1");
+      const reopened = await persistence.runStore.getRun("run-1");
       assert.equal(reopened?.status, "running");
       assert.equal(reopened?.steps.at(-1)?.kind, "user_message");
     } finally {
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("queues a follow-up while waiting for approval", async () => {
-    const persistence = createTestPersistence();
+    const persistence = await createTestPersistence();
     const { app } = await createServer(persistence);
     try {
-      createTestRun(persistence, { runId: "run-1", task: sampleTask });
-      persistence.runStore.setParkedMcpTask("run-1", { mcpTaskId: "parked-1" });
+      await createTestRun(persistence, { runId: "run-1", task: sampleTask });
+      await persistence.runStore.setParkedMcpTask("run-1", { mcpTaskId: "parked-1" });
 
       const response = await app.inject({
         method: "POST",
@@ -115,24 +116,24 @@ describe("runs follow-up API", () => {
       });
 
       assert.equal(response.statusCode, 202);
-      assert.deepEqual(persistence.runStore.drainParkedFollowUps("run-1"), [
+      assert.deepEqual(await persistence.runStore.drainParkedFollowUps("run-1"), [
         { role: "user", text: "use the backup path" },
       ]);
       assert.equal(
-        persistence.runStore.getRun("run-1")?.steps.at(-1)?.kind,
+        (await persistence.runStore.getRun("run-1"))?.steps.at(-1)?.kind,
         "user_message",
       );
     } finally {
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("rejects continuation when history is missing", async () => {
-    const persistence = createTestPersistence();
+    const persistence = await createTestPersistence();
     const { app } = await createServer(persistence);
     try {
-      createTestRun(persistence, { runId: "run-1", task: sampleTask });
-      persistence.runStore.completeRun("run-1", { outcome: { status: "goal_met" } });
+      await createTestRun(persistence, { runId: "run-1", task: sampleTask });
+      await persistence.runStore.completeRun("run-1", { outcome: { status: "goal_met" } });
 
       const response = await app.inject({
         method: "POST",
@@ -142,15 +143,15 @@ describe("runs follow-up API", () => {
 
       assert.equal(response.statusCode, 409);
     } finally {
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("rejects follow-up while actively running without a waiting handle", async () => {
-    const persistence = createTestPersistence();
+    const persistence = await createTestPersistence();
     const { app } = await createServer(persistence);
     try {
-      createTestRun(persistence, { runId: "run-1", task: sampleTask });
+      await createTestRun(persistence, { runId: "run-1", task: sampleTask });
 
       const response = await app.inject({
         method: "POST",
@@ -161,20 +162,20 @@ describe("runs follow-up API", () => {
       assert.equal(response.statusCode, 409);
       assert.match(response.json().error, /not accepting follow-up/);
     } finally {
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("rejects follow-up for ineligible outcomes", async () => {
-    const persistence = createTestPersistence();
+    const persistence = await createTestPersistence();
     const { app } = await createServer(persistence);
     try {
-      createTestRun(persistence, { runId: "run-1", task: sampleTask });
-      persistence.runStore.setConversationHistory("run-1", [
+      await createTestRun(persistence, { runId: "run-1", task: sampleTask });
+      await persistence.runStore.setConversationHistory("run-1", [
         { role: "user", text: "goal" },
         { role: "assistant", text: "rejected", toolCalls: [] },
       ]);
-      persistence.runStore.completeRun("run-1", { outcome: { status: "human_reject" } });
+      await persistence.runStore.completeRun("run-1", { outcome: { status: "human_reject" } });
 
       const response = await app.inject({
         method: "POST",
@@ -185,19 +186,19 @@ describe("runs follow-up API", () => {
       assert.equal(response.statusCode, 409);
       assert.match(response.json().error, /cannot be continued/);
     } finally {
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("rejects invalid follow-up messages", async () => {
-    const persistence = createTestPersistence();
+    const persistence = await createTestPersistence();
     const { app } = await createServer(persistence);
     try {
-      createTestRun(persistence, { runId: "run-1", task: sampleTask });
-      persistence.runStore.setConversationHistory("run-1", [
+      await createTestRun(persistence, { runId: "run-1", task: sampleTask });
+      await persistence.runStore.setConversationHistory("run-1", [
         { role: "user", text: "goal" },
       ]);
-      persistence.runStore.completeRun("run-1", { outcome: { status: "goal_met" } });
+      await persistence.runStore.completeRun("run-1", { outcome: { status: "goal_met" } });
 
       const empty = await app.inject({
         method: "POST",
@@ -206,7 +207,7 @@ describe("runs follow-up API", () => {
       });
       assert.equal(empty.statusCode, 400);
     } finally {
-      persistence.close();
+      await persistence.close();
     }
   });
 });

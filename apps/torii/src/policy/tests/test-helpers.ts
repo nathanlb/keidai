@@ -21,18 +21,21 @@ export function createPolicyEnforcement(
   return new PolicyEnforcementService(configService, createNoopLogger());
 }
 
-export function createApprovalServices(
+export async function createApprovalServices(
   config: ToriiConfig | ToriiConfigService,
-  persistence: TestGatewayPersistence = createTestGatewayPersistence("sqlite"),
+  persistence?: TestGatewayPersistence,
 ) {
+  const ownedPersistence = persistence === undefined;
+  const gatewayPersistence =
+    persistence ?? (await createTestGatewayPersistence("postgres"));
   const configService =
     config instanceof ToriiConfigService
       ? config
       : new ToriiConfigService(config);
   const approvalStore =
-    persistence.approvalStore ??
-    new ApprovalStoreService(persistence.database!);
-  const taskStore = persistence.taskStore!;
+    gatewayPersistence.approvalStore ??
+    new ApprovalStoreService(gatewayPersistence.pool!);
+  const taskStore = gatewayPersistence.taskStore!;
   const approvalGate = new ApprovalGateService(
     configService,
     approvalStore,
@@ -51,9 +54,13 @@ export function createApprovalServices(
     approvalRead,
     approvalsApi,
     taskStore,
-    persistence,
-    close: persistence.close,
+    persistence: gatewayPersistence,
+    close: async () => {
+      if (ownedPersistence) {
+        await gatewayPersistence.close();
+      }
+    },
   };
 }
 
-export type ApprovalServices = ReturnType<typeof createApprovalServices>;
+export type ApprovalServices = Awaited<ReturnType<typeof createApprovalServices>>;

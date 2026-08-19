@@ -25,11 +25,12 @@ const testRuntimeConfig: RuntimeConfig = {
   httpPort: 3200,
 };
 
-function createServer() {
-  const { runStore, taskRepository } = createTestPersistence();
-  return new ShaidenHttpServer({
-    runStore,
-    taskRepository,
+async function createServer() {
+  const persistence = await createTestPersistence();
+  const server = new ShaidenHttpServer({
+    runStore: persistence.runStore,
+    taskRepository: persistence.taskRepository,
+    pool: persistence.pool,
     logger: silentLogger,
     runtimeConfig: testRuntimeConfig,
     resumeHarnessRun: (input) =>
@@ -42,6 +43,18 @@ function createServer() {
       throw new Error("not used");
     },
   });
+  const start = server.start.bind(server);
+  server.start = async (options) => {
+    const handle = await start(options);
+    return {
+      baseUrl: handle.baseUrl,
+      close: async () => {
+        await handle.close();
+        await persistence.close();
+      },
+    };
+  };
+  return server;
 }
 
 describe("Shaiden BFF service token gate", () => {
@@ -53,7 +66,7 @@ describe("Shaiden BFF service token gate", () => {
   it("rejects management API calls without a valid token", async () => {
     delete process.env.BFF_SERVICE_TOKEN_DISABLED;
     process.env.BFF_SERVICE_TOKEN = TOKEN;
-    const handle = await createServer().start({ host: "127.0.0.1", port: 0 });
+    const handle = await (await createServer()).start({ host: "127.0.0.1", port: 0 });
 
     try {
       const unauthorized = await fetch(`${handle.baseUrl}/api/tasks`);

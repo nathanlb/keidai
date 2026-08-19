@@ -125,7 +125,7 @@ function jsonResult(json: unknown): Record<string, unknown> {
 
 describe("Gateway backend-originated tasks", () => {
   it("returns one reminted task and completes it from the backend poll", async () => {
-    const persistence = createTestGatewayPersistence("sqlite");
+    const persistence = await createTestGatewayPersistence("postgres");
     const backend = await startMockMcpServer({
       tools: [{ name: "search_issues", description: "Search issues" }],
       onJsonRpc: backendTaskJsonRpc,
@@ -159,10 +159,10 @@ describe("Gateway backend-originated tasks", () => {
       credentialResolver,
       new CapturingTraceEmitter(),
       createPolicyEnforcement(configService),
-      createApprovalServices(configService, persistence).approvalGate,
+      (await createApprovalServices(configService, persistence)).approvalGate,
       persistence.taskStore!,
     );
-    const gatewayHttpServer = createTestGatewayHttpServer(
+    const gatewayHttpServer = await createTestGatewayHttpServer(
       toolCatalog,
       toolDispatch,
       { persistence, configService },
@@ -214,12 +214,12 @@ describe("Gateway backend-originated tasks", () => {
     } finally {
       await closeManagerConnections(connectionManager);
       await backend.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("collapses a gated tool and a backend task into one terminal result", async () => {
-    const persistence = createTestGatewayPersistence("sqlite");
+    const persistence = await createTestGatewayPersistence("postgres");
     const backend = await startMockMcpServer({
       tools: [{ name: "create_draft", description: "Create a draft email" }],
       onJsonRpc: backendTaskJsonRpc,
@@ -238,7 +238,7 @@ describe("Gateway backend-originated tasks", () => {
         [TEST_AGENT_PRINCIPAL.agentId]: ["gmail.create_draft"],
       },
     });
-    const approvalServices = createApprovalServices(configService, persistence);
+    const approvalServices = await createApprovalServices(configService, persistence);
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(
       configService,
@@ -260,7 +260,7 @@ describe("Gateway backend-originated tasks", () => {
       approvalServices.approvalGate,
       approvalServices.taskStore,
     );
-    const gatewayHttpServer = createTestGatewayHttpServer(
+    const gatewayHttpServer = await createTestGatewayHttpServer(
       toolCatalog,
       toolDispatch,
       { persistence, approvalServices, configService },
@@ -326,7 +326,7 @@ describe("Gateway backend-originated tasks", () => {
     } finally {
       await closeManagerConnections(connectionManager);
       await backend.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 });

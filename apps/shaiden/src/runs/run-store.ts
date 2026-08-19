@@ -45,8 +45,8 @@ export class RunStore {
    * Snapshot watermarks on the first call; later calls notify listeners when
    * a run's `updatedAt` changes (including runs created on another replica).
    */
-  pollRemoteUpdates(): void {
-    const watermarks = this.repository.listRunWatermarks();
+  async pollRemoteUpdates(): Promise<void> {
+    const watermarks = await this.repository.listRunWatermarks();
     const isFirst = !this.watermarksReady;
     for (const row of watermarks) {
       const previous = this.lastSeenUpdatedAt.get(row.id);
@@ -55,33 +55,36 @@ export class RunStore {
       }
       this.lastSeenUpdatedAt.set(row.id, row.updatedAt);
       if (!isFirst) {
-        this.notifyUpdated(row.id);
+        await this.notifyUpdated(row.id);
       }
     }
     this.watermarksReady = true;
   }
 
-  createRun(input: Parameters<RunRepository["create"]>[0]) {
-    const run = this.repository.create(input);
-    this.notifyUpdated(run.id);
+  async createRun(input: Parameters<RunRepository["create"]>[0]) {
+    const run = await this.repository.create(input);
+    await this.notifyUpdated(run.id);
     return projectRunListItem(run);
   }
 
-  appendStep(
+  async appendStep(
     runId: string,
     step: Omit<RunStep, "id"> & { id?: string },
   ) {
-    const run = this.repository.appendStep(runId, createRunStep(step));
+    const run = await this.repository.appendStep(runId, createRunStep(step));
     if (run) {
-      this.notifyUpdated(runId);
+      await this.notifyUpdated(runId);
     }
     return run;
   }
 
-  completeRun(runId: string, input: Parameters<RunRepository["complete"]>[1]) {
-    const run = this.repository.complete(runId, input);
+  async completeRun(
+    runId: string,
+    input: Parameters<RunRepository["complete"]>[1],
+  ) {
+    const run = await this.repository.complete(runId, input);
     if (run) {
-      this.notifyUpdated(runId);
+      await this.notifyUpdated(runId);
     }
     return run;
   }
@@ -89,54 +92,54 @@ export class RunStore {
   setConversationHistory(
     runId: string,
     history: readonly ConversationEntry[],
-  ): boolean {
+  ): Promise<boolean> {
     return this.repository.setConversationHistory(runId, history);
   }
 
-  getConversationHistory(runId: string): ConversationEntry[] | null {
+  getConversationHistory(runId: string): Promise<ConversationEntry[] | null> {
     return this.repository.getConversationHistory(runId);
   }
 
   setParkedMcpTask(
     runId: string,
     parked: Omit<ParkedMcpTask, "runId">,
-  ): boolean {
+  ): Promise<boolean> {
     return this.repository.setParkedMcpTask(runId, parked);
   }
 
-  clearParkedMcpTask(runId: string): boolean {
+  clearParkedMcpTask(runId: string): Promise<boolean> {
     return this.repository.clearParkedMcpTask(runId);
   }
 
-  getParkedMcpTask(runId: string): ParkedMcpTask | null {
+  getParkedMcpTask(runId: string): Promise<ParkedMcpTask | null> {
     return this.repository.getParkedMcpTask(runId);
   }
 
-  listParkedMcpTasks(): ParkedMcpTask[] {
+  listParkedMcpTasks(): Promise<ParkedMcpTask[]> {
     return this.repository.listParkedMcpTasks();
   }
 
-  listClaimableParkedMcpTasks(nowIso: string): ParkedMcpTask[] {
+  listClaimableParkedMcpTasks(nowIso: string): Promise<ParkedMcpTask[]> {
     return this.repository.listClaimableParkedMcpTasks(nowIso);
   }
 
-  enqueueParkedFollowUp(
+  async enqueueParkedFollowUp(
     runId: string,
     message: string,
     userMessageStep: RunStep,
-  ): boolean {
-    const queued = this.repository.enqueueParkedFollowUp(
+  ): Promise<boolean> {
+    const queued = await this.repository.enqueueParkedFollowUp(
       runId,
       message,
       userMessageStep,
     );
     if (queued) {
-      this.notifyUpdated(runId);
+      await this.notifyUpdated(runId);
     }
     return queued;
   }
 
-  drainParkedFollowUps(runId: string): ConversationEntry[] {
+  drainParkedFollowUps(runId: string): Promise<ConversationEntry[]> {
     return this.repository.drainParkedFollowUps(runId);
   }
 
@@ -145,7 +148,7 @@ export class RunStore {
     ownerId: string,
     leaseExpiresAt: string,
     nowIso: string,
-  ): boolean {
+  ): Promise<boolean> {
     return this.repository.claimRun(runId, ownerId, leaseExpiresAt, nowIso);
   }
 
@@ -153,32 +156,32 @@ export class RunStore {
     runId: string,
     ownerId: string,
     leaseExpiresAt: string,
-  ): boolean {
+  ): Promise<boolean> {
     return this.repository.renewRunLease(runId, ownerId, leaseExpiresAt);
   }
 
-  releaseRun(runId: string, ownerId: string): boolean {
+  releaseRun(runId: string, ownerId: string): Promise<boolean> {
     return this.repository.releaseRun(runId, ownerId);
   }
 
-  beginContinuation(
+  async beginContinuation(
     runId: string,
     message: string,
     userMessageStep: RunStep,
-  ): BeginContinuationResult {
-    const result = this.repository.beginContinuation(
+  ): Promise<BeginContinuationResult> {
+    const result = await this.repository.beginContinuation(
       runId,
       message,
       userMessageStep,
     );
     if (result.ok) {
-      this.notifyUpdated(runId);
+      await this.notifyUpdated(runId);
     }
     return result;
   }
 
-  private notifyUpdated(runId: string): void {
-    const run = this.repository.get(runId);
+  private async notifyUpdated(runId: string): Promise<void> {
+    const run = await this.repository.get(runId);
     if (!run) {
       return;
     }

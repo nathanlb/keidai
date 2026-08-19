@@ -1,26 +1,25 @@
 import "reflect-metadata";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { openGatewayDatabase } from "../../storage/gateway-sqlite.js";
-import { SqlitePendingLinkStore } from "../sqlite-pending-link-store.service.js";
+import { PgPendingLinkStore } from "../pg-pending-link-store.service.js";
 import type { PendingOAuthLinkStore } from "../types/pending-oauth-link-store.js";
 import {
   createTestGatewayPersistence,
   type TestGatewayBackend,
 } from "../../testing/gateway-persistence.js";
 
-const backends: TestGatewayBackend[] = ["sqlite", "memory"];
+const backends: TestGatewayBackend[] = ["postgres", "memory"];
 
 function runPendingLinkStoreContract(
   label: string,
-  createStore: () => {
+  createStore: () => Promise<{
     store: PendingOAuthLinkStore;
-    close: () => void;
-  },
+    close: () => Promise<void>;
+  }>,
 ): void {
   describe(label, () => {
     it("returns the latest link for an owner and provider", async () => {
-      const { store, close } = createStore();
+      const { store, close } = await createStore();
       try {
         await store.create({
           linkId: "link-1",
@@ -42,12 +41,12 @@ function runPendingLinkStoreContract(
         const latest = await store.getLatest("owner", "github");
         assert.equal(latest?.linkId, "link-2");
       } finally {
-        close();
+        await close();
       }
     });
 
     it("deletes every link for an owner", async () => {
-      const { store, close } = createStore();
+      const { store, close } = await createStore();
       try {
         await store.create({
           linkId: "link-a-1",
@@ -81,12 +80,12 @@ function runPendingLinkStoreContract(
         assert.deepEqual(await store.listOwnerIds(), ["owner-b"]);
         assert.equal(await store.getLatest("owner-a", "github"), null);
       } finally {
-        close();
+        await close();
       }
     });
 
     it("persists updates to an existing link", async () => {
-      const { store, close } = createStore();
+      const { store, close } = await createStore();
       try {
         const link = {
           linkId: "link-1",
@@ -104,7 +103,7 @@ function runPendingLinkStoreContract(
         assert.equal(updated?.status, "failed");
         assert.equal(updated?.error, "denied");
       } finally {
-        close();
+        await close();
       }
     });
   });
@@ -112,8 +111,8 @@ function runPendingLinkStoreContract(
 
 describe("PendingOAuthLinkStore contract", () => {
   for (const backend of backends) {
-    runPendingLinkStoreContract(`backend=${backend}`, () => {
-      const persistence = createTestGatewayPersistence(backend);
+    runPendingLinkStoreContract(`backend=${backend}`, async () => {
+      const persistence = await createTestGatewayPersistence(backend);
       return {
         store: persistence.pendingLinkStore,
         close: persistence.close,
@@ -121,9 +120,9 @@ describe("PendingOAuthLinkStore contract", () => {
     });
   }
 
-  it("sqlite persists updates across store instances", async () => {
-    const persistence = createTestGatewayPersistence("sqlite");
-    assert.ok(persistence.databasePath);
+  it("postgres persists updates across store instances", async () => {
+    const persistence = await createTestGatewayPersistence("postgres");
+    assert.ok(persistence.pool);
 
     const link = {
       linkId: "link-1",
@@ -136,21 +135,22 @@ describe("PendingOAuthLinkStore contract", () => {
       createdAt: new Date("2026-01-01T00:00:00.000Z"),
     };
 
-    await persistence.pendingLinkStore.create(link);
-    await persistence.pendingLinkStore.update({
-      ...link,
-      status: "failed",
-      error: "denied",
-    });
-    persistence.close();
+    try {
+      await persistence.pendingLinkStore.create(link);
+      await persistence.pendingLinkStore.update({
+        ...link,
+        status: "failed",
+        error: "denied",
+      });
 
-    const reopened = new SqlitePendingLinkStore(
-      openGatewayDatabase(persistence.databasePath),
-    );
-    const updated = await reopened.get("link-1");
-    assert.equal(updated?.status, "failed");
-    assert.equal(updated?.error, "denied");
-    assert.equal(updated?.codeVerifier, "verifier");
-    assert.equal(updated?.uiOrigin, "http://localhost:3100");
+      const reopened = new PgPendingLinkStore(persistence.pool);
+      const updated = await reopened.get("link-1");
+      assert.equal(updated?.status, "failed");
+      assert.equal(updated?.error, "denied");
+      assert.equal(updated?.codeVerifier, "verifier");
+      assert.equal(updated?.uiOrigin, "http://localhost:3100");
+    } finally {
+      await persistence.close();
+    }
   });
 });

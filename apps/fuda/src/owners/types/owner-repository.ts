@@ -4,14 +4,14 @@ export interface OwnerRecord {
 }
 
 export interface OwnerRepository {
-  upsert(ownerId: string): OwnerRecord;
-  get(ownerId: string): OwnerRecord | null;
-  list(): OwnerRecord[];
+  upsert(ownerId: string): Promise<OwnerRecord>;
+  get(ownerId: string): Promise<OwnerRecord | null>;
+  list(): Promise<OwnerRecord[]>;
   /**
    * Deletes the owner. Caller is responsible for cascading dependents
    * (or using reconcileOwners which deletes agents first).
    */
-  delete(ownerId: string): boolean;
+  delete(ownerId: string): Promise<boolean>;
 }
 
 /** tsyringe injection token for {@link OwnerRepository}. */

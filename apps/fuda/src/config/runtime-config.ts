@@ -11,7 +11,7 @@ import type {
   SubjectTokenValidatorSelection,
 } from "../subject-token/types/subject-token-validator-config.js";
 import { tryResolveSubjectTokenValidatorConfig } from "../subject-token/utils/resolve-subject-token-validator-config.js";
-import { resolveFudaDbPath } from "../storage/fuda-db-path.js";
+import { resolveFudaDatabaseUrl } from "../storage/fuda-postgres.js";
 import { SchemaIntegrityError } from "../storage/validate-schema-integrity.js";
 
 const DEFAULT_HTTP_PORT = 3300;
@@ -26,7 +26,7 @@ export class ConfigValidationError extends Error {
 export interface RuntimeConfig {
   httpHost: string;
   httpPort: number;
-  dbPath: string;
+  databaseUrl: string;
   listenGroups: readonly RouteGroup[];
   signingKeys: SigningKeysConfig;
   /** Issuer claim (`iss`) on minted agent identity tokens. */
@@ -54,7 +54,7 @@ export interface LoadedRuntimeConfig {
 const runtimeConfigSchema = z.object({
   httpHost: z.string().min(1),
   httpPort: z.number().int().positive(),
-  dbPath: z.string().min(1),
+  databaseUrl: z.string().min(1),
   listenGroups: z.array(z.enum(["public", "agent", "management"])).nonempty(),
   signingKeys: z.object({
     keys: z
@@ -223,7 +223,7 @@ export function loadRuntimeConfig(
   const parsed = runtimeConfigSchema.safeParse({
     httpHost,
     httpPort,
-    dbPath: resolveFudaDbPath(env),
+    databaseUrl: resolveFudaDatabaseUrl(env),
     listenGroups: listenGroups!,
     signingKeys: signingKeys!,
     tokenIssuer: tokenIssuer!,

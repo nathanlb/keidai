@@ -17,7 +17,7 @@ Browser → keidai-ui:3000 (SPA, /auth/*, /api/*, /oauth/callback/*)
 |------|------|
 | [`base/`](base/) | Portable manifests (Deployments, Services, PVCs, SA projection) |
 | [`overlays/kind/`](overlays/kind/) | kind: `imagePullPolicy: Never`, BFF `hostPort`, cluster config |
-| [`overlays/orbstack/`](overlays/orbstack/) | OrbStack: BFF `LoadBalancer`, hostPath SQLite → `apps/*/data` |
+| [`overlays/orbstack/`](overlays/orbstack/) | OrbStack: BFF `LoadBalancer`; Postgres uses the cluster PVC |
 
 GKE (and other cloud) overlays are intentionally separate and not included yet.
 
@@ -59,27 +59,22 @@ pnpm k8s:down          # or: pnpm k8s:down:orbstack
 KEIDAI_DELETE_CLUSTER=1 pnpm k8s:down   # also delete the kind cluster
 ```
 
-## OrbStack persistence
+## Persistence
 
-The orbstack overlay mounts SQLite via **hostPath** to the same dirs native
-local runs use (visible inside OrbStack at the same absolute path):
+One Postgres instance in the `keidai` namespace (`postgres:16-alpine`, ClusterIP
+`postgres:5432`) with three logical databases and roles: `fuda`, `torii`,
+`shaiden`. Connection strings are written into Secret `keidai-secrets` by
+`up.sh` from `POSTGRES_PASSWORD` (default `keidai-local`). Apps fail closed if
+`*_DATABASE_URL` is missing. `/api/health` fails if the pool cannot `SELECT 1`.
 
-```text
-apps/fuda/data
-apps/torii/data
-apps/shaiden/data
-```
+Traces (`call_traces`) and Shaiden `run_steps` are weekly range-partitioned;
+partitions older than 7 days are dropped (`KEIDAI_PARTITION_RETENTION_DAYS`).
+Replica counts stay at 1 — scaling Torii is a later issue (NAT-151). High
+availability (CloudNativePG, standby, object-storage PITR) is a later GCP
+deploy (NAT-160), not this local overlay.
 
-`pnpm k8s:up:orbstack` ensures those dirs exist and generates
-`overlays/orbstack/patch-hostpath-volumes.yaml` from the `.tmpl`. Data survives
-disabling Kubernetes in OrbStack and is **not** removed by `k8s:down`. Delete
-the `*.db` files under those dirs to reset.
-
-Compose still uses named Docker volumes (`fuda-data`, etc.), so it does not
-share these host files unless you change the compose binds.
-
-Base / kind still use cluster `local-path` PVCs (wiped if the kind node is
-deleted).
+Wiping the `postgres-data` PVC (or deleting the kind node) resets local data.
+There is no SQLite dump converter.
 
 ## What `k8s:up` does
 
@@ -110,7 +105,7 @@ kubectl apply -k deploy/k8s/overlays/orbstack
 | Shaiden → Torii MCP | Fuda-minted agent JWT (`aud=torii`) |
 | Torii → Fuda JWKS | HTTP to `http://fuda:3300/.well-known/jwks.json` |
 
-Fuda mapping (validator-private, not in SQLite):
+Fuda mapping (validator-private, not in the database):
 
 ```text
 FUDA_K8S_SA_OIDC_SUBJECT_MAPPINGS=keidai/shaiden=shaiden-runner
@@ -121,12 +116,13 @@ Fuda reconciles platform owners from ConfigMap `keidai-operators` at boot
 (or keidai-ui), not a seed YAML. Torii mounts the same ConfigMap
 (`TORII_OPERATORS_PATH`) and wipes OAuth tokens / pending links for
 `owner_id`s no longer in the registry. Restart Torii after editing operators
-so the wipe runs; Fuda reconcile alone does not touch Torii SQLite.
+so the wipe runs; Fuda reconcile alone does not touch Torii's database.
 
 ## Secrets
 
 | Key | Used by |
 |-----|---------|
+| `POSTGRES_PASSWORD` | Postgres superuser + app role password (URLs derived by `up.sh`) |
 | `fuda-signing` / `dev.pem` | Fuda token signing |
 | `OPEN_ROUTER_API_KEY` | Shaiden |
 | `LINEAR_API_KEY`, `GITHUB_*`, `GOOGLE_*` | Torii demo backends (optional at boot) |
@@ -143,7 +139,8 @@ the BFF all mount that file at boot.
 - [`base/torii.demo.yaml`](base/torii.demo.yaml) is a copy of `apps/torii/torii.demo.yaml`
   for kustomize (files must live under the kustomization directory). Keep them
   in sync when changing demo gateway config.
-- SQLite PVCs imply **replicas=1** for Fuda, Torii, and Shaiden.
+- Postgres is a single Deployment + PVC. Do not set `*_DB_PATH`.
+- Replica counts stay at 1 (storage no longer forces that; scaling is a later issue).
 - Do not set `TORII_UI_CLIENT_ROOT` — the UI is served by keidai-ui only.
 - `TORII_GATEWAY_BASE_URL=http://localhost:3000` so backend OAuth initiate
   returns BFF-origin callbacks.

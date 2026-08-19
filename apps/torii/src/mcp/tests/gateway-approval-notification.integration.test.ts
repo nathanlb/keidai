@@ -31,7 +31,6 @@ import {
   createTestGatewayPersistence,
   type TestGatewayPersistence,
 } from "../../testing/gateway-persistence.js";
-import { openGatewayDatabase } from "../../storage/gateway-sqlite.js";
 import { ApprovalStoreService } from "../../policy/approval-store.service.js";
 import { TaskStoreService } from "../../tasks/task-store.service.js";
 
@@ -116,7 +115,7 @@ async function withGatedGateway(
 ): Promise<void> {
   const ownedPersistence = persistence === undefined;
   const gatewayPersistence =
-    persistence ?? createTestGatewayPersistence("sqlite");
+    persistence ?? await createTestGatewayPersistence("postgres");
   let backendCallCount = 0;
   const backend = await startMockMcpServer({
     tools: [
@@ -146,7 +145,7 @@ async function withGatedGateway(
       [TEST_AGENT_PRINCIPAL.agentId]: ["gmail.create_draft"],
     },
   });
-  const approvalServices = createApprovalServices(
+  const approvalServices = await createApprovalServices(
     configService,
     gatewayPersistence,
   );
@@ -171,7 +170,7 @@ async function withGatedGateway(
     approvalServices.approvalGate,
     approvalServices.taskStore,
   );
-  const gatewayHttpServer = createTestGatewayHttpServer(
+  const gatewayHttpServer = await createTestGatewayHttpServer(
     toolCatalog,
     toolDispatch,
     {
@@ -202,7 +201,7 @@ async function withGatedGateway(
     await closeManagerConnections(connectionManager);
     await backend.close();
     if (ownedPersistence) {
-      gatewayPersistence.close();
+      await gatewayPersistence.close();
     }
   }
 }
@@ -301,7 +300,10 @@ describe("Gateway MCP approval gate (tasks)", () => {
         error?.code,
         ProtocolErrorCode.MissingRequiredClientCapability,
       );
-      assert.equal(approvalServices.approvalStore.listApprovals("pending").length, 0);
+      assert.equal(
+        (await approvalServices.approvalStore.listApprovals("pending")).length,
+        0,
+      );
     });
   });
 
@@ -414,8 +416,8 @@ describe("Gateway MCP approval gate (tasks)", () => {
   });
 
   it("creates on one replica, approves on a second, and polls from a third", async () => {
-    const persistence = createTestGatewayPersistence("sqlite");
-    assert.ok(persistence.databasePath);
+    const persistence = await createTestGatewayPersistence("postgres");
+    assert.ok(persistence.pool);
     let taskId = "";
     let approvalId = "";
 
@@ -428,13 +430,10 @@ describe("Gateway MCP approval gate (tasks)", () => {
         approvalId = await listPendingApprovalId(gateway.baseUrl);
       }, persistence);
 
-      const approveDb = openGatewayDatabase(persistence.databasePath);
-      try {
-        const approved = new ApprovalStoreService(approveDb).approve(approvalId);
-        assert.equal(approved?.status, "approved");
-      } finally {
-        approveDb.close();
-      }
+      const approved = await new ApprovalStoreService(persistence.pool).approve(
+        approvalId,
+      );
+      assert.equal(approved?.status, "approved");
 
       await withGatedGateway(async ({ gateway, backendCallCount }) => {
         const { json } = await getTask(gateway.mcpUrl, taskId, "get-replica");
@@ -446,13 +445,15 @@ describe("Gateway MCP approval gate (tasks)", () => {
         const textPart = toolResult.content?.find((part) => part.type === "text");
         assert.match(textPart?.text ?? "", /drafted:Replica/);
         assert.equal(backendCallCount(), 1);
-        assert.ok(new TaskStoreService(persistence.database!).getDetailedTask(
-          TEST_AGENT_PRINCIPAL.agentId,
-          taskId,
-        ));
+        assert.ok(
+          await new TaskStoreService(persistence.pool!).getDetailedTask(
+            TEST_AGENT_PRINCIPAL.agentId,
+            taskId,
+          ),
+        );
       }, persistence);
     } finally {
-      persistence.close();
+      await persistence.close();
     }
   });
 

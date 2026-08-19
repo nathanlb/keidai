@@ -1,12 +1,24 @@
 import { randomUUID } from "node:crypto";
-import type { DatabaseSync } from "node:sqlite";
+import {
+  withTransaction,
+  type Pool,
+  type PoolClient,
+  type Queryable,
+} from "@keidai/postgres";
 import type {
   AgentPrincipal,
   ApprovalRecordStatus,
   ApprovalRecordView,
 } from "@keidai/shared";
 import { injectable } from "tsyringe";
-import { runGatewayTransaction } from "../storage/run-gateway-transaction.js";
+import {
+  parseJsonValue,
+  toEpochMs,
+} from "../storage/pg-values.js";
+import {
+  resolveQueryable,
+  runWithQueryable,
+} from "../storage/queryable-context.js";
 import {
   DEFAULT_APPROVAL_LIST_LIMIT,
   MAX_APPROVAL_LIST_LIMIT,
@@ -14,6 +26,24 @@ import {
 
 const DEFAULT_APPROVAL_TTL_MS = 24 * 60 * 60 * 1000;
 const REJECTION_SUPPRESSION_TTL_MS = 60 * 60 * 1000;
+
+const APPROVAL_SELECT = `
+  id,
+  agent_id,
+  owner_id,
+  tool_name,
+  params,
+  params_hash,
+  run_id,
+  step_id,
+  task_id,
+  status,
+  rejection_reason,
+  created_at,
+  expires_at,
+  decided_at,
+  used_at
+`;
 
 export interface ApprovalRecord {
   id: string;
@@ -48,17 +78,17 @@ interface ApprovalRow {
   agent_id: string;
   owner_id: string;
   tool_name: string;
-  params: string;
+  params: Record<string, unknown> | string;
   params_hash: string;
   run_id: string | null;
   step_id: string | null;
   task_id: string | null;
   status: ApprovalRecordStatus;
   rejection_reason: string | null;
-  created_at: number;
-  expires_at: number;
-  decided_at: number | null;
-  used_at: number | null;
+  created_at: number | string;
+  expires_at: number | string;
+  decided_at: number | string | null;
+  used_at: number | string | null;
 }
 
 interface RejectionRow {
@@ -66,175 +96,18 @@ interface RejectionRow {
   tool_name: string;
   params_hash: string;
   rejection_reason: string | null;
-  rejected_at: number;
+  rejected_at: number | string;
 }
 
 @injectable()
 export class ApprovalStoreService {
-  private readonly insertApprovalStatement;
-  private readonly getApprovalStatement;
-  private readonly getApprovalByTaskIdStatement;
-  private readonly listApprovalsStatement;
-  private readonly listApprovalsByStatusStatement;
-  private readonly decidePendingStatement;
-  private readonly markUsedStatement;
-  private readonly upsertRejectionStatement;
-  private readonly findRejectionStatement;
-  private readonly pruneRejectionsStatement;
+  constructor(private readonly pool: Pool) {}
 
-  constructor(private readonly db: DatabaseSync) {
-    this.insertApprovalStatement = db.prepare(`
-      INSERT INTO approvals (
-        id,
-        agent_id,
-        owner_id,
-        tool_name,
-        params,
-        params_hash,
-        run_id,
-        step_id,
-        task_id,
-        status,
-        rejection_reason,
-        created_at,
-        expires_at,
-        decided_at,
-        used_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    this.getApprovalStatement = db.prepare(`
-      SELECT
-        id,
-        agent_id,
-        owner_id,
-        tool_name,
-        params,
-        params_hash,
-        run_id,
-        step_id,
-        task_id,
-        status,
-        rejection_reason,
-        created_at,
-        expires_at,
-        decided_at,
-        used_at
-      FROM approvals
-      WHERE id = ?
-    `);
-    this.getApprovalByTaskIdStatement = db.prepare(`
-      SELECT
-        id,
-        agent_id,
-        owner_id,
-        tool_name,
-        params,
-        params_hash,
-        run_id,
-        step_id,
-        task_id,
-        status,
-        rejection_reason,
-        created_at,
-        expires_at,
-        decided_at,
-        used_at
-      FROM approvals
-      WHERE task_id = ?
-    `);
-    this.listApprovalsStatement = db.prepare(`
-      SELECT
-        id,
-        agent_id,
-        owner_id,
-        tool_name,
-        params,
-        params_hash,
-        run_id,
-        step_id,
-        task_id,
-        status,
-        rejection_reason,
-        created_at,
-        expires_at,
-        decided_at,
-        used_at
-      FROM approvals
-      ORDER BY created_at DESC
-      LIMIT ?
-    `);
-    this.listApprovalsByStatusStatement = db.prepare(`
-      SELECT
-        id,
-        agent_id,
-        owner_id,
-        tool_name,
-        params,
-        params_hash,
-        run_id,
-        step_id,
-        task_id,
-        status,
-        rejection_reason,
-        created_at,
-        expires_at,
-        decided_at,
-        used_at
-      FROM approvals
-      WHERE status = ?
-      ORDER BY created_at DESC
-      LIMIT ?
-    `);
-    this.decidePendingStatement = db.prepare(`
-      UPDATE approvals
-      SET
-        status = ?,
-        rejection_reason = ?,
-        decided_at = ?
-      WHERE id = ?
-        AND status = 'pending'
-        AND expires_at > ?
-    `);
-    this.markUsedStatement = db.prepare(`
-      UPDATE approvals
-      SET used_at = ?
-      WHERE id = ?
-        AND used_at IS NULL
-    `);
-    this.upsertRejectionStatement = db.prepare(`
-      INSERT INTO approval_rejections (
-        agent_id,
-        tool_name,
-        params_hash,
-        rejection_reason,
-        rejected_at
-      )
-      VALUES (?, ?, ?, ?, ?)
-      ON CONFLICT(agent_id, tool_name, params_hash) DO UPDATE SET
-        rejection_reason = excluded.rejection_reason,
-        rejected_at = excluded.rejected_at
-    `);
-    this.findRejectionStatement = db.prepare(`
-      SELECT
-        agent_id,
-        tool_name,
-        params_hash,
-        rejection_reason,
-        rejected_at
-      FROM approval_rejections
-      WHERE agent_id = ?
-        AND tool_name = ?
-        AND params_hash = ?
-        AND rejected_at >= ?
-    `);
-    this.pruneRejectionsStatement = db.prepare(`
-      DELETE FROM approval_rejections
-      WHERE rejected_at < ?
-    `);
+  private get queryable(): Queryable {
+    return resolveQueryable(this.pool);
   }
 
-  createPendingApproval(input: {
+  async createPendingApproval(input: {
     principal: AgentPrincipal;
     toolName: string;
     params: Record<string, unknown>;
@@ -244,7 +117,7 @@ export class ApprovalStoreService {
     taskId?: string;
     now?: number;
     ttlMs?: number;
-  }): ApprovalRecord {
+  }): Promise<ApprovalRecord> {
     const now = input.now ?? Date.now();
     const record: ApprovalRecord = {
       id: randomUUID(),
@@ -261,112 +134,194 @@ export class ApprovalStoreService {
       expiresAt: now + (input.ttlMs ?? DEFAULT_APPROVAL_TTL_MS),
     };
 
-    this.insertApprovalStatement.run(
-      record.id,
-      record.agentId,
-      record.ownerId,
-      record.toolName,
-      JSON.stringify(record.params),
-      record.paramsHash,
-      record.runId ?? null,
-      record.stepId ?? null,
-      record.taskId ?? null,
-      record.status,
-      null,
-      record.createdAt,
-      record.expiresAt,
-      null,
-      null,
+    await this.queryable.query(
+      `
+        INSERT INTO approvals (
+          id,
+          agent_id,
+          owner_id,
+          tool_name,
+          params,
+          params_hash,
+          run_id,
+          step_id,
+          task_id,
+          status,
+          rejection_reason,
+          created_at,
+          expires_at,
+          decided_at,
+          used_at
+        )
+        VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      `,
+      [
+        record.id,
+        record.agentId,
+        record.ownerId,
+        record.toolName,
+        JSON.stringify(record.params),
+        record.paramsHash,
+        record.runId ?? null,
+        record.stepId ?? null,
+        record.taskId ?? null,
+        record.status,
+        null,
+        record.createdAt,
+        record.expiresAt,
+        null,
+        null,
+      ],
     );
     return record;
   }
 
-  getApproval(id: string): ApprovalRecord | undefined {
-    const row = this.getApprovalStatement.get(id) as ApprovalRow | undefined;
+  async getApproval(id: string): Promise<ApprovalRecord | undefined> {
+    const result = await this.queryable.query<ApprovalRow>(
+      `
+        SELECT ${APPROVAL_SELECT}
+        FROM approvals
+        WHERE id = $1
+      `,
+      [id],
+    );
+    const row = result.rows[0];
     return row ? rowToApproval(row) : undefined;
   }
 
-  getApprovalByTaskId(taskId: string): ApprovalRecord | undefined {
-    const row = this.getApprovalByTaskIdStatement.get(taskId) as
-      | ApprovalRow
-      | undefined;
+  async getApprovalByTaskId(taskId: string): Promise<ApprovalRecord | undefined> {
+    const result = await this.queryable.query<ApprovalRow>(
+      `
+        SELECT ${APPROVAL_SELECT}
+        FROM approvals
+        WHERE task_id = $1
+      `,
+      [taskId],
+    );
+    const row = result.rows[0];
     return row ? rowToApproval(row) : undefined;
   }
 
-  runInTransaction<T>(fn: () => T): T {
-    return runGatewayTransaction(this.db, fn);
+  async runInTransaction<T>(
+    fn: (client?: PoolClient) => Promise<T>,
+  ): Promise<T> {
+    return withTransaction(this.pool, async (client) =>
+      runWithQueryable(client, () => fn(client)),
+    );
   }
 
-  listApprovals(
+  async listApprovals(
     status?: ApprovalRecordStatus,
     limit = DEFAULT_APPROVAL_LIST_LIMIT,
-  ): ApprovalRecordView[] {
+  ): Promise<ApprovalRecordView[]> {
     const boundedLimit = Math.min(
       Math.max(1, limit),
       MAX_APPROVAL_LIST_LIMIT,
     );
-    const rows = (
-      status
-        ? this.listApprovalsByStatusStatement.all(status, boundedLimit)
-        : this.listApprovalsStatement.all(boundedLimit)
-    ) as unknown as ApprovalRow[];
+    const result = status
+      ? await this.queryable.query<ApprovalRow>(
+          `
+            SELECT ${APPROVAL_SELECT}
+            FROM approvals
+            WHERE status = $1
+            ORDER BY created_at DESC
+            LIMIT $2
+          `,
+          [status, boundedLimit],
+        )
+      : await this.queryable.query<ApprovalRow>(
+          `
+            SELECT ${APPROVAL_SELECT}
+            FROM approvals
+            ORDER BY created_at DESC
+            LIMIT $1
+          `,
+          [boundedLimit],
+        );
 
-    return rows.map((row) => toApprovalView(rowToApproval(row)));
+    return result.rows.map((row) => toApprovalView(rowToApproval(row)));
   }
 
-  approve(id: string, now = Date.now()): ApprovalRecord | undefined {
+  async approve(id: string, now = Date.now()): Promise<ApprovalRecord | undefined> {
     return this.decidePending(id, "approved", undefined, now);
   }
 
-  reject(
+  async reject(
     id: string,
     reason: string | undefined,
     now = Date.now(),
-  ): ApprovalRecord | undefined {
-    const record = this.decidePending(id, "rejected", reason, now);
+  ): Promise<ApprovalRecord | undefined> {
+    const record = await this.decidePending(id, "rejected", reason, now);
     if (!record) {
       return undefined;
     }
 
-    this.upsertRejectionStatement.run(
-      record.agentId,
-      record.toolName,
-      record.paramsHash,
-      reason ?? null,
-      now,
+    await this.queryable.query(
+      `
+        INSERT INTO approval_rejections (
+          agent_id,
+          tool_name,
+          params_hash,
+          rejection_reason,
+          rejected_at
+        )
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (agent_id, tool_name, params_hash) DO UPDATE SET
+          rejection_reason = excluded.rejection_reason,
+          rejected_at = excluded.rejected_at
+      `,
+      [record.agentId, record.toolName, record.paramsHash, reason ?? null, now],
     );
-    this.pruneRejections(now);
+    await this.pruneRejections(now);
     return record;
   }
 
-  cancel(id: string, now = Date.now()): ApprovalRecord | undefined {
+  async cancel(id: string, now = Date.now()): Promise<ApprovalRecord | undefined> {
     return this.decidePending(id, "cancelled", undefined, now);
   }
 
-  markUsed(id: string, now = Date.now()): ApprovalRecord | undefined {
-    const result = this.markUsedStatement.run(now, id);
-    if ((result.changes ?? 0) === 0) {
+  async markUsed(id: string, now = Date.now()): Promise<ApprovalRecord | undefined> {
+    const result = await this.queryable.query(
+      `
+        UPDATE approvals
+        SET used_at = $1
+        WHERE id = $2
+          AND used_at IS NULL
+      `,
+      [now, id],
+    );
+    if ((result.rowCount ?? 0) === 0) {
       return undefined;
     }
     return this.getApproval(id);
   }
 
-  findRecentRejection(input: {
+  async findRecentRejection(input: {
     agentId: string;
     toolName: string;
     paramsHash: string;
     now?: number;
-  }): RejectedParamsEntry | undefined {
+  }): Promise<RejectedParamsEntry | undefined> {
     const now = input.now ?? Date.now();
-    this.pruneRejections(now);
+    await this.pruneRejections(now);
 
-    const row = this.findRejectionStatement.get(
-      input.agentId,
-      input.toolName,
-      input.paramsHash,
-      now - REJECTION_SUPPRESSION_TTL_MS,
-    ) as RejectionRow | undefined;
-
+    const result = await this.queryable.query<RejectionRow>(
+      `
+        SELECT
+          agent_id,
+          tool_name,
+          params_hash,
+          rejection_reason,
+          rejected_at
+        FROM approval_rejections
+        WHERE agent_id = $1
+          AND tool_name = $2
+          AND params_hash = $3
+          AND rejected_at >= $4
+      `,
+      [input.agentId, input.toolName, input.paramsHash, now - REJECTION_SUPPRESSION_TTL_MS],
+    );
+    const row = result.rows[0];
     if (!row) {
       return undefined;
     }
@@ -378,11 +333,11 @@ export class ApprovalStoreService {
       ...(row.rejection_reason !== null
         ? { rejectionReason: row.rejection_reason }
         : {}),
-      rejectedAt: row.rejected_at,
+      rejectedAt: toEpochMs(row.rejected_at),
     };
   }
 
-  private decidePending(
+  private async decidePending(
     id: string,
     status: Extract<
       ApprovalRecordStatus,
@@ -390,22 +345,37 @@ export class ApprovalStoreService {
     >,
     rejectionReason: string | undefined,
     now: number,
-  ): ApprovalRecord | undefined {
-    const result = this.decidePendingStatement.run(
-      status,
-      status === "rejected" ? (rejectionReason ?? null) : null,
-      now,
-      id,
-      now,
+  ): Promise<ApprovalRecord | undefined> {
+    const result = await this.queryable.query(
+      `
+        UPDATE approvals
+        SET
+          status = $1,
+          rejection_reason = $2,
+          decided_at = $3
+        WHERE id = $4
+          AND status = 'pending'
+          AND expires_at > $5
+      `,
+      [
+        status,
+        status === "rejected" ? (rejectionReason ?? null) : null,
+        now,
+        id,
+        now,
+      ],
     );
-    if ((result.changes ?? 0) === 0) {
+    if ((result.rowCount ?? 0) === 0) {
       return undefined;
     }
     return this.getApproval(id);
   }
 
-  private pruneRejections(now: number): void {
-    this.pruneRejectionsStatement.run(now - REJECTION_SUPPRESSION_TTL_MS);
+  private async pruneRejections(now: number): Promise<void> {
+    await this.queryable.query(
+      `DELETE FROM approval_rejections WHERE rejected_at < $1`,
+      [now - REJECTION_SUPPRESSION_TTL_MS],
+    );
   }
 }
 
@@ -415,7 +385,7 @@ function rowToApproval(row: ApprovalRow): ApprovalRecord {
     agentId: row.agent_id,
     ownerId: row.owner_id,
     toolName: row.tool_name,
-    params: JSON.parse(row.params) as Record<string, unknown>,
+    params: parseJsonValue(row.params),
     paramsHash: row.params_hash,
     ...(row.run_id !== null ? { runId: row.run_id } : {}),
     ...(row.step_id !== null ? { stepId: row.step_id } : {}),
@@ -424,10 +394,10 @@ function rowToApproval(row: ApprovalRow): ApprovalRecord {
     ...(row.rejection_reason !== null
       ? { rejectionReason: row.rejection_reason }
       : {}),
-    createdAt: row.created_at,
-    expiresAt: row.expires_at,
-    ...(row.decided_at !== null ? { decidedAt: row.decided_at } : {}),
-    ...(row.used_at !== null ? { usedAt: row.used_at } : {}),
+    createdAt: toEpochMs(row.created_at),
+    expiresAt: toEpochMs(row.expires_at),
+    ...(row.decided_at !== null ? { decidedAt: toEpochMs(row.decided_at) } : {}),
+    ...(row.used_at !== null ? { usedAt: toEpochMs(row.used_at) } : {}),
   };
 }
 

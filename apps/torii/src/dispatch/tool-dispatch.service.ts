@@ -79,7 +79,7 @@ interface DispatchCallContext {
   principal: CallTracePrincipal | undefined;
   startedAt: number;
   traceId: string;
-  emit: (fields: TraceFields) => void;
+  emit: (fields: TraceFields) => Promise<void>;
 }
 
 interface ConnectedBackendTarget {
@@ -133,9 +133,9 @@ export class ToolDispatchService {
   ): Promise<CallToolResult | McpCreateTaskResult> {
     const ctx = this.createCallContext(namespacedName, args);
 
-    this.enforcePolicyOrThrow(ctx);
+    await this.enforcePolicyOrThrow(ctx);
 
-    const gatedResult = this.tryHandleApprovalGate(ctx);
+    const gatedResult = await this.tryHandleApprovalGate(ctx);
     if (gatedResult) {
       if (isParkedTaskResult(gatedResult)) {
         return gatedResult;
@@ -166,12 +166,12 @@ export class ToolDispatchService {
       return;
     }
 
-    const claimed = this.approvalGate.claimApprovedExecution(taskId, principal);
+    const claimed = await this.approvalGate.claimApprovedExecution(taskId, principal);
     if (!claimed) {
       return;
     }
 
-    const stored = this.taskStore.getDetailedTask(principal.agentId, taskId);
+    const stored = await this.taskStore.getDetailedTask(principal.agentId, taskId);
     if (stored.status !== "working") {
       return;
     }
@@ -194,9 +194,9 @@ export class ToolDispatchService {
       if (isParkedTaskResult(result)) {
         return;
       }
-      this.taskStore.complete(taskId, callToolResultToRecord(result));
+      await this.taskStore.complete(taskId, callToolResultToRecord(result));
     } catch (error) {
-      this.taskStore.fail(taskId, {
+      await this.taskStore.fail(taskId, {
         code: ProtocolErrorCode.InternalError,
         message: error instanceof Error ? error.message : String(error),
       });
@@ -208,12 +208,12 @@ export class ToolDispatchService {
     await this.syncBackendOriginatedTask(taskId);
   }
 
-  cancelPendingApprovalForTask(taskId: string): void {
-    this.approvalGate.cancelPendingForTask(taskId);
+  async cancelPendingApprovalForTask(taskId: string): Promise<void> {
+    await this.approvalGate.cancelPendingForTask(taskId);
   }
 
   async cancelParkedTask(taskId: string): Promise<void> {
-    this.cancelPendingApprovalForTask(taskId);
+    await this.cancelPendingApprovalForTask(taskId);
     await this.forwardBackendCancel(taskId);
   }
 
@@ -234,8 +234,8 @@ export class ToolDispatchService {
       principal: toTracePrincipal(agentPrincipal),
       startedAt: Date.now(),
       traceId,
-      emit: (fields) => {
-        this.traceEmitter.emit(
+      emit: async (fields) => {
+        await this.traceEmitter.emit(
           finalizeCallTrace(
             {
               ...fields,
@@ -249,7 +249,7 @@ export class ToolDispatchService {
     };
   }
 
-  private enforcePolicyOrThrow(ctx: DispatchCallContext): void {
+  private async enforcePolicyOrThrow(ctx: DispatchCallContext): Promise<void> {
     const evaluation = this.policyEnforcement.evaluate(
       ctx.agentPrincipal,
       ctx.parsed.server,
@@ -259,7 +259,7 @@ export class ToolDispatchService {
       return;
     }
 
-    ctx.emit({
+    await ctx.emit({
       server: ctx.parsed.server,
       tool: ctx.parsed.tool,
       principal: ctx.principal,
@@ -269,9 +269,9 @@ export class ToolDispatchService {
     throw new PolicyDeniedError(ctx.namespacedName);
   }
 
-  private tryHandleApprovalGate(
+  private async tryHandleApprovalGate(
     ctx: DispatchCallContext,
-  ): CallToolResult | McpCreateTaskResult | undefined {
+  ): Promise<CallToolResult | McpCreateTaskResult | undefined> {
     if (
       !ctx.agentPrincipal ||
       !this.approvalGate.requiresApproval(
@@ -282,7 +282,7 @@ export class ToolDispatchService {
       return undefined;
     }
 
-    const intercepted = this.approvalGate.interceptGatedCall({
+    const intercepted = await this.approvalGate.interceptGatedCall({
       principal: ctx.agentPrincipal,
       toolName: ctx.namespacedName,
       upstreamArgs: ctx.parsedArgs.upstreamArgs,
@@ -290,7 +290,7 @@ export class ToolDispatchService {
       stepId: ctx.parsedArgs.stepId,
     });
 
-    ctx.emit({
+    await ctx.emit({
       server: ctx.parsed.server,
       tool: ctx.parsed.tool,
       principal: ctx.principal,
@@ -306,7 +306,7 @@ export class ToolDispatchService {
   ): Promise<ConnectedBackendTarget> {
     const entry = this.toolCatalog.findTool(ctx.namespacedName);
     if (!entry) {
-      ctx.emit({
+      await ctx.emit({
         server: ctx.parsed.server,
         tool: ctx.parsed.tool,
         principal: ctx.principal,
@@ -329,7 +329,7 @@ export class ToolDispatchService {
       } catch (error) {
         const reason =
           error instanceof Error ? error.message : "connection failed";
-        ctx.emit({
+        await ctx.emit({
           server: entry.server,
           tool: entry.bareName,
           principal: ctx.principal,
@@ -348,7 +348,7 @@ export class ToolDispatchService {
         connection?.state === "failed"
           ? (connection.error?.message ?? "connection failed")
           : "not configured";
-      ctx.emit({
+      await ctx.emit({
         server: entry.server,
         tool: entry.bareName,
         principal: ctx.principal,
@@ -362,7 +362,7 @@ export class ToolDispatchService {
     }
 
     if (!connection.client) {
-      ctx.emit({
+      await ctx.emit({
         server: entry.server,
         tool: entry.bareName,
         principal: ctx.principal,
@@ -408,7 +408,7 @@ export class ToolDispatchService {
       const classified = classifyBackendToolResult(raw);
 
       if (classified.kind === "complete") {
-        ctx.emit({
+        await ctx.emit({
           server: entry.server,
           tool: entry.bareName,
           principal: ctx.principal,
@@ -433,7 +433,7 @@ export class ToolDispatchService {
         classified.kind === "input_required"
           ? BACKEND_INPUT_REQUIRED_MESSAGE
           : unrecognizedBackendResultTypeMessage(classified.resultType);
-      ctx.emit({
+      await ctx.emit({
         server: entry.server,
         tool: entry.bareName,
         principal: ctx.principal,
@@ -445,7 +445,7 @@ export class ToolDispatchService {
       return unsupportedBackendResultToolResult(message);
     } catch (error) {
       if (error instanceof LinkingRequiredError) {
-        ctx.emit({
+        await ctx.emit({
           server: entry.server,
           tool: entry.bareName,
           principal: ctx.principal,
@@ -456,7 +456,7 @@ export class ToolDispatchService {
         return toLinkingRequiredToolResult(error);
       }
 
-      ctx.emit({
+      await ctx.emit({
         server: entry.server,
         tool: entry.bareName,
         principal: ctx.principal,
@@ -506,15 +506,17 @@ export class ToolDispatchService {
     };
 
     const stored = options.existingTaskId
-      ? this.taskStore.attachBackendOrigin(options.existingTaskId, origin)
-      : this.taskStore.attachBackendOrigin(
-          this.taskStore.createWorkingTask({
-            agentId: ctx.agentPrincipal.agentId,
-            ownerId: ctx.agentPrincipal.ownerId,
-            statusMessage,
-            pollIntervalMs: backendTask.pollIntervalMs,
-            ttlMs: backendTask.ttlMs,
-          }).taskId,
+      ? await this.taskStore.attachBackendOrigin(options.existingTaskId, origin)
+      : await this.taskStore.attachBackendOrigin(
+          (
+            await this.taskStore.createWorkingTask({
+              agentId: ctx.agentPrincipal.agentId,
+              ownerId: ctx.agentPrincipal.ownerId,
+              statusMessage,
+              pollIntervalMs: backendTask.pollIntervalMs,
+              ttlMs: backendTask.ttlMs,
+            })
+          ).taskId,
           origin,
         );
 
@@ -530,7 +532,7 @@ export class ToolDispatchService {
       );
     }
 
-    ctx.emit({
+    await ctx.emit({
       server: entry.server,
       tool: entry.bareName,
       principal: ctx.principal,
@@ -554,7 +556,7 @@ export class ToolDispatchService {
     options: { credentialRef?: string },
     message: string,
   ): Promise<CallToolResult> {
-    ctx.emit({
+    await ctx.emit({
       server: target.entry.server,
       tool: target.entry.bareName,
       principal: ctx.principal,
@@ -575,14 +577,16 @@ export class ToolDispatchService {
    * TTL check — both sync paths run off the back of a `tasks/*` request that
    * already reported those failures to the agent.
    */
-  private findBackendOriginTask(taskId: string): BackendOriginTask | undefined {
+  private async findBackendOriginTask(
+    taskId: string,
+  ): Promise<BackendOriginTask | undefined> {
     const principal = getAgentPrincipal();
     if (!principal) {
       return undefined;
     }
     let stored: StoredMcpTask;
     try {
-      stored = this.taskStore.requireOwnedTask(principal.agentId, taskId);
+      stored = await this.taskStore.requireOwnedTask(principal.agentId, taskId);
     } catch {
       return undefined;
     }
@@ -590,7 +594,7 @@ export class ToolDispatchService {
   }
 
   private async syncBackendOriginatedTask(taskId: string): Promise<void> {
-    const stored = this.findBackendOriginTask(taskId);
+    const stored = await this.findBackendOriginTask(taskId);
     if (!stored || isMcpTaskTerminalStatus(stored.status)) {
       return;
     }
@@ -599,7 +603,7 @@ export class ToolDispatchService {
       stored.backendServer,
     );
     if (!connection.client || connection.config.transport.type !== "http") {
-      this.taskStore.fail(taskId, {
+      await this.taskStore.fail(taskId, {
         code: ProtocolErrorCode.InternalError,
         message: `Backend "${stored.backendServer}" is unavailable`,
       });
@@ -617,7 +621,7 @@ export class ToolDispatchService {
         protocolVersion: connection.client.getNegotiatedProtocolVersion(),
       });
     } catch (error) {
-      this.taskStore.fail(taskId, {
+      await this.taskStore.fail(taskId, {
         code: ProtocolErrorCode.InternalError,
         message: error instanceof Error ? error.message : String(error),
       });
@@ -638,7 +642,7 @@ export class ToolDispatchService {
     const backend = parsed.data;
     switch (backend.status) {
       case "working":
-        this.taskStore.attachBackendOrigin(taskId, {
+        await this.taskStore.attachBackendOrigin(taskId, {
           server: stored.backendServer,
           backendTaskId: stored.backendTaskId,
           pollIntervalMs: backend.pollIntervalMs,
@@ -649,13 +653,13 @@ export class ToolDispatchService {
         await this.abandonBackendTask(stored, BACKEND_TASK_INPUT_REQUIRED_MESSAGE);
         return;
       case "completed":
-        this.taskStore.complete(taskId, backend.result);
+        await this.taskStore.complete(taskId, backend.result);
         return;
       case "failed":
-        this.taskStore.fail(taskId, backend.error);
+        await this.taskStore.fail(taskId, backend.error);
         return;
       case "cancelled":
-        this.taskStore.requestCancel(stored.agentId, taskId);
+        await this.taskStore.requestCancel(stored.agentId, taskId);
         return;
     }
   }
@@ -668,7 +672,7 @@ export class ToolDispatchService {
     stored: BackendOriginTask,
     message: string,
   ): Promise<void> {
-    this.taskStore.complete(
+    await this.taskStore.complete(
       stored.taskId,
       callToolResultToRecord(unsupportedBackendResultToolResult(message)),
     );
@@ -676,7 +680,7 @@ export class ToolDispatchService {
   }
 
   private async forwardBackendCancel(taskId: string): Promise<void> {
-    const stored = this.findBackendOriginTask(taskId);
+    const stored = await this.findBackendOriginTask(taskId);
     if (!stored) {
       return;
     }

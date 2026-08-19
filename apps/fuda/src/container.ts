@@ -1,14 +1,14 @@
 import "reflect-metadata";
 import { container, type DependencyContainer, Lifecycle } from "tsyringe";
-import type { DatabaseSync } from "node:sqlite";
+import type { Pool } from "@keidai/postgres";
 import type { RuntimeConfig } from "./config/runtime-config.js";
 import { FudaConfigService } from "./config/fuda-config.service.js";
 import { AgentDefinitionApiController } from "./agents/agent-definition-api.controller.js";
 import { AgentsManagementApiController } from "./agents/agents-management-api.controller.js";
-import { SqliteAgentRepository } from "./agents/sqlite-agent-repository.js";
+import { PgAgentRepository } from "./agents/pg-agent-repository.js";
 import { AGENT_REPOSITORY } from "./agents/types/agent-repository.js";
 import { BearersManagementApiController } from "./bearers/bearers-management-api.controller.js";
-import { SqliteBearerRepository } from "./bearers/sqlite-bearer-repository.js";
+import { PgBearerRepository } from "./bearers/pg-bearer-repository.js";
 import { BEARER_REPOSITORY } from "./bearers/types/bearer-repository.js";
 import { FudaHttpServer } from "./http/fuda-http-server.service.js";
 import { StructuredLoggerService } from "./logging/structured-logger.service.js";
@@ -17,37 +17,48 @@ import { SigningKeyService } from "./signing/signing-key.service.js";
 import type { SubjectTokenValidatorConfig } from "./subject-token/types/subject-token-validator-config.js";
 import { SUBJECT_TOKEN_VALIDATOR } from "./subject-token/types/subject-token-validator.js";
 import { createSubjectTokenValidator } from "./subject-token/utils/create-subject-token-validator.js";
-import { SqliteOwnerRepository } from "./owners/sqlite-owner-repository.js";
+import { PgOwnerRepository } from "./owners/pg-owner-repository.js";
 import { OWNER_REPOSITORY } from "./owners/types/owner-repository.js";
-import { openFudaDatabase } from "./storage/fuda-sqlite.js";
-import type { MigrationResult } from "./storage/migrate.js";
+import {
+  FUDA_DATABASE,
+  openFudaDatabase,
+} from "./storage/fuda-postgres.js";
 import { TokenExchangeApiController } from "./token-exchange/token-exchange-api.controller.js";
+import type { MigrationResult } from "@keidai/postgres";
+
+export { FUDA_DATABASE };
 
 const SINGLETON = { lifecycle: Lifecycle.Singleton } as const;
-
-export const FUDA_DATABASE = "FudaDatabase";
 
 export interface FudaContainerResult {
   container: DependencyContainer;
   migrations: MigrationResult;
 }
 
+export interface CreateContainerOptions {
+  pool?: Pool;
+}
+
 /**
  * @param subjectTokenValidatorConfig One-shot wiring from loadRuntimeConfig;
  *   credential mappings stay off RuntimeConfig.
  */
-export function createContainer(
+export async function createContainer(
   config: RuntimeConfig,
   subjectTokenValidatorConfig: SubjectTokenValidatorConfig | null = null,
-): FudaContainerResult {
+  options: CreateContainerOptions = {},
+): Promise<FudaContainerResult> {
   const appContainer = container.createChildContainer();
-  const { db, migrations } = openFudaDatabase(config.dbPath);
+  const { pool, migrations } = await openFudaDatabase(
+    config.databaseUrl,
+    options.pool,
+  );
   const signingKeys = new SigningKeyService(config.signingKeys);
 
   appContainer.register(FudaConfigService, {
     useValue: new FudaConfigService(config),
   });
-  appContainer.register(FUDA_DATABASE, { useValue: db });
+  appContainer.register(FUDA_DATABASE, { useValue: pool });
   appContainer.register(SigningKeyService, { useValue: signingKeys });
   if (subjectTokenValidatorConfig) {
     appContainer.register(SUBJECT_TOKEN_VALIDATOR, {
@@ -90,30 +101,30 @@ export function createContainer(
     SINGLETON,
   );
 
-  let agentRepository: SqliteAgentRepository | undefined;
-  let bearerRepository: SqliteBearerRepository | undefined;
-  let ownerRepository: SqliteOwnerRepository | undefined;
+  let agentRepository: PgAgentRepository | undefined;
+  let bearerRepository: PgBearerRepository | undefined;
+  let ownerRepository: PgOwnerRepository | undefined;
 
   appContainer.register(OWNER_REPOSITORY, {
     useFactory: () => {
-      ownerRepository ??= new SqliteOwnerRepository(
-        appContainer.resolve<DatabaseSync>(FUDA_DATABASE),
+      ownerRepository ??= new PgOwnerRepository(
+        appContainer.resolve<Pool>(FUDA_DATABASE),
       );
       return ownerRepository;
     },
   });
   appContainer.register(AGENT_REPOSITORY, {
     useFactory: () => {
-      agentRepository ??= new SqliteAgentRepository(
-        appContainer.resolve<DatabaseSync>(FUDA_DATABASE),
+      agentRepository ??= new PgAgentRepository(
+        appContainer.resolve<Pool>(FUDA_DATABASE),
       );
       return agentRepository;
     },
   });
   appContainer.register(BEARER_REPOSITORY, {
     useFactory: () => {
-      bearerRepository ??= new SqliteBearerRepository(
-        appContainer.resolve<DatabaseSync>(FUDA_DATABASE),
+      bearerRepository ??= new PgBearerRepository(
+        appContainer.resolve<Pool>(FUDA_DATABASE),
       );
       return bearerRepository;
     },
@@ -122,8 +133,6 @@ export function createContainer(
   return { container: appContainer, migrations };
 }
 
-export function resolveFudaDatabase(
-  appContainer: DependencyContainer,
-): DatabaseSync {
-  return appContainer.resolve<DatabaseSync>(FUDA_DATABASE);
+export function resolveFudaDatabase(appContainer: DependencyContainer): Pool {
+  return appContainer.resolve<Pool>(FUDA_DATABASE);
 }

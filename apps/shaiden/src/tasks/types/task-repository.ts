@@ -8,11 +8,11 @@ export interface CreateTaskInput {
 }
 
 export interface TaskRepository {
-  create(input: CreateTaskInput): SavedTask;
-  get(taskId: string): SavedTask | null;
-  list(limit?: number): { tasks: SavedTask[] };
-  update(taskId: string, input: UpdateTaskRequest): SavedTask | null;
-  archive(taskId: string): boolean;
+  create(input: CreateTaskInput): Promise<SavedTask>;
+  get(taskId: string): Promise<SavedTask | null>;
+  list(limit?: number): Promise<{ tasks: SavedTask[] }>;
+  update(taskId: string, input: UpdateTaskRequest): Promise<SavedTask | null>;
+  archive(taskId: string): Promise<boolean>;
   /** Hard delete for internal rollback only (e.g. failed create-and-run). */
-  delete(taskId: string): boolean;
+  delete(taskId: string): Promise<boolean>;
 }

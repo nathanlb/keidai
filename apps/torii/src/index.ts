@@ -26,7 +26,7 @@ function resolvePort(): number {
 
 export async function startServer(): Promise<void> {
   const config = await loadConfig();
-  const app = createContainer(config);
+  const { container: app, migrations } = await createContainer(config);
   const configService = app.resolve(ToriiConfigService);
   const connectionManager = app.resolve(ConnectionManager);
   const toolCatalog = app.resolve(ToolCatalogService);
@@ -35,6 +35,10 @@ export async function startServer(): Promise<void> {
 
   logger.info("boot.config_loaded", {
     serverCount: configService.get().servers.length,
+  });
+  logger.info("boot.migrations_applied", {
+    applied: migrations.applied,
+    alreadyApplied: migrations.alreadyApplied,
   });
 
   const oauthReconcile = await applyOperatorsFile(

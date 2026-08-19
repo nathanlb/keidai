@@ -25,7 +25,7 @@ function waitForShutdown(): Promise<void> {
 
 export async function startServer(): Promise<void> {
   const { config, subjectTokenValidatorConfig } = loadRuntimeConfig();
-  const { container: app, migrations } = createContainer(
+  const { container: app, migrations } = await createContainer(
     config,
     subjectTokenValidatorConfig,
   );
@@ -34,7 +34,7 @@ export async function startServer(): Promise<void> {
 
   logger.info("boot.config_loaded", {
     listenGroups: config.listenGroups,
-    dbPath: config.dbPath,
+    databaseUrl: config.databaseUrl,
   });
   logger.info("boot.migrations_applied", {
     applied: migrations.applied,

@@ -68,7 +68,7 @@ export async function dispatchMcpTasksMethod(input: {
   try {
     switch (input.method) {
       case MCP_TASKS_GET_METHOD: {
-        const current = input.taskStore.getDetailedTask(
+        const current = await input.taskStore.getDetailedTask(
           input.principal.agentId,
           taskId,
         );
@@ -81,7 +81,7 @@ export async function dispatchMcpTasksMethod(input: {
         return {
           ok: true,
           result: { ...toGetTaskResult(
-            input.taskStore.getDetailedTask(input.principal.agentId, taskId),
+            await input.taskStore.getDetailedTask(input.principal.agentId, taskId),
           ) },
         };
       }
@@ -100,7 +100,7 @@ export async function dispatchMcpTasksMethod(input: {
             },
           };
         }
-        input.taskStore.applyInputResponses(
+        await input.taskStore.applyInputResponses(
           input.principal.agentId,
           taskId,
           inputResponses as McpInputResponses,
@@ -111,7 +111,7 @@ export async function dispatchMcpTasksMethod(input: {
         };
       }
       case MCP_TASKS_CANCEL_METHOD:
-        input.taskStore.requestCancel(input.principal.agentId, taskId);
+        await input.taskStore.requestCancel(input.principal.agentId, taskId);
         await input.onTaskCancelled?.(taskId);
         return {
           ok: true,

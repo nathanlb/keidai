@@ -1,26 +1,25 @@
 import "reflect-metadata";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { openGatewayDatabase } from "../../storage/gateway-sqlite.js";
-import { SqliteTokenRepository } from "../sqlite-token-repository.service.js";
+import { PgTokenRepository } from "../pg-token-repository.service.js";
 import type { TokenRepository } from "../types/token-repository.js";
 import {
   createTestGatewayPersistence,
   type TestGatewayBackend,
 } from "../../testing/gateway-persistence.js";
 
-const backends: TestGatewayBackend[] = ["sqlite", "memory"];
+const backends: TestGatewayBackend[] = ["postgres", "memory"];
 
 function runTokenRepositoryContract(
   label: string,
-  createRepository: () => {
+  createRepository: () => Promise<{
     repository: TokenRepository;
-    close: () => void;
-  },
+    close: () => Promise<void>;
+  }>,
 ): void {
   describe(label, () => {
     it("stores and retrieves tokens by owner and provider", async () => {
-      const { repository, close } = createRepository();
+      const { repository, close } = await createRepository();
       try {
         await repository.set("user-1", "github", {
           accessToken: "gho_test",
@@ -32,12 +31,12 @@ function runTokenRepositoryContract(
         assert.equal(token?.refreshToken, "ghr_test");
         assert.equal(await repository.get("user-1", "stripe"), null);
       } finally {
-        close();
+        await close();
       }
     });
 
     it("upserts tokens for the same owner and provider", async () => {
-      const { repository, close } = createRepository();
+      const { repository, close } = await createRepository();
       try {
         await repository.set("user-1", "github", {
           accessToken: "gho_old",
@@ -51,12 +50,12 @@ function runTokenRepositoryContract(
         assert.equal(token?.accessToken, "gho_new");
         assert.equal(token?.refreshToken, undefined);
       } finally {
-        close();
+        await close();
       }
     });
 
     it("deletes a stored grant", async () => {
-      const { repository, close } = createRepository();
+      const { repository, close } = await createRepository();
       try {
         await repository.set("owner", "github", { accessToken: "token" });
 
@@ -64,12 +63,12 @@ function runTokenRepositoryContract(
         assert.equal(await repository.get("owner", "github"), null);
         assert.equal(await repository.delete("owner", "github"), false);
       } finally {
-        close();
+        await close();
       }
     });
 
     it("deletes every grant for an owner and lists remaining owner ids", async () => {
-      const { repository, close } = createRepository();
+      const { repository, close } = await createRepository();
       try {
         await repository.set("owner-a", "github", { accessToken: "gh-token" });
         await repository.set("owner-a", "linear", {
@@ -89,12 +88,12 @@ function runTokenRepositoryContract(
         assert.deepEqual(await repository.listOwnerIds(), ["owner-b"]);
         assert.equal(await repository.deleteByOwner("owner-a"), 0);
       } finally {
-        close();
+        await close();
       }
     });
 
     it("lists grants for an owner without leaking other owners", async () => {
-      const { repository, close } = createRepository();
+      const { repository, close } = await createRepository();
       try {
         await repository.set("owner-a", "github", { accessToken: "gh-token" });
         await repository.set("owner-a", "linear", {
@@ -115,7 +114,7 @@ function runTokenRepositoryContract(
           true,
         );
       } finally {
-        close();
+        await close();
       }
     });
   });
@@ -123,8 +122,8 @@ function runTokenRepositoryContract(
 
 describe("TokenRepository contract", () => {
   for (const backend of backends) {
-    runTokenRepositoryContract(`backend=${backend}`, () => {
-      const persistence = createTestGatewayPersistence(backend);
+    runTokenRepositoryContract(`backend=${backend}`, async () => {
+      const persistence = await createTestGatewayPersistence(backend);
       return {
         repository: persistence.tokenRepository,
         close: persistence.close,
@@ -132,23 +131,24 @@ describe("TokenRepository contract", () => {
     });
   }
 
-  it("sqlite persists tokens across repository instances", async () => {
-    const persistence = createTestGatewayPersistence("sqlite");
-    assert.ok(persistence.databasePath);
+  it("postgres persists tokens across repository instances", async () => {
+    const persistence = await createTestGatewayPersistence("postgres");
+    assert.ok(persistence.pool);
 
-    await persistence.tokenRepository.set("user-1", "github", {
-      accessToken: "gho_persisted",
-      refreshToken: "ghr_persisted",
-      expiresAt: new Date("2030-01-01T00:00:00.000Z"),
-    });
-    persistence.close();
+    try {
+      await persistence.tokenRepository.set("user-1", "github", {
+        accessToken: "gho_persisted",
+        refreshToken: "ghr_persisted",
+        expiresAt: new Date("2030-01-01T00:00:00.000Z"),
+      });
 
-    const reopened = new SqliteTokenRepository(
-      openGatewayDatabase(persistence.databasePath),
-    );
-    const token = await reopened.get("user-1", "github");
-    assert.equal(token?.accessToken, "gho_persisted");
-    assert.equal(token?.refreshToken, "ghr_persisted");
-    assert.equal(token?.expiresAt?.toISOString(), "2030-01-01T00:00:00.000Z");
+      const reopened = new PgTokenRepository(persistence.pool);
+      const token = await reopened.get("user-1", "github");
+      assert.equal(token?.accessToken, "gho_persisted");
+      assert.equal(token?.refreshToken, "ghr_persisted");
+      assert.equal(token?.expiresAt?.toISOString(), "2030-01-01T00:00:00.000Z");
+    } finally {
+      await persistence.close();
+    }
   });
 });

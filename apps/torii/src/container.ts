@@ -1,17 +1,21 @@
 import "reflect-metadata";
 import { container, type DependencyContainer, Lifecycle } from "tsyringe";
 import type { ToriiConfig } from "@keidai/shared";
+import type { MigrationResult, Pool } from "@keidai/postgres";
 import { ConnectionManager } from "./connections/connection-manager.service.js";
 import { DefaultMcpClientConnector } from "./connections/mcp-client-connector.service.js";
 import { ToolCatalogService } from "./catalog/tool-catalog.service.js";
 import { CredentialResolverService } from "./credentials/credential-resolver.service.js";
 import { OAuthTokenLifecycleService } from "./credentials/oauth-token-lifecycle.service.js";
-import { SqliteTokenRepository } from "./credentials/sqlite-token-repository.service.js";
-import { SqliteOAuthClientRepository } from "./credentials/sqlite-oauth-client-repository.service.js";
+import { PgTokenRepository } from "./credentials/pg-token-repository.service.js";
+import { PgOAuthClientRepository } from "./credentials/pg-oauth-client-repository.service.js";
 import { TOKEN_REPOSITORY } from "./credentials/types/token-repository.js";
 import { OAUTH_CLIENT_REPOSITORY } from "./credentials/types/oauth-client-repository.js";
-import { resolveGatewayDbPath } from "./storage/gateway-db-path.js";
-import { openGatewayDatabase } from "./storage/gateway-sqlite.js";
+import {
+  TORII_DATABASE,
+  openGatewayDatabase,
+  resolveToriiDatabaseUrl,
+} from "./storage/gateway-postgres.js";
 import { NoneCredentialResolver } from "./credentials/resolvers/none-credential-resolver.service.js";
 import { UserOAuthCredentialResolver } from "./credentials/resolvers/user_oauth_credential-resolver.service.js";
 import { ServiceKeyCredentialResolver } from "./credentials/resolvers/service-key-credential-resolver.service.js";
@@ -20,7 +24,7 @@ import { ConfigApiController } from "./config/config-api.controller.js";
 import { ToriiConfigService } from "./config/torii-config.service.js";
 import { ConnectionReadService } from "./connections/connection-read.service.js";
 import { ConnectionsApiController } from "./connections/connections-api.controller.js";
-import { SqlitePendingLinkStore } from "./credentials/sqlite-pending-link-store.service.js";
+import { PgPendingLinkStore } from "./credentials/pg-pending-link-store.service.js";
 import { OAuthApiController } from "./credentials/oauth-api.controller.js";
 import { OAuthConnectionReadService } from "./credentials/oauth-connection-read.service.js";
 import { OAuthLinkService } from "./credentials/oauth-link.service.js";
@@ -45,26 +49,40 @@ import { StructuredLoggerService } from "./logging/structured-logger.service.js"
 import { TraceEmitterService } from "./trace/trace-emitter.service.js";
 import { TraceReadService } from "./trace/trace-read.service.js";
 import { TracesApiController } from "./trace/traces-api.controller.js";
-import { SqliteTraceRepository } from "./trace/sqlite-trace-repository.service.js";
+import { PgTraceRepository } from "./trace/pg-trace-repository.service.js";
 import { TRACE_REPOSITORY } from "./trace/types/trace-repository.js";
+
+export { TORII_DATABASE };
 
 const SINGLETON = { lifecycle: Lifecycle.Singleton } as const;
 
-export function createContainer(config: ToriiConfig): DependencyContainer {
+export interface ToriiContainerResult {
+  container: DependencyContainer;
+  migrations: MigrationResult;
+}
+
+export interface CreateContainerOptions {
+  pool?: Pool;
+}
+
+export async function createContainer(
+  config: ToriiConfig,
+  options: CreateContainerOptions = {},
+): Promise<ToriiContainerResult> {
   const appContainer = container.createChildContainer();
-  let gatewayDatabase: ReturnType<typeof openGatewayDatabase> | undefined;
+  const { pool, migrations } = await openGatewayDatabase(
+    options.pool ? "postgres://unused" : resolveToriiDatabaseUrl(),
+    options.pool,
+  );
 
-  const resolveGatewayDatabase = () => {
-    gatewayDatabase ??= openGatewayDatabase(resolveGatewayDbPath());
-    return gatewayDatabase;
-  };
-
-  let tokenRepository: SqliteTokenRepository | undefined;
-  let oauthClientRepository: SqliteOAuthClientRepository | undefined;
-  let pendingLinkStore: SqlitePendingLinkStore | undefined;
-  let traceRepository: SqliteTraceRepository | undefined;
+  let tokenRepository: PgTokenRepository | undefined;
+  let oauthClientRepository: PgOAuthClientRepository | undefined;
+  let pendingLinkStore: PgPendingLinkStore | undefined;
+  let traceRepository: PgTraceRepository | undefined;
   let approvalStore: ApprovalStoreService | undefined;
   let taskStore: TaskStoreService | undefined;
+
+  appContainer.register(TORII_DATABASE, { useValue: pool });
   appContainer.register(ToriiConfigService, {
     useValue: new ToriiConfigService(config),
   });
@@ -115,7 +133,9 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
   );
   appContainer.register(PENDING_OAUTH_LINK_STORE, {
     useFactory: () => {
-      pendingLinkStore ??= new SqlitePendingLinkStore(resolveGatewayDatabase());
+      pendingLinkStore ??= new PgPendingLinkStore(
+        appContainer.resolve<Pool>(TORII_DATABASE),
+      );
       return pendingLinkStore;
     },
   });
@@ -130,21 +150,25 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
   });
   appContainer.register(TOKEN_REPOSITORY, {
     useFactory: () => {
-      tokenRepository ??= new SqliteTokenRepository(resolveGatewayDatabase());
+      tokenRepository ??= new PgTokenRepository(
+        appContainer.resolve<Pool>(TORII_DATABASE),
+      );
       return tokenRepository;
     },
   });
   appContainer.register(OAUTH_CLIENT_REPOSITORY, {
     useFactory: () => {
-      oauthClientRepository ??= new SqliteOAuthClientRepository(
-        resolveGatewayDatabase(),
+      oauthClientRepository ??= new PgOAuthClientRepository(
+        appContainer.resolve<Pool>(TORII_DATABASE),
       );
       return oauthClientRepository;
     },
   });
   appContainer.register(TRACE_REPOSITORY, {
     useFactory: () => {
-      traceRepository ??= new SqliteTraceRepository(resolveGatewayDatabase());
+      traceRepository ??= new PgTraceRepository(
+        appContainer.resolve<Pool>(TORII_DATABASE),
+      );
       return traceRepository;
     },
   });
@@ -190,13 +214,17 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
   );
   appContainer.register(ApprovalStoreService, {
     useFactory: () => {
-      approvalStore ??= new ApprovalStoreService(resolveGatewayDatabase());
+      approvalStore ??= new ApprovalStoreService(
+        appContainer.resolve<Pool>(TORII_DATABASE),
+      );
       return approvalStore;
     },
   });
   appContainer.register(TaskStoreService, {
     useFactory: () => {
-      taskStore ??= new TaskStoreService(resolveGatewayDatabase());
+      taskStore ??= new TaskStoreService(
+        appContainer.resolve<Pool>(TORII_DATABASE),
+      );
       return taskStore;
     },
   });
@@ -254,5 +282,9 @@ export function createContainer(config: ToriiConfig): DependencyContainer {
     appContainer.resolve(ConnectionManager),
   );
 
-  return appContainer;
+  return { container: appContainer, migrations };
+}
+
+export function resolveToriiDatabase(appContainer: DependencyContainer): Pool {
+  return appContainer.resolve<Pool>(TORII_DATABASE);
 }

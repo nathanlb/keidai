@@ -52,16 +52,16 @@ export async function runTaskLoop(
   let deadline = now() + start.limits.timeout_seconds * 1000;
   const history = cloneHistory(start.initialHistory);
 
-  const checkpoint = (): void => {
-    deps.onHistoryChanged?.(history);
+  const checkpoint = async (): Promise<void> => {
+    await deps.onHistoryChanged?.(history);
   };
 
-  const drainPendingUserMessages = (): void => {
+  const drainPendingUserMessages = async (): Promise<void> => {
     if (!deps.drainPendingUserMessages) {
       return;
     }
 
-    const pending = deps.drainPendingUserMessages();
+    const pending = await deps.drainPendingUserMessages();
     if (pending.length === 0) {
       return;
     }
@@ -69,10 +69,13 @@ export async function runTaskLoop(
     for (const entry of pending) {
       history.push(entry);
     }
-    checkpoint();
+    await checkpoint();
   };
 
-  const pushToolErrorResult = (call: ModelToolCall, error: unknown): void => {
+  const pushToolErrorResult = async (
+    call: ModelToolCall,
+    error: unknown,
+  ): Promise<void> => {
     history.push({
       role: "tool",
       toolCallId: call.toolCallId,
@@ -80,14 +83,14 @@ export async function runTaskLoop(
       output: describeError(error),
       isError: true,
     });
-    checkpoint();
+    await checkpoint();
   };
 
-  const terminate = (
+  const terminate = async (
     outcome: TerminationOutcome,
     iterations: number,
-  ): TaskLoopResult => {
-    drainPendingUserMessages();
+  ): Promise<TaskLoopResult> => {
+    await drainPendingUserMessages();
     return { outcome, history, iterations };
   };
 
@@ -136,10 +139,10 @@ export async function runTaskLoop(
     return result;
   };
 
-  const appendToolResult = (
+  const appendToolResult = async (
     call: ModelToolCall,
     result: ToolDispatchResult,
-  ): void => {
+  ): Promise<void> => {
     history.push({
       role: "tool",
       toolCallId: call.toolCallId,
@@ -147,7 +150,7 @@ export async function runTaskLoop(
       output: result.text,
       ...(result.isError ? { isError: true } : {}),
     });
-    checkpoint();
+    await checkpoint();
   };
 
   const dispatchCall = async (
@@ -159,7 +162,7 @@ export async function runTaskLoop(
     try {
       result = await resolveToolResult(call, options);
     } catch (error) {
-      pushToolErrorResult(call, error);
+      await pushToolErrorResult(call, error);
       return terminate(
         {
           status: "failed",
@@ -169,7 +172,7 @@ export async function runTaskLoop(
       );
     }
 
-    appendToolResult(call, result);
+    await appendToolResult(call, result);
 
     if (result.approvalDenied) {
       return terminate({ status: "human_reject" }, iterations);
@@ -197,7 +200,7 @@ export async function runTaskLoop(
         start.resumeParkedApproval.approvalId,
       );
     } catch (error) {
-      pushToolErrorResult(parkedCall, error);
+      await pushToolErrorResult(parkedCall, error);
       return terminate(
         {
           status: "failed",
@@ -207,7 +210,7 @@ export async function runTaskLoop(
       );
     }
 
-    appendToolResult(parkedCall, parkedResult);
+    await appendToolResult(parkedCall, parkedResult);
     if (parkedResult.approvalDenied) {
       return terminate({ status: "human_reject" }, 0);
     }
@@ -225,7 +228,7 @@ export async function runTaskLoop(
       return terminate({ status: "timeout" }, iteration - 1);
     }
 
-    drainPendingUserMessages();
+    await drainPendingUserMessages();
 
     let step: ModelStep;
     try {
@@ -245,7 +248,7 @@ export async function runTaskLoop(
       text: step.text,
       toolCalls: step.toolCalls,
     });
-    checkpoint();
+    await checkpoint();
 
     if (step.toolCalls.length === 0) {
       return terminate(
@@ -273,7 +276,7 @@ export async function runTaskLoop(
       );
     }
 
-    checkpoint();
+    await checkpoint();
   }
 
   return terminate({ status: "iteration_exhausted" }, start.limits.max_iterations);

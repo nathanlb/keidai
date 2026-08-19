@@ -62,8 +62,8 @@ describe("gateway log streams", () => {
       credentialResolver,
       traceEmitter,
       createPolicyEnforcement(configService),
-      createApprovalServices(configService).approvalGate,
-      createApprovalServices(configService).taskStore,
+      (await createApprovalServices(configService)).approvalGate,
+      (await createApprovalServices(configService)).taskStore,
     );
 
     const stdoutLines: string[] = [];
@@ -79,7 +79,7 @@ describe("gateway log streams", () => {
       return true;
     }) as typeof process.stderr.write;
 
-    let persistence: ReturnType<typeof createTestGatewayPersistence> | undefined;
+    let persistence: Awaited<ReturnType<typeof createTestGatewayPersistence>> | undefined;
     try {
       const structuredLogger = new StructuredLoggerService();
       structuredLogger.info("boot.config_loaded", { serverCount: 1 });
@@ -89,11 +89,11 @@ describe("gateway log streams", () => {
         await toolDispatch.callTool("demo.ping");
       });
 
-      persistence = createTestGatewayPersistence();
+      persistence = await createTestGatewayPersistence();
       const traceEmitterService = new TraceEmitterService(
         persistence.traceRepository,
       );
-      traceEmitterService.emit(
+      await traceEmitterService.emit(
         finalizeCallTrace(
           {
             server: "demo",
@@ -103,7 +103,7 @@ describe("gateway log streams", () => {
             policyDecision: PolicyDecision.Allowed,
             durationMs: 1,
           },
-          { traceId: "trace-boot-check", timestamp: "2026-06-25T12:00:00.000Z" },
+          { traceId: "trace-boot-check", timestamp: new Date().toISOString() },
         ),
       );
 

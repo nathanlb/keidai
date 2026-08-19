@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { inject, injectable } from "tsyringe";
-import { isSqliteUniqueConstraintError } from "../storage/utils/sqlite-errors.js";
+import { isUniqueViolation } from "@keidai/postgres";
 import {
   OWNER_REPOSITORY,
   type OwnerRepository,
@@ -27,10 +27,13 @@ export class AgentsManagementApiController {
 
   registerRoutes(app: FastifyInstance): void {
     app.get("/api/agents", async (_request, reply) => {
-      const agents = this.agents
-        .list()
-        .map((agent) => this.toManagementAgent(agent))
-        .filter((agent): agent is ManagementAgent => agent !== null);
+      const agents: ManagementAgent[] = [];
+      for (const record of await this.agents.list()) {
+        const agent = await this.toManagementAgent(record);
+        if (agent) {
+          agents.push(agent);
+        }
+      }
       reply.send({ agents });
     });
 
@@ -40,7 +43,7 @@ export class AgentsManagementApiController {
      */
     app.get("/api/agents/slugs/:slug/availability", async (request, reply) => {
       const { slug } = request.params as { slug: string };
-      reply.send({ available: this.agents.getBySlug(slug) === null });
+      reply.send({ available: (await this.agents.getBySlug(slug)) === null });
     });
 
     app.post("/api/agents", async (request, reply) => {
@@ -53,7 +56,7 @@ export class AgentsManagementApiController {
         return;
       }
 
-      if (!this.owners.get(parsed.data.ownerId)) {
+      if (!(await this.owners.get(parsed.data.ownerId))) {
         reply.code(400).send({
           error: "unknown ownerId",
           ownerId: parsed.data.ownerId,
@@ -62,19 +65,19 @@ export class AgentsManagementApiController {
       }
 
       try {
-        const created = this.agents.create(parsed.data);
-        const agent = this.toManagementAgent(created);
+        const created = await this.agents.create(parsed.data);
+        const agent = await this.toManagementAgent(created);
         if (!agent) {
           reply.code(500).send({ error: "agent created without persona" });
           return;
         }
         reply.code(201).send({ agent });
       } catch (error) {
-        if (isSqliteUniqueConstraintError(error, "agents.slug")) {
+        if (isUniqueViolation(error, "slug")) {
           reply.code(409).send({ error: "agent slug already exists" });
           return;
         }
-        if (isSqliteUniqueConstraintError(error, "agents.id")) {
+        if (isUniqueViolation(error, "agents_pkey")) {
           reply.code(409).send({ error: "agent id already exists" });
           return;
         }
@@ -84,8 +87,8 @@ export class AgentsManagementApiController {
 
     app.get("/api/agents/:agentId", async (request, reply) => {
       const { agentId } = request.params as { agentId: string };
-      const record = this.agents.get(agentId);
-      const agent = record ? this.toManagementAgent(record) : null;
+      const record = await this.agents.get(agentId);
+      const agent = record ? await this.toManagementAgent(record) : null;
       if (!agent) {
         reply.code(404).send({ error: "agent not found" });
         return;
@@ -95,11 +98,11 @@ export class AgentsManagementApiController {
 
     app.get("/api/agents/:agentId/personas", async (request, reply) => {
       const { agentId } = request.params as { agentId: string };
-      if (!this.agents.get(agentId)) {
+      if (!(await this.agents.get(agentId))) {
         reply.code(404).send({ error: "agent not found" });
         return;
       }
-      reply.send({ personas: this.agents.listPersonas(agentId) });
+      reply.send({ personas: await this.agents.listPersonas(agentId) });
     });
 
     app.patch("/api/agents/:agentId", async (request, reply) => {
@@ -122,24 +125,24 @@ export class AgentsManagementApiController {
         return;
       }
 
-      const existing = this.agents.get(agentId);
+      const existing = await this.agents.get(agentId);
       if (!existing) {
         reply.code(404).send({ error: "agent not found" });
         return;
       }
 
       if (parsed.data.name !== undefined) {
-        this.agents.updateName(agentId, { name: parsed.data.name });
+        await this.agents.updateName(agentId, { name: parsed.data.name });
       }
       if (parsed.data.groups !== undefined) {
-        this.agents.updateGroups(agentId, { groups: parsed.data.groups });
+        await this.agents.updateGroups(agentId, { groups: parsed.data.groups });
       }
       if (parsed.data.persona !== undefined) {
-        this.agents.appendPersona(agentId, parsed.data.persona);
+        await this.agents.appendPersona(agentId, parsed.data.persona);
       }
 
-      const updated = this.agents.get(agentId);
-      const agent = updated ? this.toManagementAgent(updated) : null;
+      const updated = await this.agents.get(agentId);
+      const agent = updated ? await this.toManagementAgent(updated) : null;
       if (!agent) {
         reply.code(404).send({ error: "agent not found" });
         return;
@@ -149,7 +152,7 @@ export class AgentsManagementApiController {
 
     app.delete("/api/agents/:agentId", async (request, reply) => {
       const { agentId } = request.params as { agentId: string };
-      if (!this.agents.delete(agentId)) {
+      if (!(await this.agents.delete(agentId))) {
         reply.code(404).send({ error: "agent not found" });
         return;
       }
@@ -157,8 +160,10 @@ export class AgentsManagementApiController {
     });
   }
 
-  private toManagementAgent(record: AgentRecord): ManagementAgent | null {
-    const persona = this.agents.getCurrentPersona(record.id);
+  private async toManagementAgent(
+    record: AgentRecord,
+  ): Promise<ManagementAgent | null> {
+    const persona = await this.agents.getCurrentPersona(record.id);
     if (!persona) {
       return null;
     }

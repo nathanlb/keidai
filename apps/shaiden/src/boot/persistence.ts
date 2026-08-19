@@ -1,32 +1,35 @@
-import type { DatabaseSync } from "node:sqlite";
-import { resolveShaidenDbPath } from "../storage/shaiden-db-path.js";
-import { openShaidenDatabase } from "../storage/shaiden-sqlite.js";
-import { SqliteRunRepository } from "../runs/sqlite-run-repository.js";
+import type { Pool } from "@keidai/postgres";
+import {
+  openShaidenDatabase,
+  resolveShaidenDatabaseUrl,
+} from "../storage/shaiden-postgres.js";
+import { PgRunRepository } from "../runs/pg-run-repository.js";
 import { RunStore } from "../runs/run-store.js";
-import { SqliteTaskRepository } from "../tasks/sqlite-task-repository.js";
+import { PgTaskRepository } from "../tasks/pg-task-repository.js";
 import type { TaskRepository } from "../tasks/types/task-repository.js";
 import type { RunRepository } from "../runs/types/run-repository.js";
 
 export interface ShaidenPersistence {
-  database: DatabaseSync;
+  pool: Pool;
   taskRepository: TaskRepository;
   runRepository: RunRepository;
   runStore: RunStore;
 }
 
-let persistence: ShaidenPersistence | undefined;
+let persistencePromise: Promise<ShaidenPersistence> | undefined;
 
-export function createShaidenPersistence(
-  databasePath = resolveShaidenDbPath(),
-): ShaidenPersistence {
-  const database = openShaidenDatabase(databasePath);
-  const taskRepository = new SqliteTaskRepository(database);
-  const runRepository = new SqliteRunRepository(database);
+export async function createShaidenPersistence(
+  connectionString = resolveShaidenDatabaseUrl(),
+  existingPool?: Pool,
+): Promise<ShaidenPersistence> {
+  const { pool } = await openShaidenDatabase(connectionString, existingPool);
+  const taskRepository = new PgTaskRepository(pool);
+  const runRepository = new PgRunRepository(pool);
   const runStore = new RunStore(runRepository);
-  return { database, taskRepository, runRepository, runStore };
+  return { pool, taskRepository, runRepository, runStore };
 }
 
-export function getShaidenPersistence(): ShaidenPersistence {
-  persistence ??= createShaidenPersistence();
-  return persistence;
+export function getShaidenPersistence(): Promise<ShaidenPersistence> {
+  persistencePromise ??= createShaidenPersistence();
+  return persistencePromise;
 }

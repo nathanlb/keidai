@@ -1,4 +1,4 @@
-import type { DatabaseSync } from "node:sqlite";
+import type { Pool, Queryable } from "@keidai/postgres";
 import {
   isMcpTaskTerminalStatus,
   type McpDetailedTask,
@@ -8,6 +8,8 @@ import {
   type McpTaskStatus,
 } from "@keidai/shared";
 import { injectable } from "tsyringe";
+import { parseJsonValue, toEpochMs } from "../storage/pg-values.js";
+import { resolveQueryable } from "../storage/queryable-context.js";
 import {
   DEFAULT_MCP_TASK_POLL_INTERVAL_MS,
   DEFAULT_MCP_TASK_TTL_MS,
@@ -24,6 +26,25 @@ import {
 
 const DEFAULT_REQUEST_METHOD = "tools/call";
 
+const TASK_SELECT = `
+  task_id,
+  agent_id,
+  owner_id,
+  request_method,
+  status,
+  status_message,
+  created_at,
+  last_updated_at,
+  ttl_ms,
+  poll_interval_ms,
+  input_requests,
+  satisfied_input_keys,
+  result,
+  error,
+  backend_server,
+  backend_task_id
+`;
+
 interface McpTaskRow {
   task_id: string;
   agent_id: string;
@@ -31,87 +52,31 @@ interface McpTaskRow {
   request_method: string;
   status: McpTaskStatus;
   status_message: string | null;
-  created_at: number;
-  last_updated_at: number;
+  created_at: number | string;
+  last_updated_at: number | string;
   ttl_ms: number | null;
   poll_interval_ms: number | null;
-  input_requests: string | null;
-  satisfied_input_keys: string;
-  result: string | null;
-  error: string | null;
+  input_requests: McpInputRequests | string | null;
+  satisfied_input_keys: string[] | string;
+  result: Record<string, unknown> | string | null;
+  error: Record<string, unknown> | string | null;
   backend_server: string | null;
   backend_task_id: string | null;
 }
 
 @injectable()
 export class TaskStoreService {
-  private readonly insertStatement;
-  private readonly getStatement;
-  private readonly updateStatement;
+  constructor(private readonly pool: Pool) {}
 
-  constructor(private readonly db: DatabaseSync) {
-    this.insertStatement = db.prepare(`
-      INSERT INTO mcp_tasks (
-        task_id,
-        agent_id,
-        owner_id,
-        request_method,
-        status,
-        status_message,
-        created_at,
-        last_updated_at,
-        ttl_ms,
-        poll_interval_ms,
-        input_requests,
-        satisfied_input_keys,
-        result,
-        error
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    this.getStatement = db.prepare(`
-      SELECT
-        task_id,
-        agent_id,
-        owner_id,
-        request_method,
-        status,
-        status_message,
-        created_at,
-        last_updated_at,
-        ttl_ms,
-        poll_interval_ms,
-        input_requests,
-        satisfied_input_keys,
-        result,
-        error,
-        backend_server,
-        backend_task_id
-      FROM mcp_tasks
-      WHERE task_id = ?
-    `);
-    this.updateStatement = db.prepare(`
-      UPDATE mcp_tasks
-      SET
-        status = ?,
-        status_message = ?,
-        last_updated_at = ?,
-        poll_interval_ms = ?,
-        input_requests = ?,
-        satisfied_input_keys = ?,
-        result = ?,
-        error = ?,
-        backend_server = ?,
-        backend_task_id = ?
-      WHERE task_id = ?
-    `);
+  private get queryable(): Queryable {
+    return resolveQueryable(this.pool);
   }
 
   /**
    * Persist a working task, then return the wire `Task`. Callers MUST NOT
    * emit `CreateTaskResult` until this returns.
    */
-  createWorkingTask(input: CreateMcpTaskInput): McpTask {
+  async createWorkingTask(input: CreateMcpTaskInput): Promise<McpTask> {
     const now = input.now ?? Date.now();
     const record: StoredMcpTask = {
       taskId: generateMcpTaskId(),
@@ -127,32 +92,53 @@ export class TaskStoreService {
       satisfiedInputKeys: [],
     };
 
-    this.insertStatement.run(
-      record.taskId,
-      record.agentId,
-      record.ownerId,
-      record.requestMethod,
-      record.status,
-      record.statusMessage ?? null,
-      record.createdAtMs,
-      record.lastUpdatedAtMs,
-      record.ttlMs,
-      record.pollIntervalMs ?? null,
-      null,
-      JSON.stringify(record.satisfiedInputKeys),
-      null,
-      null,
+    await this.queryable.query(
+      `
+        INSERT INTO mcp_tasks (
+          task_id,
+          agent_id,
+          owner_id,
+          request_method,
+          status,
+          status_message,
+          created_at,
+          last_updated_at,
+          ttl_ms,
+          poll_interval_ms,
+          input_requests,
+          satisfied_input_keys,
+          result,
+          error
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13::jsonb, $14::jsonb)
+      `,
+      [
+        record.taskId,
+        record.agentId,
+        record.ownerId,
+        record.requestMethod,
+        record.status,
+        record.statusMessage ?? null,
+        record.createdAtMs,
+        record.lastUpdatedAtMs,
+        record.ttlMs,
+        record.pollIntervalMs ?? null,
+        null,
+        JSON.stringify(record.satisfiedInputKeys),
+        null,
+        null,
+      ],
     );
 
     return toMcpTask(record);
   }
 
-  getDetailedTask(
+  async getDetailedTask(
     agentId: string,
     taskId: string,
     now = Date.now(),
-  ): McpDetailedTask {
-    return toDetailedMcpTask(this.requireOwnedTask(agentId, taskId, now));
+  ): Promise<McpDetailedTask> {
+    return toDetailedMcpTask(await this.requireOwnedTask(agentId, taskId, now));
   }
 
   /**
@@ -161,12 +147,12 @@ export class TaskStoreService {
    * owned by another agent, or past its TTL — an agent must not be able to
    * tell those apart.
    */
-  requireOwnedTask(
+  async requireOwnedTask(
     agentId: string,
     taskId: string,
     now = Date.now(),
-  ): StoredMcpTask {
-    const record = this.getRecord(taskId);
+  ): Promise<StoredMcpTask> {
+    const record = await this.getRecord(taskId);
     if (!record || record.agentId !== agentId) {
       throw new McpTaskLookupError("not_found");
     }
@@ -184,7 +170,7 @@ export class TaskStoreService {
    * was in flight. Callers must treat that as a refusal and cancel upstream,
    * otherwise the backend keeps working on a task nobody will read.
    */
-  attachBackendOrigin(
+  async attachBackendOrigin(
     taskId: string,
     origin: {
       server: string;
@@ -193,8 +179,8 @@ export class TaskStoreService {
       statusMessage?: string;
     },
     now = Date.now(),
-  ): StoredMcpTask | undefined {
-    const record = this.getRecord(taskId);
+  ): Promise<StoredMcpTask | undefined> {
+    const record = await this.getRecord(taskId);
     if (!record || isMcpTaskTerminalStatus(record.status)) {
       return undefined;
     }
@@ -210,7 +196,7 @@ export class TaskStoreService {
         : {}),
       lastUpdatedAtMs: now,
     };
-    this.save(next);
+    await this.save(next);
     return next;
   }
 
@@ -219,13 +205,13 @@ export class TaskStoreService {
    * keys are ignored. When every outstanding key is satisfied the task
    * returns to `working`.
    */
-  applyInputResponses(
+  async applyInputResponses(
     agentId: string,
     taskId: string,
     inputResponses: McpInputResponses,
     now = Date.now(),
-  ): void {
-    const record = this.requireOwnedTask(agentId, taskId, now);
+  ): Promise<void> {
+    const record = await this.requireOwnedTask(agentId, taskId, now);
     if (record.status !== "input_required") {
       return;
     }
@@ -241,7 +227,7 @@ export class TaskStoreService {
     }
 
     const remaining = Object.keys(outstanding);
-    this.save({
+    await this.save({
       ...record,
       status: remaining.length === 0 ? "working" : "input_required",
       inputRequests: remaining.length === 0 ? undefined : outstanding,
@@ -254,12 +240,12 @@ export class TaskStoreService {
    * Cooperative cancel: acknowledges even if the task is already terminal.
    * Non-terminal tasks move to `cancelled`.
    */
-  requestCancel(agentId: string, taskId: string, now = Date.now()): void {
-    const record = this.requireOwnedTask(agentId, taskId, now);
+  async requestCancel(agentId: string, taskId: string, now = Date.now()): Promise<void> {
+    const record = await this.requireOwnedTask(agentId, taskId, now);
     if (isMcpTaskTerminalStatus(record.status)) {
       return;
     }
-    this.save({
+    await this.save({
       ...record,
       status: "cancelled",
       inputRequests: undefined,
@@ -267,12 +253,12 @@ export class TaskStoreService {
     });
   }
 
-  requireInput(
+  async requireInput(
     taskId: string,
     inputRequests: McpInputRequests,
     now = Date.now(),
-  ): StoredMcpTask | undefined {
-    const record = this.getRecord(taskId);
+  ): Promise<StoredMcpTask | undefined> {
+    const record = await this.getRecord(taskId);
     if (!record || isMcpTaskTerminalStatus(record.status)) {
       return undefined;
     }
@@ -290,7 +276,7 @@ export class TaskStoreService {
       inputRequests: { ...record.inputRequests, ...inputRequests },
       lastUpdatedAtMs: now,
     };
-    this.save(next);
+    await this.save(next);
     return next;
   }
 
@@ -298,11 +284,11 @@ export class TaskStoreService {
    * Mark the task completed with the original request's result.
    * A tool result with `isError: true` is still `completed`.
    */
-  complete(
+  async complete(
     taskId: string,
     result: Record<string, unknown>,
     now = Date.now(),
-  ): StoredMcpTask | undefined {
+  ): Promise<StoredMcpTask | undefined> {
     return this.finish(taskId, "completed", { result }, now);
   }
 
@@ -310,21 +296,21 @@ export class TaskStoreService {
    * Mark the task failed with a JSON-RPC error. Do not use for tool-level
    * `isError: true` results.
    */
-  fail(
+  async fail(
     taskId: string,
     error: Record<string, unknown>,
     now = Date.now(),
-  ): StoredMcpTask | undefined {
+  ): Promise<StoredMcpTask | undefined> {
     return this.finish(taskId, "failed", { error }, now);
   }
 
-  private finish(
+  private async finish(
     taskId: string,
     status: "completed" | "failed",
     payload: { result?: Record<string, unknown>; error?: Record<string, unknown> },
     now: number,
-  ): StoredMcpTask | undefined {
-    const record = this.getRecord(taskId);
+  ): Promise<StoredMcpTask | undefined> {
+    const record = await this.getRecord(taskId);
     if (!record || isMcpTaskTerminalStatus(record.status)) {
       return record;
     }
@@ -336,30 +322,55 @@ export class TaskStoreService {
       inputRequests: undefined,
       lastUpdatedAtMs: now,
     };
-    this.save(next);
+    await this.save(next);
     return next;
   }
 
-  private getRecord(taskId: string): StoredMcpTask | undefined {
-    const row = this.getStatement.get(taskId) as McpTaskRow | undefined;
+  private async getRecord(taskId: string): Promise<StoredMcpTask | undefined> {
+    const result = await this.queryable.query<McpTaskRow>(
+      `
+        SELECT ${TASK_SELECT}
+        FROM mcp_tasks
+        WHERE task_id = $1
+      `,
+      [taskId],
+    );
+    const row = result.rows[0];
     return row ? rowToRecord(row) : undefined;
   }
 
-  private save(record: StoredMcpTask): void {
-    this.updateStatement.run(
-      record.status,
-      record.statusMessage ?? null,
-      record.lastUpdatedAtMs,
-      record.pollIntervalMs ?? null,
-      record.inputRequests === undefined
-        ? null
-        : JSON.stringify(record.inputRequests),
-      JSON.stringify(record.satisfiedInputKeys),
-      record.result === undefined ? null : JSON.stringify(record.result),
-      record.error === undefined ? null : JSON.stringify(record.error),
-      record.backendServer ?? null,
-      record.backendTaskId ?? null,
-      record.taskId,
+  private async save(record: StoredMcpTask): Promise<void> {
+    await this.queryable.query(
+      `
+        UPDATE mcp_tasks
+        SET
+          status = $1,
+          status_message = $2,
+          last_updated_at = $3,
+          poll_interval_ms = $4,
+          input_requests = $5::jsonb,
+          satisfied_input_keys = $6::jsonb,
+          result = $7::jsonb,
+          error = $8::jsonb,
+          backend_server = $9,
+          backend_task_id = $10
+        WHERE task_id = $11
+      `,
+      [
+        record.status,
+        record.statusMessage ?? null,
+        record.lastUpdatedAtMs,
+        record.pollIntervalMs ?? null,
+        record.inputRequests === undefined
+          ? null
+          : JSON.stringify(record.inputRequests),
+        JSON.stringify(record.satisfiedInputKeys),
+        record.result === undefined ? null : JSON.stringify(record.result),
+        record.error === undefined ? null : JSON.stringify(record.error),
+        record.backendServer ?? null,
+        record.backendTaskId ?? null,
+        record.taskId,
+      ],
     );
   }
 }
@@ -372,21 +383,21 @@ function rowToRecord(row: McpTaskRow): StoredMcpTask {
     requestMethod: row.request_method,
     status: row.status,
     ...(row.status_message !== null ? { statusMessage: row.status_message } : {}),
-    createdAtMs: row.created_at,
-    lastUpdatedAtMs: row.last_updated_at,
+    createdAtMs: toEpochMs(row.created_at),
+    lastUpdatedAtMs: toEpochMs(row.last_updated_at),
     ttlMs: row.ttl_ms,
     ...(row.poll_interval_ms !== null
       ? { pollIntervalMs: row.poll_interval_ms }
       : {}),
     ...(row.input_requests !== null
-      ? { inputRequests: JSON.parse(row.input_requests) as McpInputRequests }
+      ? { inputRequests: parseJsonValue(row.input_requests) }
       : {}),
-    satisfiedInputKeys: JSON.parse(row.satisfied_input_keys) as string[],
+    satisfiedInputKeys: parseJsonValue(row.satisfied_input_keys),
     ...(row.result !== null
-      ? { result: JSON.parse(row.result) as Record<string, unknown> }
+      ? { result: parseJsonValue(row.result) }
       : {}),
     ...(row.error !== null
-      ? { error: JSON.parse(row.error) as Record<string, unknown> }
+      ? { error: parseJsonValue(row.error) }
       : {}),
     ...(row.backend_server !== null ? { backendServer: row.backend_server } : {}),
     ...(row.backend_task_id !== null ? { backendTaskId: row.backend_task_id } : {}),

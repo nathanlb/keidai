@@ -4,7 +4,7 @@ Agent runtime for the Keidai ecosystem. Exchanges a subject token with Fuda for 
 
 ## Task loop
 
-The loop is deliberately thin: call the model (OpenRouter via the AI SDK) with Torii-discovered tools, dispatch tool calls back to Torii over MCP (per-request caller; not a held protocol session), feed results in, repeat. Conversation state is persisted per run in SQLite and used to continue that same run after a terminal outcome. At most one run may be `running` for a given saved task (enforced in the store). Different saved tasks may run at the same time, including across Shaiden replicas. Every run records exactly one outcome:
+The loop is deliberately thin: call the model (OpenRouter via the AI SDK) with Torii-discovered tools, dispatch tool calls back to Torii over MCP (per-request caller; not a held protocol session), feed results in, repeat. Conversation state is persisted per run in Postgres and used to continue that same run after a terminal outcome. At most one run may be `running` for a given saved task (enforced in the store). Different saved tasks may run at the same time, including across Shaiden replicas. Every run records exactly one outcome:
 
 | Outcome | Meaning |
 |---------|---------|
@@ -69,13 +69,13 @@ pnpm install
 pnpm shaiden:dev
 ```
 
-Set `SHAIDEN_BEARER` (subject token) and `FUDA_URL` in the repo root `.env` (or `apps/shaiden/.env`). Shaiden exchanges the subject token for an agent JWT via Fuda `POST /token` before calling Torii. Local demo seeds map the bearer through Fuda's subject validator.
+Set `SHAIDEN_BEARER` (subject token) and `FUDA_URL` in the repo root `.env` (or `apps/shaiden/.env`). `SHAIDEN_DATABASE_URL` is required. Local Postgres: `docker compose up postgres -d`. Shaiden exchanges the subject token for an agent JWT via Fuda `POST /token` before calling Torii. Local demo seeds map the bearer through Fuda's subject validator.
 
 ## Task config (v0)
 
 Author a Task in keidai-ui (`/shaiden/tasks`) and submit it with `POST /api/tasks/run` (create saved task + start run) or run a saved task with `POST /api/tasks/:taskId/run`. The body is validated with `taskSchema` (`goal`, `trigger: { type: "now" }`, `assignee`, optional `limits`). Shaiden accepts the run asynchronously (`202` + `{ runId, taskId }`) and streams progress over `GET /api/runs/events`.
 
-Saved tasks are listed at `GET /api/tasks` and persist in SQLite (`SHAIDEN_DB_PATH`). Runs store a task snapshot at start time so later task edits do not rewrite history.
+Saved tasks are listed at `GET /api/tasks` and persist in Postgres (`SHAIDEN_DATABASE_URL`). Runs store a task snapshot at start time so later task edits do not rewrite history.
 
 ### Follow-up messages on stopped runs
 
@@ -86,9 +86,9 @@ Saved tasks are listed at `GET /api/tasks` and persist in SQLite (`SHAIDEN_DB_PA
 | `waiting_approval` | Message is queued in the run store (any replica can accept it) and recorded in the run log; approval is unchanged |
 | Terminal (`failed`, `goal_met`, `iteration_exhausted`, `timeout`) | Run reopens, message is appended, and the loop resumes with persisted conversation history |
 
-Iteration cap and wall-clock timeout reset on each terminal continuation. Runs created before conversation-history persistence was added cannot be resumed (`409`). If the process restarts while a run is parked on approval, polling resumes from the persisted MCP task id; queued follow-ups persist in SQLite and are drained before the next model call. A replica claims a parked run with a short lease so two processes cannot drive it at once — another replica may reclaim after the lease expires. `human_reject` continuations are not supported in v0.
+Iteration cap and wall-clock timeout reset on each terminal continuation. Runs created before conversation-history persistence was added cannot be resumed (`409`). If the process restarts while a run is parked on approval, polling resumes from the persisted MCP task id; queued follow-ups persist in Postgres and are drained before the next model call. A replica claims a parked run with a short lease so two processes cannot drive it at once — another replica may reclaim after the lease expires. `human_reject` continuations are not supported in v0.
 
-Conversation history is checkpointed during execution and stored in SQLite (`conversation_history_json`) so terminal resumes can rebuild the model transcript. The run log records `user_message` and `outcome` milestone steps so prior outcomes remain visible after a continuation.
+Conversation history is checkpointed during execution and stored in Postgres (`conversation_history_json`) so terminal resumes can rebuild the model transcript. The run log records `user_message` and `outcome` milestone steps so prior outcomes remain visible after a continuation.
 
 A sample Task shape still lives in [`src/config/boot-task.ts`](src/config/boot-task.ts) for reference; the process no longer auto-runs it at boot.
 
@@ -101,7 +101,9 @@ A sample Task shape still lives in [`src/config/boot-task.ts`](src/config/boot-t
 docker compose up --build
 ```
 
-Starts **Fuda** (identity / token exchange on `:3300`), **Torii** (`torii.demo.yaml`, JWKS from Fuda), and the **Shaiden** HTTP server (awaiting task submissions from keidai-ui).## Environment
+Starts **Postgres**, **Fuda** (identity / token exchange on `:3300`), **Torii** (`torii.demo.yaml`, JWKS from Fuda), and the **Shaiden** HTTP server (awaiting task submissions from keidai-ui).
+
+## Environment
 
 | Variable | Description |
 |----------|-------------|
@@ -113,5 +115,5 @@ Starts **Fuda** (identity / token exchange on `:3300`), **Torii** (`torii.demo.y
 | `SHAIDEN_MODEL_ID` | OpenRouter model id (default: `google/gemini-2.5-flash`) |
 | `SHAIDEN_HOST` | HTTP bind host for the runs API (default: `127.0.0.1`) |
 | `SHAIDEN_PORT` | HTTP bind port for the runs API (default: `3200`) |
-| `SHAIDEN_DB_PATH` | SQLite path for saved tasks and run history (default: `./data/shaiden.db`) |
+| `SHAIDEN_DATABASE_URL` | Postgres connection string for saved tasks and run history (required) |
 | `SHAIDEN_REPLICA_ID` | Optional stable replica id for run leases (default: a UUID at boot) |

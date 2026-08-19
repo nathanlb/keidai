@@ -1,4 +1,4 @@
-/** Where to load a private signing key from at boot (never from sqlite). */
+/** Where to load a private signing key from at boot (never from the database). */
 export type SigningKeyMaterialSource =
   | { kind: "file"; path: string }
   | { kind: "env"; name: string };

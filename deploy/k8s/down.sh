@@ -16,21 +16,6 @@ die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
 [[ -d "${OVERLAY_DIR}" ]] || die "unknown overlay '${OVERLAY}' (expected kind or orbstack)"
 
-# OrbStack kustomize references a generated hostPath patch; ensure it exists
-# so delete -k can resolve (does not remove apps/*/data contents).
-if [[ "${OVERLAY}" == "orbstack" ]]; then
-  local_tmpl="${OVERLAY_DIR}/patch-hostpath-volumes.yaml.tmpl"
-  local_out="${OVERLAY_DIR}/patch-hostpath-volumes.yaml"
-  if [[ ! -f "${local_out}" && -f "${local_tmpl}" ]]; then
-    esc() { printf '%s' "$1" | sed -e 's/[&\\]/\\&/g'; }
-    sed \
-      -e "s|__KEIDAI_FUDA_DATA__|$(esc "${ROOT}/apps/fuda/data")|g" \
-      -e "s|__KEIDAI_TORII_DATA__|$(esc "${ROOT}/apps/torii/data")|g" \
-      -e "s|__KEIDAI_SHAIDEN_DATA__|$(esc "${ROOT}/apps/shaiden/data")|g" \
-      "${local_tmpl}" >"${local_out}"
-  fi
-fi
-
 if kubectl get namespace "${NAMESPACE}" >/dev/null 2>&1; then
   log "deleting overlay ${OVERLAY} resources"
   kubectl delete -k "${OVERLAY_DIR}" --ignore-not-found
@@ -50,5 +35,4 @@ if [[ "${OVERLAY}" == "kind" ]]; then
   fi
 else
   log "left the ${OVERLAY} cluster running (disable Kubernetes in OrbStack if you want it off)"
-  log "hostPath SQLite data kept at apps/{fuda,torii,shaiden}/data (delete those DBs to reset)"
 fi

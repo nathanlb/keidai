@@ -49,7 +49,7 @@ function createConnectionsGateway(
   configService: ToriiConfigService,
   connectionManager: ConnectionManager,
   toolCatalog = createStubToolCatalog(),
-): GatewayHttpServer {
+): Promise<GatewayHttpServer> {
   return createTestGatewayHttpServer(toolCatalog, {} as never, {
     configService,
     connectionManager,
@@ -142,7 +142,7 @@ describe("Gateway /api/connections endpoints", () => {
     });
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
-    const gatewayHttpServer = createConnectionsGateway(
+    const gatewayHttpServer = await createConnectionsGateway(
       configService,
       connectionManager,
     );
@@ -201,7 +201,7 @@ describe("Gateway /api/connections endpoints", () => {
       createPolicyEnforcement(configService),
       createNoopLogger(),
     );
-    const gatewayHttpServer = createConnectionsGateway(
+    const gatewayHttpServer = await createConnectionsGateway(
       configService,
       connectionManager,
       toolCatalog,
@@ -294,7 +294,7 @@ describe("Gateway /api/connections endpoints", () => {
       createPolicyEnforcement(configService),
       createNoopLogger(),
     );
-    const gatewayHttpServer = createConnectionsGateway(
+    const gatewayHttpServer = await createConnectionsGateway(
       configService,
       connectionManager,
       toolCatalog,
@@ -347,7 +347,7 @@ describe("Gateway /api/connections endpoints", () => {
     });
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
-    const gatewayHttpServer = createConnectionsGateway(
+    const gatewayHttpServer = await createConnectionsGateway(
       configService,
       connectionManager,
     );

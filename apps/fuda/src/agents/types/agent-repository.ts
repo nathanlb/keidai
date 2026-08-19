@@ -38,31 +38,37 @@ export interface UpdateAgentGroupsInput {
 }
 
 export interface AgentRepository {
-  create(input: CreateAgentInput): AgentRecord;
-  get(agentId: string): AgentRecord | null;
-  getBySlug(slug: string): AgentRecord | null;
-  list(): AgentRecord[];
+  create(input: CreateAgentInput): Promise<AgentRecord>;
+  get(agentId: string): Promise<AgentRecord | null>;
+  getBySlug(slug: string): Promise<AgentRecord | null>;
+  list(): Promise<AgentRecord[]>;
   /** Freely editable display name. Does not touch persona or slug. */
-  updateName(agentId: string, input: UpdateAgentNameInput): AgentRecord | null;
+  updateName(
+    agentId: string,
+    input: UpdateAgentNameInput,
+  ): Promise<AgentRecord | null>;
   /** Replace opaque group membership. Does not validate against Torii. */
   updateGroups(
     agentId: string,
     input: UpdateAgentGroupsInput,
-  ): AgentRecord | null;
+  ): Promise<AgentRecord | null>;
   /**
    * Append-only persona edit. Inserts a new version row and advances
    * `currentPersonaVersion`. Never mutates existing persona content.
    */
-  appendPersona(agentId: string, content: string): PersonaVersion | null;
-  getPersonaVersion(agentId: string, version: number): PersonaVersion | null;
-  getCurrentPersona(agentId: string): PersonaVersion | null;
+  appendPersona(agentId: string, content: string): Promise<PersonaVersion | null>;
+  getPersonaVersion(
+    agentId: string,
+    version: number,
+  ): Promise<PersonaVersion | null>;
+  getCurrentPersona(agentId: string): Promise<PersonaVersion | null>;
   /** All persona versions for an agent, newest first. */
-  listPersonas(agentId: string): PersonaVersion[];
+  listPersonas(agentId: string): Promise<PersonaVersion[]>;
   /**
    * Deletes the agent and its persona versions / grants.
    * Returns false when the agent does not exist.
    */
-  delete(agentId: string): boolean;
+  delete(agentId: string): Promise<boolean>;
 }
 
 /** tsyringe injection token for {@link AgentRepository}. */

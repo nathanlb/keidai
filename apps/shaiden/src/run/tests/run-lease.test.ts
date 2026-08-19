@@ -32,12 +32,12 @@ describe("run lease helpers", () => {
   });
 
   it("stops heartbeating and reports loss after another replica claims", async () => {
-    const persistence = createTestPersistence();
+    const persistence = await createTestPersistence();
     try {
-      createTestRun(persistence, { runId: "run-1", task: sampleTask });
+      await createTestRun(persistence, { runId: "run-1", task: sampleTask });
       const now = "2026-07-08T12:00:00.000Z";
       assert.equal(
-        persistence.runStore.claimRun(
+        await persistence.runStore.claimRun(
           "run-1",
           "replica-a",
           leaseExpiresAt(Date.parse(now), 15_000),
@@ -59,17 +59,20 @@ describe("run lease helpers", () => {
             resolve(true);
           },
         });
-        persistence.runStore.claimRun(
-          "run-1",
-          "replica-b",
-          "2026-07-08T12:01:00.000Z",
-          "2026-07-08T12:00:20.000Z",
-        );
-        clock = Date.parse("2026-07-08T12:00:20.000Z");
+        void persistence.runStore
+          .claimRun(
+            "run-1",
+            "replica-b",
+            "2026-07-08T12:01:00.000Z",
+            "2026-07-08T12:00:20.000Z",
+          )
+          .then(() => {
+            clock = Date.parse("2026-07-08T12:00:20.000Z");
+          });
       });
       assert.equal(lost, true);
     } finally {
-      persistence.close();
+      await persistence.close();
     }
   });
 });

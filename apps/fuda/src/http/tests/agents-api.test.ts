@@ -4,7 +4,7 @@ import { createTestServer, sampleAgentBody } from "./test-helpers.js";
 
 describe("agents management API", () => {
   it("creates, lists, gets, patches, and deletes agents", async () => {
-    const server = createTestServer("management");
+    const server = await createTestServer("management");
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       const createResponse = await fetch(`${handle.baseUrl}/api/agents`, {
@@ -89,7 +89,7 @@ describe("agents management API", () => {
   });
 
   it("returns a usable conflict error for duplicate slug", async () => {
-    const server = createTestServer("management");
+    const server = await createTestServer("management");
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       await fetch(`${handle.baseUrl}/api/agents`, {
@@ -115,7 +115,7 @@ describe("agents management API", () => {
   });
 
   it("rejects immutable slug and ownerId updates", async () => {
-    const server = createTestServer("management");
+    const server = await createTestServer("management");
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       const createResponse = await fetch(`${handle.baseUrl}/api/agents`, {
@@ -158,7 +158,7 @@ describe("agents management API", () => {
   });
 
   it("leaves prior persona versions intact after a persona patch", async () => {
-    const server = createTestServer("management,agent");
+    const server = await createTestServer("management,agent");
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       const createResponse = await fetch(`${handle.baseUrl}/api/agents`, {
@@ -190,7 +190,7 @@ describe("agents management API", () => {
   });
 
   it("lists persona versions newest first", async () => {
-    const server = createTestServer("management");
+    const server = await createTestServer("management");
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       const createResponse = await fetch(`${handle.baseUrl}/api/agents`, {
@@ -226,7 +226,7 @@ describe("agents management API", () => {
   });
 
   it("reports slug availability for inline create validation", async () => {
-    const server = createTestServer("management");
+    const server = await createTestServer("management");
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       const free = await fetch(

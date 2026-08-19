@@ -4,7 +4,7 @@ import { createTestServer, sampleAgentBody } from "./test-helpers.js";
 
 describe("agent definition view", () => {
   it("returns definition fields without identity fields", async () => {
-    const server = createTestServer("management,agent");
+    const server = await createTestServer("management,agent");
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       const createResponse = await fetch(`${handle.baseUrl}/api/agents`, {
@@ -38,7 +38,7 @@ describe("agent definition view", () => {
   });
 
   it("is registered on the agent route group, not management", async () => {
-    const managementOnly = createTestServer("management");
+    const managementOnly = await createTestServer("management");
     const managementHandle = await managementOnly.start({
       host: "127.0.0.1",
       port: 0,
@@ -64,7 +64,7 @@ describe("agent definition view", () => {
       await managementHandle.close();
     }
 
-    const agentOnly = createTestServer("agent");
+    const agentOnly = await createTestServer("agent");
     const agentHandle = await agentOnly.start({ host: "127.0.0.1", port: 0 });
     try {
       const missingAgent = await fetch(

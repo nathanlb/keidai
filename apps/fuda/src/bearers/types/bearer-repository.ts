@@ -14,23 +14,23 @@ export interface CreateBearerInput {
 }
 
 export interface BearerRepository {
-  create(input: CreateBearerInput): BearerRecord;
-  get(bearerId: string): BearerRecord | null;
-  list(): BearerRecord[];
+  create(input: CreateBearerInput): Promise<BearerRecord>;
+  get(bearerId: string): Promise<BearerRecord | null>;
+  list(): Promise<BearerRecord[]>;
   updateDisplayName(
     bearerId: string,
     displayName: string,
-  ): BearerRecord | null;
-  grant(bearerId: string, agentId: string): BearerAgentGrant;
-  revoke(bearerId: string, agentId: string): boolean;
-  listGrantsForBearer(bearerId: string): BearerAgentGrant[];
-  listGrantsForAgent(agentId: string): BearerAgentGrant[];
-  hasGrant(bearerId: string, agentId: string): boolean;
+  ): Promise<BearerRecord | null>;
+  grant(bearerId: string, agentId: string): Promise<BearerAgentGrant>;
+  revoke(bearerId: string, agentId: string): Promise<boolean>;
+  listGrantsForBearer(bearerId: string): Promise<BearerAgentGrant[]>;
+  listGrantsForAgent(agentId: string): Promise<BearerAgentGrant[]>;
+  hasGrant(bearerId: string, agentId: string): Promise<boolean>;
   /**
    * Deletes the bearer and its grants.
    * Returns false when the bearer does not exist.
    */
-  delete(bearerId: string): boolean;
+  delete(bearerId: string): Promise<boolean>;
 }
 
 /** tsyringe injection token for {@link BearerRepository}. */

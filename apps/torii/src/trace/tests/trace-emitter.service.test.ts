@@ -48,7 +48,7 @@ describe("finalizeCallTrace", () => {
 });
 
 describe("TraceEmitterService", () => {
-  it("emits allowed, denied, and errored trace shapes to stdout", () => {
+  it("emits allowed, denied, and errored trace shapes to stdout", async () => {
     const lines: string[] = [];
     const originalWrite = process.stdout.write.bind(process.stdout);
     process.stdout.write = ((chunk: string | Uint8Array) => {
@@ -96,7 +96,7 @@ describe("TraceEmitterService", () => {
       ];
 
       for (const trace of traces) {
-        emitter.emit(trace);
+        await emitter.emit(trace);
       }
 
       assert.equal(lines.length, 3);

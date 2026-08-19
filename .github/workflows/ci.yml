@@ -9,33 +9,26 @@ concurrency:
 
 jobs:
   packages:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup
-      - run: pnpm turbo run build test --filter=@keidai/shared
-      - run: pnpm turbo run build typecheck --filter=@keidai/ui
+    uses: ./.github/workflows/with-postgres.yml
+    with:
+      command: |
+        pnpm turbo run build test --filter=@keidai/shared --filter=@keidai/postgres
+        pnpm turbo run build typecheck --filter=@keidai/ui
 
   torii:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup
-      - run: pnpm turbo run build test --filter=@keidai/torii...
+    uses: ./.github/workflows/with-postgres.yml
+    with:
+      command: pnpm turbo run build test --filter=@keidai/torii...
 
   fuda:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup
-      - run: pnpm turbo run build test --filter=@keidai/fuda...
+    uses: ./.github/workflows/with-postgres.yml
+    with:
+      command: pnpm turbo run build test --filter=@keidai/fuda...
 
   shaiden:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup
-      - run: pnpm turbo run build test --filter=@keidai/shaiden...
+    uses: ./.github/workflows/with-postgres.yml
+    with:
+      command: pnpm turbo run build test --filter=@keidai/shaiden...
 
   keidai-ui-unit:
     runs-on: ubuntu-latest

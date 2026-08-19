@@ -22,16 +22,16 @@ export function outcomeStepFromTermination(
   };
 }
 
-export function completeRunWithOutcomeStep(
+export async function completeRunWithOutcomeStep(
   store: RunStore,
   runId: string,
   outcome: TerminationOutcome,
-): void {
+): Promise<void> {
   const { id: _id, timestamp: _timestamp, ...outcomeStep } =
     outcomeStepFromTermination(outcome);
-  store.appendStep(runId, {
+  await store.appendStep(runId, {
     timestamp: new Date().toISOString(),
     ...outcomeStep,
   });
-  store.completeRun(runId, { outcome });
+  await store.completeRun(runId, { outcome });
 }

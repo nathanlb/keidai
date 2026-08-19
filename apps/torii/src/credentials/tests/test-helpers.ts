@@ -9,8 +9,11 @@ import { ServiceKeyCredentialResolver } from "../resolvers/service-key-credentia
 import { runWithAgentPrincipal } from "../../identity/agent-principal-context.js";
 import { TEST_AGENT_PRINCIPAL } from "../../identity/tests/test-agent-principal.js";
 import type { OAuthFetch } from "../utils/oauth-token-refresh.js";
+import { MockOAuthClientRepository } from "../../testing/mocks/mock-oauth-client-repository.js";
+import { MockPendingLinkStore } from "../../testing/mocks/mock-pending-link-store.js";
+import { MockTokenRepository } from "../../testing/mocks/mock-token-repository.js";
+import { MockTraceRepository } from "../../testing/mocks/mock-trace-repository.js";
 import {
-  createTestGatewayPersistence,
   type TestGatewayPersistence,
 } from "../../testing/gateway-persistence.js";
 
@@ -58,7 +61,13 @@ export function createCredentialServices(
   config: Pick<ToriiConfig, "oauth_providers"> = {
     oauth_providers: defaultOAuthProviders,
   },
-  persistence: TestGatewayPersistence = createTestGatewayPersistence(),
+  persistence: TestGatewayPersistence = {
+    tokenRepository: new MockTokenRepository(),
+    clientRepository: new MockOAuthClientRepository(),
+    pendingLinkStore: new MockPendingLinkStore(),
+    traceRepository: new MockTraceRepository(),
+    close: async () => {},
+  },
 ): {
   tokenRepository: TokenRepository;
   credentialResolver: CredentialResolverService;

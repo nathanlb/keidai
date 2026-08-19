@@ -1,8 +1,5 @@
 import assert from "node:assert/strict";
 import { generateKeyPairSync } from "node:crypto";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { describe, it } from "node:test";
 import { writeTempSigningKeyPem } from "../../signing/tests/test-helpers.js";
 import {
@@ -13,13 +10,9 @@ import {
 function envWithTempDbAndKey(
   overrides: NodeJS.ProcessEnv = {},
 ): NodeJS.ProcessEnv {
-  const dbPath = path.join(
-    mkdtempSync(path.join(tmpdir(), "fuda-config-")),
-    "fuda.db",
-  );
   const keyPath = writeTempSigningKeyPem("default");
   return {
-    FUDA_DB_PATH: dbPath,
+    FUDA_DATABASE_URL: "postgres://fuda:fuda@127.0.0.1:5432/fuda",
     FUDA_SIGNING_KEYS: `default=${keyPath}`,
     FUDA_SIGNING_KID: "default",
     FUDA_ISSUER: "https://fuda.test",

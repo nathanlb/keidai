@@ -10,7 +10,7 @@ import { applyOperatorsFile } from "../apply-operators-file.js";
 
 describe("applyOperatorsFile", () => {
   it("returns null when TORII_OPERATORS_PATH is unset", async () => {
-    const persistence = createTestGatewayPersistence("memory");
+    const persistence = await createTestGatewayPersistence("memory");
     try {
       await persistence.tokenRepository.set("stale", "github", {
         accessToken: "stale-token",
@@ -28,7 +28,7 @@ describe("applyOperatorsFile", () => {
         "stale-token",
       );
     } finally {
-      persistence.close();
+      await persistence.close();
     }
   });
 
@@ -41,7 +41,7 @@ describe("applyOperatorsFile", () => {
       "utf8",
     );
 
-    const persistence = createTestGatewayPersistence("sqlite");
+    const persistence = await createTestGatewayPersistence("postgres");
     try {
       await persistence.tokenRepository.set("stale", "github", {
         accessToken: "stale-token",
@@ -78,7 +78,7 @@ describe("applyOperatorsFile", () => {
       );
       assert.equal(await persistence.pendingLinkStore.get("link-stale"), null);
     } finally {
-      persistence.close();
+      await persistence.close();
     }
   });
 
@@ -87,7 +87,7 @@ describe("applyOperatorsFile", () => {
     const operatorsPath = path.join(dir, "operators.yaml");
     await writeFile(operatorsPath, "operators: []\n", "utf8");
 
-    const persistence = createTestGatewayPersistence("memory");
+    const persistence = await createTestGatewayPersistence("memory");
     try {
       await persistence.tokenRepository.set("stale", "github", {
         accessToken: "stale-token",
@@ -107,7 +107,7 @@ describe("applyOperatorsFile", () => {
         "stale-token",
       );
     } finally {
-      persistence.close();
+      await persistence.close();
     }
   });
 });

@@ -115,7 +115,7 @@ export class GatewayMcpServer {
 
     const principalResult = await this.resolvePrincipal(request);
     if (!principalResult.ok) {
-      this.emitIdentityFailureTrace(mcpRequest, principalResult.message);
+      await this.emitIdentityFailureTrace(mcpRequest, principalResult.message);
       sendMcpHttpError(
         reply,
         401,
@@ -196,16 +196,16 @@ export class GatewayMcpServer {
     }
   }
 
-  private emitIdentityFailureTrace(
+  private async emitIdentityFailureTrace(
     mcpRequest: InboundMcpRequestContext,
     error: string,
-  ): void {
+  ): Promise<void> {
     if (mcpRequest.method !== "tools/call" || !mcpRequest.name) {
       return;
     }
 
     const parsed = parseNamespacedToolName(mcpRequest.name);
-    this.traceEmitter.emit(
+    await this.traceEmitter.emit(
       finalizeCallTrace(
         {
           server: parsed.server,

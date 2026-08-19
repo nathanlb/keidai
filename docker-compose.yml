@@ -1,16 +1,37 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-keidai-local}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./deploy/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
   fuda:
     image: keidai-fuda:latest
     build:
       context: .
       dockerfile: apps/fuda/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
     env_file:
       - .env
       - apps/fuda/.env
     environment:
       FUDA_HOST: 0.0.0.0
       FUDA_PORT: "3300"
-      FUDA_DB_PATH: /app/data/fuda.db
+      FUDA_DATABASE_URL: postgres://fuda:${POSTGRES_PASSWORD:-keidai-local}@postgres:5432/fuda
       # JWT `iss` claim — logical identity, not the bind address (FUDA_HOST is 0.0.0.0).
       # Override via root .env when you need a different issuer (e.g. https://fuda.local).
       FUDA_ISSUER: ${FUDA_ISSUER:-http://fuda:3300}
@@ -25,7 +46,6 @@ services:
     volumes:
       - ./apps/fuda/keys:/app/keys:ro
       - ./deploy/operators.example.yaml:/app/operators/operators.yaml:ro
-      - fuda-data:/app/data
     healthcheck:
       test:
         [
@@ -45,6 +65,8 @@ services:
       context: .
       dockerfile: apps/torii/Dockerfile
     depends_on:
+      postgres:
+        condition: service_healthy
       fuda:
         condition: service_healthy
     env_file:
@@ -52,7 +74,7 @@ services:
       - apps/torii/.env
     environment:
       TORII_CONFIG_PATH: /app/torii.demo.yaml
-      TORII_DB_PATH: /app/data/torii.db
+      TORII_DATABASE_URL: postgres://torii:${POSTGRES_PASSWORD:-keidai-local}@postgres:5432/torii
       TORII_FUDA_ISSUER: ${FUDA_ISSUER:-http://fuda:3300}
       TORII_FUDA_JWKS_URI: http://fuda:3300/.well-known/jwks.json
       # Public operator edge (keidai-ui BFF), not Torii's listen port.
@@ -63,7 +85,6 @@ services:
     volumes:
       - ./apps/torii/torii.demo.yaml:/app/torii.demo.yaml:ro
       - ./deploy/operators.example.yaml:/app/operators/operators.yaml:ro
-      - torii-data:/app/data
     healthcheck:
       test:
         [
@@ -83,6 +104,8 @@ services:
       context: .
       dockerfile: apps/shaiden/Dockerfile
     depends_on:
+      postgres:
+        condition: service_healthy
       fuda:
         condition: service_healthy
       torii:
@@ -96,9 +119,7 @@ services:
       TORII_MCP_URL: http://torii:3100/mcp
       SHAIDEN_HOST: 0.0.0.0
       SHAIDEN_PORT: "3200"
-      SHAIDEN_DB_PATH: /app/data/shaiden.db
-    volumes:
-      - shaiden-data:/app/data
+      SHAIDEN_DATABASE_URL: postgres://shaiden:${POSTGRES_PASSWORD:-keidai-local}@postgres:5432/shaiden
 
   keidai-ui:
     image: keidai-keidai-ui:latest
@@ -144,6 +165,4 @@ services:
       start_period: 15s
 
 volumes:
-  fuda-data:
-  torii-data:
-  shaiden-data:
+  postgres-data:

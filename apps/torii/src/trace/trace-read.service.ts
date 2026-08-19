@@ -27,12 +27,12 @@ export class TraceReadService {
     private readonly traceEmitter: TraceEmitter,
   ) {}
 
-  listTraces(query: TraceListQuery = {}): TracesResponse {
+  async listTraces(query: TraceListQuery = {}): Promise<TracesResponse> {
     const limit = Math.min(
       Math.max(1, query.limit ?? DEFAULT_TRACE_LIST_LIMIT),
       MAX_TRACE_LIST_LIMIT,
     );
-    const result = this.repository.list({
+    const result = await this.repository.list({
       limit,
       ...(query.cursor ? { cursor: query.cursor } : {}),
       ...(query.outcome ? { outcome: query.outcome } : {}),
@@ -46,12 +46,12 @@ export class TraceReadService {
     };
   }
 
-  getTrace(traceId: string) {
-    const trace = this.repository.get(traceId);
+  async getTrace(traceId: string) {
+    const trace = await this.repository.get(traceId);
     return trace ? projectTraceItem(trace) : null;
   }
 
-  getStats(windowMs = DEFAULT_TRACE_STATS_WINDOW_MS): TraceStatsResponse {
+  async getStats(windowMs = DEFAULT_TRACE_STATS_WINDOW_MS): Promise<TraceStatsResponse> {
     return this.repository.getStats(windowMs);
   }
 

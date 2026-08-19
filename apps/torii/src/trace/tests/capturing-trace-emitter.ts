@@ -4,7 +4,7 @@ import type { TraceEmitter } from "../types/trace-emitter.js";
 export class CapturingTraceEmitter implements TraceEmitter {
   readonly traces: CallTrace[] = [];
 
-  emit(trace: CallTrace): void {
+  async emit(trace: CallTrace): Promise<void> {
     this.traces.push(trace);
   }
 

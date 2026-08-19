@@ -8,7 +8,7 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: Recreate
+    type: RollingUpdate
   selector:
     matchLabels:
       app: torii
@@ -20,6 +20,16 @@ spec:
       serviceAccountName: torii
       securityContext:
         fsGroup: 1001
+      initContainers:
+        - name: wait-postgres
+          image: postgres:16-alpine
+          imagePullPolicy: IfNotPresent
+          command:
+            [
+              "sh",
+              "-c",
+              "until pg_isready -h postgres -U postgres; do sleep 1; done",
+            ]
       containers:
         - name: torii
           image: keidai-torii:latest
@@ -33,8 +43,6 @@ spec:
             - secretRef:
                 name: keidai-secrets
           volumeMounts:
-            - name: data
-              mountPath: /app/data
             - name: config
               mountPath: /app/torii.demo.yaml
               subPath: torii.demo.yaml
@@ -55,9 +63,6 @@ spec:
             initialDelaySeconds: 15
             periodSeconds: 15
       volumes:
-        - name: data
-          persistentVolumeClaim:
-            claimName: torii-data
         - name: config
           configMap:
             name: torii-config

@@ -11,7 +11,7 @@ export interface RunReporter {
     startedAt: string;
     personaVersion?: number;
     persona?: string;
-  }): void;
+  }): Promise<void>;
   recordStep(step: {
     id?: string;
     kind: RunStepKind;
@@ -24,8 +24,8 @@ export interface RunReporter {
     approvalId?: string;
     charCount?: number;
     traceId?: string;
-  }): void;
-  complete(outcome: TerminationOutcome): void;
+  }): Promise<void>;
+  complete(outcome: TerminationOutcome): Promise<void>;
 }
 
 /** Writes run visibility into Shaiden's local store (system of record). */
@@ -34,17 +34,17 @@ export function createLocalRunReporter(
   runId: string,
 ): RunReporter {
   return {
-    startRun(input) {
-      store.createRun(input);
+    async startRun(input) {
+      await store.createRun(input);
     },
-    recordStep(step) {
-      store.appendStep(runId, {
+    async recordStep(step) {
+      await store.appendStep(runId, {
         timestamp: new Date().toISOString(),
         ...step,
       });
     },
-    complete(outcome) {
-      store.completeRun(runId, { outcome });
+    async complete(outcome) {
+      await store.completeRun(runId, { outcome });
     },
   };
 }

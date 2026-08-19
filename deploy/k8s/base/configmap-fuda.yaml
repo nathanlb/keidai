@@ -6,7 +6,6 @@ metadata:
 data:
   FUDA_HOST: "0.0.0.0"
   FUDA_PORT: "3300"
-  FUDA_DB_PATH: /app/data/fuda.db
   FUDA_LISTEN_GROUPS: public,agent,management
   # Logical issuer claim (must match Torii TORII_FUDA_ISSUER).
   FUDA_ISSUER: http://fuda:3300

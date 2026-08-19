@@ -33,7 +33,7 @@ export class MockTraceRepository implements TraceRepository {
     private readonly retentionCount = DEFAULT_TRACE_RETENTION_COUNT,
   ) {}
 
-  append(trace: CallTrace): void {
+  async append(trace: CallTrace): Promise<void> {
     this.traces.push(trace);
     this.traces.sort(compareTraces);
     if (this.traces.length > this.retentionCount) {
@@ -41,15 +41,15 @@ export class MockTraceRepository implements TraceRepository {
     }
   }
 
-  get(traceId: string): CallTrace | null {
+  async get(traceId: string): Promise<CallTrace | null> {
     return this.traces.find((trace) => trace.traceId === traceId) ?? null;
   }
 
-  list(filters: TraceListFilters): TraceListResult {
+  async list(filters: TraceListFilters): Promise<TraceListResult> {
     let filtered = [...this.traces];
 
     if (filters.cursor) {
-      const cursor = this.get(filters.cursor);
+      const cursor = await this.get(filters.cursor);
       if (cursor) {
         filtered = filtered.filter(
           (trace) =>
@@ -93,7 +93,7 @@ export class MockTraceRepository implements TraceRepository {
     };
   }
 
-  getStats(windowMs: number): TraceStatsResult {
+  async getStats(windowMs: number): Promise<TraceStatsResult> {
     const cutoff = new Date(Date.now() - windowMs).toISOString();
     const traces = this.traces.filter((trace) => trace.timestamp >= cutoff);
     const outcomes = traces.map(deriveTraceOutcome);

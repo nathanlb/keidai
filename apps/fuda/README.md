@@ -30,8 +30,10 @@ chmod 600 apps/fuda/keys/dev.pem
 # FUDA_SIGNING_KID=dev
 # FUDA_ISSUER=https://fuda.local
 # FUDA_STATIC_SUBJECT_MAPPINGS=dev-secret=local-dev
+# FUDA_DATABASE_URL=postgres://fuda:keidai-local@127.0.0.1:5432/fuda
 
 pnpm install
+docker compose up postgres -d
 pnpm fuda:dev
 ```
 
@@ -39,7 +41,7 @@ Health: `GET /api/health` → `{ ok, version }`.
 
 JWKS: `GET /.well-known/jwks.json` → `{ keys: [...] }` (unauthenticated; public route group).
 
-SQLite path defaults to `./data/fuda.db` (`FUDA_DB_PATH`). Migrations run at boot before the HTTP server starts, then structural integrity is checked (duplicate slugs, orphan grants).
+`FUDA_DATABASE_URL` is required (fail closed). Migrations run at boot before the HTTP server starts, then structural integrity is checked (duplicate slugs, orphan grants). Local Postgres: `docker compose up postgres -d`.
 
 When `FUDA_OPERATORS_PATH` points at an `operators.yaml`, Fuda reconciles the `owners` table at boot (upsert listed owners; delete absent ones and cascade their agents). Torii separately wipes that `owner_id`'s OAuth tokens when `TORII_OPERATORS_PATH` is set — restart Torii after editing the registry. Create agents, bearers, and grants through the management API / keidai-ui — there is no config-based seed in the server.
 
@@ -128,7 +130,7 @@ The k8s SA OIDC validator is **unit-tested** against a mocked JWKS (optional
 
 ## Signing keys and JWKS
 
-Private signing keys are loaded at boot from files (prefer mode `0600`) or env vars — never from sqlite. Tokens are signed RS256 with `kid` in the JWT header. Torii validates offline against `GET /.well-known/jwks.json`.
+Private signing keys are loaded at boot from files (prefer mode `0600`) or env vars — never from the database. Tokens are signed RS256 with `kid` in the JWT header. Torii validates offline against `GET /.well-known/jwks.json`.
 
 | Variable | Notes |
 |----------|-------|
@@ -151,7 +153,7 @@ Automated rotation scheduling is out of scope for v0.
 |----------|---------|-------|
 | `FUDA_HOST` | `127.0.0.1` | Bind address |
 | `FUDA_PORT` | `3300` | Listen port |
-| `FUDA_DB_PATH` | `./data/fuda.db` | SQLite file |
+| `FUDA_DATABASE_URL` | — | Required. Postgres connection string |
 | `FUDA_LISTEN_GROUPS` | `public,agent,management` | Subset of route groups this process serves |
 | `FUDA_SIGNING_KEYS` | — | Required. `kid=path` or `kid=env:VAR` list |
 | `FUDA_SIGNING_KID` | — | Required. Active signing kid |

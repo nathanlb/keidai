@@ -49,29 +49,31 @@ const sampleConfig: ToriiConfig = {
   ],
 };
 
-function createGateway(): GatewayHttpServer {
+async function createGateway(): Promise<GatewayHttpServer> {
   const configService = new ToriiConfigService(sampleConfig);
   const { credentialResolver } = createCredentialServices();
   const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
   const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
+  const services = await createApprovalServices(configService);
   const toolDispatch = new ToolDispatchService(
     toolCatalog,
     connectionManager,
     credentialResolver,
     new CapturingTraceEmitter(),
-      createPolicyEnforcement(configService),
-      createApprovalServices(configService).approvalGate,
-      createApprovalServices(configService).taskStore,
-    );
+    createPolicyEnforcement(configService),
+    services.approvalGate,
+    services.taskStore,
+  );
 
   return createTestGatewayHttpServer(toolCatalog, toolDispatch, {
     configService,
+    approvalServices: services,
   });
 }
 
 describe("Gateway /api/config endpoints", () => {
   it("returns boot-loaded config without secrets", async () => {
-    const gatewayHttpServer = createGateway();
+    const gatewayHttpServer = await createGateway();
     const gateway = await gatewayHttpServer.start();
 
     try {
@@ -133,7 +135,8 @@ describe("Gateway /api/config endpoints", () => {
       createNoopLogger(),
     );
     const toolCatalog = createStubToolCatalog();
-    const { approvalsApi } = createApprovalServices(configService);
+    const services = await createApprovalServices(configService);
+    const { approvalsApi } = services;
     const gatewayHttpServer = new GatewayHttpServer(
       new ConfigApiController(new ConfigReadService(configService)),
       new ConnectionsApiController(
@@ -153,6 +156,7 @@ describe("Gateway /api/config endpoints", () => {
         createNoopLogger(),
       ),
       createNoopLogger(),
+      services.persistence.pool!,
     );
     const gateway = await gatewayHttpServer.start();
 
@@ -168,6 +172,7 @@ describe("Gateway /api/config endpoints", () => {
       assert.deepEqual(await groupsRes.json(), { groups: [] });
     } finally {
       await gateway.close();
+      await services.close();
     }
   });
 });

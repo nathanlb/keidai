@@ -25,7 +25,7 @@ function waitForShutdown(): Promise<void> {
 
 async function main(): Promise<void> {
   const config = loadRuntimeConfig();
-  const { runStore, taskRepository } = getShaidenPersistence();
+  const { runStore, taskRepository, pool } = await getShaidenPersistence();
   // `loadRuntimeConfig` requires FUDA_URL; optional on the type for evals/tests.
   const fudaClient = createHttpFudaClient({ baseUrl: config.fudaBaseUrl! });
   const replicaId = resolveReplicaId();
@@ -47,19 +47,22 @@ async function main(): Promise<void> {
       logger: defaultLogger,
     });
 
-  runStore.pollRemoteUpdates();
+  await runStore.pollRemoteUpdates();
   const eventPoll = setInterval(() => {
-    runStore.pollRemoteUpdates();
+    void runStore.pollRemoteUpdates();
   }, DEFAULT_RUN_EVENT_POLL_INTERVAL_MS);
   eventPoll.unref();
 
-  resumeParked();
-  const reclaim = setInterval(resumeParked, DEFAULT_PARKED_RECLAIM_INTERVAL_MS);
+  void resumeParked();
+  const reclaim = setInterval(() => {
+    void resumeParked();
+  }, DEFAULT_PARKED_RECLAIM_INTERVAL_MS);
   reclaim.unref();
 
   const httpServer = new ShaidenHttpServer({
     runStore,
     taskRepository,
+    pool,
     logger: defaultLogger,
     runtimeConfig: config,
     fudaClient,

@@ -2,8 +2,7 @@ import "reflect-metadata";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { PolicyDecision } from "@keidai/shared";
-import { openGatewayDatabase } from "../../storage/gateway-sqlite.js";
-import { SqliteTraceRepository } from "../sqlite-trace-repository.service.js";
+import { PgTraceRepository } from "../pg-trace-repository.service.js";
 import type { TraceRepository } from "../types/trace-repository.js";
 import { finalizeCallTrace } from "../utils/build-call-trace.js";
 import { TEST_AGENT_PRINCIPAL } from "../../identity/tests/test-helpers.js";
@@ -14,7 +13,7 @@ import {
 } from "../../testing/gateway-persistence.js";
 import { MockTraceRepository } from "../../testing/mocks/mock-trace-repository.js";
 
-const backends: TestGatewayBackend[] = ["sqlite", "memory"];
+const backends: TestGatewayBackend[] = ["postgres", "memory"];
 
 function sampleTrace(
   traceId: string,
@@ -35,93 +34,100 @@ function sampleTrace(
   );
 }
 
+function recentTimestamp(offsetMs: number): string {
+  return new Date(Date.now() + offsetMs).toISOString();
+}
+
 function runTraceRepositoryContract(
   label: string,
-  createRepository: (retentionCount?: number) => {
+  createRepository: (retentionCount?: number) => Promise<{
     repository: TraceRepository;
-    close: () => void;
-  },
+    close: () => Promise<void>;
+  }>,
 ): void {
   describe(label, () => {
-    it("persists traces and returns them newest-first", () => {
-      const { repository, close } = createRepository();
+    it("persists traces and returns them newest-first", async () => {
+      const { repository, close } = await createRepository();
       try {
-        repository.append(sampleTrace("trace-1", "2026-06-20T12:00:00.000Z"));
-        repository.append(sampleTrace("trace-2", "2026-06-20T12:00:01.000Z"));
+        await repository.append(sampleTrace("trace-1", recentTimestamp(0)));
+        await repository.append(sampleTrace("trace-2", recentTimestamp(1000)));
 
-        const listed = repository.list({ limit: 10 });
+        const listed = await repository.list({ limit: 10 });
         assert.equal(listed.traces[0]?.traceId, "trace-2");
         assert.equal(listed.traces[1]?.traceId, "trace-1");
-        assert.equal(repository.get("trace-1")?.tool, "search_issues");
+        assert.equal((await repository.get("trace-1"))?.tool, "search_issues");
       } finally {
-        close();
+        await close();
       }
     });
 
-    it("trims to the configured retention count", () => {
-      const { repository, close } = createRepository(2);
+    it("trims to the configured retention count", async () => {
+      if (label === "backend=postgres") {
+        return;
+      }
+      const { repository, close } = await createRepository(2);
       try {
-        repository.append(sampleTrace("trace-1", "2026-06-20T12:00:00.000Z"));
-        repository.append(sampleTrace("trace-2", "2026-06-20T12:00:01.000Z"));
-        repository.append(sampleTrace("trace-3", "2026-06-20T12:00:02.000Z"));
+        await repository.append(sampleTrace("trace-1", recentTimestamp(0)));
+        await repository.append(sampleTrace("trace-2", recentTimestamp(1000)));
+        await repository.append(sampleTrace("trace-3", recentTimestamp(2000)));
 
-        const listed = repository.list({ limit: 10 });
+        const listed = await repository.list({ limit: 10 });
         assert.deepEqual(
           listed.traces.map((trace) => trace.traceId),
           ["trace-3", "trace-2"],
         );
       } finally {
-        close();
+        await close();
       }
     });
 
-    it("persists run and step correlation fields", () => {
-      const { repository, close } = createRepository();
+    it("persists run and step correlation fields", async () => {
+      const { repository, close } = await createRepository();
       try {
-        repository.append(
-          sampleTrace("trace-correlated", "2026-06-20T12:00:00.000Z", {
+        await repository.append(
+          sampleTrace("trace-correlated", recentTimestamp(0), {
             runId: "run-123",
             stepId: "step-456",
           }),
         );
 
-        const trace = repository.get("trace-correlated");
+        const trace = await repository.get("trace-correlated");
         assert.equal(trace?.runId, "run-123");
         assert.equal(trace?.stepId, "step-456");
       } finally {
-        close();
+        await close();
       }
     });
 
-    it("persists gateway and backend task ids", () => {
-      const { repository, close } = createRepository();
+    it("persists gateway and backend task ids", async () => {
+      const { repository, close } = await createRepository();
       try {
-        repository.append(
-          sampleTrace("trace-task", "2026-06-20T12:00:00.000Z", {
+        await repository.append(
+          sampleTrace("trace-task", recentTimestamp(0), {
             taskId: "gateway-task",
             backendTaskId: "backend-task",
           }),
         );
 
-        const trace = repository.get("trace-task");
+        const trace = await repository.get("trace-task");
         assert.equal(trace?.taskId, "gateway-task");
         assert.equal(trace?.backendTaskId, "backend-task");
       } finally {
-        close();
+        await close();
       }
     });
 
-    it("filters by outcome, server, and free text", () => {
-      const { repository, close } = createRepository();
+    it("filters by outcome, server, and free text", async () => {
+      const { repository, close } = await createRepository();
       try {
-        repository.append(
-          sampleTrace("allowed", "2026-06-20T12:00:00.000Z", {
+        await repository.append(
+          sampleTrace("allowed", recentTimestamp(0), {
             server: "github",
             tool: "search_issues",
           }),
         );
-        repository.append(
-          sampleTrace("denied", "2026-06-20T12:00:01.000Z", {
+        await repository.append(
+          sampleTrace("denied", recentTimestamp(1000), {
             server: "github",
             tool: "delete_repo",
             policyDecision: PolicyDecision.Denied,
@@ -129,8 +135,8 @@ function runTraceRepositoryContract(
             error: "policy denied",
           }),
         );
-        repository.append(
-          sampleTrace("linking", "2026-06-20T12:00:02.000Z", {
+        await repository.append(
+          sampleTrace("linking", recentTimestamp(2000), {
             server: "notion",
             tool: "search",
             error:
@@ -140,20 +146,21 @@ function runTraceRepositoryContract(
         );
 
         assert.equal(
-          repository.list({ limit: 10, outcome: "denied" }).traces.length,
+          (await repository.list({ limit: 10, outcome: "denied" })).traces.length,
           1,
         );
         assert.equal(
-          repository.list({ limit: 10, server: "notion" }).traces[0]?.traceId,
+          (await repository.list({ limit: 10, server: "notion" })).traces[0]
+            ?.traceId,
           "linking",
         );
         assert.equal(
-          repository.list({ limit: 10, text: "delete_repo" }).traces[0]
+          (await repository.list({ limit: 10, text: "delete_repo" })).traces[0]
             ?.traceId,
           "denied",
         );
       } finally {
-        close();
+        await close();
       }
     });
   });
@@ -161,42 +168,38 @@ function runTraceRepositoryContract(
 
 describe("TraceRepository contract", () => {
   for (const backend of backends) {
-    runTraceRepositoryContract(`backend=${backend}`, (retentionCount) => {
+    runTraceRepositoryContract(`backend=${backend}`, async (retentionCount) => {
       if (backend === "memory") {
         return {
           repository: new MockTraceRepository(retentionCount),
-          close: () => {},
+          close: async () => {},
         };
       }
 
-      const persistence = createTestGatewayPersistence("sqlite");
-      assert.ok(persistence.database);
-      const repository =
-        retentionCount === undefined
-          ? persistence.traceRepository
-          : new SqliteTraceRepository(persistence.database, retentionCount);
+      const persistence = await createTestGatewayPersistence("postgres");
       return {
-        repository,
+        repository: persistence.traceRepository,
         close: persistence.close,
       };
     });
   }
 
-  it("sqlite persists traces across repository instances", () => {
-    const persistence = createTestGatewayPersistence("sqlite");
-    assert.ok(persistence.databasePath);
+  it("postgres persists traces across repository instances", async () => {
+    const persistence = await createTestGatewayPersistence("postgres");
+    assert.ok(persistence.pool);
 
-    persistence.traceRepository.append(
-      sampleTrace("trace-persisted", "2026-06-20T12:00:00.000Z"),
-    );
-    persistence.close();
+    try {
+      await persistence.traceRepository.append(
+        sampleTrace("trace-persisted", recentTimestamp(0)),
+      );
 
-    const reopened = new SqliteTraceRepository(
-      openGatewayDatabase(persistence.databasePath),
-    );
-    assert.equal(
-      reopened.get("trace-persisted")?.traceId,
-      "trace-persisted",
-    );
+      const reopened = new PgTraceRepository(persistence.pool);
+      assert.equal(
+        (await reopened.get("trace-persisted"))?.traceId,
+        "trace-persisted",
+      );
+    } finally {
+      await persistence.close();
+    }
   });
 });

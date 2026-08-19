@@ -1,13 +1,10 @@
 import type { FastifyInstance } from "fastify";
 import { inject, injectable } from "tsyringe";
+import { isForeignKeyViolation, isUniqueViolation } from "@keidai/postgres";
 import {
   AGENT_REPOSITORY,
   type AgentRepository,
 } from "../agents/types/agent-repository.js";
-import {
-  isSqliteForeignKeyError,
-  isSqliteUniqueConstraintError,
-} from "../storage/utils/sqlite-errors.js";
 import {
   createBearerBodySchema,
   createGrantBodySchema,
@@ -29,7 +26,7 @@ export class BearersManagementApiController {
 
   registerRoutes(app: FastifyInstance): void {
     app.get("/api/bearers", async (_request, reply) => {
-      reply.send({ bearers: this.bearers.list() });
+      reply.send({ bearers: await this.bearers.list() });
     });
 
     app.post("/api/bearers", async (request, reply) => {
@@ -43,10 +40,10 @@ export class BearersManagementApiController {
       }
 
       try {
-        const bearer = this.bearers.create(parsed.data);
+        const bearer = await this.bearers.create(parsed.data);
         reply.code(201).send({ bearer });
       } catch (error) {
-        if (isSqliteUniqueConstraintError(error, "bearers.bearer_id")) {
+        if (isUniqueViolation(error, "bearer_id")) {
           reply.code(409).send({ error: "bearer already exists" });
           return;
         }
@@ -56,14 +53,14 @@ export class BearersManagementApiController {
 
     app.get("/api/bearers/:bearerId", async (request, reply) => {
       const { bearerId } = request.params as { bearerId: string };
-      const bearer = this.bearers.get(bearerId);
+      const bearer = await this.bearers.get(bearerId);
       if (!bearer) {
         reply.code(404).send({ error: "bearer not found" });
         return;
       }
       reply.send({
         bearer,
-        grants: this.bearers.listGrantsForBearer(bearerId),
+        grants: await this.bearers.listGrantsForBearer(bearerId),
       });
     });
 
@@ -78,7 +75,7 @@ export class BearersManagementApiController {
         return;
       }
 
-      const bearer = this.bearers.updateDisplayName(
+      const bearer = await this.bearers.updateDisplayName(
         bearerId,
         parsed.data.displayName,
       );
@@ -91,7 +88,7 @@ export class BearersManagementApiController {
 
     app.delete("/api/bearers/:bearerId", async (request, reply) => {
       const { bearerId } = request.params as { bearerId: string };
-      if (!this.bearers.delete(bearerId)) {
+      if (!(await this.bearers.delete(bearerId))) {
         reply.code(404).send({ error: "bearer not found" });
         return;
       }
@@ -109,24 +106,24 @@ export class BearersManagementApiController {
         return;
       }
 
-      if (!this.bearers.get(bearerId)) {
+      if (!(await this.bearers.get(bearerId))) {
         reply.code(404).send({ error: "bearer not found" });
         return;
       }
-      if (!this.agents.get(parsed.data.agentId)) {
+      if (!(await this.agents.get(parsed.data.agentId))) {
         reply.code(404).send({ error: "agent not found" });
         return;
       }
 
       try {
-        const grant = this.bearers.grant(bearerId, parsed.data.agentId);
+        const grant = await this.bearers.grant(bearerId, parsed.data.agentId);
         reply.code(201).send({ grant });
       } catch (error) {
-        if (isSqliteUniqueConstraintError(error)) {
+        if (isUniqueViolation(error)) {
           reply.code(409).send({ error: "grant already exists" });
           return;
         }
-        if (isSqliteForeignKeyError(error)) {
+        if (isForeignKeyViolation(error)) {
           reply.code(404).send({ error: "agent not found" });
           return;
         }
@@ -141,11 +138,11 @@ export class BearersManagementApiController {
           bearerId: string;
           agentId: string;
         };
-        if (!this.bearers.get(bearerId)) {
+        if (!(await this.bearers.get(bearerId))) {
           reply.code(404).send({ error: "bearer not found" });
           return;
         }
-        if (!this.bearers.revoke(bearerId, agentId)) {
+        if (!(await this.bearers.revoke(bearerId, agentId))) {
           reply.code(404).send({ error: "grant not found" });
           return;
         }
@@ -155,11 +152,11 @@ export class BearersManagementApiController {
 
     app.get("/api/agents/:agentId/grants", async (request, reply) => {
       const { agentId } = request.params as { agentId: string };
-      if (!this.agents.get(agentId)) {
+      if (!(await this.agents.get(agentId))) {
         reply.code(404).send({ error: "agent not found" });
         return;
       }
-      reply.send({ grants: this.bearers.listGrantsForAgent(agentId) });
+      reply.send({ grants: await this.bearers.listGrantsForAgent(agentId) });
     });
   }
 }

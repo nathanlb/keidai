@@ -6,7 +6,7 @@ import { reconcileOAuthGrants } from "../reconcile-oauth-grants.js";
 
 describe("reconcileOAuthGrants", () => {
   it("wipes tokens and pending links for owners absent from the registry", async () => {
-    const persistence = createTestGatewayPersistence("sqlite");
+    const persistence = await createTestGatewayPersistence("postgres");
     try {
       await persistence.tokenRepository.set("keep", "github", {
         accessToken: "keep-token",
@@ -62,12 +62,12 @@ describe("reconcileOAuthGrants", () => {
       );
       assert.equal(await persistence.pendingLinkStore.get("link-drop"), null);
     } finally {
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("is a no-op when every stored owner is still in the registry", async () => {
-    const persistence = createTestGatewayPersistence("memory");
+    const persistence = await createTestGatewayPersistence("memory");
     try {
       await persistence.tokenRepository.set("keep", "github", {
         accessToken: "keep-token",
@@ -90,7 +90,7 @@ describe("reconcileOAuthGrants", () => {
         "keep-token",
       );
     } finally {
-      persistence.close();
+      await persistence.close();
     }
   });
 });

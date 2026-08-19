@@ -31,8 +31,8 @@ export interface TraceStatsResult {
 }
 
 export interface TraceRepository {
-  append(trace: CallTrace): void;
-  get(traceId: string): CallTrace | null;
-  list(filters: TraceListFilters): TraceListResult;
-  getStats(windowMs: number): TraceStatsResult;
+  append(trace: CallTrace): Promise<void>;
+  get(traceId: string): Promise<CallTrace | null>;
+  list(filters: TraceListFilters): Promise<TraceListResult>;
+  getStats(windowMs: number): Promise<TraceStatsResult>;
 }

@@ -1,6 +1,7 @@
 import { createMcpFastifyApp } from "@modelcontextprotocol/fastify";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { inject, injectable } from "tsyringe";
+import type { Pool } from "@keidai/postgres";
 import { ConnectionsApiController } from "../connections/connections-api.controller.js";
 import { ConfigApiController } from "../config/config-api.controller.js";
 import { OAuthApiController } from "../credentials/oauth-api.controller.js";
@@ -8,6 +9,7 @@ import { GatewayMcpServer } from "../mcp/gateway-mcp-server.service.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
 import { TracesApiController } from "../trace/traces-api.controller.js";
 import { ApprovalsApiController } from "../policy/approvals-api.controller.js";
+import { TORII_DATABASE } from "../storage/gateway-postgres.js";
 import type { Logger } from "@keidai/shared";
 import {
   authorizeBffServiceToken,
@@ -45,6 +47,8 @@ export class GatewayHttpServer {
     private readonly mcpServer: GatewayMcpServer,
     @inject(StructuredLoggerService)
     private readonly logger: Logger,
+    @inject(TORII_DATABASE)
+    private readonly pool: Pool,
   ) {}
 
   async createApp(options: Pick<GatewayHttpServerOptions, "host"> = {}): Promise<FastifyInstance> {
@@ -85,6 +89,7 @@ export class GatewayHttpServer {
     });
 
     app.get("/api/health", async (_request, reply) => {
+      await this.pool.query("SELECT 1");
       reply.send({ ok: true, version: readPackageVersion() });
     });
 

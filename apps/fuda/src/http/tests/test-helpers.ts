@@ -1,11 +1,13 @@
-import { mkdirSync, mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
-import type { DatabaseSync } from "node:sqlite";
+import {
+  createIsolatedSchema,
+  resolveTestDatabaseUrl,
+  type IsolatedSchema,
+  type Pool,
+} from "@keidai/postgres";
 import { loadRuntimeConfig } from "../../config/runtime-config.js";
 import { createContainer, FUDA_DATABASE } from "../../container.js";
 import { StructuredLoggerService } from "../../logging/structured-logger.service.js";
-import { SqliteOwnerRepository } from "../../owners/sqlite-owner-repository.js";
+import { PgOwnerRepository } from "../../owners/pg-owner-repository.js";
 import { writeTempSigningKeyPem } from "../../signing/tests/test-helpers.js";
 import { FudaHttpServer } from "../fuda-http-server.service.js";
 
@@ -30,21 +32,39 @@ export const sampleAgentBody = {
   persona: "You draft the weekly newsletter.",
 };
 
-function seedSampleOwner(
-  container: ReturnType<typeof createContainer>["container"],
-): void {
-  const db = container.resolve<DatabaseSync>(FUDA_DATABASE);
-  new SqliteOwnerRepository(db).upsert(sampleAgentBody.ownerId);
+async function seedSampleOwner(
+  container: Awaited<ReturnType<typeof createContainer>>["container"],
+): Promise<void> {
+  const pool = container.resolve<Pool>(FUDA_DATABASE);
+  await new PgOwnerRepository(pool).upsert(sampleAgentBody.ownerId);
 }
 
-export function createTestServer(listenGroups?: string): FudaHttpServer {
-  const dbDir = mkdtempSync(path.join(tmpdir(), "fuda-http-"));
-  mkdirSync(dbDir, { recursive: true });
-  const dbPath = path.join(dbDir, "fuda.db");
+function wrapServerStart(
+  server: FudaHttpServer,
+  isolated: IsolatedSchema,
+): FudaHttpServer {
+  const start = server.start.bind(server);
+  server.start = async (options) => {
+    const handle = await start(options);
+    return {
+      baseUrl: handle.baseUrl,
+      close: async () => {
+        await handle.close();
+        await isolated.close();
+      },
+    };
+  };
+  return server;
+}
+
+export async function createTestServer(
+  listenGroups?: string,
+): Promise<FudaHttpServer> {
+  const isolated = await createIsolatedSchema();
   const keyPath = writeTempSigningKeyPem("test");
 
   const { config, subjectTokenValidatorConfig } = loadRuntimeConfig({
-    FUDA_DB_PATH: dbPath,
+    FUDA_DATABASE_URL: resolveTestDatabaseUrl(),
     FUDA_HOST: "127.0.0.1",
     FUDA_PORT: "3300",
     FUDA_ISSUER: "https://fuda.test",
@@ -53,30 +73,31 @@ export function createTestServer(listenGroups?: string): FudaHttpServer {
     FUDA_STATIC_SUBJECT_MAPPINGS: "test-secret=test-bearer",
     ...(listenGroups ? { FUDA_LISTEN_GROUPS: listenGroups } : {}),
   });
-  const { container } = createContainer(config, subjectTokenValidatorConfig);
+  const { container } = await createContainer(
+    config,
+    subjectTokenValidatorConfig,
+    { pool: isolated.pool },
+  );
   container.register(StructuredLoggerService, { useValue: silentLogger });
-  seedSampleOwner(container);
-  return container.resolve(FudaHttpServer);
+  await seedSampleOwner(container);
+  return wrapServerStart(container.resolve(FudaHttpServer), isolated);
 }
 
-export function createTestServerWithKeys(options: {
+export async function createTestServerWithKeys(options: {
   listenGroups?: string;
   keys: Array<{ kid: string; path: string }>;
   signingKid: string;
-}): {
+}): Promise<{
   server: FudaHttpServer;
-  container: ReturnType<typeof createContainer>["container"];
-} {
-  const dbPath = path.join(
-    mkdtempSync(path.join(tmpdir(), "fuda-http-")),
-    "fuda.db",
-  );
+  container: Awaited<ReturnType<typeof createContainer>>["container"];
+}> {
+  const isolated = await createIsolatedSchema();
   const signingKeys = options.keys
     .map((key) => `${key.kid}=${key.path}`)
     .join(",");
 
   const { config, subjectTokenValidatorConfig } = loadRuntimeConfig({
-    FUDA_DB_PATH: dbPath,
+    FUDA_DATABASE_URL: resolveTestDatabaseUrl(),
     FUDA_HOST: "127.0.0.1",
     FUDA_PORT: "3300",
     FUDA_ISSUER: "https://fuda.test",
@@ -87,11 +108,15 @@ export function createTestServerWithKeys(options: {
       ? { FUDA_LISTEN_GROUPS: options.listenGroups }
       : {}),
   });
-  const { container } = createContainer(config, subjectTokenValidatorConfig);
+  const { container } = await createContainer(
+    config,
+    subjectTokenValidatorConfig,
+    { pool: isolated.pool },
+  );
   container.register(StructuredLoggerService, { useValue: silentLogger });
-  seedSampleOwner(container);
+  await seedSampleOwner(container);
   return {
-    server: container.resolve(FudaHttpServer),
+    server: wrapServerStart(container.resolve(FudaHttpServer), isolated),
     container,
   };
 }

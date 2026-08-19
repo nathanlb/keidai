@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import type { Logger, Task } from "@keidai/shared";
+import type { Pool } from "@keidai/postgres";
 import {
   authorizeBffServiceToken,
   resolveBffServiceToken,
@@ -24,13 +25,14 @@ export interface ShaidenHttpServerDeps {
   runStore: RunStore;
   taskRepository: TaskRepository;
   logger: Logger;
+  pool: Pool;
   startTaskRun: (input: {
     task: Task;
     taskId: string;
   }) => Promise<LaunchedHarnessRun>;
   resumeHarnessRun: (
     input: Omit<ResumeHarnessRunInput, "config">,
-  ) => LaunchedHarnessRun;
+  ) => LaunchedHarnessRun | Promise<LaunchedHarnessRun>;
   runtimeConfig: import("../config/runtime-config.js").RuntimeConfig;
   /** When set, task create/patch validate assignee against Fuda. */
   fudaClient?: FudaClient;
@@ -101,6 +103,7 @@ export class ShaidenHttpServer {
     });
 
     app.get("/api/health", async (_request, reply) => {
+      await this.deps.pool.query("SELECT 1");
       reply.send({
         ok: true,
         version: readPackageVersion(),

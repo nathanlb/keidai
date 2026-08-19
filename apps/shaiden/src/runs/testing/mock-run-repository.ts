@@ -47,7 +47,7 @@ export class MockRunRepository implements RunRepository {
     this.retentionCount = retentionCount;
   }
 
-  create(input: CreateRunRequest): RunReport {
+  async create(input: CreateRunRequest): Promise<RunReport> {
     for (const existing of this.runs.values()) {
       if (existing.status === "running" && existing.taskId === input.taskId) {
         throw new TaskAlreadyRunningError(input.taskId);
@@ -75,7 +75,7 @@ export class MockRunRepository implements RunRepository {
     return run;
   }
 
-  appendStep(runId: string, step: RunStep): RunReport | null {
+  async appendStep(runId: string, step: RunStep): Promise<RunReport | null> {
     const run = this.runs.get(runId);
     if (!run) {
       return null;
@@ -91,7 +91,7 @@ export class MockRunRepository implements RunRepository {
     return updated;
   }
 
-  complete(runId: string, input: CompleteRunRequest): RunReport | null {
+  async complete(runId: string, input: CompleteRunRequest): Promise<RunReport | null> {
     const run = this.runs.get(runId);
     if (!run) {
       return null;
@@ -112,11 +112,11 @@ export class MockRunRepository implements RunRepository {
     return updated;
   }
 
-  get(runId: string): RunReport | null {
+  async get(runId: string): Promise<RunReport | null> {
     return this.runs.get(runId) ?? null;
   }
 
-  list(limit = 50) {
+  async list(limit = 50) {
     const runs = [...this.runs.values()]
       .sort(compareRuns)
       .slice(0, limit)
@@ -138,7 +138,7 @@ export class MockRunRepository implements RunRepository {
     return { runs };
   }
 
-  listRunningRuns(): RunningRunRef[] {
+  async listRunningRuns(): Promise<RunningRunRef[]> {
     return [...this.runs.values()]
       .filter((run) => run.status === "running")
       .sort((left, right) => {
@@ -148,10 +148,10 @@ export class MockRunRepository implements RunRepository {
       .map((run) => ({ id: run.id, taskId: run.taskId }));
   }
 
-  setConversationHistory(
+  async setConversationHistory(
     runId: string,
     history: readonly ConversationEntry[],
-  ): boolean {
+  ): Promise<boolean> {
     const run = this.runs.get(runId);
     if (!run) {
       return false;
@@ -164,7 +164,7 @@ export class MockRunRepository implements RunRepository {
     return true;
   }
 
-  getConversationHistory(runId: string): ConversationEntry[] | null {
+  async getConversationHistory(runId: string): Promise<ConversationEntry[] | null> {
     const run = this.runs.get(runId);
     if (!run?.conversationHistory) {
       return null;
@@ -172,10 +172,10 @@ export class MockRunRepository implements RunRepository {
     return [...run.conversationHistory];
   }
 
-  setParkedMcpTask(
+  async setParkedMcpTask(
     runId: string,
     parked: Omit<ParkedMcpTask, "runId">,
-  ): boolean {
+  ): Promise<boolean> {
     const run = this.runs.get(runId);
     if (!run || run.status !== "running") {
       return false;
@@ -189,7 +189,7 @@ export class MockRunRepository implements RunRepository {
     return true;
   }
 
-  clearParkedMcpTask(runId: string): boolean {
+  async clearParkedMcpTask(runId: string): Promise<boolean> {
     const run = this.runs.get(runId);
     if (!run) {
       return false;
@@ -203,7 +203,7 @@ export class MockRunRepository implements RunRepository {
     return true;
   }
 
-  getParkedMcpTask(runId: string): ParkedMcpTask | null {
+  async getParkedMcpTask(runId: string): Promise<ParkedMcpTask | null> {
     const run = this.runs.get(runId);
     if (!run?.mcpTaskId) {
       return null;
@@ -217,7 +217,7 @@ export class MockRunRepository implements RunRepository {
     };
   }
 
-  listParkedMcpTasks(): ParkedMcpTask[] {
+  async listParkedMcpTasks(): Promise<ParkedMcpTask[]> {
     return [...this.runs.values()]
       .filter((run) => run.status === "running" && Boolean(run.mcpTaskId))
       .sort((left, right) => {
@@ -233,8 +233,8 @@ export class MockRunRepository implements RunRepository {
       }));
   }
 
-  listClaimableParkedMcpTasks(nowIso: string): ParkedMcpTask[] {
-    return this.listParkedMcpTasks().filter((parked) => {
+  async listClaimableParkedMcpTasks(nowIso: string): Promise<ParkedMcpTask[]> {
+    return (await this.listParkedMcpTasks()).filter((parked) => {
       const run = this.runs.get(parked.runId);
       if (!run) {
         return false;
@@ -247,11 +247,11 @@ export class MockRunRepository implements RunRepository {
     });
   }
 
-  enqueueParkedFollowUp(
+  async enqueueParkedFollowUp(
     runId: string,
     message: string,
     userMessageStep: RunStep,
-  ): boolean {
+  ): Promise<boolean> {
     const run = this.runs.get(runId);
     if (!run || run.status !== "running" || !run.mcpTaskId) {
       return false;
@@ -266,7 +266,7 @@ export class MockRunRepository implements RunRepository {
     return true;
   }
 
-  drainParkedFollowUps(runId: string): ConversationEntry[] {
+  async drainParkedFollowUps(runId: string): Promise<ConversationEntry[]> {
     const run = this.runs.get(runId);
     if (!run || run.pendingFollowUps.length === 0) {
       return [];
@@ -282,12 +282,12 @@ export class MockRunRepository implements RunRepository {
     return drained;
   }
 
-  claimRun(
+  async claimRun(
     runId: string,
     ownerId: string,
     leaseExpiresAt: string,
     nowIso: string,
-  ): boolean {
+  ): Promise<boolean> {
     const run = this.runs.get(runId);
     if (!run || run.status !== "running") {
       return false;
@@ -307,11 +307,11 @@ export class MockRunRepository implements RunRepository {
     return true;
   }
 
-  renewRunLease(
+  async renewRunLease(
     runId: string,
     ownerId: string,
     leaseExpiresAt: string,
-  ): boolean {
+  ): Promise<boolean> {
     const run = this.runs.get(runId);
     if (!run || run.status !== "running" || run.ownerId !== ownerId) {
       return false;
@@ -320,7 +320,7 @@ export class MockRunRepository implements RunRepository {
     return true;
   }
 
-  releaseRun(runId: string, ownerId: string): boolean {
+  async releaseRun(runId: string, ownerId: string): Promise<boolean> {
     const run = this.runs.get(runId);
     if (!run || run.ownerId !== ownerId) {
       return false;
@@ -333,18 +333,18 @@ export class MockRunRepository implements RunRepository {
     return true;
   }
 
-  listRunWatermarks(): RunUpdateWatermark[] {
+  async listRunWatermarks(): Promise<RunUpdateWatermark[]> {
     return [...this.runs.values()].map((run) => ({
       id: run.id,
       updatedAt: run.updatedAt,
     }));
   }
 
-  beginContinuation(
+  async beginContinuation(
     runId: string,
     message: string,
     userMessageStep: RunStep,
-  ): BeginContinuationResult {
+  ): Promise<BeginContinuationResult> {
     const run = this.runs.get(runId);
     if (!run) {
       return { ok: false, reason: "not_found" };
