@@ -30,6 +30,31 @@ const savedTask: SavedTask = {
   updatedAt: "2026-07-13T12:00:00.000Z",
 };
 
+const secondSavedTask: SavedTask = {
+  id: "task-saved-2",
+  goal: "Draft the release notes",
+  trigger: { type: "now" },
+  assignee: shaidenAgent.id,
+  createdAt: "2026-07-13T12:05:00.000Z",
+  updatedAt: "2026-07-13T12:05:00.000Z",
+};
+
+const runningRunForSavedTask: RunReport = {
+  id: "run-saved-1",
+  taskId: savedTask.id,
+  task: {
+    goal: savedTask.goal,
+    trigger: { type: "now" },
+    assignee: shaidenAgent.id,
+  },
+  startedAt: "2026-07-13T12:10:00.000Z",
+  assignee: shaidenAgent.id,
+  goalPreview: savedTask.goal,
+  status: "running",
+  stepCount: 0,
+  steps: [],
+};
+
 const runFromTask: RunReport = {
   id: "run-from-task",
   taskId: "task-from-dialog",
@@ -88,6 +113,44 @@ test.describe("Shaiden tasks", () => {
     await page.getByRole("button", { name: "Run" }).click();
 
     await expect(page).toHaveURL(/\/shaiden\/runs\?run=run-from-task$/);
+  });
+
+  test("starts a second saved task while another run is in flight", async ({
+    page,
+  }) => {
+    await mockToriiConfig(page, {
+      fudaAgents: [shaidenAgent],
+      tasks: { tasks: [savedTask, secondSavedTask] },
+      runs: {
+        runs: [
+          {
+            id: runningRunForSavedTask.id,
+            taskId: runningRunForSavedTask.taskId,
+            startedAt: runningRunForSavedTask.startedAt,
+            assignee: runningRunForSavedTask.assignee,
+            goalPreview: runningRunForSavedTask.goalPreview,
+            status: "running",
+            stepCount: 0,
+          },
+        ],
+      },
+      runDetails: { "run-saved-1": runningRunForSavedTask },
+    });
+
+    await page.goto("/shaiden/tasks");
+
+    const runningRow = page.getByRole("row", { name: savedTask.goal });
+    const idleRow = page.getByRole("row", { name: secondSavedTask.goal });
+
+    await expect(runningRow.getByRole("button", { name: "Run" })).toBeDisabled();
+    await expect(idleRow.getByRole("button", { name: "Run" })).toBeEnabled();
+
+    await idleRow.getByRole("button", { name: "Run" }).click();
+
+    await expect(page).toHaveURL(/\/shaiden\/runs\?run=run-from-task$/);
+    await expect(
+      page.getByRole("cell", { name: savedTask.goal }),
+    ).toBeVisible();
   });
 
   test("opens the authoring dialog from the runs deep link", async ({
