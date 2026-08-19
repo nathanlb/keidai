@@ -1,6 +1,12 @@
-import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
+import {
+  Client,
+  DEFAULT_NEGOTIATED_PROTOCOL_VERSION,
+  StreamableHTTPClientTransport,
+  SUPPORTED_PROTOCOL_VERSIONS,
+} from "@modelcontextprotocol/client";
 import type { FetchLike } from "@modelcontextprotocol/client";
 import type { ServerConfig } from "@keidai/shared";
+import { MCP_PROTOCOL_VERSION } from "@keidai/shared/mcp-jsonrpc";
 import { inject, injectable } from "tsyringe";
 import { CredentialResolverService } from "../credentials/credential-resolver.service.js";
 import { CredentialResolutionError, LinkingRequiredError } from "../credentials/types/credential-resolution.js";
@@ -13,6 +19,21 @@ import type {
   McpClient,
   McpClientConnector,
 } from "./types/mcp-client-connector.js";
+
+/**
+ * Auto-negotiate 2026-07-28 when the backend speaks it. On the 2025
+ * initialize fallback, offer 2025-03-26 first — SDK 2.0's default latest is
+ * 2025-11-25, which many deployed servers reject instead of counter-offering.
+ */
+const OUTBOUND_SUPPORTED_PROTOCOL_VERSIONS = [
+  MCP_PROTOCOL_VERSION,
+  DEFAULT_NEGOTIATED_PROTOCOL_VERSION,
+  ...SUPPORTED_PROTOCOL_VERSIONS.filter(
+    (version) =>
+      version !== MCP_PROTOCOL_VERSION &&
+      version !== DEFAULT_NEGOTIATED_PROTOCOL_VERSION,
+  ),
+];
 
 function createCredentialFetch(
   server: ServerConfig,
@@ -62,6 +83,8 @@ export class DefaultMcpClientConnector implements McpClientConnector {
 
     const client = new Client(TORII_OUTBOUND_CLIENT_INFO, {
       capabilities: TORII_OUTBOUND_CLIENT_CAPABILITIES,
+      versionNegotiation: { mode: "auto" },
+      supportedProtocolVersions: OUTBOUND_SUPPORTED_PROTOCOL_VERSIONS,
     });
     const transport = new StreamableHTTPClientTransport(
       new URL(server.transport.url),
