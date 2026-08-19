@@ -10,18 +10,18 @@ import {
   type TestGatewayBackend,
 } from "../../testing/gateway-persistence.js";
 
-const backends: TestGatewayBackend[] = ["sqlite", "memory"];
+const backends: TestGatewayBackend[] = ["postgres", "memory"];
 
 function runOAuthClientRepositoryContract(
   label: string,
-  createRepository: () => {
+  createRepository: () => Promise<{
     repository: OAuthClientRepository;
-    close: () => void;
-  },
+    close: () => Promise<void>;
+  }>,
 ): void {
   describe(label, () => {
     it("stores and retrieves provider clients", async () => {
-      const { repository, close } = createRepository();
+      const { repository, close } = await createRepository();
       try {
         const client: OAuthProviderClient = {
           clientId: "client-1",
@@ -34,12 +34,12 @@ function runOAuthClientRepositoryContract(
         assert.deepEqual(loaded, client);
         assert.equal(await repository.get("missing"), null);
       } finally {
-        close();
+        await close();
       }
     });
 
     it("upserts clients for the same provider", async () => {
-      const { repository, close } = createRepository();
+      const { repository, close } = await createRepository();
       try {
         await repository.set("notion", {
           clientId: "old",
@@ -55,7 +55,7 @@ function runOAuthClientRepositoryContract(
         assert.equal(loaded?.redirectUri, "http://localhost/new");
         assert.equal(loaded?.clientSecret, undefined);
       } finally {
-        close();
+        await close();
       }
     });
   });
@@ -63,8 +63,8 @@ function runOAuthClientRepositoryContract(
 
 describe("OAuthClientRepository contract", () => {
   for (const backend of backends) {
-    runOAuthClientRepositoryContract(`backend=${backend}`, () => {
-      const persistence = createTestGatewayPersistence(backend);
+    runOAuthClientRepositoryContract(`backend=${backend}`, async () => {
+      const persistence = await createTestGatewayPersistence(backend);
       return {
         repository: persistence.clientRepository,
         close: persistence.close,

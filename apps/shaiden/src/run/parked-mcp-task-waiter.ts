@@ -66,8 +66,8 @@ export function createParkedMcpTaskWaiter(input: {
   return async (mcpTaskId, context) => {
     const pollIntervalMs =
       context?.pollIntervalMs ??
-      input.runStore.getParkedMcpTask(input.runId)?.pollIntervalMs;
-    input.runStore.setParkedMcpTask(input.runId, {
+      (await input.runStore.getParkedMcpTask(input.runId))?.pollIntervalMs;
+    await input.runStore.setParkedMcpTask(input.runId, {
       mcpTaskId,
       pollIntervalMs,
     });
@@ -77,7 +77,7 @@ export function createParkedMcpTaskWaiter(input: {
       stepId: context?.stepId,
       wakeup: "task_poll",
     });
-    input.reporter.recordStep({
+    await input.reporter.recordStep({
       id: context?.stepId,
       kind: "waiting_approval",
       approvalId: mcpTaskId,
@@ -91,19 +91,19 @@ export function createParkedMcpTaskWaiter(input: {
     );
 
     if (
-      !input.runStore.renewRunLease(
+      !(await input.runStore.renewRunLease(
         input.runId,
         input.replicaId,
         leaseExpiresAt(now(), input.leaseMs),
-      )
+      ))
     ) {
       throw new RunLeaseLostError(input.runId);
     }
 
     if (context?.call && !result.approvalDenied) {
-      recordToolResult(input.reporter, context.call, result);
+      await recordToolResult(input.reporter, context.call, result);
     }
-    input.runStore.clearParkedMcpTask(input.runId);
+    await input.runStore.clearParkedMcpTask(input.runId);
     return result;
   };
 }

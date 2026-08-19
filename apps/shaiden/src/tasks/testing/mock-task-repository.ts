@@ -20,7 +20,7 @@ function compareTasks(left: SavedTask, right: SavedTask): number {
 export class MockTaskRepository implements TaskRepository {
   private readonly tasks = new Map<string, SavedTask>();
 
-  create(input: CreateTaskInput): SavedTask {
+  async create(input: CreateTaskInput): Promise<SavedTask> {
     const now = new Date().toISOString();
     const saved: SavedTask = {
       id: randomUUID(),
@@ -32,11 +32,11 @@ export class MockTaskRepository implements TaskRepository {
     return saved;
   }
 
-  get(taskId: string): SavedTask | null {
+  async get(taskId: string): Promise<SavedTask | null> {
     return this.tasks.get(taskId) ?? null;
   }
 
-  list(limit = DEFAULT_TASK_LIST_LIMIT) {
+  async list(limit = DEFAULT_TASK_LIST_LIMIT) {
     const tasks = [...this.tasks.values()]
       .filter((task) => !task.archivedAt)
       .sort(compareTasks)
@@ -44,7 +44,7 @@ export class MockTaskRepository implements TaskRepository {
     return { tasks };
   }
 
-  update(taskId: string, input: UpdateTaskRequest): SavedTask | null {
+  async update(taskId: string, input: UpdateTaskRequest): Promise<SavedTask | null> {
     const existing = this.tasks.get(taskId);
     if (!existing) {
       return null;
@@ -66,7 +66,7 @@ export class MockTaskRepository implements TaskRepository {
     return updated;
   }
 
-  archive(taskId: string): boolean {
+  async archive(taskId: string): Promise<boolean> {
     const existing = this.tasks.get(taskId);
     if (!existing || existing.archivedAt) {
       return false;
@@ -81,7 +81,7 @@ export class MockTaskRepository implements TaskRepository {
     return true;
   }
 
-  delete(taskId: string): boolean {
+  async delete(taskId: string): Promise<boolean> {
     return this.tasks.delete(taskId);
   }
 }

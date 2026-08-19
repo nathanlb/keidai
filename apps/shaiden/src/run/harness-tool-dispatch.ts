@@ -57,7 +57,7 @@ export function createHarnessToolDispatcher({
         return { isError: true, text: errorMessage };
       }
 
-      recordTaskOutput(reporter, parsed.text);
+      await recordTaskOutput(reporter, parsed.text);
       logger?.info("run.task_output", {
         runId,
         status: "ok",
@@ -71,8 +71,8 @@ export function createHarnessToolDispatcher({
 
     if (!availableToolNames.has(call.toolName)) {
       const errorMessage = "tool is not available from Torii";
-      recordToolDispatch(reporter, call);
-      recordToolResult(reporter, call, {
+      await recordToolDispatch(reporter, call);
+      await recordToolResult(reporter, call, {
         isError: true,
         text: errorMessage,
       });
@@ -90,7 +90,7 @@ export function createHarnessToolDispatcher({
       toolName: call.toolName,
       inputPreview: previewOf(JSON.stringify(call.input)),
     });
-    recordToolDispatch(reporter, call);
+    await recordToolDispatch(reporter, call);
 
     let result: ToolDispatchResult;
     try {
@@ -113,7 +113,7 @@ export function createHarnessToolDispatcher({
         text: errorMessage,
         ...(policyDenied ? { policyDenied: true as const } : {}),
       };
-      recordToolResult(reporter, call, errorResult);
+      await recordToolResult(reporter, call, errorResult);
       return errorResult;
     }
 
@@ -133,7 +133,7 @@ export function createHarnessToolDispatcher({
           : "ok",
       charCount: result.text.length,
     });
-    recordToolResult(reporter, call, result);
+    await recordToolResult(reporter, call, result);
 
     if (result.approvalRequired) {
       return {

@@ -1,10 +1,4 @@
+import type { Migration } from "@keidai/postgres";
 import { migration001Baseline } from "./001_baseline.js";
-import { migration002AgentSchema } from "./002_agent_schema.js";
-import { migration003Owners } from "./003_owners.js";
-import type { Migration } from "../migrate.js";
 
-export const fudaMigrations: readonly Migration[] = [
-  migration001Baseline,
-  migration002AgentSchema,
-  migration003Owners,
-];
+export const fudaMigrations: readonly Migration[] = [migration001Baseline];

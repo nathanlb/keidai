@@ -4,7 +4,7 @@ import { createTestServer, sampleAgentBody } from "./test-helpers.js";
 
 describe("bearers management API", () => {
   it("creates bearers and manages grants", async () => {
-    const server = createTestServer("management");
+    const server = await createTestServer("management");
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       const agentResponse = await fetch(`${handle.baseUrl}/api/agents`, {
@@ -69,7 +69,7 @@ describe("bearers management API", () => {
   });
 
   it("returns conflict for duplicate bearer ids", async () => {
-    const server = createTestServer("management");
+    const server = await createTestServer("management");
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       await fetch(`${handle.baseUrl}/api/bearers`, {

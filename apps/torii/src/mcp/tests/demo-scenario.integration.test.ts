@@ -159,10 +159,10 @@ describe("Demo scenario — open-torii status digest", () => {
       credentialResolver,
       traceEmitter,
       createPolicyEnforcement(configService),
-      createApprovalServices(configService).approvalGate,
-      createApprovalServices(configService).taskStore,
+      (await createApprovalServices(configService)).approvalGate,
+      (await createApprovalServices(configService)).taskStore,
     );
-    const gatewayHttpServer = createTestGatewayHttpServer(
+    const gatewayHttpServer = await createTestGatewayHttpServer(
       toolCatalog,
       toolDispatch,
       {

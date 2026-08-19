@@ -72,13 +72,13 @@ export class TokenExchangeApiController {
         throw error;
       }
 
-      const agent = this.agents.get(agentId);
+      const agent = await this.agents.get(agentId);
       if (!agent) {
         reply.code(404).send({ error: "agent not found" });
         return;
       }
 
-      if (!this.bearers.hasGrant(bearerId, agentId)) {
+      if (!(await this.bearers.hasGrant(bearerId, agentId))) {
         reply.code(403).send({ error: "bearer not granted for agent" });
         return;
       }

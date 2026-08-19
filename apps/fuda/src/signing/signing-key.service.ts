@@ -24,7 +24,7 @@ interface LoadedKey {
 }
 
 /**
- * Boot-loaded signing authority: private keys stay out of sqlite; public
+ * Boot-loaded signing authority: private keys stay out of the database; public
  * halves are published via JWKS. Supports two active keys for rotation
  * (publish → sign → retire).
  */

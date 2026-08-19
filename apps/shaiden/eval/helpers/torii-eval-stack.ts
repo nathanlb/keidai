@@ -151,7 +151,7 @@ export async function startEvalToriiStack(
     createNoopLogger(),
   );
   const traceEmitter = new CapturingTraceEmitter();
-  const approvalServices = createApprovalServices(configService);
+  const approvalServices = await createApprovalServices(configService);
   const toolDispatch = new ToolDispatchService(
     toolCatalog,
     connectionManager,
@@ -161,7 +161,7 @@ export async function startEvalToriiStack(
     approvalServices.approvalGate,
     approvalServices.taskStore,
   );
-  const gatewayHttpServer = createTestGatewayHttpServer(
+  const gatewayHttpServer = await createTestGatewayHttpServer(
     toolCatalog,
     toolDispatch,
     {
@@ -192,7 +192,7 @@ export async function startEvalToriiStack(
           (close): close is Promise<void> => close !== undefined,
         ),
       );
-      approvalServices.close();
+      await approvalServices.close();
     },
   };
 }

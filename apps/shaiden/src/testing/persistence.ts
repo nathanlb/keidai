@@ -1,38 +1,37 @@
-import { mkdtempSync } from "node:fs";
-import type { DatabaseSync } from "node:sqlite";
-import { tmpdir } from "node:os";
-import path from "node:path";
+import {
+  createIsolatedSchema,
+  resolveTestDatabaseUrl,
+  type IsolatedSchema,
+  type Pool,
+} from "@keidai/postgres";
 import type { Task } from "@keidai/shared";
 import { RunStore } from "../runs/run-store.js";
-import { SqliteRunRepository } from "../runs/sqlite-run-repository.js";
+import { PgRunRepository } from "../runs/pg-run-repository.js";
 import { MockRunRepository } from "../runs/testing/mock-run-repository.js";
-import { openShaidenDatabase } from "../storage/shaiden-sqlite.js";
-import { SqliteTaskRepository } from "../tasks/sqlite-task-repository.js";
+import { openShaidenDatabase } from "../storage/shaiden-postgres.js";
+import { PgTaskRepository } from "../tasks/pg-task-repository.js";
 import { MockTaskRepository } from "../tasks/testing/mock-task-repository.js";
 import type { TaskRepository } from "../tasks/types/task-repository.js";
 
 export interface TestPersistence {
   runStore: RunStore;
   taskRepository: TaskRepository;
-  close: () => void;
+  pool: Pool;
+  close: () => Promise<void>;
 }
 
 /**
- * Builds Shaiden persistence for tests using a temp SQLite database
+ * Builds Shaiden persistence for tests using an isolated Postgres schema
  * (the production path).
  */
-export function createTestPersistence(): TestPersistence {
-  const databasePath = path.join(
-    mkdtempSync(path.join(tmpdir(), "shaiden-test-")),
-    "shaiden.db",
-  );
-  const database = openShaidenDatabase(databasePath);
+export async function createTestPersistence(): Promise<TestPersistence> {
+  const isolated: IsolatedSchema = await createIsolatedSchema();
+  await openShaidenDatabase(resolveTestDatabaseUrl(), isolated.pool);
   return {
-    runStore: new RunStore(new SqliteRunRepository(database)),
-    taskRepository: new SqliteTaskRepository(database),
-    close: () => {
-      (database as DatabaseSync).close();
-    },
+    runStore: new RunStore(new PgRunRepository(isolated.pool)),
+    taskRepository: new PgTaskRepository(isolated.pool),
+    pool: isolated.pool,
+    close: () => isolated.close(),
   };
 }
 
@@ -44,25 +43,28 @@ export function createEvalPersistence(): TestPersistence {
   return {
     runStore: new RunStore(new MockRunRepository()),
     taskRepository: new MockTaskRepository(),
-    close: () => {},
+    pool: {
+      query: async () => ({ rows: [{ "?column?": 1 }], rowCount: 1 }),
+    } as unknown as Pool,
+    close: async () => {},
   };
 }
 
-export function createTestRun(
+export async function createTestRun(
   persistence: TestPersistence,
   input: {
     runId: string;
     task?: Task;
     goal?: string;
   },
-): string {
+): Promise<string> {
   const task = input.task ?? {
     goal: input.goal ?? "Test run goal",
     trigger: { type: "now" as const },
     assignee: "shaiden-newsletter-01",
   };
-  const savedTask = persistence.taskRepository.create({ task });
-  persistence.runStore.createRun({
+  const savedTask = await persistence.taskRepository.create({ task });
+  await persistence.runStore.createRun({
     id: input.runId,
     taskId: savedTask.id,
     task,

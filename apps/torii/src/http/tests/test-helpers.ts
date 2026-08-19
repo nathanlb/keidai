@@ -38,6 +38,10 @@ import {
   createTestGatewayPersistence,
   type TestGatewayPersistence,
 } from "../../testing/gateway-persistence.js";
+import { MockOAuthClientRepository } from "../../testing/mocks/mock-oauth-client-repository.js";
+import { MockPendingLinkStore } from "../../testing/mocks/mock-pending-link-store.js";
+import { MockTokenRepository } from "../../testing/mocks/mock-token-repository.js";
+import { MockTraceRepository } from "../../testing/mocks/mock-trace-repository.js";
 
 // Opt out of ecosystem BFF service-token hardening for HTTP unit tests.
 // Gate-focused tests clear this and set BFF_SERVICE_TOKEN explicitly.
@@ -63,6 +67,16 @@ export function createStubToolCatalog(
   } as unknown as ToolCatalogService;
 }
 
+function memoryPersistence(): TestGatewayPersistence {
+  return {
+    tokenRepository: new MockTokenRepository(),
+    clientRepository: new MockOAuthClientRepository(),
+    pendingLinkStore: new MockPendingLinkStore(),
+    traceRepository: new MockTraceRepository(),
+    close: async () => {},
+  };
+}
+
 export function createOAuthApiController(
   configService: ToriiConfigService,
   options: {
@@ -72,7 +86,7 @@ export function createOAuthApiController(
     persistence?: TestGatewayPersistence;
   } = {},
 ): OAuthApiController {
-  const persistence = options.persistence ?? createTestGatewayPersistence();
+  const persistence = options.persistence ?? memoryPersistence();
   const tokenRepository =
     options.tokenRepository ?? persistence.tokenRepository;
   const clientRepository =
@@ -104,7 +118,7 @@ export function createTracesApiController(
     persistence?: TestGatewayPersistence;
   } = {},
 ): TracesApiController {
-  const persistence = options.persistence ?? createTestGatewayPersistence();
+  const persistence = options.persistence ?? memoryPersistence();
   const traceRepository =
     options.traceRepository ?? persistence.traceRepository;
   const traceEmitter =
@@ -114,7 +128,7 @@ export function createTracesApiController(
   );
 }
 
-export function createTestGatewayHttpServer(
+export async function createTestGatewayHttpServer(
   toolCatalog: ToolCatalogService,
   toolDispatch: ToolDispatchService,
   options: {
@@ -128,17 +142,23 @@ export function createTestGatewayHttpServer(
     persistence?: TestGatewayPersistence;
     taskStore?: TaskStoreService;
   } = {},
-): GatewayHttpServer {
+): Promise<GatewayHttpServer> {
   const configService =
     options.configService ??
     new ToriiConfigService({
       oauth_providers: {},
       servers: [],
     });
+  const ownedPersistence = options.persistence === undefined
+    && options.approvalServices === undefined;
   const approvalServices =
     options.approvalServices ??
-    createApprovalServices(configService, options.persistence);
+    (await createApprovalServices(configService, options.persistence));
   const persistence = options.persistence ?? approvalServices.persistence;
+  const pool = persistence.pool;
+  if (!pool) {
+    throw new Error("createTestGatewayHttpServer requires postgres persistence");
+  }
   const configRead = new ConfigReadService(configService);
   const connectionManager =
     options.connectionManager ??
@@ -169,7 +189,7 @@ export function createTestGatewayHttpServer(
     createNoopLogger(),
   );
 
-  return new GatewayHttpServer(
+  const server = new GatewayHttpServer(
     new ConfigApiController(configRead),
     new ConnectionsApiController(
       connectionRead,
@@ -182,7 +202,29 @@ export function createTestGatewayHttpServer(
     approvalServices.approvalsApi,
     mcpServer,
     createNoopLogger(),
+    pool,
   );
+  if (ownedPersistence) {
+    wrapServerClose(server, persistence);
+  }
+  return server;
+}
+
+function wrapServerClose(
+  server: GatewayHttpServer,
+  persistence: TestGatewayPersistence,
+): void {
+  const start = server.start.bind(server);
+  server.start = async (options) => {
+    const handle = await start(options);
+    return {
+      ...handle,
+      close: async () => {
+        await handle.close();
+        await persistence.close();
+      },
+    };
+  };
 }
 
 export { FixedIdentityResolver };

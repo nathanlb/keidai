@@ -14,11 +14,11 @@ export function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-export function recordToolDispatch(
+export async function recordToolDispatch(
   reporter: RunReporter,
   call: ModelToolCall,
-): void {
-  reporter.recordStep({
+): Promise<void> {
+  await reporter.recordStep({
     kind: "tool_dispatch",
     toolName: call.toolName,
     toolCallId: call.toolCallId,
@@ -33,12 +33,12 @@ export interface RecordableToolResult {
   meta?: ToriiCallMeta;
 }
 
-export function recordToolResult(
+export async function recordToolResult(
   reporter: RunReporter,
   call: ModelToolCall,
   result: RecordableToolResult,
-): void {
-  reporter.recordStep({
+): Promise<void> {
+  await reporter.recordStep({
     kind: "tool_result",
     toolName: call.toolName,
     toolCallId: call.toolCallId,
@@ -53,8 +53,8 @@ export function recordToolResult(
   });
 }
 
-export function recordTaskOutput(reporter: RunReporter, text: string): void {
-  reporter.recordStep({
+export async function recordTaskOutput(reporter: RunReporter, text: string): Promise<void> {
+  await reporter.recordStep({
     kind: "output",
     text: clipTaskOutput(text),
   });

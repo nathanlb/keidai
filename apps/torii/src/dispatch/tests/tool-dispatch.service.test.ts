@@ -99,7 +99,7 @@ async function createDispatchStack(
   toolCatalog: ToolCatalogService;
   toolDispatch: ToolDispatchService;
   traceEmitter: CapturingTraceEmitterType;
-  taskStore: ReturnType<typeof createApprovalServices>["taskStore"];
+  taskStore: Awaited<ReturnType<typeof createApprovalServices>>["taskStore"];
   close: () => Promise<void>;
 }> {
   const { credentialResolver } = createCredentialServices();
@@ -119,7 +119,8 @@ async function createDispatchStack(
   const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
   const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
   const traceEmitter = new CapturingTraceEmitter();
-  const { approvalGate, taskStore } = createApprovalServices(configService);
+  const services = await createApprovalServices(configService);
+  const { approvalGate, taskStore } = services;
   const toolDispatch = new ToolDispatchService(
     toolCatalog,
     connectionManager,
@@ -136,7 +137,10 @@ async function createDispatchStack(
     toolDispatch,
     traceEmitter,
     taskStore,
-    close: () => closeManagerConnections(connectionManager),
+    close: async () => {
+      await closeManagerConnections(connectionManager);
+      await services.close();
+    },
   };
 }
 
@@ -451,7 +455,7 @@ describe("ToolDispatchService", () => {
     const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
     const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
     const traceEmitter = new CapturingTraceEmitter();
-    const { approvalGate, taskStore } = createApprovalServices(configService);
+    const { approvalGate, taskStore } = await createApprovalServices(configService);
     const toolDispatch = new ToolDispatchService(
       toolCatalog,
       connectionManager,
@@ -750,7 +754,7 @@ describe("ToolDispatchService", () => {
       await withTestAgentPrincipal(() =>
         stack.toolDispatch.syncNonTerminalTask(created.taskId),
       );
-      const detailed = stack.taskStore.getDetailedTask(
+      const detailed = await stack.taskStore.getDetailedTask(
         TEST_AGENT_PRINCIPAL.agentId,
         created.taskId,
       );
@@ -870,7 +874,7 @@ describe("ToolDispatchService", () => {
       }
 
       await withTestAgentPrincipal(async () => {
-        stack.taskStore.requestCancel(
+        await stack.taskStore.requestCancel(
           TEST_AGENT_PRINCIPAL.agentId,
           created.taskId,
         );
@@ -899,7 +903,7 @@ describe("ToolDispatchService", () => {
     try {
       await bootBackends(stack.connectionManager, stack.toolCatalog);
 
-      const gatewayOnly = stack.taskStore.createWorkingTask({
+      const gatewayOnly = await stack.taskStore.createWorkingTask({
         agentId: TEST_AGENT_PRINCIPAL.agentId,
         ownerId: TEST_AGENT_PRINCIPAL.ownerId,
       });
@@ -951,7 +955,7 @@ describe("ToolDispatchService", () => {
         stack.toolDispatch.syncNonTerminalTask(created.taskId),
       );
 
-      const detailed = stack.taskStore.getDetailedTask(
+      const detailed = await stack.taskStore.getDetailedTask(
         TEST_AGENT_PRINCIPAL.agentId,
         created.taskId,
       );
@@ -1000,7 +1004,7 @@ describe("ToolDispatchService", () => {
         stack.toolDispatch.syncNonTerminalTask(created.taskId),
       );
 
-      const detailed = stack.taskStore.getDetailedTask(
+      const detailed = await stack.taskStore.getDetailedTask(
         TEST_AGENT_PRINCIPAL.agentId,
         created.taskId,
       );

@@ -56,10 +56,10 @@ export class TracesApiController {
 
   registerRoutes(app: FastifyInstance): void {
     app.get("/api/traces/stats", async (request, reply) => {
-      reply.send(this.traceRead.getStats(parseStatsWindowMs(request)));
+      reply.send(await this.traceRead.getStats(parseStatsWindowMs(request)));
     });
 
-    app.get("/api/traces/events", (request, reply) => {
+    app.get("/api/traces/events", async (request, reply) => {
       reply.hijack();
       reply.raw.writeHead(200, {
         "Content-Type": "text/event-stream",
@@ -72,7 +72,7 @@ export class TracesApiController {
         reply.raw.write(`data: ${JSON.stringify(event.trace)}\n\n`);
       };
 
-      for (const trace of this.traceRead.listTraces({ limit: 50 }).traces) {
+      for (const trace of (await this.traceRead.listTraces({ limit: 50 })).traces) {
         writeEvent({
           type: TRACE_SSE_EVENT.traceCreated,
           trace,
@@ -88,7 +88,7 @@ export class TracesApiController {
 
     app.get("/api/traces/:traceId", async (request, reply) => {
       const { traceId } = request.params as { traceId: string };
-      const trace = this.traceRead.getTrace(traceId);
+      const trace = await this.traceRead.getTrace(traceId);
       if (!trace) {
         reply.code(404).send({ error: "trace not found" });
         return;
@@ -97,7 +97,7 @@ export class TracesApiController {
     });
 
     app.get("/api/traces", async (request, reply) => {
-      reply.send(this.traceRead.listTraces(parseTraceListQuery(request)));
+      reply.send(await this.traceRead.listTraces(parseTraceListQuery(request)));
     });
   }
 }

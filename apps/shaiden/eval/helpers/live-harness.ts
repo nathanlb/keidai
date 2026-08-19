@@ -44,7 +44,7 @@ export async function runLiveHarnessEval(input: {
 }): Promise<LiveHarnessEvalResult> {
   const config = loadLiveEvalConfig(input.stack);
   const persistence = createEvalPersistence();
-  const taskId = persistence.taskRepository.create({ task: input.task }).id;
+  const taskId = (await persistence.taskRepository.create({ task: input.task })).id;
   const driverAbort = new AbortController();
   const approvalDriver = input.approvalDriver ?? "none";
 
@@ -63,7 +63,7 @@ export async function runLiveHarnessEval(input: {
       config,
       persistence.runStore,
     );
-    const run = persistence.runStore.getRun(result.run.id);
+    const run = await persistence.runStore.getRun(result.run.id);
     return {
       outcome: result.run.outcome,
       iterations: result.iterations,
@@ -75,7 +75,7 @@ export async function runLiveHarnessEval(input: {
     if (driver) {
       await driver.catch(() => {});
     }
-    persistence.close();
+    await persistence.close();
   }
 }
 

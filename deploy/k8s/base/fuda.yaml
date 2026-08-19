@@ -8,7 +8,7 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: Recreate
+    type: RollingUpdate
   selector:
     matchLabels:
       app: fuda
@@ -20,6 +20,16 @@ spec:
       serviceAccountName: fuda
       securityContext:
         fsGroup: 1001
+      initContainers:
+        - name: wait-postgres
+          image: postgres:16-alpine
+          imagePullPolicy: IfNotPresent
+          command:
+            [
+              "sh",
+              "-c",
+              "until pg_isready -h postgres -U postgres; do sleep 1; done",
+            ]
       containers:
         - name: fuda
           image: keidai-fuda:latest
@@ -33,8 +43,6 @@ spec:
             - secretRef:
                 name: keidai-secrets
           volumeMounts:
-            - name: data
-              mountPath: /app/data
             - name: signing-key
               mountPath: /app/keys
               readOnly: true
@@ -54,9 +62,6 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 15
       volumes:
-        - name: data
-          persistentVolumeClaim:
-            claimName: fuda-data
         - name: signing-key
           secret:
             secretName: fuda-signing

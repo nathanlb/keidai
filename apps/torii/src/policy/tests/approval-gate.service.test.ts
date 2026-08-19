@@ -12,13 +12,13 @@ import {
   parseToolArguments,
 } from "../utils/approval-tool-args.js";
 
-function createGate(gatedTools: NonNullable<ToriiConfig["gated_tools"]>) {
+async function createGate(gatedTools: NonNullable<ToriiConfig["gated_tools"]>) {
   const configService = new ToriiConfigService({
     oauth_providers: {},
     servers: [],
     gated_tools: gatedTools,
   });
-  const persistence = createTestGatewayPersistence("sqlite");
+  const persistence = await createTestGatewayPersistence("postgres");
   const store = persistence.approvalStore!;
   const taskStore = persistence.taskStore!;
   const gate = new ApprovalGateService(configService, store, taskStore);
@@ -31,8 +31,8 @@ const gatedTools = {
 };
 
 describe("approval ledger", () => {
-  it("requires approval for tools listed under the agent id", () => {
-    const { gate, close } = createGate(gatedTools);
+  it("requires approval for tools listed under the agent id", async () => {
+    const { gate, close } = await createGate(gatedTools);
     try {
       assert.equal(
         gate.requiresApproval(TEST_AGENT_PRINCIPAL, "gmail.create_draft"),
@@ -43,14 +43,14 @@ describe("approval ledger", () => {
         false,
       );
     } finally {
-      close();
+      await close();
     }
   });
 
-  it("parks a gated call as a working task and a pending approval", () => {
-    const { gate, store, taskStore, close } = createGate(gatedTools);
+  it("parks a gated call as a working task and a pending approval", async () => {
+    const { gate, store, taskStore, close } = await createGate(gatedTools);
     try {
-      const outcome = gate.interceptGatedCall({
+      const outcome = await gate.interceptGatedCall({
         principal: TEST_AGENT_PRINCIPAL,
         toolName: "gmail.create_draft",
         upstreamArgs: { subject: "Hello" },
@@ -66,35 +66,37 @@ describe("approval ledger", () => {
       assert.equal(typeof outcome.task.ttlMs, "number");
       assert.equal(typeof outcome.task.pollIntervalMs, "number");
 
-      const approval = store.getApprovalByTaskId(outcome.task.taskId);
+      const approval = await store.getApprovalByTaskId(outcome.task.taskId);
       assert.equal(approval?.status, "pending");
       assert.equal(approval?.toolName, "gmail.create_draft");
       assert.deepEqual(approval?.params, { subject: "Hello" });
       assert.equal(
-        taskStore.getDetailedTask(
-          TEST_AGENT_PRINCIPAL.agentId,
-          outcome.task.taskId,
+        (
+          await taskStore.getDetailedTask(
+            TEST_AGENT_PRINCIPAL.agentId,
+            outcome.task.taskId,
+          )
         ).status,
         "working",
       );
     } finally {
-      close();
+      await close();
     }
   });
 
-  it("auto-denies repeat calls matching a recently rejected params hash", () => {
-    const { gate, store, close } = createGate(gatedTools);
+  it("auto-denies repeat calls matching a recently rejected params hash", async () => {
+    const { gate, store, close } = await createGate(gatedTools);
     try {
       const params = { subject: "Hello" };
-      const approval = store.createPendingApproval({
+      const approval = await store.createPendingApproval({
         principal: TEST_AGENT_PRINCIPAL,
         toolName: "gmail.create_draft",
         params,
         paramsHash: hashToolParams(params),
       });
-      store.reject(approval.id, "not now");
+      await store.reject(approval.id, "not now");
 
-      const outcome = gate.interceptGatedCall({
+      const outcome = await gate.interceptGatedCall({
         principal: TEST_AGENT_PRINCIPAL,
         toolName: "gmail.create_draft",
         upstreamArgs: params,
@@ -111,17 +113,17 @@ describe("approval ledger", () => {
       assert.equal(payload.status, "approval_denied");
       assert.equal(payload.reason, "not now");
     } finally {
-      close();
+      await close();
     }
   });
 
-  it("round-trips opaque runId and stepId unmodified and uninterpreted", () => {
-    const { gate, read, store, close } = createGate(gatedTools);
+  it("round-trips opaque runId and stepId unmodified and uninterpreted", async () => {
+    const { gate, read, store, close } = await createGate(gatedTools);
     try {
       const runId = "opaque-run-ref-≠-uuid";
       const stepId = "opaque-step/ref with spaces";
 
-      const outcome = gate.interceptGatedCall({
+      const outcome = await gate.interceptGatedCall({
         principal: TEST_AGENT_PRINCIPAL,
         toolName: "gmail.create_draft",
         upstreamArgs: { subject: "Hello" },
@@ -133,13 +135,13 @@ describe("approval ledger", () => {
       if (outcome.kind !== "parked") {
         return;
       }
-      const approval = store.getApprovalByTaskId(outcome.task.taskId);
+      const approval = await store.getApprovalByTaskId(outcome.task.taskId);
       assert.ok(approval);
-      const view = read.getApproval(approval.id);
+      const view = await read.getApproval(approval.id);
       assert.equal(view?.runId, runId);
       assert.equal(view?.stepId, stepId);
     } finally {
-      close();
+      await close();
     }
   });
 
@@ -159,22 +161,22 @@ describe("approval ledger", () => {
     );
   });
 
-  it("cancels a pending approval without adding rejection suppression", () => {
-    const { gate, store, close } = createGate(gatedTools);
+  it("cancels a pending approval without adding rejection suppression", async () => {
+    const { gate, store, close } = await createGate(gatedTools);
     try {
       const params = { subject: "Hello" };
 
-      const pending = store.createPendingApproval({
+      const pending = await store.createPendingApproval({
         principal: TEST_AGENT_PRINCIPAL,
         toolName: "gmail.create_draft",
         params,
         paramsHash: hashToolParams(params),
       });
 
-      const cancelled = store.cancel(pending.id);
+      const cancelled = await store.cancel(pending.id);
       assert.equal(cancelled?.status, "cancelled");
 
-      const repeat = gate.interceptGatedCall({
+      const repeat = await gate.interceptGatedCall({
         principal: TEST_AGENT_PRINCIPAL,
         toolName: "gmail.create_draft",
         upstreamArgs: params,
@@ -182,14 +184,14 @@ describe("approval ledger", () => {
 
       assert.equal(repeat.kind, "parked");
     } finally {
-      close();
+      await close();
     }
   });
 
-  it("claims an approved task for execution exactly once", () => {
-    const { gate, store, close } = createGate(gatedTools);
+  it("claims an approved task for execution exactly once", async () => {
+    const { gate, store, close } = await createGate(gatedTools);
     try {
-      const parked = gate.interceptGatedCall({
+      const parked = await gate.interceptGatedCall({
         principal: TEST_AGENT_PRINCIPAL,
         toolName: "gmail.create_draft",
         upstreamArgs: { subject: "Hello" },
@@ -199,22 +201,22 @@ describe("approval ledger", () => {
         return;
       }
 
-      const approval = store.getApprovalByTaskId(parked.task.taskId);
+      const approval = await store.getApprovalByTaskId(parked.task.taskId);
       assert.ok(approval);
-      store.approve(approval.id);
+      await store.approve(approval.id);
 
-      const first = gate.claimApprovedExecution(
+      const first = await gate.claimApprovedExecution(
         parked.task.taskId,
         TEST_AGENT_PRINCIPAL,
       );
-      const second = gate.claimApprovedExecution(
+      const second = await gate.claimApprovedExecution(
         parked.task.taskId,
         TEST_AGENT_PRINCIPAL,
       );
       assert.ok(first);
       assert.equal(second, undefined);
     } finally {
-      close();
+      await close();
     }
   });
 });

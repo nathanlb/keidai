@@ -4,7 +4,7 @@ import { createTestServer } from "./test-helpers.js";
 
 describe("FudaHttpServer health", () => {
   it("starts on localhost, runs migrations, and responds on /api/health", async () => {
-    const server = createTestServer();
+    const server = await createTestServer();
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       assert.match(handle.baseUrl, /^http:\/\/127\.0\.0\.1:\d+$/);
@@ -24,7 +24,7 @@ describe("FudaHttpServer health", () => {
 
 describe("route group separation", () => {
   it("can start with only the public route group enabled", async () => {
-    const server = createTestServer("public");
+    const server = await createTestServer("public");
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       const response = await fetch(`${handle.baseUrl}/api/health`);
@@ -35,7 +35,7 @@ describe("route group separation", () => {
   });
 
   it("createApp registers only the requested groups", async () => {
-    const server = createTestServer("public,management");
+    const server = await createTestServer("public,management");
     const publicOnly = await server.createApp(["public"]);
     const managementOnly = await server.createApp(["management"]);
 

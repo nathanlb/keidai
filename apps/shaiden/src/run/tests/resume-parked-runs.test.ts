@@ -20,11 +20,11 @@ function silentLogger(): Logger {
 }
 
 describe("resumeParkedHarnessRuns", () => {
-  it("resumes running runs that have a persisted MCP task id", () => {
-    const persistence = createTestPersistence();
+  it("resumes running runs that have a persisted MCP task id", async () => {
+    const persistence = await createTestPersistence();
     try {
-      createTestRun(persistence, { runId: "run-1", task: sampleTask });
-      persistence.runStore.setConversationHistory("run-1", [
+      await createTestRun(persistence, { runId: "run-1", task: sampleTask });
+      await persistence.runStore.setConversationHistory("run-1", [
         { role: "user", text: "goal" },
         {
           role: "assistant",
@@ -38,13 +38,13 @@ describe("resumeParkedHarnessRuns", () => {
           ],
         },
       ]);
-      persistence.runStore.setParkedMcpTask("run-1", {
+      await persistence.runStore.setParkedMcpTask("run-1", {
         mcpTaskId: "a".repeat(64),
         pollIntervalMs: 1_000,
       });
 
       const resumed: string[] = [];
-      const count = resumeParkedHarnessRuns({
+      const count = await resumeParkedHarnessRuns({
         runStore: persistence.runStore,
         resumeHarnessRun: (input) => {
           resumed.push(input.runId);
@@ -58,19 +58,19 @@ describe("resumeParkedHarnessRuns", () => {
       assert.equal(count, 1);
       assert.deepEqual(resumed, ["run-1"]);
     } finally {
-      persistence.close();
+      await persistence.close();
     }
   });
 
-  it("skips a parked run that has no conversation history", () => {
-    const persistence = createTestPersistence();
+  it("skips a parked run that has no conversation history", async () => {
+    const persistence = await createTestPersistence();
     try {
-      createTestRun(persistence, { runId: "run-1", task: sampleTask });
-      persistence.runStore.setParkedMcpTask("run-1", {
+      await createTestRun(persistence, { runId: "run-1", task: sampleTask });
+      await persistence.runStore.setParkedMcpTask("run-1", {
         mcpTaskId: "parked-1",
       });
 
-      const count = resumeParkedHarnessRuns({
+      const count = await resumeParkedHarnessRuns({
         runStore: persistence.runStore,
         resumeHarnessRun: () => {
           throw new Error("should not resume");
@@ -80,22 +80,22 @@ describe("resumeParkedHarnessRuns", () => {
 
       assert.equal(count, 0);
     } finally {
-      persistence.close();
+      await persistence.close();
     }
   });
 
-  it("skips a parked run whose lease is still held by another replica", () => {
-    const persistence = createTestPersistence();
+  it("skips a parked run whose lease is still held by another replica", async () => {
+    const persistence = await createTestPersistence();
     try {
-      createTestRun(persistence, { runId: "run-1", task: sampleTask });
-      persistence.runStore.setConversationHistory("run-1", [
+      await createTestRun(persistence, { runId: "run-1", task: sampleTask });
+      await persistence.runStore.setConversationHistory("run-1", [
         { role: "user", text: "goal" },
       ]);
-      persistence.runStore.setParkedMcpTask("run-1", {
+      await persistence.runStore.setParkedMcpTask("run-1", {
         mcpTaskId: "parked-1",
       });
       assert.equal(
-        persistence.runStore.claimRun(
+        await persistence.runStore.claimRun(
           "run-1",
           "replica-a",
           "2026-07-08T12:00:15.000Z",
@@ -104,7 +104,7 @@ describe("resumeParkedHarnessRuns", () => {
         true,
       );
 
-      const count = resumeParkedHarnessRuns({
+      const count = await resumeParkedHarnessRuns({
         runStore: persistence.runStore,
         now: () => Date.parse("2026-07-08T12:00:00.000Z"),
         resumeHarnessRun: () => {
@@ -115,7 +115,7 @@ describe("resumeParkedHarnessRuns", () => {
 
       assert.equal(count, 0);
     } finally {
-      persistence.close();
+      await persistence.close();
     }
   });
 });

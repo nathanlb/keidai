@@ -1,6 +1,7 @@
 import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import { inject, injectable } from "tsyringe";
 import type { Logger } from "@keidai/shared";
+import type { Pool } from "@keidai/postgres";
 import {
   authorizeBffServiceToken,
   resolveBffServiceToken,
@@ -11,6 +12,7 @@ import { BearersManagementApiController } from "../bearers/bearers-management-ap
 import { FudaConfigService } from "../config/fuda-config.service.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
 import { JwksApiController } from "../signing/jwks-api.controller.js";
+import { FUDA_DATABASE } from "../storage/fuda-postgres.js";
 import { TokenExchangeApiController } from "../token-exchange/token-exchange-api.controller.js";
 import type { RouteGroup } from "./types/route-group.js";
 import type {
@@ -45,6 +47,8 @@ export class FudaHttpServer {
     private readonly agentDefinition: AgentDefinitionApiController,
     @inject(TokenExchangeApiController)
     private readonly tokenExchange: TokenExchangeApiController,
+    @inject(FUDA_DATABASE)
+    private readonly pool: Pool,
   ) {}
 
   async createApp(
@@ -84,6 +88,7 @@ export class FudaHttpServer {
     });
 
     app.get("/api/health", async (_request, reply) => {
+      await this.pool.query("SELECT 1");
       reply.send({ ok: true, version: readPackageVersion() });
     });
 

@@ -81,7 +81,7 @@ async function withTasksGateway(
 ): Promise<void> {
   const ownedPersistence = persistence === undefined;
   const gatewayPersistence =
-    persistence ?? createTestGatewayPersistence("sqlite");
+    persistence ?? await createTestGatewayPersistence("postgres");
   assert.ok(gatewayPersistence.taskStore);
   const backend = await startMockMcpServer({
     tools: [{ name: "echo", description: "Echo input" }],
@@ -110,10 +110,10 @@ async function withTasksGateway(
     credentialResolver,
     new CapturingTraceEmitter(),
     createPolicyEnforcement(configService),
-    createApprovalServices(configService, gatewayPersistence).approvalGate,
+    (await createApprovalServices(configService, gatewayPersistence)).approvalGate,
     gatewayPersistence.taskStore!,
   );
-  const gatewayHttpServer = createTestGatewayHttpServer(
+  const gatewayHttpServer = await createTestGatewayHttpServer(
     toolCatalog,
     toolDispatch,
     { persistence: gatewayPersistence },
@@ -135,7 +135,7 @@ async function withTasksGateway(
     await closeManagerConnections(connectionManager);
     await backend.close();
     if (ownedPersistence) {
-      gatewayPersistence.close();
+      await gatewayPersistence.close();
     }
   }
 }
@@ -177,7 +177,7 @@ async function postMcp(
 describe("Gateway MCP tasks extension", () => {
   it("does not return resultType task to a client that has not declared the extension", async () => {
     await withTasksGateway(async ({ mcpUrl, taskStore }) => {
-      const created = taskStore.createWorkingTask({
+      const created = await taskStore.createWorkingTask({
         agentId: TEST_AGENT_PRINCIPAL.agentId,
         ownerId: TEST_AGENT_PRINCIPAL.ownerId,
       });
@@ -218,7 +218,7 @@ describe("Gateway MCP tasks extension", () => {
 
   it("returns a DetailedTask from tasks/get after durable create", async () => {
     await withTasksGateway(async ({ mcpUrl, taskStore }) => {
-      const created = taskStore.createWorkingTask({
+      const created = await taskStore.createWorkingTask({
         agentId: TEST_AGENT_PRINCIPAL.agentId,
         ownerId: TEST_AGENT_PRINCIPAL.ownerId,
         statusMessage: "Working",
@@ -247,7 +247,7 @@ describe("Gateway MCP tasks extension", () => {
 
   it("rejects another principal's task ID without disclosing existence", async () => {
     await withTasksGateway(async ({ mcpUrl, taskStore }) => {
-      const created = taskStore.createWorkingTask({
+      const created = await taskStore.createWorkingTask({
         agentId: "other-agent",
         ownerId: "other-owner",
       });
@@ -279,7 +279,7 @@ describe("Gateway MCP tasks extension", () => {
 
   it("expires tasks per ttlMs", async () => {
     await withTasksGateway(async ({ mcpUrl, taskStore }) => {
-      const created = taskStore.createWorkingTask({
+      const created = await taskStore.createWorkingTask({
         agentId: TEST_AGENT_PRINCIPAL.agentId,
         ownerId: TEST_AGENT_PRINCIPAL.ownerId,
         now: Date.now() - 100,
@@ -301,11 +301,11 @@ describe("Gateway MCP tasks extension", () => {
 
   it("acknowledges tasks/update and tasks/cancel", async () => {
     await withTasksGateway(async ({ mcpUrl, taskStore }) => {
-      const created = taskStore.createWorkingTask({
+      const created = await taskStore.createWorkingTask({
         agentId: TEST_AGENT_PRINCIPAL.agentId,
         ownerId: TEST_AGENT_PRINCIPAL.ownerId,
       });
-      taskStore.requireInput(created.taskId, {
+      await taskStore.requireInput(created.taskId, {
         name: { method: "elicitation/create", params: { message: "name?" } },
       });
 
@@ -324,7 +324,7 @@ describe("Gateway MCP tasks extension", () => {
         "complete",
       );
       assert.equal(
-        taskStore.getDetailedTask(TEST_AGENT_PRINCIPAL.agentId, created.taskId)
+        (await taskStore.getDetailedTask(TEST_AGENT_PRINCIPAL.agentId, created.taskId))
           .status,
         "working",
       );
@@ -340,7 +340,7 @@ describe("Gateway MCP tasks extension", () => {
         "complete",
       );
       assert.equal(
-        taskStore.getDetailedTask(TEST_AGENT_PRINCIPAL.agentId, created.taskId)
+        (await taskStore.getDetailedTask(TEST_AGENT_PRINCIPAL.agentId, created.taskId))
           .status,
         "cancelled",
       );
@@ -348,9 +348,9 @@ describe("Gateway MCP tasks extension", () => {
   });
 
   it("reads a task created against a shared database after a restart", async () => {
-    const persistence = createTestGatewayPersistence("sqlite");
+    const persistence = await createTestGatewayPersistence("postgres");
     assert.ok(persistence.taskStore);
-    const created = persistence.taskStore.createWorkingTask({
+    const created = await persistence.taskStore.createWorkingTask({
       agentId: TEST_AGENT_PRINCIPAL.agentId,
       ownerId: TEST_AGENT_PRINCIPAL.ownerId,
       statusMessage: "survived",
@@ -369,7 +369,7 @@ describe("Gateway MCP tasks extension", () => {
         assert.equal(result?.statusMessage, "survived");
       }, persistence);
     } finally {
-      persistence.close();
+      await persistence.close();
     }
   });
 });

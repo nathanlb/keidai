@@ -43,8 +43,8 @@ const testRuntimeConfig: RuntimeConfig = {
   httpPort: 3200,
 };
 
-function createTestServer({
-  persistence = createTestPersistence(),
+async function createTestServer({
+  persistence,
   startTaskRun,
   fudaClient,
 }: {
@@ -55,12 +55,14 @@ function createTestServer({
   }) => Promise<LaunchedHarnessRun>;
   fudaClient?: FudaClient;
 } = {}) {
+  const resolved = persistence ?? (await createTestPersistence());
   const launched: Array<{ task: Task; taskId: string }> = [];
-  const { runStore, taskRepository } = persistence;
+  const { runStore, taskRepository, pool } = resolved;
   const runtimeConfig = testRuntimeConfig;
   const server = new ShaidenHttpServer({
     runStore,
     taskRepository,
+    pool,
     logger: silentLogger,
     runtimeConfig,
     fudaClient,
@@ -75,7 +77,7 @@ function createTestServer({
       (async ({ task, taskId }) => {
         launched.push({ task, taskId });
         const runId = `run-${launched.length}`;
-        runStore.createRun({
+        await runStore.createRun({
           id: runId,
           taskId,
           task,
@@ -97,12 +99,12 @@ function createTestServer({
         };
       }),
   });
-  return { server, runStore, taskRepository, launched, persistence };
+  return { server, runStore, taskRepository, launched, persistence: resolved };
 }
 
 describe("tasks API", () => {
   it("creates a saved task", async () => {
-    const { server, persistence } = createTestServer({
+    const { server, persistence } = await createTestServer({
       startTaskRun: () => {
         throw new Error("should not start");
       },
@@ -119,12 +121,12 @@ describe("tasks API", () => {
       assert.ok(body.task.id);
     } finally {
       await handle.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("accepts create-and-run and returns run and task ids", async () => {
-    const { server, launched, persistence } = createTestServer();
+    const { server, launched, persistence } = await createTestServer();
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       const response = await fetch(`${handle.baseUrl}/api/tasks/run`, {
@@ -140,13 +142,13 @@ describe("tasks API", () => {
       assert.equal(launched[0]?.task.goal, sampleTask.goal);
     } finally {
       await handle.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("starts a run from a saved task", async () => {
-    const { server, taskRepository, launched, persistence } = createTestServer();
-    const saved = taskRepository.create({ task: sampleTask });
+    const { server, taskRepository, launched, persistence } = await createTestServer();
+    const saved = await taskRepository.create({ task: sampleTask });
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       const response = await fetch(
@@ -159,12 +161,12 @@ describe("tasks API", () => {
       assert.equal(launched[0]?.taskId, saved.id);
     } finally {
       await handle.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("lists, gets, updates, and archives saved tasks", async () => {
-    const { server, persistence } = createTestServer({
+    const { server, persistence } = await createTestServer({
       startTaskRun: () => {
         throw new Error("should not start");
       },
@@ -235,12 +237,12 @@ describe("tasks API", () => {
       assert.equal(rearchiveResponse.status, 404);
     } finally {
       await handle.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("rejects an invalid task body", async () => {
-    const { server, persistence } = createTestServer({
+    const { server, persistence } = await createTestServer({
       startTaskRun: () => {
         throw new Error("should not start");
       },
@@ -257,12 +259,12 @@ describe("tasks API", () => {
       assert.equal(body.error, "invalid task");
     } finally {
       await handle.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("rejects unknown assignee when Fuda does not know the agent", async () => {
-    const { server, persistence } = createTestServer({
+    const { server, persistence } = await createTestServer({
       fudaClient: {
         exchangeToken: async () => {
           throw new Error("unused");
@@ -292,22 +294,22 @@ describe("tasks API", () => {
       assert.match(body.error, /unknown agent/i);
     } finally {
       await handle.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("starts a different task while another task has a running run", async () => {
-    const persistence = createTestPersistence();
-    createTestRun(persistence, {
+    const persistence = await createTestPersistence();
+    await createTestRun(persistence, {
       runId: "existing",
       task: sampleTask,
       goal: "already running",
     });
 
-    const { server, launched, taskRepository } = createTestServer({
+    const { server, launched, taskRepository } = await createTestServer({
       persistence,
     });
-    const other = taskRepository.create({
+    const other = await taskRepository.create({
       task: { ...sampleTask, goal: "A different saved task." },
     });
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
@@ -341,23 +343,23 @@ describe("tasks API", () => {
       assert.equal(created.runId, "run-2");
       assert.equal(launched.length, 2);
       assert.equal(
-        persistence.runStore.listRunningRuns().length,
+        (await persistence.runStore.listRunningRuns()).length,
         3,
       );
     } finally {
       await handle.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("rejects a second new run for a task that already has a running run", async () => {
-    const persistence = createTestPersistence();
-    const taskId = createTestRun(persistence, {
+    const persistence = await createTestPersistence();
+    const taskId = await createTestRun(persistence, {
       runId: "existing",
       task: sampleTask,
     });
 
-    const { server, launched } = createTestServer({ persistence });
+    const { server, launched } = await createTestServer({ persistence });
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       const response = await fetch(
@@ -368,17 +370,17 @@ describe("tasks API", () => {
       const body = (await response.json()) as { error: string };
       assert.equal(body.error, "this task already has a running run");
       assert.equal(launched.length, 0);
-      assert.deepEqual(persistence.runStore.listRunningRuns(), [
+      assert.deepEqual(await persistence.runStore.listRunningRuns(), [
         { id: "existing", taskId },
       ]);
     } finally {
       await handle.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("maps a per-task running constraint to 409", async () => {
-    const { server, persistence } = createTestServer({
+    const { server, persistence } = await createTestServer({
       startTaskRun: async () => {
         throw new TaskAlreadyRunningError("task-x");
       },
@@ -395,15 +397,15 @@ describe("tasks API", () => {
       assert.equal(body.error, "this task already has a running run");
     } finally {
       await handle.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("archives a task that has runs", async () => {
-    const persistence = createTestPersistence();
-    const taskId = createTestRun(persistence, { runId: "run-1", task: sampleTask });
+    const persistence = await createTestPersistence();
+    const taskId = await createTestRun(persistence, { runId: "run-1", task: sampleTask });
 
-    const { server } = createTestServer({ persistence });
+    const { server } = await createTestServer({ persistence });
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       const response = await fetch(`${handle.baseUrl}/api/tasks/${taskId}`, {
@@ -425,18 +427,18 @@ describe("tasks API", () => {
       assert.ok(archived.task.archivedAt);
     } finally {
       await handle.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("rejects patch and run for archived tasks", async () => {
-    const { server, taskRepository, persistence } = createTestServer({
+    const { server, taskRepository, persistence } = await createTestServer({
       startTaskRun: () => {
         throw new Error("should not start");
       },
     });
-    const saved = taskRepository.create({ task: sampleTask });
-    assert.equal(taskRepository.archive(saved.id), true);
+    const saved = await taskRepository.create({ task: sampleTask });
+    assert.equal(await taskRepository.archive(saved.id), true);
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       const patchResponse = await fetch(`${handle.baseUrl}/api/tasks/${saved.id}`, {
@@ -456,12 +458,12 @@ describe("tasks API", () => {
       assert.equal(runBody.error, "task is archived");
     } finally {
       await handle.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("exposes health and runtime readiness", async () => {
-    const { server, persistence } = createTestServer({
+    const { server, persistence } = await createTestServer({
       startTaskRun: () => {
         throw new Error("unused");
       },
@@ -482,7 +484,7 @@ describe("tasks API", () => {
       });
     } finally {
       await handle.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 
@@ -492,7 +494,7 @@ describe("tasks API", () => {
       assignee: "other-agent-02",
       goal: "Run as a different agent.",
     };
-    const { server, launched, persistence } = createTestServer({
+    const { server, launched, persistence } = await createTestServer({
       fudaClient: {
         exchangeToken: async () => {
           throw new Error("unused");
@@ -530,12 +532,12 @@ describe("tasks API", () => {
       assert.equal(launched.at(-1)?.task.assignee, "other-agent-02");
     } finally {
       await handle.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("rejects create when Fuda does not know the assignee", async () => {
-    const { server, persistence } = createTestServer({
+    const { server, persistence } = await createTestServer({
       fudaClient: {
         exchangeToken: async () => {
           throw new Error("unused");
@@ -560,15 +562,15 @@ describe("tasks API", () => {
       assert.equal(response.status, 422);
       const body = (await response.json()) as { error: string };
       assert.match(body.error, /unknown agent/i);
-      assert.equal(persistence.taskRepository.list().tasks.length, 0);
+      assert.equal((await persistence.taskRepository.list()).tasks.length, 0);
     } finally {
       await handle.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("fails task start when Fuda agent is unknown", async () => {
-    const { server, persistence } = createTestServer({
+    const { server, persistence } = await createTestServer({
       startTaskRun: async () => {
         throw new AgentDefinitionError("agent_not_found", "Fuda agent not found", {
           status: 404,
@@ -585,16 +587,16 @@ describe("tasks API", () => {
       assert.equal(response.status, 422);
       const body = (await response.json()) as { error: string };
       assert.match(body.error, /unknown agent/i);
-      assert.equal(persistence.runStore.listRuns().runs.length, 0);
-      assert.equal(persistence.taskRepository.list().tasks.length, 0);
+      assert.equal((await persistence.runStore.listRuns()).runs.length, 0);
+      assert.equal((await persistence.taskRepository.list()).tasks.length, 0);
     } finally {
       await handle.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 
   it("fails task start when Fuda is unreachable", async () => {
-    const { server, persistence } = createTestServer({
+    const { server, persistence } = await createTestServer({
       startTaskRun: async () => {
         throw new AgentDefinitionError(
           "unreachable",
@@ -612,11 +614,11 @@ describe("tasks API", () => {
       assert.equal(response.status, 503);
       const body = (await response.json()) as { error: string };
       assert.match(body.error, /Fuda unreachable/i);
-      assert.equal(persistence.runStore.listRuns().runs.length, 0);
-      assert.equal(persistence.taskRepository.list().tasks.length, 0);
+      assert.equal((await persistence.runStore.listRuns()).runs.length, 0);
+      assert.equal((await persistence.taskRepository.list()).tasks.length, 0);
     } finally {
       await handle.close();
-      persistence.close();
+      await persistence.close();
     }
   });
 });

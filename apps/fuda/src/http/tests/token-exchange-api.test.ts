@@ -42,7 +42,7 @@ async function seedGrantedAgent(baseUrl: string): Promise<string> {
 
 describe("token exchange", () => {
   it("mints a signed JWT with pinned claims that verifies against JWKS", async () => {
-    const server = createTestServer("management,agent,public");
+    const server = await createTestServer("management,agent,public");
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       const agentId = await seedGrantedAgent(handle.baseUrl);
@@ -90,7 +90,7 @@ describe("token exchange", () => {
   });
 
   it("rejects an invalid subject token with 401", async () => {
-    const server = createTestServer("management,agent");
+    const server = await createTestServer("management,agent");
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       const agentId = await seedGrantedAgent(handle.baseUrl);
@@ -112,7 +112,7 @@ describe("token exchange", () => {
   });
 
   it("rejects an ungranted agent with 403, distinct from invalid subject", async () => {
-    const server = createTestServer("management,agent");
+    const server = await createTestServer("management,agent");
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       const createAgent = await fetch(`${handle.baseUrl}/api/agents`, {
@@ -150,7 +150,7 @@ describe("token exchange", () => {
   });
 
   it("rejects an unknown agent_id with 404", async () => {
-    const server = createTestServer("management,agent");
+    const server = await createTestServer("management,agent");
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       await fetch(`${handle.baseUrl}/api/bearers`, {
@@ -179,7 +179,7 @@ describe("token exchange", () => {
   });
 
   it("rejects malformed requests with 400", async () => {
-    const server = createTestServer("agent");
+    const server = await createTestServer("agent");
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       const response = await fetch(`${handle.baseUrl}/token`, {
@@ -196,7 +196,7 @@ describe("token exchange", () => {
   });
 
   it("is registered on the agent route group only", async () => {
-    const managementOnly = createTestServer("management");
+    const managementOnly = await createTestServer("management");
     const managementHandle = await managementOnly.start({
       host: "127.0.0.1",
       port: 0,

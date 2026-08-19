@@ -9,8 +9,8 @@ export class ApprovalReadService {
     private readonly approvalStore: ApprovalStoreService,
   ) {}
 
-  getApproval(id: string): ApprovalRecordView | undefined {
-    const record = this.approvalStore.getApproval(id);
+  async getApproval(id: string): Promise<ApprovalRecordView | undefined> {
+    const record = await this.approvalStore.getApproval(id);
     if (!record) {
       return undefined;
     }
@@ -34,10 +34,10 @@ export class ApprovalReadService {
     };
   }
 
-  listApprovals(
+  async listApprovals(
     status?: ApprovalRecordStatus,
     limit?: number,
-  ): ApprovalRecordView[] {
+  ): Promise<ApprovalRecordView[]> {
     return this.approvalStore.listApprovals(status, limit);
   }
 }

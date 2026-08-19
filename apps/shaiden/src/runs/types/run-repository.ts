@@ -46,51 +46,51 @@ export class TaskAlreadyRunningError extends Error {
 }
 
 export interface RunRepository {
-  create(input: CreateRunRequest): RunReport;
-  appendStep(runId: string, step: RunStep): RunReport | null;
-  complete(runId: string, input: CompleteRunRequest): RunReport | null;
-  get(runId: string): RunReport | null;
-  list(limit?: number): { runs: RunListItem[] };
-  listRunningRuns(): RunningRunRef[];
+  create(input: CreateRunRequest): Promise<RunReport>;
+  appendStep(runId: string, step: RunStep): Promise<RunReport | null>;
+  complete(runId: string, input: CompleteRunRequest): Promise<RunReport | null>;
+  get(runId: string): Promise<RunReport | null>;
+  list(limit?: number): Promise<{ runs: RunListItem[] }>;
+  listRunningRuns(): Promise<RunningRunRef[]>;
   setConversationHistory(
     runId: string,
     history: readonly ConversationEntry[],
-  ): boolean;
-  getConversationHistory(runId: string): ConversationEntry[] | null;
+  ): Promise<boolean>;
+  getConversationHistory(runId: string): Promise<ConversationEntry[] | null>;
   setParkedMcpTask(
     runId: string,
     parked: Omit<ParkedMcpTask, "runId">,
-  ): boolean;
-  clearParkedMcpTask(runId: string): boolean;
-  getParkedMcpTask(runId: string): ParkedMcpTask | null;
-  listParkedMcpTasks(): ParkedMcpTask[];
+  ): Promise<boolean>;
+  clearParkedMcpTask(runId: string): Promise<boolean>;
+  getParkedMcpTask(runId: string): Promise<ParkedMcpTask | null>;
+  listParkedMcpTasks(): Promise<ParkedMcpTask[]>;
   /**
    * Parked runs whose lease is missing or expired. Another replica may claim
    * these without double-driving a live owner.
    */
-  listClaimableParkedMcpTasks(nowIso: string): ParkedMcpTask[];
+  listClaimableParkedMcpTasks(nowIso: string): Promise<ParkedMcpTask[]>;
   enqueueParkedFollowUp(
     runId: string,
     message: string,
     userMessageStep: RunStep,
-  ): boolean;
-  drainParkedFollowUps(runId: string): ConversationEntry[];
+  ): Promise<boolean>;
+  drainParkedFollowUps(runId: string): Promise<ConversationEntry[]>;
   claimRun(
     runId: string,
     ownerId: string,
     leaseExpiresAt: string,
     nowIso: string,
-  ): boolean;
+  ): Promise<boolean>;
   renewRunLease(
     runId: string,
     ownerId: string,
     leaseExpiresAt: string,
-  ): boolean;
-  releaseRun(runId: string, ownerId: string): boolean;
-  listRunWatermarks(): RunUpdateWatermark[];
+  ): Promise<boolean>;
+  releaseRun(runId: string, ownerId: string): Promise<boolean>;
+  listRunWatermarks(): Promise<RunUpdateWatermark[]>;
   beginContinuation(
     runId: string,
     message: string,
     userMessageStep: RunStep,
-  ): BeginContinuationResult;
+  ): Promise<BeginContinuationResult>;
 }

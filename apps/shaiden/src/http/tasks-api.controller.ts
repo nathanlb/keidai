@@ -91,7 +91,7 @@ export class TasksApiController {
     });
 
     app.get("/api/tasks", async (request, reply) => {
-      reply.send(this.taskRepository.list(parseTaskListLimit(request)));
+      reply.send(await this.taskRepository.list(parseTaskListLimit(request)));
     });
 
     app.post("/api/tasks", async (request, reply) => {
@@ -110,13 +110,13 @@ export class TasksApiController {
         return;
       }
 
-      const task = this.taskRepository.create({ task: parsed.data });
+      const task = await this.taskRepository.create({ task: parsed.data });
       reply.code(201).send({ task });
     });
 
     app.get("/api/tasks/:taskId", async (request, reply) => {
       const { taskId } = request.params as { taskId: string };
-      const task = this.taskRepository.get(taskId);
+      const task = await this.taskRepository.get(taskId);
       if (!task) {
         reply.code(404).send({ error: "task not found" });
         return;
@@ -126,7 +126,7 @@ export class TasksApiController {
 
     app.patch("/api/tasks/:taskId", async (request, reply) => {
       const { taskId } = request.params as { taskId: string };
-      const existing = this.taskRepository.get(taskId);
+      const existing = await this.taskRepository.get(taskId);
       if (!existing) {
         reply.code(404).send({ error: "task not found" });
         return;
@@ -154,7 +154,7 @@ export class TasksApiController {
         }
       }
 
-      const task = this.taskRepository.update(taskId, parsed.data);
+      const task = await this.taskRepository.update(taskId, parsed.data);
       if (!task) {
         reply.code(404).send({ error: "task not found" });
         return;
@@ -164,13 +164,13 @@ export class TasksApiController {
 
     app.delete("/api/tasks/:taskId", async (request, reply) => {
       const { taskId } = request.params as { taskId: string };
-      const existing = this.taskRepository.get(taskId);
+      const existing = await this.taskRepository.get(taskId);
       if (!existing) {
         reply.code(404).send({ error: "task not found" });
         return;
       }
 
-      if (!this.taskRepository.archive(taskId)) {
+      if (!(await this.taskRepository.archive(taskId))) {
         reply.code(404).send({ error: "task not found" });
         return;
       }
@@ -180,7 +180,7 @@ export class TasksApiController {
 
     app.post("/api/tasks/:taskId/run", async (request, reply) => {
       const { taskId } = request.params as { taskId: string };
-      const saved = this.taskRepository.get(taskId);
+      const saved = await this.taskRepository.get(taskId);
       if (!saved) {
         reply.code(404).send({ error: "task not found" });
         return;
@@ -215,7 +215,7 @@ export class TasksApiController {
         return;
       }
 
-      const saved = this.taskRepository.create({ task: parsed.data });
+      const saved = await this.taskRepository.create({ task: parsed.data });
       const response = await this.startRunForTask(saved, saved.id, {
         deleteTaskOnStartFailure: true,
       });
@@ -250,8 +250,10 @@ export class TasksApiController {
     }
   }
 
-  private getRunningRunForTask(taskId: string) {
-    return this.runStore.listRunningRuns().find((run) => run.taskId === taskId);
+  private async getRunningRunForTask(taskId: string) {
+    return (await this.runStore.listRunningRuns()).find(
+      (run) => run.taskId === taskId,
+    );
   }
 
   private async startRunForTask(
@@ -280,7 +282,7 @@ export class TasksApiController {
       return assigneeError;
     }
 
-    if (this.getRunningRunForTask(taskId)) {
+    if (await this.getRunningRunForTask(taskId)) {
       return { error: "this task already has a running run", status: 409 };
     }
 
@@ -290,7 +292,7 @@ export class TasksApiController {
       ({ runId, done } = await this.startTaskRun({ task, taskId }));
     } catch (error) {
       if (options.deleteTaskOnStartFailure) {
-        this.taskRepository.delete(taskId);
+        await this.taskRepository.delete(taskId);
       }
       if (error instanceof AgentDefinitionError) {
         return describeAgentDefinitionFailure(error, "start");

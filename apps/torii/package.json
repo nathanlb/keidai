@@ -17,6 +17,7 @@
     "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json"
   },
   "dependencies": {
+    "@keidai/postgres": "workspace:*",
     "@keidai/shared": "workspace:*",
     "@modelcontextprotocol/client": "^2.0.0",
     "@modelcontextprotocol/fastify": "^2.0.0",

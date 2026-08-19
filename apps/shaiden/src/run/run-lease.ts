@@ -53,17 +53,25 @@ export function startRunLeaseHeartbeat(input: {
   const now = input.now ?? Date.now;
   const intervalMs = Math.max(1, Math.floor(input.leaseMs / 3));
   let lost = false;
+  let inFlight = false;
   const timer = setInterval(() => {
-    if (lost) {
+    if (lost || inFlight) {
       return;
     }
+    inFlight = true;
     const expires = leaseExpiresAt(now(), input.leaseMs);
-    if (
-      !input.runStore.renewRunLease(input.runId, input.replicaId, expires)
-    ) {
-      lost = true;
-      input.onLost();
-    }
+    void input.runStore
+      .renewRunLease(input.runId, input.replicaId, expires)
+      .then((ok) => {
+        inFlight = false;
+        if (!ok && !lost) {
+          lost = true;
+          input.onLost();
+        }
+      })
+      .catch(() => {
+        inFlight = false;
+      });
   }, intervalMs);
   timer.unref();
   return () => {

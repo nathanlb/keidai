@@ -14,7 +14,7 @@ describe("Fuda BFF service token gate", () => {
   it("rejects management API calls without a valid token", async () => {
     delete process.env.BFF_SERVICE_TOKEN_DISABLED;
     process.env.BFF_SERVICE_TOKEN = TOKEN;
-    const server = createTestServer("management");
+    const server = await createTestServer("management");
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       const unauthorized = await fetch(`${handle.baseUrl}/api/agents`);
@@ -54,7 +54,7 @@ describe("Fuda BFF service token gate", () => {
   it("leaves agent token exchange off the service-token gate", async () => {
     delete process.env.BFF_SERVICE_TOKEN_DISABLED;
     process.env.BFF_SERVICE_TOKEN = TOKEN;
-    const server = createTestServer("management,agent,public");
+    const server = await createTestServer("management,agent,public");
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
       // Missing subject credentials → 401 from token exchange, not the BFF gate.

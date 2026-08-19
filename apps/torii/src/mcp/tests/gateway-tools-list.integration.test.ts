@@ -65,10 +65,10 @@ describe("Gateway MCP tools/list", () => {
       credentialResolver,
       new CapturingTraceEmitter(),
       createPolicyEnforcement(configService),
-      createApprovalServices(configService).approvalGate,
-      createApprovalServices(configService).taskStore,
+      (await createApprovalServices(configService)).approvalGate,
+      (await createApprovalServices(configService)).taskStore,
     );
-    const gatewayHttpServer = createTestGatewayHttpServer(toolCatalog, toolDispatch);
+    const gatewayHttpServer = await createTestGatewayHttpServer(toolCatalog, toolDispatch);
 
     try {
       await connectionManager.connectAll();

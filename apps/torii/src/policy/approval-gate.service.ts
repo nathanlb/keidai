@@ -44,16 +44,16 @@ export class ApprovalGateService {
     );
   }
 
-  interceptGatedCall(input: {
+  async interceptGatedCall(input: {
     principal: AgentPrincipal;
     toolName: string;
     upstreamArgs: Record<string, unknown>;
     runId?: string;
     stepId?: string;
     now?: number;
-  }): GatedCallIntercept {
+  }): Promise<GatedCallIntercept> {
     const paramsHash = hashToolParams(input.upstreamArgs);
-    const suppressed = this.approvalStore.findRecentRejection({
+    const suppressed = await this.approvalStore.findRecentRejection({
       agentId: input.principal.agentId,
       toolName: input.toolName,
       paramsHash,
@@ -69,15 +69,15 @@ export class ApprovalGateService {
 
     const now = input.now ?? Date.now();
     const ttlMs = DEFAULT_MCP_TASK_TTL_MS;
-    const task = this.approvalStore.runInTransaction(() => {
-      const created = this.taskStore.createWorkingTask({
+    const task = await this.approvalStore.runInTransaction(async () => {
+      const created = await this.taskStore.createWorkingTask({
         agentId: input.principal.agentId,
         ownerId: input.principal.ownerId,
         statusMessage: `Awaiting operator approval for ${input.toolName}`,
         ttlMs,
         now,
       });
-      this.approvalStore.createPendingApproval({
+      await this.approvalStore.createPendingApproval({
         principal: input.principal,
         toolName: input.toolName,
         params: input.upstreamArgs,
@@ -99,12 +99,12 @@ export class ApprovalGateService {
    * when there is nothing to execute (still pending, already used, expired,
    * or not this agent's task).
    */
-  claimApprovedExecution(
+  async claimApprovedExecution(
     taskId: string,
     principal: AgentPrincipal,
     now = Date.now(),
-  ): ApprovalRecord | undefined {
-    const record = this.approvalStore.getApprovalByTaskId(taskId);
+  ): Promise<ApprovalRecord | undefined> {
+    const record = await this.approvalStore.getApprovalByTaskId(taskId);
     if (!record || record.agentId !== principal.agentId) {
       return undefined;
     }
@@ -117,11 +117,11 @@ export class ApprovalGateService {
     return this.approvalStore.markUsed(record.id, now);
   }
 
-  cancelPendingForTask(taskId: string, now = Date.now()): void {
-    const record = this.approvalStore.getApprovalByTaskId(taskId);
+  async cancelPendingForTask(taskId: string, now = Date.now()): Promise<void> {
+    const record = await this.approvalStore.getApprovalByTaskId(taskId);
     if (record?.status !== "pending") {
       return;
     }
-    this.approvalStore.cancel(record.id, now);
+    await this.approvalStore.cancel(record.id, now);
   }
 }

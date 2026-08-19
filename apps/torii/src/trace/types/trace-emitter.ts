@@ -1,7 +1,7 @@
 import type { CallTrace } from "@keidai/shared";
 
 export interface TraceEmitter {
-  emit(trace: CallTrace): void;
+  emit(trace: CallTrace): Promise<void>;
   subscribe(listener: (trace: CallTrace) => void): () => void;
 }
 

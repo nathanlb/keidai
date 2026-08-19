@@ -52,7 +52,7 @@ export class ApprovalsApiController {
   registerRoutes(app: FastifyInstance): void {
     app.get("/api/approvals", async (request, reply) => {
       reply.send(
-        this.approvalRead.listApprovals(
+        await this.approvalRead.listApprovals(
           parseStatus(request),
           parseApprovalListLimit(request),
         ),
@@ -61,7 +61,7 @@ export class ApprovalsApiController {
 
     app.get("/api/approvals/:id", async (request, reply) => {
       const { id } = request.params as { id: string };
-      const approval = this.approvalRead.getApproval(id);
+      const approval = await this.approvalRead.getApproval(id);
       if (!approval) {
         reply.code(404).send({ error: "approval not found" });
         return;
@@ -71,18 +71,18 @@ export class ApprovalsApiController {
 
     app.post("/api/approvals/:id/approve", async (request, reply) => {
       const { id } = request.params as { id: string };
-      const approval = this.approvalStore.approve(id);
+      const approval = await this.approvalStore.approve(id);
       if (!approval) {
         reply.code(404).send({ error: "approval not found or not pending" });
         return;
       }
-      reply.send(this.approvalRead.getApproval(id));
+      reply.send(await this.approvalRead.getApproval(id));
     });
 
     app.post("/api/approvals/:id/reject", async (request, reply) => {
       const { id } = request.params as { id: string };
       const body = (request.body ?? {}) as { reason?: string };
-      const approval = this.approvalStore.reject(
+      const approval = await this.approvalStore.reject(
         id,
         typeof body.reason === "string" ? body.reason : undefined,
       );
@@ -91,33 +91,33 @@ export class ApprovalsApiController {
         return;
       }
       if (approval.taskId) {
-        this.taskStore.complete(
+        await this.taskStore.complete(
           approval.taskId,
           callToolResultToRecord(
             toApprovalDeniedToolResult(approval.rejectionReason),
           ),
         );
       }
-      reply.send(this.approvalRead.getApproval(id));
+      reply.send(await this.approvalRead.getApproval(id));
     });
 
     app.post("/api/approvals/:id/cancel", async (request, reply) => {
       const { id } = request.params as { id: string };
-      const approval = this.approvalStore.cancel(id);
+      const approval = await this.approvalStore.cancel(id);
       if (!approval) {
         reply.code(404).send({ error: "approval not found or not pending" });
         return;
       }
       if (approval.taskId) {
         try {
-          this.taskStore.requestCancel(approval.agentId, approval.taskId);
+          await this.taskStore.requestCancel(approval.agentId, approval.taskId);
         } catch (error) {
           if (!(error instanceof McpTaskLookupError)) {
             throw error;
           }
         }
       }
-      reply.send(this.approvalRead.getApproval(id));
+      reply.send(await this.approvalRead.getApproval(id));
     });
   }
 }

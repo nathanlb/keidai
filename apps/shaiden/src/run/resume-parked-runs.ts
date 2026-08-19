@@ -15,16 +15,16 @@ export interface ResumeParkedHarnessRun {
  * replica's lease has expired. Claim happens inside the harness so two
  * replicas cannot drive the same parked run.
  */
-export function resumeParkedHarnessRuns(input: {
+export async function resumeParkedHarnessRuns(input: {
   runStore: RunStore;
-  resumeHarnessRun: (args: ResumeParkedHarnessRun) => {
-    done: Promise<unknown>;
-  };
+  resumeHarnessRun: (args: ResumeParkedHarnessRun) =>
+    | { done: Promise<unknown> }
+    | Promise<{ done: Promise<unknown> }>;
   logger: Logger;
   now?: () => number;
-}): number {
+}): Promise<number> {
   const nowIso = new Date((input.now ?? Date.now)()).toISOString();
-  const parkedRuns = input.runStore.listClaimableParkedMcpTasks(nowIso);
+  const parkedRuns = await input.runStore.listClaimableParkedMcpTasks(nowIso);
   if (parkedRuns.length === 0) {
     return 0;
   }
@@ -35,8 +35,8 @@ export function resumeParkedHarnessRuns(input: {
 
   let resumed = 0;
   for (const parked of parkedRuns) {
-    const run = input.runStore.getRun(parked.runId);
-    const history = input.runStore.getConversationHistory(parked.runId);
+    const run = await input.runStore.getRun(parked.runId);
+    const history = await input.runStore.getConversationHistory(parked.runId);
     if (!run || run.status !== "running" || !history) {
       input.logger.error("boot.resume_parked_skipped", {
         runId: parked.runId,
@@ -49,7 +49,7 @@ export function resumeParkedHarnessRuns(input: {
       continue;
     }
 
-    const { done } = input.resumeHarnessRun({
+    const { done } = await input.resumeHarnessRun({
       runId: parked.runId,
       initialHistory: history,
       task: run.task,

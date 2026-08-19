@@ -2,7 +2,6 @@ import "reflect-metadata";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { TEST_AGENT_PRINCIPAL } from "../../identity/tests/test-helpers.js";
-import { openGatewayDatabase } from "../../storage/gateway-sqlite.js";
 import { createTestGatewayPersistence } from "../../testing/gateway-persistence.js";
 import { TaskStoreService } from "../task-store.service.js";
 import { McpTaskLookupError } from "../types/mcp-task.js";
@@ -10,9 +9,9 @@ import { generateMcpTaskId } from "../utils/generate-mcp-task-id.js";
 
 const OTHER_AGENT_ID = "other-agent";
 
-function catchLookup(fn: () => unknown): McpTaskLookupError {
+async function catchLookup(fn: () => Promise<unknown>): Promise<McpTaskLookupError> {
   try {
-    fn();
+    await fn();
   } catch (error) {
     assert.ok(error instanceof McpTaskLookupError);
     return error;
@@ -20,17 +19,19 @@ function catchLookup(fn: () => unknown): McpTaskLookupError {
   assert.fail("expected McpTaskLookupError");
 }
 
-function createStore(): {
+async function createStore(): Promise<{
   store: TaskStoreService;
-  close: () => void;
-  databasePath: string;
-} {
-  const persistence = createTestGatewayPersistence("sqlite");
-  assert.ok(persistence.databasePath);
+  close: () => Promise<void>;
+  pool: NonNullable<
+    Awaited<Awaited<ReturnType<typeof createTestGatewayPersistence>>>["pool"]
+  >;
+}> {
+  const persistence = await createTestGatewayPersistence("postgres");
+  assert.ok(persistence.pool);
   assert.ok(persistence.taskStore);
   return {
     store: persistence.taskStore,
-    databasePath: persistence.databasePath,
+    pool: persistence.pool,
     close: persistence.close,
   };
 }
@@ -45,11 +46,11 @@ describe("generateMcpTaskId", () => {
   });
 });
 
-describe("TaskStoreService sqlite persistence", () => {
-  it("creates a working task that is readable before CreateTaskResult would be sent", () => {
-    const { store, close } = createStore();
+describe("TaskStoreService postgres persistence", () => {
+  it("creates a working task that is readable before CreateTaskResult would be sent", async () => {
+    const { store, close } = await createStore();
     try {
-      const created = store.createWorkingTask({
+      const created = await store.createWorkingTask({
         agentId: TEST_AGENT_PRINCIPAL.agentId,
         ownerId: TEST_AGENT_PRINCIPAL.ownerId,
         statusMessage: "Waiting on approval",
@@ -60,7 +61,7 @@ describe("TaskStoreService sqlite persistence", () => {
       assert.equal(created.pollIntervalMs, 5000);
       assert.match(created.taskId, /^[0-9a-f]{64}$/);
 
-      const got = store.getDetailedTask(
+      const got = await store.getDetailedTask(
         TEST_AGENT_PRINCIPAL.agentId,
         created.taskId,
       );
@@ -68,70 +69,63 @@ describe("TaskStoreService sqlite persistence", () => {
       assert.equal(got.status, "working");
       assert.equal(got.createdAt, created.createdAt);
     } finally {
-      close();
+      await close();
     }
   });
 
-  it("is readable from another store instance sharing the same database", () => {
-    const { store, close, databasePath } = createStore();
+  it("is readable from another store instance sharing the same database", async () => {
+    const { store, close, pool } = await createStore();
     try {
-      const created = store.createWorkingTask({
+      const created = await store.createWorkingTask({
         agentId: TEST_AGENT_PRINCIPAL.agentId,
         ownerId: TEST_AGENT_PRINCIPAL.ownerId,
       });
 
-      const peerDb = openGatewayDatabase(databasePath);
-      const peer = new TaskStoreService(peerDb);
-      try {
-        const got = peer.getDetailedTask(
-          TEST_AGENT_PRINCIPAL.agentId,
-          created.taskId,
-        );
-        assert.equal(got.taskId, created.taskId);
-        assert.equal(got.status, "working");
-      } finally {
-        peerDb.close();
-      }
+      const peer = new TaskStoreService(pool);
+      const got = await peer.getDetailedTask(
+        TEST_AGENT_PRINCIPAL.agentId,
+        created.taskId,
+      );
+      assert.equal(got.taskId, created.taskId);
+      assert.equal(got.status, "working");
     } finally {
-      close();
+      await close();
     }
   });
 
-  it("survives process restart", () => {
-    const { store, close, databasePath } = createStore();
-    const created = store.createWorkingTask({
-      agentId: TEST_AGENT_PRINCIPAL.agentId,
-      ownerId: TEST_AGENT_PRINCIPAL.ownerId,
-      statusMessage: "in progress",
-    });
-    close();
-
-    const reopenedDb = openGatewayDatabase(databasePath);
-    const reopened = new TaskStoreService(reopenedDb);
+  it("survives process restart", async () => {
+    const { store, close, pool } = await createStore();
     try {
-      const got = reopened.getDetailedTask(
+      const created = await store.createWorkingTask({
+        agentId: TEST_AGENT_PRINCIPAL.agentId,
+        ownerId: TEST_AGENT_PRINCIPAL.ownerId,
+        statusMessage: "in progress",
+      });
+
+      const reopened = new TaskStoreService(pool);
+      const got = await reopened.getDetailedTask(
         TEST_AGENT_PRINCIPAL.agentId,
         created.taskId,
       );
       assert.equal(got.taskId, created.taskId);
       assert.equal(got.statusMessage, "in progress");
     } finally {
-      reopenedDb.close();
+      await close();
     }
   });
 
-  it("rejects another principal without disclosing that the task exists", () => {
-    const { store, close } = createStore();
+  it("rejects another principal without disclosing that the task exists", async () => {
+    const { store, close } = await createStore();
     try {
-      const created = store.createWorkingTask({
+      const created = await store.createWorkingTask({
         agentId: TEST_AGENT_PRINCIPAL.agentId,
         ownerId: TEST_AGENT_PRINCIPAL.ownerId,
       });
 
-      const otherError = catchLookup(() =>
+      const otherError = await catchLookup(() =>
         store.getDetailedTask(OTHER_AGENT_ID, created.taskId),
       );
-      const missingError = catchLookup(() =>
+      const missingError = await catchLookup(() =>
         store.getDetailedTask(TEST_AGENT_PRINCIPAL.agentId, "no-such-task"),
       );
 
@@ -139,15 +133,15 @@ describe("TaskStoreService sqlite persistence", () => {
       assert.equal(missingError.reason, "not_found");
       assert.equal(otherError.message, missingError.message);
     } finally {
-      close();
+      await close();
     }
   });
 
-  it("expires tasks by query rather than process lifetime", () => {
-    const { store, close } = createStore();
+  it("expires tasks by query rather than process lifetime", async () => {
+    const { store, close } = await createStore();
     try {
       const now = 1_000_000;
-      const created = store.createWorkingTask({
+      const created = await store.createWorkingTask({
         agentId: TEST_AGENT_PRINCIPAL.agentId,
         ownerId: TEST_AGENT_PRINCIPAL.ownerId,
         now,
@@ -155,9 +149,13 @@ describe("TaskStoreService sqlite persistence", () => {
       });
 
       assert.ok(
-        store.getDetailedTask(TEST_AGENT_PRINCIPAL.agentId, created.taskId, now + 5),
+        await store.getDetailedTask(
+          TEST_AGENT_PRINCIPAL.agentId,
+          created.taskId,
+          now + 5,
+        ),
       );
-      const expired = catchLookup(() =>
+      const expired = await catchLookup(() =>
         store.getDetailedTask(
           TEST_AGENT_PRINCIPAL.agentId,
           created.taskId,
@@ -166,85 +164,85 @@ describe("TaskStoreService sqlite persistence", () => {
       );
       assert.equal(expired.reason, "expired");
     } finally {
-      close();
+      await close();
     }
   });
 
-  it("applies inputResponses and ignores unknown or already-satisfied keys", () => {
-    const { store, close } = createStore();
+  it("applies inputResponses and ignores unknown or already-satisfied keys", async () => {
+    const { store, close } = await createStore();
     try {
-      const created = store.createWorkingTask({
+      const created = await store.createWorkingTask({
         agentId: TEST_AGENT_PRINCIPAL.agentId,
         ownerId: TEST_AGENT_PRINCIPAL.ownerId,
       });
-      store.requireInput(created.taskId, {
+      await store.requireInput(created.taskId, {
         name: { method: "elicitation/create", params: {} },
         extra: { method: "elicitation/create", params: {} },
       });
 
-      store.applyInputResponses(TEST_AGENT_PRINCIPAL.agentId, created.taskId, {
+      await store.applyInputResponses(TEST_AGENT_PRINCIPAL.agentId, created.taskId, {
         name: { action: "accept" },
         unknown: { action: "accept" },
       });
 
-      const afterPartial = store.getDetailedTask(
+      const afterPartial = await store.getDetailedTask(
         TEST_AGENT_PRINCIPAL.agentId,
         created.taskId,
       );
       assert.equal(afterPartial.status, "input_required");
       assert.deepEqual(Object.keys(afterPartial.inputRequests ?? {}), ["extra"]);
 
-      store.applyInputResponses(TEST_AGENT_PRINCIPAL.agentId, created.taskId, {
+      await store.applyInputResponses(TEST_AGENT_PRINCIPAL.agentId, created.taskId, {
         name: { action: "accept" },
         extra: { action: "accept" },
       });
-      const afterAll = store.getDetailedTask(
+      const afterAll = await store.getDetailedTask(
         TEST_AGENT_PRINCIPAL.agentId,
         created.taskId,
       );
       assert.equal(afterAll.status, "working");
     } finally {
-      close();
+      await close();
     }
   });
 
-  it("cancels a working task and no-ops a terminal cancel", () => {
-    const { store, close } = createStore();
+  it("cancels a working task and no-ops a terminal cancel", async () => {
+    const { store, close } = await createStore();
     try {
-      const created = store.createWorkingTask({
+      const created = await store.createWorkingTask({
         agentId: TEST_AGENT_PRINCIPAL.agentId,
         ownerId: TEST_AGENT_PRINCIPAL.ownerId,
       });
-      store.requestCancel(TEST_AGENT_PRINCIPAL.agentId, created.taskId);
-      const cancelled = store.getDetailedTask(
+      await store.requestCancel(TEST_AGENT_PRINCIPAL.agentId, created.taskId);
+      const cancelled = await store.getDetailedTask(
         TEST_AGENT_PRINCIPAL.agentId,
         created.taskId,
       );
       assert.equal(cancelled.status, "cancelled");
 
-      store.requestCancel(TEST_AGENT_PRINCIPAL.agentId, created.taskId);
+      await store.requestCancel(TEST_AGENT_PRINCIPAL.agentId, created.taskId);
       assert.equal(
-        store.getDetailedTask(TEST_AGENT_PRINCIPAL.agentId, created.taskId)
+        (await store.getDetailedTask(TEST_AGENT_PRINCIPAL.agentId, created.taskId))
           .status,
         "cancelled",
       );
     } finally {
-      close();
+      await close();
     }
   });
 
-  it("completes with isError true rather than failing", () => {
-    const { store, close } = createStore();
+  it("completes with isError true rather than failing", async () => {
+    const { store, close } = await createStore();
     try {
-      const created = store.createWorkingTask({
+      const created = await store.createWorkingTask({
         agentId: TEST_AGENT_PRINCIPAL.agentId,
         ownerId: TEST_AGENT_PRINCIPAL.ownerId,
       });
-      store.complete(created.taskId, {
+      await store.complete(created.taskId, {
         content: [{ type: "text", text: "denied" }],
         isError: true,
       });
-      const got = store.getDetailedTask(
+      const got = await store.getDetailedTask(
         TEST_AGENT_PRINCIPAL.agentId,
         created.taskId,
       );
@@ -254,18 +252,18 @@ describe("TaskStoreService sqlite persistence", () => {
         true,
       );
     } finally {
-      close();
+      await close();
     }
   });
 
-  it("attaches a backend origin without exposing it on the wire task", () => {
-    const { store, close } = createStore();
+  it("attaches a backend origin without exposing it on the wire task", async () => {
+    const { store, close } = await createStore();
     try {
-      const created = store.createWorkingTask({
+      const created = await store.createWorkingTask({
         agentId: TEST_AGENT_PRINCIPAL.agentId,
         ownerId: TEST_AGENT_PRINCIPAL.ownerId,
       });
-      const attached = store.attachBackendOrigin(created.taskId, {
+      const attached = await store.attachBackendOrigin(created.taskId, {
         server: "github",
         backendTaskId: "same-id-from-two-backends",
         pollIntervalMs: 100,
@@ -274,14 +272,14 @@ describe("TaskStoreService sqlite persistence", () => {
       assert.equal(attached?.backendServer, "github");
       assert.equal(attached?.backendTaskId, "same-id-from-two-backends");
 
-      const stored = store.requireOwnedTask(
+      const stored = await store.requireOwnedTask(
         TEST_AGENT_PRINCIPAL.agentId,
         created.taskId,
       );
       assert.equal(stored.backendServer, "github");
       assert.equal(stored.pollIntervalMs, 100);
 
-      const wire = store.getDetailedTask(
+      const wire = await store.getDetailedTask(
         TEST_AGENT_PRINCIPAL.agentId,
         created.taskId,
       );
@@ -293,48 +291,48 @@ describe("TaskStoreService sqlite persistence", () => {
       assert.equal(wire.pollIntervalMs, 100);
       assert.equal(wire.statusMessage, "Waiting on github task");
     } finally {
-      close();
+      await close();
     }
   });
 
-  it("refuses to attach a backend origin to a terminal task", () => {
-    const { store, close } = createStore();
+  it("refuses to attach a backend origin to a terminal task", async () => {
+    const { store, close } = await createStore();
     try {
-      const created = store.createWorkingTask({
+      const created = await store.createWorkingTask({
         agentId: TEST_AGENT_PRINCIPAL.agentId,
         ownerId: TEST_AGENT_PRINCIPAL.ownerId,
       });
-      store.requestCancel(TEST_AGENT_PRINCIPAL.agentId, created.taskId);
+      await store.requestCancel(TEST_AGENT_PRINCIPAL.agentId, created.taskId);
 
-      const attached = store.attachBackendOrigin(created.taskId, {
+      const attached = await store.attachBackendOrigin(created.taskId, {
         server: "github",
         backendTaskId: "orphan",
       });
 
       assert.equal(attached, undefined);
-      const stored = store.requireOwnedTask(
+      const stored = await store.requireOwnedTask(
         TEST_AGENT_PRINCIPAL.agentId,
         created.taskId,
       );
       assert.equal(stored.status, "cancelled");
       assert.equal(stored.backendTaskId, undefined);
     } finally {
-      close();
+      await close();
     }
   });
 
-  it("returns undefined when attaching to an unknown task", () => {
-    const { store, close } = createStore();
+  it("returns undefined when attaching to an unknown task", async () => {
+    const { store, close } = await createStore();
     try {
       assert.equal(
-        store.attachBackendOrigin("does-not-exist", {
+        await store.attachBackendOrigin("does-not-exist", {
           server: "github",
           backendTaskId: "orphan",
         }),
         undefined,
       );
     } finally {
-      close();
+      await close();
     }
   });
 });

@@ -1,5 +1,12 @@
 {
   "$schema": "https://v2-10-2.turborepo.dev/schema.json",
+  "globalPassThroughEnv": [
+    "KEIDAI_TEST_DATABASE_URL",
+    "FUDA_DATABASE_URL",
+    "TORII_DATABASE_URL",
+    "SHAIDEN_DATABASE_URL",
+    "KEIDAI_PARTITION_RETENTION_DAYS"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

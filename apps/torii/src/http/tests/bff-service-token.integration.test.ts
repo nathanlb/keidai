@@ -18,9 +18,11 @@ describe("Torii BFF service token gate", () => {
   it("rejects management API calls without a valid token", async () => {
     delete process.env.BFF_SERVICE_TOKEN_DISABLED;
     process.env.BFF_SERVICE_TOKEN = TOKEN;
-    const gateway = await createTestGatewayHttpServer(
-      createStubToolCatalog(),
-      {} as never,
+    const gateway = await (
+      await createTestGatewayHttpServer(
+        createStubToolCatalog(),
+        {} as never,
+      )
     ).start();
 
     try {

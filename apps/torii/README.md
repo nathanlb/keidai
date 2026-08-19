@@ -23,10 +23,10 @@ src/
   credentials/  # user_oauth / service_key / none credential resolvers + OAuth linking
   dispatch/     # route tools/call to the correct backend
   policy/       # group policy enforcement + approval gate, store, and API
-  trace/        # structured CallTrace emission + SQLite trace buffer
+  trace/        # structured CallTrace emission + Postgres trace store
   logging/      # structured operational logs (stderr)
   identity/     # inbound agent identity (Fuda JWT, validated offline against JWKS)
-  storage/      # SQLite schema and connection
+  storage/      # Postgres schema and connection
   http/         # Fastify server assembly, health, keidai-ui static serving
   mcp/          # inbound gateway MCP server (Fastify + SDK)
   container.ts  # tsyringe registrations
@@ -40,7 +40,8 @@ From the monorepo root:
 ```bash
 pnpm install
 pnpm build
-cp apps/torii/.env.example apps/torii/.env   # edit as needed
+docker compose up postgres -d
+cp apps/torii/.env.example apps/torii/.env   # set TORII_DATABASE_URL
 cp torii.example.yaml torii.yaml                 # or use torii.demo.yaml for the demo
 pnpm --filter @keidai/torii dev
 ```
@@ -73,7 +74,7 @@ pnpm --filter @keidai/torii start
 | `TORII_PORT` | `3100` (falls back to `PORT`) | HTTP listen port |
 | `TORII_HOST` | `127.0.0.1` | HTTP bind address |
 | `TORII_UI_CLIENT_ROOT` | — | Legacy: path to built keidai-ui client (`dist/client`). Prefer the keidai-ui BFF as the public edge; leave unset in compose/k8s |
-| `TORII_DB_PATH` | `./data/torii.db` | SQLite path for gateway persistent storage (OAuth tokens, provider clients, call traces, approval ledger) |
+| `TORII_DATABASE_URL` | — | Required. Postgres connection string (OAuth tokens, provider clients, call traces, approval ledger) |
 | `TORII_OPERATORS_PATH` | — | Optional `operators.yaml`. When set, boot wipes OAuth tokens and pending links for `owner_id`s absent from the registry. Unset is a no-op (never wipe without a registry). Compose/k8s pin this to the mounted operators file |
 | `TORII_GATEWAY_BASE_URL` | — | Stable **public** base URL for OAuth callbacks (overrides per-request Host derivation). With the BFF edge, set this to the BFF origin (e.g. `http://localhost:3000`), not Torii's ClusterIP/`localhost:3100` |
 | `TORII_FUDA_ISSUER` | — | Expected `iss` on Fuda-minted agent JWTs (required) |
@@ -93,9 +94,9 @@ Agent registration / subject validation lives in Fuda (token exchange). Torii ca
 
 ## Trace feed API (UI)
 
-The Activity & traces screen reads from HTTP endpoints backed by a SQLite buffer in the gateway database (`TORII_DB_PATH`). The API contract is store-agnostic so the backing implementation can move to an external observability backend later (OTel collector → time-series / log store) without UI changes.
+The Activity & traces screen reads from HTTP endpoints backed by Postgres (`TORII_DATABASE_URL`). `call_traces` is range-partitioned by week; partitions older than 7 days are dropped (`KEIDAI_PARTITION_RETENTION_DAYS` to override). The API contract is store-agnostic so the backing implementation can move to an external observability backend later (OTel collector → time-series / log store) without UI changes.
 
-Traces are retained in SQLite (most recent 200 by default). Payloads include credential **refs** only — never token values or other secrets.
+Traces are listed with a UI cap of 200. Payloads include credential **refs** only — never token values or other secrets.
 
 ## OAuth linking (UI)
 
@@ -128,23 +129,23 @@ Operator Google login (`KEIDAI_GOOGLE_*` on keidai-ui) is a separate client: red
 
 The `owner_id` must match the registered agent's owner — tokens linked for a different owner will not resolve at call time.
 
-Removing an operator from `operators.yaml` does not revoke IdP tokens by itself. Restart Torii (or roll the Deployment) so boot can wipe that `owner_id`'s rows from `oauth_tokens` and `pending_oauth_links`. Fuda's owner reconcile is separate and does not touch Torii SQLite. Compose and kind set `TORII_OPERATORS_PATH` to the mounted registry; a missing or invalid file fails boot rather than wiping grants. Unset `TORII_OPERATORS_PATH` skips the wipe.
+Removing an operator from `operators.yaml` does not revoke IdP tokens by itself. Restart Torii (or roll the Deployment) so boot can wipe that `owner_id`'s rows from `oauth_tokens` and `pending_oauth_links`. Fuda's owner reconcile is separate and does not touch Torii's database. Compose and kind set `TORII_OPERATORS_PATH` to the mounted registry; a missing or invalid file fails boot rather than wiping grants. Unset `TORII_OPERATORS_PATH` skips the wipe.
 
 In-cluster wiring: [`deploy/k8s/README.md`](../../deploy/k8s/README.md).
 
 ### Resetting stale OAuth data
 
-If dynamic clients were registered with an old redirect URI, clear SQLite and re-link:
+If dynamic clients were registered with an old redirect URI, clear the rows and re-link:
 
 ```bash
-sqlite3 ./data/torii.db \
+psql "$TORII_DATABASE_URL" -c \
   "DELETE FROM oauth_provider_clients; DELETE FROM oauth_tokens;"
 ```
 
 To wipe a single removed operator without waiting for the next boot reconcile:
 
 ```bash
-sqlite3 ./data/torii.db \
+psql "$TORII_DATABASE_URL" -c \
   "DELETE FROM oauth_tokens WHERE owner_id = 'the-owner-id';
    DELETE FROM pending_oauth_links WHERE owner_id = 'the-owner-id';"
 ```
@@ -186,7 +187,7 @@ docker build -f apps/torii/Dockerfile -t torii .
 docker run --rm -p 3100:3100 \
   -e GITHUB_CLIENT_ID=... -e GITHUB_CLIENT_SECRET=... \
   -e TORII_GATEWAY_BASE_URL=http://localhost:3000 \
-  -v torii-data:/app/data \
+  -e TORII_DATABASE_URL=postgres://torii:keidai-local@host.docker.internal:5432/torii \
   torii
 ```
 

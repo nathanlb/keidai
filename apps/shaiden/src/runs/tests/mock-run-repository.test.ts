@@ -10,9 +10,9 @@ const sampleTask = {
 };
 
 describe("MockRunRepository", () => {
-  it("rejects a second running run for the same task and allows another task", () => {
+  it("rejects a second running run for the same task and allows another task", async () => {
     const repository = new MockRunRepository();
-    repository.create({
+    await repository.create({
       id: "run-1",
       taskId: "task-1",
       task: sampleTask,
@@ -21,7 +21,7 @@ describe("MockRunRepository", () => {
       startedAt: "2026-07-08T12:00:00.000Z",
     });
 
-    assert.throws(
+    await assert.rejects(
       () =>
         repository.create({
           id: "run-1b",
@@ -34,7 +34,7 @@ describe("MockRunRepository", () => {
       (error: unknown) => error instanceof TaskAlreadyRunningError,
     );
 
-    repository.create({
+    await repository.create({
       id: "run-2",
       taskId: "task-2",
       task: sampleTask,
@@ -42,13 +42,13 @@ describe("MockRunRepository", () => {
       goal: sampleTask.goal,
       startedAt: "2026-07-08T12:00:02.000Z",
     });
-    assert.deepEqual(repository.listRunningRuns(), [
+    assert.deepEqual(await repository.listRunningRuns(), [
       { id: "run-1", taskId: "task-1" },
       { id: "run-2", taskId: "task-2" },
     ]);
 
-    repository.complete("run-1", { outcome: { status: "goal_met" } });
-    repository.create({
+    await repository.complete("run-1", { outcome: { status: "goal_met" } });
+    await repository.create({
       id: "run-1c",
       taskId: "task-1",
       task: sampleTask,
@@ -56,7 +56,7 @@ describe("MockRunRepository", () => {
       goal: sampleTask.goal,
       startedAt: "2026-07-08T12:02:00.000Z",
     });
-    assert.deepEqual(repository.listRunningRuns(), [
+    assert.deepEqual(await repository.listRunningRuns(), [
       { id: "run-2", taskId: "task-2" },
       { id: "run-1c", taskId: "task-1" },
     ]);

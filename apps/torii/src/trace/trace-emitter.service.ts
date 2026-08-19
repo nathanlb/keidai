@@ -14,12 +14,12 @@ export class TraceEmitterService implements TraceEmitter {
     private readonly repository: TraceRepository,
   ) {}
 
-  emit(trace: CallTrace): void {
+  async emit(trace: CallTrace): Promise<void> {
     process.stdout.write(
       `${JSON.stringify({ ...trace, recordType: "call_trace" })}\n`,
     );
     emitOtelSpan(trace);
-    this.repository.append(trace);
+    await this.repository.append(trace);
     for (const listener of this.listeners) {
       listener(trace);
     }

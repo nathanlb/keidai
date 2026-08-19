@@ -30,7 +30,8 @@ describe("Gateway HTTP access logging", () => {
       },
       logger,
     );
-    const { approvalsApi } = createApprovalServices(configService);
+    const services = await createApprovalServices(configService);
+    const { approvalsApi } = services;
     const gatewayHttpServer = new GatewayHttpServer(
       new ConfigApiController(new ConfigReadService(configService)),
       new ConnectionsApiController(
@@ -50,6 +51,7 @@ describe("Gateway HTTP access logging", () => {
         logger,
       ),
       logger,
+      services.persistence.pool!,
     );
 
     const gateway = await gatewayHttpServer.start();
@@ -73,6 +75,7 @@ describe("Gateway HTTP access logging", () => {
       assert.doesNotMatch(serialized, /Bearer/);
     } finally {
       await gateway.close();
+      await services.close();
     }
   });
 });

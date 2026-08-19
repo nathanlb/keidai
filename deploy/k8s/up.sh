@@ -51,32 +51,8 @@ ensure_orbstack_cluster() {
   fi
 }
 
-# Materialize hostPath patches onto apps/*/data (same dirs as native local runs).
-# Mac home paths are visible inside OrbStack at the same absolute path.
-prepare_orbstack_hostpath() {
-  local fuda_data="${ROOT}/apps/fuda/data"
-  local torii_data="${ROOT}/apps/torii/data"
-  local shaiden_data="${ROOT}/apps/shaiden/data"
-  local tmpl="${OVERLAY_DIR}/patch-hostpath-volumes.yaml.tmpl"
-  local out="${OVERLAY_DIR}/patch-hostpath-volumes.yaml"
-
-  [[ -f "${tmpl}" ]] || die "missing ${tmpl}"
-
-  log "preparing hostPath data dirs (apps/{fuda,torii,shaiden}/data)"
-  mkdir -p "${fuda_data}" "${torii_data}" "${shaiden_data}"
-  # Pods run as uid 1001; keep local dirs writable across Mac↔VM ownership.
-  chmod 777 "${fuda_data}" "${torii_data}" "${shaiden_data}"
-
-  local esc_fuda esc_torii esc_shaiden
-  esc_fuda="$(printf '%s' "${fuda_data}" | sed -e 's/[&\\]/\\&/g')"
-  esc_torii="$(printf '%s' "${torii_data}" | sed -e 's/[&\\]/\\&/g')"
-  esc_shaiden="$(printf '%s' "${shaiden_data}" | sed -e 's/[&\\]/\\&/g')"
-  sed \
-    -e "s|__KEIDAI_FUDA_DATA__|${esc_fuda}|g" \
-    -e "s|__KEIDAI_TORII_DATA__|${esc_torii}|g" \
-    -e "s|__KEIDAI_SHAIDEN_DATA__|${esc_shaiden}|g" \
-    "${tmpl}" >"${out}"
-  log "wrote ${out}"
+urlencode() {
+  python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=""))' "$1"
 }
 
 build_images() {
@@ -169,6 +145,10 @@ create_secrets() {
     --from-file="operators.yaml=${KEIDAI_OPERATORS_FILE}" \
     --dry-run=client -o yaml | kubectl apply -f -
 
+  local postgres_password encoded
+  postgres_password="${POSTGRES_PASSWORD:-keidai-local}"
+  encoded="$(urlencode "${postgres_password}")"
+
   log "creating/updating Secret keidai-secrets"
   kubectl -n "${NAMESPACE}" create secret generic keidai-secrets \
     --from-literal="OPEN_ROUTER_API_KEY=${OPEN_ROUTER_API_KEY}" \
@@ -182,6 +162,10 @@ create_secrets() {
     --from-literal="KEIDAI_SESSION_SECRET=${KEIDAI_SESSION_SECRET}" \
     --from-literal="BFF_SERVICE_TOKEN=${BFF_SERVICE_TOKEN:-}" \
     --from-literal="BFF_SERVICE_TOKEN_DISABLED=${BFF_SERVICE_TOKEN_DISABLED:-}" \
+    --from-literal="POSTGRES_PASSWORD=${postgres_password}" \
+    --from-literal="FUDA_DATABASE_URL=postgres://fuda:${encoded}@postgres:5432/fuda" \
+    --from-literal="TORII_DATABASE_URL=postgres://torii:${encoded}@postgres:5432/torii" \
+    --from-literal="SHAIDEN_DATABASE_URL=postgres://shaiden:${encoded}@postgres:5432/shaiden" \
     --dry-run=client -o yaml | kubectl apply -f -
 }
 
@@ -223,6 +207,7 @@ apply_manifests() {
 
 wait_ready() {
   log "waiting for Deployments"
+  kubectl -n "${NAMESPACE}" rollout status deployment/postgres --timeout=180s
   kubectl -n "${NAMESPACE}" rollout status deployment/fuda --timeout=180s
   kubectl -n "${NAMESPACE}" rollout status deployment/torii --timeout=180s
   kubectl -n "${NAMESPACE}" rollout status deployment/shaiden --timeout=180s
@@ -230,20 +215,14 @@ wait_ready() {
 }
 
 print_checklist() {
-  local data_note=""
-  if [[ "${OVERLAY}" == "orbstack" ]]; then
-    data_note="
-  SQLite hostPath: apps/{fuda,torii,shaiden}/data (shared with native local runs)
-  (survives OrbStack Kubernetes disable; not deleted by k8s:down)
-"
-  fi
   cat <<EOF
 
 Keidai is up (overlay: ${OVERLAY}).
 
   UI / BFF:  ${PUBLIC_URL}
   Login:     ${PUBLIC_URL}/auth/login
-${data_note}
+  Postgres:  ClusterIP postgres:5432 (databases fuda, torii, shaiden)
+
 Smoke checklist:
   1. Only the BFF is on the host. Fuda/Torii/Shaiden stay ClusterIP.
   2. Google operator login → SPA loads; /api/agents and /api/config work same-origin.
@@ -263,6 +242,7 @@ main() {
   require_cmd kubectl
   require_cmd docker
   require_cmd openssl
+  require_cmd python3
 
   case "${OVERLAY}" in
     kind)
@@ -274,7 +254,6 @@ main() {
       ;;
     orbstack)
       ensure_orbstack_cluster
-      prepare_orbstack_hostpath
       build_images
       log "OrbStack shares the local Docker store — skipping image load"
       ;;

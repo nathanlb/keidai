@@ -66,9 +66,13 @@ export interface TaskLoopDeps {
   /** Injectable clock for tests; defaults to Date.now. */
   now?: () => number;
   /** Drains queued follow-up user messages immediately before each model call. */
-  drainPendingUserMessages?: () => ConversationEntry[];
+  drainPendingUserMessages?: () =>
+    | ConversationEntry[]
+    | Promise<ConversationEntry[]>;
   /** Persists conversation checkpoints after each history mutation. */
-  onHistoryChanged?: (history: readonly ConversationEntry[]) => void;
+  onHistoryChanged?: (
+    history: readonly ConversationEntry[],
+  ) => void | Promise<void>;
 }
 
 export interface TaskLoopStart {
