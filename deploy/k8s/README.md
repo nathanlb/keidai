@@ -6,7 +6,7 @@ authenticates to Fuda with a projected service-account token (`aud=fuda`).
 
 ```text
 Browser → keidai-ui:3000 (SPA, /auth/*, /api/*, /oauth/callback/*)
-            ├─ Torii   :3100
+            ├─ Torii   :3100  (2 replicas, ClusterIP round-robin)
             ├─ Fuda    :3300
             └─ Shaiden :3200  ──SA JWT──▶ Fuda /token ──JWT──▶ Torii /mcp
 ```
@@ -69,9 +69,10 @@ One Postgres instance in the `keidai` namespace (`postgres:16-alpine`, ClusterIP
 
 Traces (`call_traces`) and Shaiden `run_steps` are weekly range-partitioned;
 partitions older than 7 days are dropped (`KEIDAI_PARTITION_RETENTION_DAYS`).
-Replica counts stay at 1 — scaling Torii is a later issue (NAT-151). High
-availability (CloudNativePG, standby, object-storage PITR) is a later GCP
-deploy (NAT-160), not this local overlay.
+Torii runs two replicas behind ClusterIP `service/torii` (see
+[Torii replicas](#torii-replicas)). Fuda, Shaiden, keidai-ui, and Postgres
+stay at 1. High availability (CloudNativePG, standby, object-storage PITR)
+is a later GCP deploy (NAT-160), not this local overlay.
 
 Wiping the `postgres-data` PVC (or deleting the kind node) resets local data.
 There is no SQLite dump converter.
@@ -83,7 +84,7 @@ There is no SQLite dump converter.
 3. Creates Secrets `fuda-signing` and `keidai-secrets` from `secrets.env`.
 4. `kubectl apply -k deploy/k8s/overlays/<overlay>`.
 5. Patches `FUDA_K8S_SA_OIDC_ISSUER` from cluster OIDC discovery when available.
-6. Waits for Deployments and prints a smoke checklist.
+6. Waits for Deployments and prints the UI URL.
 
 Apply without the helper script:
 
@@ -94,6 +95,77 @@ kubectl apply -k deploy/k8s/overlays/orbstack
 ```
 
 (You still need the Secrets from `up.sh` or an equivalent.)
+
+## Smoke
+
+Only the BFF is on the host; Fuda, Torii, and Shaiden stay ClusterIP.
+
+- Sign in at `/auth/login`. The SPA should load; `/api/agents` and
+  `/api/config` work same-origin.
+- Fuda uses k8s SA OIDC (not static mappings):
+
+  ```bash
+  kubectl -n keidai exec deploy/fuda -- printenv FUDA_K8S_SA_OIDC_AUDIENCE
+  ```
+
+- Shaiden presents a projected SA token:
+
+  ```bash
+  kubectl -n keidai exec deploy/shaiden -- head -c 20 /var/run/secrets/tokens/token
+  ```
+
+- Start a Shaiden run from the UI; token exchange + Torii MCP should succeed.
+- Torii OAuth link callbacks hit `http://localhost:3000/oauth/callback/...`.
+
+Replica-specific checks are under [Torii replicas](#torii-replicas).
+
+## Torii replicas
+
+`base/torii.yaml` sets `spec.replicas: 2`. kind and OrbStack overlays inherit
+that count. `service/torii` stays ClusterIP with `sessionAffinity: None` —
+kube-proxy round-robins TCP connections; there is no sticky session.
+
+Approvals, MCP tasks, OAuth tokens, and `call_traces` live in the shared
+`torii` Postgres database (`TORII_DATABASE_URL`). The MCP path is
+replica-agnostic: an operator approve via the BFF and a Shaiden `tasks/get`
+poll can hit different pods and still complete a gated run. Deleting one
+Torii pod does not drop those rows; the remaining replica serves them.
+
+Known leftovers (not this overlay):
+
+- Operator SSE is process-local. An operator whose BFF lands on replica A
+  will not live-stream traces emitted on replica B. List/get still read
+  Postgres, so history is shared.
+- Each replica opens its own backend MCP clients (connection count × replica
+  count).
+
+Fuda, Shaiden, and keidai-ui stay at one replica.
+
+### Smoke
+
+After `pnpm k8s:up`:
+
+```bash
+kubectl -n keidai get pods -l app=torii
+kubectl -n keidai get svc torii -o jsonpath='{.spec.type} {.spec.sessionAffinity}{"\n"}'
+```
+
+Expect two Ready pods and `ClusterIP None`.
+
+Then:
+
+1. Start a Shaiden run that parks on a gated tool (`gmail.create_draft` for
+   agent `shaiden-newsletter-01` in the demo config). Approve it from the UI
+   while both Torii pods are Ready. The run should finish even if approve and
+   `tasks/get` hit different pods (check each pod's logs for the request).
+2. Park another gated run, delete **one** Torii pod, then approve. The
+   remaining pod should still see the approval and MCP task; the run should
+   finish. Deployment will recreate the deleted pod.
+
+```bash
+POD="$(kubectl -n keidai get pod -l app=torii -o jsonpath='{.items[0].metadata.name}')"
+kubectl -n keidai delete pod "${POD}"
+```
 
 ## Auth wiring
 
@@ -140,7 +212,8 @@ the BFF all mount that file at boot.
   for kustomize (files must live under the kustomization directory). Keep them
   in sync when changing demo gateway config.
 - Postgres is a single Deployment + PVC. Do not set `*_DB_PATH`.
-- Replica counts stay at 1 (storage no longer forces that; scaling is a later issue).
+- Torii is `replicas: 2` behind ClusterIP with no session affinity; other
+  apps stay at 1.
 - Do not set `TORII_UI_CLIENT_ROOT` — the UI is served by keidai-ui only.
 - `TORII_GATEWAY_BASE_URL=http://localhost:3000` so backend OAuth initiate
   returns BFF-origin callbacks.

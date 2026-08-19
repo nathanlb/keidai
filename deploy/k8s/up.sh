@@ -214,24 +214,13 @@ wait_ready() {
   kubectl -n "${NAMESPACE}" rollout status deployment/keidai-ui --timeout=180s
 }
 
-print_checklist() {
+print_ready() {
   cat <<EOF
 
 Keidai is up (overlay: ${OVERLAY}).
 
   UI / BFF:  ${PUBLIC_URL}
   Login:     ${PUBLIC_URL}/auth/login
-  Postgres:  ClusterIP postgres:5432 (databases fuda, torii, shaiden)
-
-Smoke checklist:
-  1. Only the BFF is on the host. Fuda/Torii/Shaiden stay ClusterIP.
-  2. Google operator login → SPA loads; /api/agents and /api/config work same-origin.
-  3. Fuda uses k8s SA OIDC (not static mappings):
-       kubectl -n keidai exec deploy/fuda -- printenv FUDA_K8S_SA_OIDC_AUDIENCE
-  4. Shaiden presents a projected SA token:
-       kubectl -n keidai exec deploy/shaiden -- head -c 20 /var/run/secrets/tokens/token
-  5. Start a Shaiden run from the UI; token exchange + Torii MCP should succeed.
-  6. Torii OAuth link callbacks hit ${PUBLIC_URL}/oauth/callback/...
 
 Tear down:  pnpm k8s:down ${OVERLAY}
 EOF
@@ -264,7 +253,7 @@ main() {
 
   apply_manifests
   wait_ready
-  print_checklist
+  print_ready
 }
 
 main "$@"
