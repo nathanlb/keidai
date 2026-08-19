@@ -326,6 +326,20 @@ export async function mockToriiConfig(
     await route.fulfill({ json: runs });
   });
 
+  await page.route(/\/api\/ui\/shaiden\/runs(\?|$)/, async (route) => {
+    if (!shaidenHealthy) {
+      await route.fulfill({ status: 503, body: "Shaiden unavailable" });
+      return;
+    }
+
+    await route.fulfill({
+      json: {
+        runs: runs.runs.map((run) => ({ ...run, assigneeDisplay: null })),
+        agentsById: {},
+      },
+    });
+  });
+
   await page.route(/\/api\/tasks\/runtime$/, async (route) => {
     if (!healthy) {
       await route.fulfill({ status: 503, body: "Gateway unavailable" });

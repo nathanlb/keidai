@@ -11,22 +11,24 @@ import {
   TableRow,
 } from "@keidai/ui";
 import { ListChecks, Plus } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { TablePaginationFooter } from "../../shell/components/table-pagination/table-pagination-footer.js";
 import { paginateItems } from "../../shell/components/table-pagination/paginate-items.js";
 import { useTablePageIndex } from "../../shell/components/table-pagination/use-table-page-index.js";
 import { runSavedTask } from "../api/shaiden-client.js";
 import { useFetchTasks } from "../hooks/use-fetch-tasks.js";
+import { useRunsVisibility } from "../hooks/use-runs-visibility.js";
 import { TASK_PARAM } from "../navigation.js";
 import { TaskAuthoringDialog } from "./task-authoring-dialog.js";
 import { TasksTableRow } from "./tasks-table-row.js";
 import { tasksTableColumns } from "./tasks-table-columns.js";
+import { collectRunningTaskIds } from "./utils/collect-running-task-ids.js";
 
 function TasksEmptyState({ onNewTask }: { onNewTask: () => void }) {
   return (
     <PageEmptyState
-      icon={<ListChecks className="size-[30px]" aria-hidden />}
+      icon={<ListChecks className="size-7.5" aria-hidden />}
       title="No saved tasks yet"
       description="Author a goal, assign an agent, and run it. Saved tasks can be re-run without re-entering the configuration."
       action={
@@ -44,11 +46,15 @@ export function TasksListView() {
   const [searchParams, setSearchParams] = useSearchParams();
   const editTaskId = searchParams.get(TASK_PARAM);
   const { data, error, isLoading, refresh } = useFetchTasks();
+  const { runs } = useRunsVisibility(true);
   const [newTaskOpen, setNewTaskOpen] = useState(false);
-  const [runningTaskId, setRunningTaskId] = useState<string | null>(null);
+  const [startingTaskIds, setStartingTaskIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [runError, setRunError] = useState<string | null>(null);
 
   const tasks = data?.tasks ?? [];
+  const runningTaskIds = useMemo(() => collectRunningTaskIds(runs), [runs]);
   const authoringOpen = newTaskOpen || Boolean(editTaskId);
   const { pageIndex, onPageChange } = useTablePageIndex([tasks.length]);
   const {
@@ -95,7 +101,11 @@ export function TasksListView() {
   const handleRunTask = useCallback(
     async (taskId: string) => {
       setRunError(null);
-      setRunningTaskId(taskId);
+      setStartingTaskIds((current) => {
+        const next = new Set(current);
+        next.add(taskId);
+        return next;
+      });
       try {
         const { runId } = await runSavedTask(taskId);
         void navigate(`/shaiden/runs?run=${encodeURIComponent(runId)}`);
@@ -104,7 +114,11 @@ export function TasksListView() {
           err instanceof Error ? err.message : "Failed to start task",
         );
       } finally {
-        setRunningTaskId(null);
+        setStartingTaskIds((current) => {
+          const next = new Set(current);
+          next.delete(taskId);
+          return next;
+        });
       }
     },
     [navigate],
@@ -186,7 +200,10 @@ export function TasksListView() {
                     <TasksTableRow
                       key={task.id}
                       task={task}
-                      isRunning={runningTaskId === task.id}
+                      isRunning={
+                        runningTaskIds.has(task.id) ||
+                        startingTaskIds.has(task.id)
+                      }
                       onEdit={() => syncTaskParam(task.id)}
                       onRun={() => void handleRunTask(task.id)}
                     />
