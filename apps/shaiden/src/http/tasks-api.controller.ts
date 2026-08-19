@@ -250,13 +250,8 @@ export class TasksApiController {
     }
   }
 
-  /**
-   * v0 fleet-wide start cap: at most one `running` run in the store, any task.
-   * The durable rule is one running run per task (unique index). NAT-164 lifts
-   * this gate so different tasks can run at once.
-   */
-  private hasRunningRun(): boolean {
-    return this.runStore.listRunningRuns().length > 0;
+  private getRunningRunForTask(taskId: string) {
+    return this.runStore.listRunningRuns().find((run) => run.taskId === taskId);
   }
 
   private async startRunForTask(
@@ -285,8 +280,8 @@ export class TasksApiController {
       return assigneeError;
     }
 
-    if (this.hasRunningRun()) {
-      return { error: "a run is already in progress", status: 409 };
+    if (this.getRunningRunForTask(taskId)) {
+      return { error: "this task already has a running run", status: 409 };
     }
 
     let runId: string;

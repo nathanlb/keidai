@@ -74,18 +74,19 @@ function createTestServer({
       startTaskRun ??
       (async ({ task, taskId }) => {
         launched.push({ task, taskId });
+        const runId = `run-${launched.length}`;
         runStore.createRun({
-          id: "run-1",
+          id: runId,
           taskId,
           task,
           assignee: task.assignee,
           goal: task.goal,
         });
         return {
-          runId: "run-1",
+          runId,
           done: Promise.resolve({
             run: {
-              id: "run-1",
+              id: runId,
               task,
               startedAt: new Date().toISOString(),
               outcome: { status: "goal_met" },
@@ -295,7 +296,7 @@ describe("tasks API", () => {
     }
   });
 
-  it("rejects when a run is already in progress", async () => {
+  it("starts a different task while another task has a running run", async () => {
     const persistence = createTestPersistence();
     createTestRun(persistence, {
       runId: "existing",
@@ -303,22 +304,73 @@ describe("tasks API", () => {
       goal: "already running",
     });
 
-    const { server } = createTestServer({
+    const { server, launched, taskRepository } = createTestServer({
       persistence,
-      startTaskRun: () => {
-        throw new Error("should not start");
-      },
+    });
+    const other = taskRepository.create({
+      task: { ...sampleTask, goal: "A different saved task." },
     });
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
-      const response = await fetch(`${handle.baseUrl}/api/tasks/run`, {
+      const savedStart = await fetch(
+        `${handle.baseUrl}/api/tasks/${other.id}/run`,
+        { method: "POST" },
+      );
+      assert.equal(savedStart.status, 202);
+      const savedBody = (await savedStart.json()) as {
+        runId: string;
+        taskId: string;
+      };
+      assert.equal(savedBody.taskId, other.id);
+      assert.equal(savedBody.runId, "run-1");
+
+      const createAndRun = await fetch(`${handle.baseUrl}/api/tasks/run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(sampleTask),
+        body: JSON.stringify({
+          ...sampleTask,
+          goal: "Yet another task.",
+        }),
       });
+      assert.equal(createAndRun.status, 202);
+      const created = (await createAndRun.json()) as {
+        runId: string;
+        taskId: string;
+      };
+      assert.notEqual(created.taskId, other.id);
+      assert.equal(created.runId, "run-2");
+      assert.equal(launched.length, 2);
+      assert.equal(
+        persistence.runStore.listRunningRuns().length,
+        3,
+      );
+    } finally {
+      await handle.close();
+      persistence.close();
+    }
+  });
+
+  it("rejects a second new run for a task that already has a running run", async () => {
+    const persistence = createTestPersistence();
+    const taskId = createTestRun(persistence, {
+      runId: "existing",
+      task: sampleTask,
+    });
+
+    const { server, launched } = createTestServer({ persistence });
+    const handle = await server.start({ host: "127.0.0.1", port: 0 });
+    try {
+      const response = await fetch(
+        `${handle.baseUrl}/api/tasks/${taskId}/run`,
+        { method: "POST" },
+      );
       assert.equal(response.status, 409);
       const body = (await response.json()) as { error: string };
-      assert.equal(body.error, "a run is already in progress");
+      assert.equal(body.error, "this task already has a running run");
+      assert.equal(launched.length, 0);
+      assert.deepEqual(persistence.runStore.listRunningRuns(), [
+        { id: "existing", taskId },
+      ]);
     } finally {
       await handle.close();
       persistence.close();

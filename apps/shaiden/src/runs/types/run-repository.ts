@@ -33,7 +33,8 @@ export interface RunningRunRef {
 
 /**
  * A second new run was created for a task that already has a `running` row.
- * Distinct from the v0 fleet-wide start cap.
+ * The durable rule is `UNIQUE(task_id) WHERE status = 'running'`; this error
+ * is the HTTP/API mapping when two replicas race `create`.
  */
 export class TaskAlreadyRunningError extends Error {
   readonly code = "task_already_running" as const;

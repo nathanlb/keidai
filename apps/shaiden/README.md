@@ -4,7 +4,7 @@ Agent runtime for the Keidai ecosystem. Exchanges a subject token with Fuda for 
 
 ## Task loop
 
-The loop is deliberately thin: call the model (OpenRouter via the AI SDK) with Torii-discovered tools, dispatch tool calls back to Torii over MCP (per-request caller; not a held protocol session), feed results in, repeat. Conversation state is persisted per run in SQLite and used to continue that same run after a terminal outcome. At most one run may be `running` for a given saved task (enforced in the store). Starting a second run while any run is already in progress is a temporary v0 fleet-wide cap, not a runtime invariant. Every run records exactly one outcome:
+The loop is deliberately thin: call the model (OpenRouter via the AI SDK) with Torii-discovered tools, dispatch tool calls back to Torii over MCP (per-request caller; not a held protocol session), feed results in, repeat. Conversation state is persisted per run in SQLite and used to continue that same run after a terminal outcome. At most one run may be `running` for a given saved task (enforced in the store). Different saved tasks may run at the same time, including across Shaiden replicas. Every run records exactly one outcome:
 
 | Outcome | Meaning |
 |---------|---------|
