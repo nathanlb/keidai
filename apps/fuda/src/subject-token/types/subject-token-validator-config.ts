@@ -11,7 +11,7 @@ export type SubjectTokenValidatorConfig =
 
 /**
  * Public runtime surface: which validator is selected, without
- * validator-private credential material (static mappings, etc.).
+ * validator-private credential material (static secrets, SA subjects, etc.).
  */
 export type SubjectTokenValidatorSelection = {
   kind: SubjectTokenValidatorConfig["kind"];

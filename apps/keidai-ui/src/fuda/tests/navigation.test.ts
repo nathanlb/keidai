@@ -12,10 +12,9 @@ describe("findFudaNavItem", () => {
     expect(findFudaNavItem("/agents/agt-1")).toBe(fudaNavItems[0]);
   });
 
-  it("returns the bearers nav item for list and nested bearer routes", () => {
-    expect(findFudaNavItem("/bearers")).toBe(fudaNavItems[1]);
-    expect(findFudaNavItem("/bearers/new")).toBe(fudaNavItems[1]);
-    expect(findFudaNavItem("/bearers/br_abc123")).toBe(fudaNavItems[1]);
+  it("does not expose bearers as a nav item", () => {
+    expect(findFudaNavItem("/bearers")).toBeUndefined();
+    expect(findFudaNavItem("/bearers/new")).toBeUndefined();
     expect(isFudaBearersRoute("/bearers/br_abc123")).toBe(true);
   });
 

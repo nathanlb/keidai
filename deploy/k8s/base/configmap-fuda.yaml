@@ -15,6 +15,6 @@ data:
   FUDA_K8S_SA_OIDC_ISSUER: https://kubernetes.default.svc.cluster.local
   FUDA_K8S_SA_OIDC_AUDIENCE: fuda
   FUDA_K8S_SA_OIDC_JWKS_URI: https://kubernetes.default.svc/openid/v1/jwks
-  FUDA_K8S_SA_OIDC_SUBJECT_MAPPINGS: keidai/shaiden=shaiden-runner
+  FUDA_K8S_SA_OIDC_SUBJECTS: keidai/shaiden
   FUDA_OPERATORS_PATH: /app/operators/operators.yaml
   NODE_EXTRA_CA_CERTS: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt

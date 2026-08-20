@@ -20,7 +20,7 @@ Naming and boundary details that are easy to get wrong:
 - Policy is authored as top-level `groups[]` in `torii.yaml`, **not** per-server `policy` blocks. Per-server allow-lists are derived for the UI only.
 - Torii has exactly **one** identity resolver, `FudaJwtIdentityResolver`, permanently. Platform swappability lives in Fuda's `SubjectTokenValidator`.
 - **Torii owns the approval gate and ledger**; Shaiden only parks and resumes.
-- Compose/local attestation uses a static shared secret (`SHAIDEN_BEARER` / `FUDA_STATIC_SUBJECT_MAPPINGS`). In-cluster, Shaiden presents a projected SA token (`SHAIDEN_SUBJECT_TOKEN_FILE`) and Fuda validates via `FUDA_K8S_SA_OIDC_*`.
+- Compose/local attestation uses a static shared secret (`SHAIDEN_BEARER` / `FUDA_STATIC_SUBJECT_TOKEN`). In-cluster, Shaiden presents a projected SA token (`SHAIDEN_SUBJECT_TOKEN_FILE`) and Fuda validates via `FUDA_K8S_SA_OIDC_*`. Allowed subjects always resolve to the platform bearer `shaiden-runner`.
 - Operator Google ↔ opaque `owner_id` lives in `deploy/operators.example.yaml` (Compose mount / k8s ConfigMap). There is no `KEIDAI_OWNER_ID` or Torii `boot_owner_id`.
 - Compose and kind publish only the keidai-ui BFF (`:3000`); set `TORII_GATEWAY_BASE_URL` to that origin for OAuth callbacks.
 ## Implementation tasks (Linear)

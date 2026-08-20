@@ -1,19 +1,21 @@
+import { PLATFORM_BEARER_ID } from "../../bearers/platform-bearer.js";
 import type { StaticSubjectConfig } from "../types/static-subject-config.js";
 import { SubjectTokenValidationError } from "../types/subject-token-validation-error.js";
 import type { SubjectTokenValidator } from "../types/subject-token-validator.js";
 
 /**
  * Local-dev / pre-cluster subject validator: config-declared shared secrets
- * map to `bearer_id`. Attestation is only as strong as the secret.
+ * all resolve to {@link PLATFORM_BEARER_ID}. Attestation is only as strong
+ * as the secret.
  *
- * Lookup is not constant-time (`Map.get`). Acceptable for local/pre-cluster
+ * Lookup is not constant-time (`Set.has`). Acceptable for local/pre-cluster
  * shared secrets; do not reuse this path for production credential stores.
  */
 export class StaticSubjectValidator implements SubjectTokenValidator {
-  private readonly mappings: ReadonlyMap<string, string>;
+  private readonly tokens: ReadonlySet<string>;
 
   constructor(config: StaticSubjectConfig) {
-    this.mappings = config.mappings;
+    this.tokens = config.tokens;
   }
 
   async validate(subjectToken: string): Promise<string> {
@@ -22,11 +24,10 @@ export class StaticSubjectValidator implements SubjectTokenValidator {
       throw new SubjectTokenValidationError("Invalid subject token");
     }
 
-    const bearerId = this.mappings.get(token);
-    if (bearerId === undefined) {
+    if (!this.tokens.has(token)) {
       throw new SubjectTokenValidationError("Invalid subject token");
     }
 
-    return bearerId;
+    return PLATFORM_BEARER_ID;
   }
 }

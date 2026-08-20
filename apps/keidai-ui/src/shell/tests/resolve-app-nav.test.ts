@@ -11,8 +11,7 @@ describe("resolveAppNav", () => {
   it("resolves Fuda routes", () => {
     expect(resolveAppNav("/agents")?.label).toBe("Agents");
     expect(resolveAppNav("/agents/new")?.label).toBe("Agents");
-    expect(resolveAppNav("/bearers")?.label).toBe("Bearers");
-    expect(resolveAppNav("/bearers/new")?.label).toBe("Bearers");
+    expect(resolveAppNav("/bearers")).toBeUndefined();
     expect(resolveAppSection("/agents")).toBe("Fuda");
     expect(resolveAppSection("/agents/agt-1")).toBe("Fuda");
     expect(resolveAppSection("/bearers")).toBe("Fuda");

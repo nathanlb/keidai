@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Bot, KeyRound } from "lucide-react";
+import { Bot } from "lucide-react";
 
 export const AGENTS_PATH = "/agents";
 export const BEARERS_PATH = "/bearers";
@@ -21,14 +21,6 @@ export const fudaNavItems: FudaNavItem[] = [
       "Who an agent is, what it may do, and which processes may act as it.",
     icon: Bot,
   },
-  {
-    path: BEARERS_PATH,
-    label: "Bearers",
-    title: "Bearers",
-    description:
-      "Named principals a subject credential maps to. Grants decide which agents each may become.",
-    icon: KeyRound,
-  },
 ];
 
 export function isFudaAgentsRoute(pathname: string): boolean {
@@ -46,9 +38,6 @@ export function isFudaManagedRoute(pathname: string): boolean {
 export function findFudaNavItem(pathname: string): FudaNavItem | undefined {
   if (isFudaAgentsRoute(pathname)) {
     return fudaNavItems.find((item) => item.path === AGENTS_PATH);
-  }
-  if (isFudaBearersRoute(pathname)) {
-    return fudaNavItems.find((item) => item.path === BEARERS_PATH);
   }
   return fudaNavItems.find((item) => item.path === pathname);
 }

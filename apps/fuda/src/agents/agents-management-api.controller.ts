@@ -1,6 +1,11 @@
 import type { FastifyInstance } from "fastify";
 import { inject, injectable } from "tsyringe";
 import { isUniqueViolation } from "@keidai/postgres";
+import { PLATFORM_BEARER_ID } from "../bearers/platform-bearer.js";
+import {
+  BEARER_REPOSITORY,
+  type BearerRepository,
+} from "../bearers/types/bearer-repository.js";
 import {
   OWNER_REPOSITORY,
   type OwnerRepository,
@@ -23,6 +28,8 @@ export class AgentsManagementApiController {
     private readonly agents: AgentRepository,
     @inject(OWNER_REPOSITORY)
     private readonly owners: OwnerRepository,
+    @inject(BEARER_REPOSITORY)
+    private readonly bearers: BearerRepository,
   ) {}
 
   registerRoutes(app: FastifyInstance): void {
@@ -66,6 +73,7 @@ export class AgentsManagementApiController {
 
       try {
         const created = await this.agents.create(parsed.data);
+        await this.bearers.ensureGrant(PLATFORM_BEARER_ID, created.id);
         const agent = await this.toManagementAgent(created);
         if (!agent) {
           reply.code(500).send({ error: "agent created without persona" });

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { PLATFORM_BEARER_ID } from "../../bearers/platform-bearer.js";
 import { createTestServer, sampleAgentBody } from "./test-helpers.js";
 
 describe("agents management API", () => {
@@ -252,6 +253,31 @@ describe("agents management API", () => {
         ((await taken.json()) as { available: boolean }).available,
         false,
       );
+    } finally {
+      await handle.close();
+    }
+  });
+
+  it("auto-grants the platform bearer on create", async () => {
+    const server = await createTestServer("management");
+    const handle = await server.start({ host: "127.0.0.1", port: 0 });
+    try {
+      const createResponse = await fetch(`${handle.baseUrl}/api/agents`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(sampleAgentBody),
+      });
+      const { agent } = (await createResponse.json()) as { agent: { id: string } };
+      const grants = await fetch(
+        `${handle.baseUrl}/api/agents/${agent.id}/grants`,
+      );
+      assert.equal(grants.status, 200);
+      const body = (await grants.json()) as {
+        grants: Array<{ bearerId: string; agentId: string }>;
+      };
+      assert.deepEqual(body.grants, [
+        { bearerId: PLATFORM_BEARER_ID, agentId: agent.id },
+      ]);
     } finally {
       await handle.close();
     }

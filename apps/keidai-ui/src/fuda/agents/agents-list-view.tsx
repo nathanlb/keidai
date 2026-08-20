@@ -16,13 +16,21 @@ import {
   TableHeader,
   TableRow,
 } from "@keidai/ui";
-import { Bot, ChevronRight, KeyRound, Plus, Search, TriangleAlert } from "lucide-react";
+import {
+  Bot,
+  ChevronRight,
+  KeyRound,
+  Plus,
+  Search,
+  TriangleAlert,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { PageEmptyState } from "../../shell/components/page-content/page-empty-state.js";
 import { useFetchAgents } from "../../shell/hooks/use-fetch-agents.js";
 import { useAgentListExtras } from "../hooks/use-agent-list-extras.js";
 import { useFetchToriiGroups } from "../hooks/use-fetch-torii-groups.js";
+import { PLATFORM_BEARER_ID } from "../platform-bearer.js";
 import { AgentGroupBadge } from "./components/agent-group-chip.js";
 import { deriveAgentInitials } from "./utils/derive-agent-initials.js";
 import { collectUnknownGroups } from "./utils/collect-unknown-groups.js";
@@ -37,7 +45,7 @@ function AgentsPageHeader({ onNewAgent }: { onNewAgent: () => void }) {
       <div>
         <div className="text-[23px] font-bold tracking-tight">Agents</div>
         <div className="mt-0.5 text-[13.5px] leading-normal text-muted-foreground">
-          Who an agent is, what it may do, and which processes may act as it.
+          Who an agent is and what it may do. Shaiden runs every agent.
         </div>
       </div>
       <Button type="button" size="sm" onClick={onNewAgent} className="shrink-0">
@@ -61,8 +69,8 @@ function UnknownGroupsBanner({ names }: { names: string[] }) {
         aria-hidden
       />
       <span>
-        {summary} Requests from these agents will be denied at policy time
-        until Torii defines the group.
+        {summary} Requests from these agents will be denied at policy time until
+        Torii defines the group.
       </span>
     </div>
   );
@@ -73,7 +81,7 @@ function AgentsEmptyState({ onNewAgent }: { onNewAgent: () => void }) {
     <PageEmptyState
       icon={<Bot className="size-[30px]" aria-hidden />}
       title="No agents yet"
-      description="An agent carries a persona, a set of groups, and the bearers allowed to act as it. Create the first one to get started."
+      description="An agent carries a persona and a set of groups. Shaiden runs it. Create the first one to get started."
       action={
         <Button type="button" size="sm" onClick={onNewAgent}>
           <Plus className="size-3.5" aria-hidden />
@@ -175,7 +183,7 @@ export function AgentsListView() {
                       Groups
                     </TableHead>
                     <TableHead className="h-auto py-2.5 text-xs font-medium">
-                      Bearers
+                      Runtime
                     </TableHead>
                     {SHOW_OWNER ? (
                       <TableHead className="h-auto py-2.5 text-xs font-medium">
@@ -243,9 +251,12 @@ export function AgentsListView() {
                         </TableCell>
                         <TableCell className="py-3">
                           <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <KeyRound className="size-3.5 shrink-0" aria-hidden />
+                            <KeyRound
+                              className="size-3.5 shrink-0"
+                              aria-hidden
+                            />
                             <span className="font-mono text-[12.5px] text-foreground">
-                              {bearerCount === 0 ? "none" : bearerCount}
+                              {bearerCount === 0 ? "—" : PLATFORM_BEARER_ID}
                             </span>
                           </div>
                         </TableCell>

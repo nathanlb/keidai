@@ -655,6 +655,12 @@ export async function mockToriiConfig(
       personaState.set(agent.id, [
         { agentId: agent.id, version: 1, content: body.persona, createdAt: now },
       ]);
+      const platform = bearerState.find(
+        (bearer) => bearer.bearerId === "shaiden-runner",
+      );
+      if (platform) {
+        grantState.push({ bearerId: platform.bearerId, agentId: agent.id });
+      }
       await route.fulfill({ status: 201, json: { agent } });
       return;
     }

@@ -12,7 +12,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@keidai/ui";
-import { Activity, ArrowLeft, KeyRound, Lock, Trash2, User } from "lucide-react";
+import {
+  Activity,
+  ArrowLeft,
+  KeyRound,
+  Lock,
+  Trash2,
+  User,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   useLocation,
@@ -20,18 +27,18 @@ import {
   useParams,
   useSearchParams,
 } from "react-router";
+import { deleteAgent, updateAgent } from "../api/fuda-client.js";
 import {
-  deleteAgent,
-  grantBearer,
-  revokeBearerGrant,
-  updateAgent,
-} from "../api/fuda-client.js";
-import { agentGrantsKey, useFetchAgentGrants } from "../hooks/use-fetch-agent-grants.js";
+  agentGrantsKey,
+  useFetchAgentGrants,
+} from "../hooks/use-fetch-agent-grants.js";
 import { AGENTS_KEY } from "../../shell/hooks/use-fetch-agents.js";
-import { invalidateGrantCaches } from "../hooks/invalidate-grant-caches.js";
 import { useFetchAgent } from "../hooks/use-fetch-agent.js";
 import { useFetchBearers } from "../hooks/use-fetch-bearers.js";
-import { personaVersionsKey, useFetchPersonaVersions } from "../hooks/use-fetch-persona-versions.js";
+import {
+  personaVersionsKey,
+  useFetchPersonaVersions,
+} from "../hooks/use-fetch-persona-versions.js";
 import { useFetchToriiGroups } from "../hooks/use-fetch-torii-groups.js";
 import { useSWRConfig } from "swr";
 import { AgentAccessPanel } from "./agent-access-panel.js";
@@ -40,6 +47,7 @@ import { AgentPersonaPanel } from "./agent-persona-panel.js";
 import { AgentsToast } from "./components/agents-toast.js";
 import { useAgentsToast } from "./hooks/use-agents-toast.js";
 import { collectUnknownGroups } from "./utils/collect-unknown-groups.js";
+import { PLATFORM_BEARER_ID } from "../platform-bearer.js";
 
 type DetailTab = "persona" | "access" | "groups";
 
@@ -47,7 +55,9 @@ const TAB_PARAM = "tab";
 const VALID_TABS: DetailTab[] = ["persona", "access", "groups"];
 
 function parseTab(value: string | null): DetailTab {
-  return VALID_TABS.includes(value as DetailTab) ? (value as DetailTab) : "persona";
+  return VALID_TABS.includes(value as DetailTab)
+    ? (value as DetailTab)
+    : "persona";
 }
 
 export function AgentDetailView() {
@@ -69,9 +79,12 @@ export function AgentDetailView() {
   );
 
   const { data, error, isLoading, refresh } = useFetchAgent(agentId);
-  const { data: personaData, isLoading: personasLoading, refresh: refreshPersonas } =
-    useFetchPersonaVersions(agentId);
-  const { data: grantsData, refresh: refreshGrants } = useFetchAgentGrants(agentId);
+  const {
+    data: personaData,
+    isLoading: personasLoading,
+    refresh: refreshPersonas,
+  } = useFetchPersonaVersions(agentId);
+  const { data: grantsData } = useFetchAgentGrants(agentId);
   const { data: bearersData } = useFetchBearers();
   const { data: toriiGroupsData } = useFetchToriiGroups();
 
@@ -162,26 +175,15 @@ export function AgentDetailView() {
     );
   }
 
-  async function handleRestorePersona(version: { version: number; content: string }) {
+  async function handleRestorePersona(version: {
+    version: number;
+    content: string;
+  }) {
     const nextVersion = agent.currentPersonaVersion + 1;
     await updateAgent(agent.id, { persona: version.content });
     await Promise.all([refresh(), refreshPersonas()]);
     await mutate(AGENTS_KEY);
     showToast(`v${version.version} restored as v${nextVersion}.`);
-  }
-
-  async function handleGrant(bearerId: string) {
-    await grantBearer(bearerId, agent.id);
-    await invalidateGrantCaches(mutate, { bearerId, agentId: agent.id });
-    await refreshGrants();
-    showToast(`Bearer granted. It can now act as ${agent.slug}.`);
-  }
-
-  async function handleRevoke(bearerId: string) {
-    await revokeBearerGrant(bearerId, agent.id);
-    await invalidateGrantCaches(mutate, { bearerId, agentId: agent.id });
-    await refreshGrants();
-    showToast("Grant revoked.");
   }
 
   async function handleChangeGroups(nextGroups: string[]) {
@@ -216,8 +218,9 @@ export function AgentDetailView() {
     }
   }
 
-  const bearerLabel =
-    grants.length === 0 ? "No bearer" : grants.length === 1 ? "1 bearer" : `${grants.length} bearers`;
+  const runnerName =
+    bearers.find((bearer) => bearer.bearerId === PLATFORM_BEARER_ID)
+      ?.displayName ?? PLATFORM_BEARER_ID;
 
   return (
     <>
@@ -258,13 +261,11 @@ export function AgentDetailView() {
             <span className="inline-flex items-center gap-1.5">
               <User className="size-3" aria-hidden />
               Owned by{" "}
-              <span className="font-mono text-foreground">
-                {agent.ownerId}
-              </span>
+              <span className="font-mono text-foreground">{agent.ownerId}</span>
             </span>
             <span className="inline-flex items-center gap-1.5">
               <KeyRound className="size-3" aria-hidden />
-              {bearerLabel} may act as this agent
+              {runnerName}
             </span>
           </div>
         </div>
@@ -292,13 +293,19 @@ export function AgentDetailView() {
       </div>
 
       <div className="mb-5 mt-5 flex gap-1 border-b border-border">
-        {(
-          [
-            { key: "persona" as const, label: "Persona", count: agent.currentPersonaVersion },
-            { key: "access" as const, label: "Access", count: grants.length },
-            { key: "groups" as const, label: "Groups", count: agent.groups.length },
-          ]
-        ).map((item) => {
+        {[
+          {
+            key: "persona" as const,
+            label: "Persona",
+            count: agent.currentPersonaVersion,
+          },
+          { key: "access" as const, label: "Access", count: grants.length },
+          {
+            key: "groups" as const,
+            label: "Groups",
+            count: agent.groups.length,
+          },
+        ].map((item) => {
           const isActive = tab === item.key;
           return (
             <button
@@ -317,7 +324,10 @@ export function AgentDetailView() {
                 {item.count}
               </span>
               {item.key === "groups" && unknownGroupCount > 0 ? (
-                <span className="size-1.5 rounded-full bg-amber-500" aria-hidden />
+                <span
+                  className="size-1.5 rounded-full bg-amber-500"
+                  aria-hidden
+                />
               ) : null}
             </button>
           );
@@ -335,13 +345,7 @@ export function AgentDetailView() {
       ) : null}
 
       {tab === "access" ? (
-        <AgentAccessPanel
-          agent={agent}
-          bearers={bearers}
-          grants={grants}
-          onGrant={handleGrant}
-          onRevoke={handleRevoke}
-        />
+        <AgentAccessPanel agent={agent} bearers={bearers} grants={grants} />
       ) : null}
 
       {tab === "groups" ? (
@@ -354,7 +358,10 @@ export function AgentDetailView() {
 
       <AgentsToast message={toastMessage} />
 
-      <Dialog open={deleteConfirmOpen} onOpenChange={handleDeleteConfirmOpenChange}>
+      <Dialog
+        open={deleteConfirmOpen}
+        onOpenChange={handleDeleteConfirmOpenChange}
+      >
         <DialogContent className="max-w-[420px] sm:rounded-xl">
           <DialogHeader>
             <DialogTitle>Delete agent?</DialogTitle>

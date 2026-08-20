@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { PLATFORM_BEARER_ID } from "../../bearers/platform-bearer.js";
 import { createSubjectTokenValidator } from "../utils/create-subject-token-validator.js";
-import { parseK8sSaSubjectMappings } from "../utils/parse-k8s-sa-subject-mappings.js";
-import { parseStaticSubjectMappings } from "../utils/parse-static-subject-mappings.js";
+import { parseK8sSaSubjects } from "../utils/parse-k8s-sa-subjects.js";
+import { parseStaticSubjectTokens } from "../utils/parse-static-subject-tokens.js";
 import {
   resolveSubjectTokenValidatorConfig,
   tryResolveSubjectTokenValidatorConfig,
@@ -13,65 +14,63 @@ const K8S_ENV = {
   FUDA_K8S_SA_OIDC_ISSUER: "https://kubernetes.default.svc",
   FUDA_K8S_SA_OIDC_AUDIENCE: "fuda",
   FUDA_K8S_SA_OIDC_JWKS_URI: "https://example.test/jwks",
-  FUDA_K8S_SA_OIDC_SUBJECT_MAPPINGS: "agents/catalog=catalog-runner",
+  FUDA_K8S_SA_OIDC_SUBJECTS: "agents/catalog",
 } as const;
 
-describe("parseStaticSubjectMappings", () => {
+describe("parseStaticSubjectTokens", () => {
   it("returns null when unset", () => {
-    assert.equal(parseStaticSubjectMappings(undefined), null);
-    assert.equal(parseStaticSubjectMappings(""), null);
-    assert.equal(parseStaticSubjectMappings("  "), null);
+    assert.equal(parseStaticSubjectTokens(undefined), null);
+    assert.equal(parseStaticSubjectTokens(""), null);
+    assert.equal(parseStaticSubjectTokens("  "), null);
   });
 
-  it("parses credential=bearer_id entries", () => {
-    const parsed = parseStaticSubjectMappings(
-      "dev-secret=local-dev,ci-secret=ci-runner",
-    );
+  it("parses a comma-separated allow-list", () => {
+    const parsed = parseStaticSubjectTokens("dev-secret,ci-secret");
     assert.ok(parsed && typeof parsed !== "string");
-    assert.equal(parsed.mappings.get("dev-secret"), "local-dev");
-    assert.equal(parsed.mappings.get("ci-secret"), "ci-runner");
+    assert.equal(parsed.has("dev-secret"), true);
+    assert.equal(parsed.has("ci-secret"), true);
+    assert.equal(parsed.size, 2);
   });
 
-  it("rejects malformed and duplicate entries", () => {
+  it("rejects duplicate tokens", () => {
     assert.match(
-      parseStaticSubjectMappings("no-equals") as string,
-      /expected credential=bearer_id/,
+      parseStaticSubjectTokens("a,a") as string,
+      /Duplicate token/,
     );
+  });
+
+  it("rejects the old mapping format", () => {
     assert.match(
-      parseStaticSubjectMappings("a=b,a=c") as string,
-      /Duplicate credential/,
+      parseStaticSubjectTokens("dev-secret=local-dev") as string,
+      /not secret=bearer_id/,
     );
   });
 });
 
-describe("parseK8sSaSubjectMappings", () => {
+describe("parseK8sSaSubjects", () => {
   it("returns null when unset", () => {
-    assert.equal(parseK8sSaSubjectMappings(undefined), null);
-    assert.equal(parseK8sSaSubjectMappings(""), null);
+    assert.equal(parseK8sSaSubjects(undefined), null);
+    assert.equal(parseK8sSaSubjects(""), null);
   });
 
   it("stores kind-prefixed registry keys", () => {
-    const parsed = parseK8sSaSubjectMappings(
-      "agents/catalog=catalog-runner,default/other=other-bearer",
-    );
+    const parsed = parseK8sSaSubjects("agents/catalog,default/other");
     assert.ok(parsed && typeof parsed !== "string");
-    assert.equal(
-      parsed.get("k8s_service_account:agents/catalog"),
-      "catalog-runner",
-    );
-    assert.equal(
-      parsed.get("k8s_service_account:default/other"),
-      "other-bearer",
-    );
+    assert.equal(parsed.has("k8s_service_account:agents/catalog"), true);
+    assert.equal(parsed.has("k8s_service_account:default/other"), true);
   });
 
-  it("rejects malformed and duplicate entries", () => {
+  it("rejects malformed, mapping, and duplicate entries", () => {
     assert.match(
-      parseK8sSaSubjectMappings("no-slash=bearer") as string,
+      parseK8sSaSubjects("no-slash") as string,
       /namespace\/serviceAccount/,
     );
     assert.match(
-      parseK8sSaSubjectMappings("ns/sa=a,ns/sa=b") as string,
+      parseK8sSaSubjects("ns/sa=bearer") as string,
+      /not namespace\/serviceAccount=bearer_id/,
+    );
+    assert.match(
+      parseK8sSaSubjects("ns/sa,ns/sa") as string,
       /Duplicate subject/,
     );
   });
@@ -108,8 +107,8 @@ describe("tryResolveK8sSaOidcSubjectConfig", () => {
     assert.equal(config.audience, "fuda");
     assert.equal(config.jwksUri, K8S_ENV.FUDA_K8S_SA_OIDC_JWKS_URI);
     assert.equal(
-      config.mappings.get("k8s_service_account:agents/catalog"),
-      "catalog-runner",
+      config.subjects.has("k8s_service_account:agents/catalog"),
+      true,
     );
   });
 });
@@ -117,11 +116,11 @@ describe("tryResolveK8sSaOidcSubjectConfig", () => {
 describe("resolveSubjectTokenValidatorConfig", () => {
   it("selects the static validator", () => {
     const config = resolveSubjectTokenValidatorConfig({
-      FUDA_STATIC_SUBJECT_MAPPINGS: "dev-secret=local-dev",
+      FUDA_STATIC_SUBJECT_TOKEN: "dev-secret",
     });
     assert.equal(config.kind, "static");
     if (config.kind === "static") {
-      assert.equal(config.mappings.get("dev-secret"), "local-dev");
+      assert.equal(config.tokens.has("dev-secret"), true);
     }
   });
 
@@ -130,8 +129,8 @@ describe("resolveSubjectTokenValidatorConfig", () => {
     assert.equal(config.kind, "k8s_sa_oidc");
     if (config.kind === "k8s_sa_oidc") {
       assert.equal(
-        config.mappings.get("k8s_service_account:agents/catalog"),
-        "catalog-runner",
+        config.subjects.has("k8s_service_account:agents/catalog"),
+        true,
       );
     }
   });
@@ -140,7 +139,7 @@ describe("resolveSubjectTokenValidatorConfig", () => {
     assert.throws(
       () =>
         resolveSubjectTokenValidatorConfig({
-          FUDA_STATIC_SUBJECT_MAPPINGS: "dev-secret=local-dev",
+          FUDA_STATIC_SUBJECT_TOKEN: "dev-secret",
           ...K8S_ENV,
         }),
       /Ambiguous/,
@@ -151,18 +150,35 @@ describe("resolveSubjectTokenValidatorConfig", () => {
     assert.throws(() => resolveSubjectTokenValidatorConfig({}), /No subject/);
   });
 
+  it("fails closed on removed mapping env vars", () => {
+    assert.throws(
+      () =>
+        resolveSubjectTokenValidatorConfig({
+          FUDA_STATIC_SUBJECT_MAPPINGS: "dev-secret=local-dev",
+        }),
+      /FUDA_STATIC_SUBJECT_MAPPINGS is removed/,
+    );
+    assert.throws(
+      () =>
+        resolveSubjectTokenValidatorConfig({
+          FUDA_K8S_SA_OIDC_SUBJECT_MAPPINGS: "agents/catalog=catalog-runner",
+        }),
+      /FUDA_K8S_SA_OIDC_SUBJECT_MAPPINGS is removed/,
+    );
+  });
+
   it("tryResolve returns null when nothing is configured", () => {
     assert.equal(tryResolveSubjectTokenValidatorConfig({}), null);
   });
 });
 
 describe("createSubjectTokenValidator", () => {
-  it("builds a static validator that returns bearer_id only", async () => {
+  it("builds a static validator that returns the platform bearer_id", async () => {
     const validator = createSubjectTokenValidator({
       kind: "static",
-      mappings: new Map([["secret", "bearer-1"]]),
+      tokens: new Set(["secret"]),
     });
-    assert.equal(await validator.validate("secret"), "bearer-1");
+    assert.equal(await validator.validate("secret"), PLATFORM_BEARER_ID);
   });
 
   it("builds a k8s validator from config", () => {
@@ -171,9 +187,7 @@ describe("createSubjectTokenValidator", () => {
       issuer: "https://kubernetes.default.svc",
       audience: "fuda",
       jwksUri: "https://example.test/jwks",
-      mappings: new Map([
-        ["k8s_service_account:agents/catalog", "catalog-runner"],
-      ]),
+      subjects: new Set(["k8s_service_account:agents/catalog"]),
     });
     assert.equal(typeof validator.validate, "function");
   });

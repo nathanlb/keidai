@@ -71,8 +71,8 @@ test.describe("Agents page", () => {
   test("opens an agent's detail page and switches tabs", async ({ page }) => {
     await mockToriiConfig(page, {
       fudaAgents: [alphaAgent],
-      fudaBearers: [{ bearerId: "bearer-1", displayName: "worker-1" }],
-      fudaGrants: [{ bearerId: "bearer-1", agentId: alphaAgent.id }],
+      fudaBearers: [{ bearerId: "shaiden-runner", displayName: "shaiden-runner" }],
+      fudaGrants: [{ bearerId: "shaiden-runner", agentId: alphaAgent.id }],
     });
 
     await page.goto("/agents");
@@ -83,17 +83,23 @@ test.describe("Agents page", () => {
 
     await page.getByRole("button", { name: /^Access/ }).click();
     await expect(page).toHaveURL(/tab=access/);
-    await expect(page.getByText("worker-1")).toBeVisible();
+    await expect(page.getByText("shaiden-runner").first()).toBeVisible();
 
     await page.getByRole("button", { name: /^Groups/ }).click();
     await expect(page).toHaveURL(/tab=groups/);
     await expect(page.getByText("ops", { exact: true })).toBeVisible();
   });
 
-  test("creates a new agent and lands on its access tab", async ({ page }) => {
-    await mockToriiConfig(page, { fudaAgents: [] });
+  test("creates a new agent and lands on its detail", async ({ page }) => {
+    await mockToriiConfig(page, {
+      fudaAgents: [],
+      fudaBearers: [{ bearerId: "shaiden-runner", displayName: "shaiden-runner" }],
+    });
 
     await page.goto("/agents/new");
+
+    await expect(page.getByText("assigned automatically")).toBeVisible();
+    await expect(page.getByText("shaiden-runner").first()).toBeVisible();
 
     await page.getByPlaceholder("Agent Name").fill("Newsletter Bot");
     await page
@@ -104,7 +110,10 @@ test.describe("Agents page", () => {
     await expect(createButton).toBeEnabled({ timeout: 10_000 });
     await createButton.click();
 
-    await expect(page).toHaveURL(/\/agents\/agt-1\?tab=access/);
-    await expect(page.getByText("Newsletter Bot")).toBeVisible();
+    await expect(page).toHaveURL(/\/agents\/agt-1$/);
+    await expect(page.getByText("Newsletter Bot", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("Agent created. Shaiden can run it."),
+    ).toBeVisible();
   });
 });

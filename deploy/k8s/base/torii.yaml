@@ -6,7 +6,7 @@ metadata:
   labels:
     app: torii
 spec:
-  replicas: 1
+  replicas: 2
   strategy:
     type: RollingUpdate
   selector:
@@ -77,6 +77,7 @@ metadata:
   namespace: keidai
 spec:
   type: ClusterIP
+  sessionAffinity: None
   selector:
     app: torii
   ports:

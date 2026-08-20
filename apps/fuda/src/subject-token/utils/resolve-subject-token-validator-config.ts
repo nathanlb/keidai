@@ -1,6 +1,19 @@
 import type { SubjectTokenValidatorConfig } from "../types/subject-token-validator-config.js";
-import { parseStaticSubjectMappings } from "./parse-static-subject-mappings.js";
+import { parseStaticSubjectTokens } from "./parse-static-subject-tokens.js";
 import { tryResolveK8sSaOidcSubjectConfig } from "./try-resolve-k8s-sa-oidc-subject-config.js";
+
+function rejectRemovedMappingEnv(env: NodeJS.ProcessEnv): void {
+  if (env.FUDA_STATIC_SUBJECT_MAPPINGS?.trim()) {
+    throw new Error(
+      "FUDA_STATIC_SUBJECT_MAPPINGS is removed; set FUDA_STATIC_SUBJECT_TOKEN to the shared secret (comma-list for rotation). Allowed subjects resolve to shaiden-runner",
+    );
+  }
+  if (env.FUDA_K8S_SA_OIDC_SUBJECT_MAPPINGS?.trim()) {
+    throw new Error(
+      "FUDA_K8S_SA_OIDC_SUBJECT_MAPPINGS is removed; set FUDA_K8S_SA_OIDC_SUBJECTS to namespace/serviceAccount (no =bearer_id). Allowed subjects resolve to shaiden-runner",
+    );
+  }
+}
 
 /**
  * Like {@link resolveSubjectTokenValidatorConfig}, but returns `null` when
@@ -10,23 +23,23 @@ import { tryResolveK8sSaOidcSubjectConfig } from "./try-resolve-k8s-sa-oidc-subj
 export function tryResolveSubjectTokenValidatorConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): SubjectTokenValidatorConfig | null {
-  const staticOrError = parseStaticSubjectMappings(
-    env.FUDA_STATIC_SUBJECT_MAPPINGS,
-  );
-  if (typeof staticOrError === "string") {
-    throw new Error(staticOrError);
+  rejectRemovedMappingEnv(env);
+
+  const tokensOrError = parseStaticSubjectTokens(env.FUDA_STATIC_SUBJECT_TOKEN);
+  if (typeof tokensOrError === "string") {
+    throw new Error(tokensOrError);
   }
 
   const k8sConfig = tryResolveK8sSaOidcSubjectConfig(env);
 
-  if (staticOrError && k8sConfig) {
+  if (tokensOrError && k8sConfig) {
     throw new Error(
-      "Ambiguous subject token validator configuration: set either FUDA_STATIC_SUBJECT_MAPPINGS or FUDA_K8S_SA_OIDC_* , not both",
+      "Ambiguous subject token validator configuration: set either FUDA_STATIC_SUBJECT_TOKEN or FUDA_K8S_SA_OIDC_* , not both",
     );
   }
 
-  if (staticOrError) {
-    return { kind: "static", mappings: staticOrError.mappings };
+  if (tokensOrError) {
+    return { kind: "static", tokens: tokensOrError };
   }
 
   if (k8sConfig) {
@@ -50,7 +63,7 @@ export function resolveSubjectTokenValidatorConfig(
   const config = tryResolveSubjectTokenValidatorConfig(env);
   if (!config) {
     throw new Error(
-      "No subject token validator configured; set FUDA_STATIC_SUBJECT_MAPPINGS=credential=bearer_id,... (or FUDA_K8S_SA_OIDC_* together)",
+      "No subject token validator configured; set FUDA_STATIC_SUBJECT_TOKEN (or FUDA_K8S_SA_OIDC_* together)",
     );
   }
   return config;

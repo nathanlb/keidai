@@ -41,7 +41,7 @@ export interface CreateContainerOptions {
 
 /**
  * @param subjectTokenValidatorConfig One-shot wiring from loadRuntimeConfig;
- *   credential mappings stay off RuntimeConfig.
+ *   subject credentials stay off RuntimeConfig.
  */
 export async function createContainer(
   config: RuntimeConfig,

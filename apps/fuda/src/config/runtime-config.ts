@@ -191,7 +191,7 @@ function validateSubjectTokenForRouteGroups(
     !subjectTokenLoadFailed
   ) {
     errors.push(
-      "Subject token validator required when FUDA_LISTEN_GROUPS includes agent; set FUDA_STATIC_SUBJECT_MAPPINGS=credential=bearer_id,... (or FUDA_K8S_SA_OIDC_* together)",
+      "Subject token validator required when FUDA_LISTEN_GROUPS includes agent; set FUDA_STATIC_SUBJECT_TOKEN (or FUDA_K8S_SA_OIDC_* together)",
     );
   }
 }
