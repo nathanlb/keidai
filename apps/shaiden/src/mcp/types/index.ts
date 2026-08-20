@@ -25,7 +25,8 @@ export interface ToriiSessionCredential {
 /**
  * Per-run Torii MCP caller: Torii URL + JWT provider, not a held protocol session.
  * Each list/call/poll is a self-contained request. Gated tools return a park
- * handle from `callTool`; `pollMcpTask` reads `tasks/get` until terminal.
+ * handle from `callTool`; `pollMcpTask` reads `tasks/get` until terminal, and
+ * treats `notifications/tasks` as an optional early wake.
  */
 export interface ToriiSession {
   tools: DiscoveredTool[];

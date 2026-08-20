@@ -14,6 +14,11 @@ export function createPool(connectionString: string, options?: pg.PoolConfig): p
   });
 }
 
+/** A client that does not occupy a pool slot. Used for LISTEN/NOTIFY. */
+export function createDedicatedClient(pool: pg.Pool): pg.Client {
+  return new pg.Client(pool.options);
+}
+
 export function requireDatabaseUrl(
   envVar: string,
   env: NodeJS.ProcessEnv = process.env,

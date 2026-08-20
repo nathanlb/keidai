@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   nextTaskPollDelayMs,
   pollUntilTerminalMcpTask,
+  createTaskPollWake,
   DEFAULT_TASK_POLL_INTERVAL_MS,
   MAX_TASK_POLL_INTERVAL_MS,
   MIN_TASK_POLL_INTERVAL_MS,
@@ -188,5 +189,32 @@ describe("pollUntilTerminalMcpTask", () => {
     assert.equal(terminal.status, "completed");
     assert.equal(calls, 2);
     assert.deepEqual(sleeps, [800]);
+  });
+
+  it("skips the poll interval when a wake arrives", async () => {
+    const wake = createTaskPollWake();
+    const sleeps: number[] = [];
+    let calls = 0;
+    const terminal = await pollUntilTerminalMcpTask({
+      getTask: async () => {
+        calls += 1;
+        if (calls === 1) {
+          wake.signal();
+          return workingTask(30_000);
+        }
+        return completedTask();
+      },
+      sleep: async (ms) => {
+        sleeps.push(ms);
+        await new Promise(() => {
+          // Hang: the wake must win the race.
+        });
+      },
+      wake,
+      random: () => 0,
+    });
+    assert.equal(terminal.status, "completed");
+    assert.equal(calls, 2);
+    assert.deepEqual(sleeps, []);
   });
 });

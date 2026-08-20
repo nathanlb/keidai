@@ -15,6 +15,12 @@ export const MCP_TASKS_EXTENSION_ID = "io.modelcontextprotocol/tasks" as const;
 export const MCP_TASKS_GET_METHOD = "tasks/get" as const;
 export const MCP_TASKS_UPDATE_METHOD = "tasks/update" as const;
 export const MCP_TASKS_CANCEL_METHOD = "tasks/cancel" as const;
+export const MCP_SUBSCRIPTIONS_LISTEN_METHOD = "subscriptions/listen" as const;
+export const MCP_TASKS_NOTIFICATION_METHOD = "notifications/tasks" as const;
+export const MCP_SUBSCRIPTIONS_ACKNOWLEDGED_METHOD =
+  "notifications/subscriptions/acknowledged" as const;
+export const MCP_SUBSCRIPTION_ID_META_KEY =
+  "io.modelcontextprotocol/subscriptionId" as const;
 
 export const MCP_TASKS_METHODS = [
   MCP_TASKS_GET_METHOD,
@@ -136,6 +142,43 @@ export const mcpCancelTaskParamsSchema = z.object({
   taskId: z.string().min(1),
 });
 export type McpCancelTaskParams = z.infer<typeof mcpCancelTaskParamsSchema>;
+
+/**
+ * `subscriptions/listen` filter for this extension. Other listen fields are
+ * ignored; omitting `taskIds` means the client did not opt into task push.
+ */
+export const mcpTaskSubscriptionFilterSchema = z.object({
+  taskIds: z.array(z.string().min(1)).optional(),
+});
+export type McpTaskSubscriptionFilter = z.infer<
+  typeof mcpTaskSubscriptionFilterSchema
+>;
+
+/**
+ * Task IDs the client asked to cover, or `undefined` when the listen filter
+ * did not opt into `notifications/tasks`.
+ */
+export function readRequestedTaskIds(params: unknown): string[] | undefined {
+  if (!params || typeof params !== "object") {
+    return undefined;
+  }
+  const notifications = (params as { notifications?: unknown }).notifications;
+  if (!notifications || typeof notifications !== "object") {
+    return undefined;
+  }
+  if (
+    !Object.prototype.hasOwnProperty.call(notifications, "taskIds")
+  ) {
+    return undefined;
+  }
+  const taskIds = (notifications as { taskIds?: unknown }).taskIds;
+  if (!Array.isArray(taskIds)) {
+    return [];
+  }
+  return taskIds.filter(
+    (id): id is string => typeof id === "string" && id.length > 0,
+  );
+}
 
 export const mcpTasksExtensionCapabilitySchema = z.object({}).strict();
 export type McpTasksExtensionCapability = z.infer<

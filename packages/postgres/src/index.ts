@@ -1,6 +1,7 @@
 export { quoteIdent } from "./ident.js";
 export {
   createPool,
+  createDedicatedClient,
   requireDatabaseUrl,
   resolveTestDatabaseUrl,
   toIso,

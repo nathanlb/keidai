@@ -20,6 +20,7 @@ import type { ToolDispatchService } from "../../dispatch/tool-dispatch.service.j
 import { GatewayHttpServer } from "../gateway-http-server.service.js";
 import { GatewayMcpServer } from "../../mcp/gateway-mcp-server.service.js";
 import { TaskStoreService } from "../../tasks/task-store.service.js";
+import { TaskNotificationBus } from "../../tasks/task-notification-bus.service.js";
 import { TraceEmitterService } from "../../trace/trace-emitter.service.js";
 import { TraceReadService } from "../../trace/trace-read.service.js";
 import { TracesApiController } from "../../trace/traces-api.controller.js";
@@ -187,6 +188,7 @@ export async function createTestGatewayHttpServer(
     createInboundIdentityService(options.identityResolver),
     traceEmitter,
     createNoopLogger(),
+    new TaskNotificationBus(pool),
   );
 
   const server = new GatewayHttpServer(

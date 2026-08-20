@@ -129,6 +129,7 @@ export class GatewayHttpServer {
       url: mcpUrl,
       close: async () => {
         await app.close();
+        await this.mcpServer.close();
         this.app = null;
       },
     };

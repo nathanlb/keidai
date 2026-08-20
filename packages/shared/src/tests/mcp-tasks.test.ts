@@ -5,6 +5,7 @@ import {
   mcpCreateTaskResultSchema,
   mcpDetailedTaskSchema,
   MCP_TASKS_EXTENSION_ID,
+  readRequestedTaskIds,
   toCreateTaskResult,
   toGetTaskResult,
   type McpTask,
@@ -35,6 +36,31 @@ describe("clientDeclaresTasksExtension", () => {
     assert.equal(clientDeclaresTasksExtension({ extensions: {} }), false);
     assert.equal(clientDeclaresTasksExtension(undefined), false);
     assert.equal(clientDeclaresTasksExtension(null), false);
+  });
+});
+
+describe("readRequestedTaskIds", () => {
+  it("is undefined when the client did not opt into task notifications", () => {
+    assert.equal(readRequestedTaskIds(undefined), undefined);
+    assert.equal(readRequestedTaskIds({}), undefined);
+    assert.equal(readRequestedTaskIds({ notifications: {} }), undefined);
+    assert.equal(
+      readRequestedTaskIds({ notifications: { toolsListChanged: true } }),
+      undefined,
+    );
+  });
+
+  it("returns the requested task IDs and drops blanks", () => {
+    assert.deepEqual(
+      readRequestedTaskIds({
+        notifications: { taskIds: ["a", "", "b", 3, "c"] },
+      }),
+      ["a", "b", "c"],
+    );
+    assert.deepEqual(
+      readRequestedTaskIds({ notifications: { taskIds: [] } }),
+      [],
+    );
   });
 });
 

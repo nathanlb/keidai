@@ -32,7 +32,7 @@ export async function createIsolatedSchema(
   }
 
   const pool = createPool(url, {
-    max: 4,
+    max: 8,
     options: `-c search_path=${schema}`,
   });
 

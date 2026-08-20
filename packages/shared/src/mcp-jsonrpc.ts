@@ -96,9 +96,61 @@ interface JsonRpcResponseEnvelope {
 }
 
 /**
- * Yield the payload of every SSE `data:` event, joining the multi-line form.
+ * Yield parsed JSON payloads from an SSE response as frames arrive.
  * Comments (`:`) and other fields are skipped.
  */
+export async function* iterateSseJson(
+  response: Response,
+): AsyncGenerator<unknown> {
+  if (!response.body) {
+    return;
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (value) {
+        buffer += decoder.decode(value, { stream: true });
+      }
+      const parts = buffer.split(/\r?\n\r?\n/);
+      buffer = parts.pop() ?? "";
+      for (const part of parts) {
+        const parsed = parseSseDataJson(part);
+        if (parsed !== undefined) {
+          yield parsed;
+        }
+      }
+      if (done) {
+        const parsed = parseSseDataJson(buffer);
+        if (parsed !== undefined) {
+          yield parsed;
+        }
+        return;
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+function parseSseDataJson(event: string): unknown | undefined {
+  const data = event
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith("data:"))
+    .map((line) => line.slice("data:".length).trim())
+    .join("\n");
+  if (data.length === 0) {
+    return undefined;
+  }
+  try {
+    return JSON.parse(data) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
 function* sseDataPayloads(text: string): Generator<string> {
   for (const event of text.split(/\r?\n\r?\n/)) {
     const data = event
@@ -180,12 +232,10 @@ async function readResponseEnvelope(
 }
 
 /**
- * POST one JSON-RPC request and return its `result` object.
- *
- * Throws `McpJsonRpcError` when the peer answered with a JSON-RPC error, and a
- * plain `Error` when the exchange never produced a matching response.
+ * POST one JSON-RPC request and return the raw HTTP response without
+ * consuming the body. Used for long-lived `subscriptions/listen` streams.
  */
-export async function postMcpJsonRpc(input: {
+export async function openMcpJsonRpcPost(input: {
   url: string;
   method: string;
   params?: Record<string, unknown>;
@@ -194,7 +244,8 @@ export async function postMcpJsonRpc(input: {
   clientCapabilities: Record<string, unknown>;
   protocolVersion?: string;
   fetchImpl?: typeof fetch;
-}): Promise<Record<string, unknown>> {
+  signal?: AbortSignal;
+}): Promise<{ id: number; response: Response }> {
   const params = input.params ?? {};
   const existingMeta =
     params._meta &&
@@ -230,8 +281,29 @@ export async function postMcpJsonRpc(input: {
         },
       },
     }),
+    signal: input.signal,
   });
 
+  return { id, response };
+}
+
+/**
+ * POST one JSON-RPC request and return its `result` object.
+ *
+ * Throws `McpJsonRpcError` when the peer answered with a JSON-RPC error, and a
+ * plain `Error` when the exchange never produced a matching response.
+ */
+export async function postMcpJsonRpc(input: {
+  url: string;
+  method: string;
+  params?: Record<string, unknown>;
+  headers?: Record<string, string>;
+  clientInfo: McpImplementation;
+  clientCapabilities: Record<string, unknown>;
+  protocolVersion?: string;
+  fetchImpl?: typeof fetch;
+}): Promise<Record<string, unknown>> {
+  const { id, response } = await openMcpJsonRpcPost(input);
   const envelope = await readResponseEnvelope(response, input.method, id);
 
   if (envelope.error) {

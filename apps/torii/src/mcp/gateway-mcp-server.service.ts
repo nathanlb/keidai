@@ -8,9 +8,11 @@ import {
 import { toNodeHandler, type NodeMcpRequestHandler } from "@modelcontextprotocol/node";
 import {
   MCP_TASKS_EXTENSION_ID,
+  MCP_SUBSCRIPTIONS_LISTEN_METHOD,
   PolicyDecision,
   clientDeclaresTasksExtension,
   isMcpTasksMethod,
+  readRequestedTaskIds,
 } from "@keidai/shared";
 import type { AgentPrincipal, Logger } from "@keidai/shared";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
@@ -53,7 +55,10 @@ import {
   type InboundMcpRequestContext,
 } from "./utils/parse-inbound-mcp-request.js";
 import { dispatchMcpTasksMethod, readClientCapabilities, MISSING_TASKS_EXTENSION_ERROR } from "./utils/dispatch-mcp-tasks.js";
+import { resolveCoveredTaskIds } from "./utils/dispatch-mcp-subscriptions.js";
+import { openTaskSubscriptionStream } from "./utils/open-task-subscription-stream.js";
 import { TaskStoreService } from "../tasks/task-store.service.js";
+import { TaskNotificationBus } from "../tasks/task-notification-bus.service.js";
 
 const GATEWAY_SERVER_INFO = {
   name: "torii-gateway",
@@ -78,6 +83,8 @@ export class GatewayMcpServer {
     private readonly traceEmitter: TraceEmitter,
     @inject(StructuredLoggerService)
     private readonly logger: Logger,
+    @inject(TaskNotificationBus)
+    private readonly taskNotifications: TaskNotificationBus,
   ) {
     this.mcpHandler = createMcpHandler(() => this.createMcpServer(), {
       legacy: "reject",
@@ -153,6 +160,18 @@ export class GatewayMcpServer {
         return;
       }
 
+      if (method === MCP_SUBSCRIPTIONS_LISTEN_METHOD) {
+        await runWithAgentPrincipal(principalResult.principal, async () => {
+          await this.handleSubscriptionsListen(
+            request,
+            reply,
+            mcpRequest,
+            principalResult.principal,
+          );
+        });
+        return;
+      }
+
       if (method === "tools/call" && mcpRequest.name) {
         await runWithAgentPrincipal(principalResult.principal, async () => {
           await this.handleToolsCall(request, reply, mcpRequest);
@@ -174,6 +193,58 @@ export class GatewayMcpServer {
         reply.raw.end(JSON.stringify(mcpInternalServerError(mcpRequest.id)));
       }
     }
+  }
+
+  async close(): Promise<void> {
+    await this.taskNotifications?.close();
+  }
+
+  private async handleSubscriptionsListen(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    mcpRequest: InboundMcpRequestContext,
+    principal: AgentPrincipal,
+  ): Promise<void> {
+    const requested = readRequestedTaskIds(readListenParams(request.body));
+    if (
+      requested !== undefined &&
+      !clientDeclaresTasksExtension(readClientCapabilities(request.body))
+    ) {
+      sendMcpJsonRpc(
+        reply,
+        mcpJsonRpcError(mcpRequest.id, MISSING_TASKS_EXTENSION_ERROR),
+      );
+      return;
+    }
+    if (mcpRequest.id === null) {
+      sendMcpJsonRpc(
+        reply,
+        mcpJsonRpcError(mcpRequest.id, {
+          code: ProtocolErrorCode.InvalidParams,
+          message: "Invalid params: subscriptions/listen requires a JSON-RPC id",
+        }),
+      );
+      return;
+    }
+
+    const covered =
+      requested === undefined
+        ? []
+        : await resolveCoveredTaskIds({
+            principal,
+            requested,
+            taskStore: this.taskStore,
+          });
+
+    await openTaskSubscriptionStream({
+      request,
+      reply,
+      requestId: mcpRequest.id,
+      agentId: principal.agentId,
+      coveredTaskIds: covered,
+      taskStore: this.taskStore,
+      taskNotifications: this.taskNotifications,
+    });
   }
 
   private async resolvePrincipal(
@@ -367,4 +438,11 @@ function readToolCallArguments(
     return {};
   }
   return args as Record<string, unknown>;
+}
+
+function readListenParams(body: unknown): unknown {
+  if (!body || typeof body !== "object") {
+    return undefined;
+  }
+  return (body as { params?: unknown }).params;
 }

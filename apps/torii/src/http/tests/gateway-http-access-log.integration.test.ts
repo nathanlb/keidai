@@ -13,6 +13,7 @@ import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter
 import { createCapturingLogger } from "../../logging/tests/test-helpers.js";
 import { createOAuthApiController, createStubToolCatalog, createTracesApiController } from "./test-helpers.js";
 import { createApprovalServices } from "../../policy/tests/test-helpers.js";
+import { TaskNotificationBus } from "../../tasks/task-notification-bus.service.js";
 
 describe("Gateway HTTP access logging", () => {
   it("emits structured access logs without secrets", async () => {
@@ -49,6 +50,7 @@ describe("Gateway HTTP access logging", () => {
         {} as never,
         new CapturingTraceEmitter(),
         logger,
+        new TaskNotificationBus(services.persistence.pool!),
       ),
       logger,
       services.persistence.pool!,

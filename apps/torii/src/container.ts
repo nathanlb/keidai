@@ -44,6 +44,7 @@ import { ApprovalGateService } from "./policy/approval-gate.service.js";
 import { ApprovalReadService } from "./policy/approval-read.service.js";
 import { ApprovalStoreService } from "./policy/approval-store.service.js";
 import { TaskStoreService } from "./tasks/task-store.service.js";
+import { TaskNotificationBus } from "./tasks/task-notification-bus.service.js";
 import { ApprovalsApiController } from "./policy/approvals-api.controller.js";
 import { StructuredLoggerService } from "./logging/structured-logger.service.js";
 import { TraceEmitterService } from "./trace/trace-emitter.service.js";
@@ -81,6 +82,7 @@ export async function createContainer(
   let traceRepository: PgTraceRepository | undefined;
   let approvalStore: ApprovalStoreService | undefined;
   let taskStore: TaskStoreService | undefined;
+  let taskNotifications: TaskNotificationBus | undefined;
 
   appContainer.register(TORII_DATABASE, { useValue: pool });
   appContainer.register(ToriiConfigService, {
@@ -226,6 +228,14 @@ export async function createContainer(
         appContainer.resolve<Pool>(TORII_DATABASE),
       );
       return taskStore;
+    },
+  });
+  appContainer.register(TaskNotificationBus, {
+    useFactory: () => {
+      taskNotifications ??= new TaskNotificationBus(
+        appContainer.resolve<Pool>(TORII_DATABASE),
+      );
+      return taskNotifications;
     },
   });
   appContainer.register(

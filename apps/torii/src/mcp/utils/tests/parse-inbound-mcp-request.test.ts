@@ -137,6 +137,22 @@ describe("resolveInboundMcpRequest", () => {
     assert.equal(resolved.context.name, "github.echo");
   });
 
+  it("does not require Mcp-Name for subscriptions/listen", () => {
+    const resolved = resolveInboundMcpRequest(
+      { "mcp-method": "subscriptions/listen" },
+      {
+        jsonrpc: "2.0",
+        id: 7,
+        method: "subscriptions/listen",
+        params: { notifications: { taskIds: ["abc"] } },
+      },
+    );
+    assert.deepEqual(resolved, {
+      ok: true,
+      context: { id: 7, method: "subscriptions/listen", name: undefined },
+    });
+  });
+
   it("does not require Mcp-Name for tools/list", () => {
     const resolved = resolveInboundMcpRequest(
       { "mcp-method": "tools/list" },

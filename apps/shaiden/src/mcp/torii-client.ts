@@ -19,7 +19,8 @@ import {
   mapTerminalMcpTaskToToolCallResult,
   tryMapTerminalCreateTaskResult,
 } from "./parse-tool-result.js";
-import { pollUntilTerminalMcpTask } from "./poll-mcp-task.js";
+import { pollUntilTerminalMcpTask, createTaskPollWake } from "./poll-mcp-task.js";
+import { listenForTaskNotifications } from "./listen-task-notifications.js";
 import {
   MCP_PROTOCOL_VERSION,
   SHAIDEN_CLIENT_CAPABILITIES,
@@ -73,6 +74,8 @@ function toToolCallError(error: unknown): Error {
  *
  * Gated tools return `resultType: "task"`. `callTool` surfaces that as a park
  * handle; `pollMcpTask` drives `tasks/get` until the completed tool result.
+ * A healthy `subscriptions/listen` stream is an early wake only — the next
+ * `tasks/get` is still the source of truth, and a dropped stream is ignored.
  */
 export async function connectToriiSession(
   toriiMcpUrl: string,
@@ -159,9 +162,19 @@ export async function connectToriiSession(
     taskId,
     pollIntervalMs,
   ) => {
+    const abort = new AbortController();
+    const wake = createTaskPollWake();
+    void listenForTaskNotifications({
+      mcpUrl: toriiMcpUrl,
+      authorization: authHeaders.Authorization ?? "",
+      taskId,
+      onWake: () => wake.signal(),
+      signal: abort.signal,
+    });
     try {
       const terminal = await pollUntilTerminalMcpTask({
         initialPollIntervalMs: pollIntervalMs,
+        wake,
         getTask: async () => {
           await applyToken();
           return postJsonRpc(MCP_TASKS_GET_METHOD, { taskId });
@@ -170,6 +183,8 @@ export async function connectToriiSession(
       return mapTerminalMcpTaskToToolCallResult(terminal);
     } catch (error) {
       throw toToolCallError(error);
+    } finally {
+      abort.abort();
     }
   };
 

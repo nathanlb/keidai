@@ -34,6 +34,46 @@ export function nextTaskPollDelayMs(
   return Math.round(capped * jitter);
 }
 
+/** Gate that interrupts `pollUntilTerminalMcpTask` sleeps. */
+export function createTaskPollWake(): {
+  signal: () => void;
+  wait: () => Promise<void>;
+  consume: () => boolean;
+} {
+  let waiters: Array<() => void> = [];
+  let signaled = false;
+  return {
+    signal(): void {
+      const pending = waiters;
+      waiters = [];
+      if (pending.length === 0) {
+        signaled = true;
+        return;
+      }
+      signaled = false;
+      for (const resolve of pending) {
+        resolve();
+      }
+    },
+    wait(): Promise<void> {
+      if (signaled) {
+        signaled = false;
+        return Promise.resolve();
+      }
+      return new Promise((resolve) => {
+        waiters.push(resolve);
+      });
+    },
+    consume(): boolean {
+      if (!signaled) {
+        return false;
+      }
+      signaled = false;
+      return true;
+    },
+  };
+}
+
 export function isFatalMcpPollError(error: unknown): boolean {
   if (!(error instanceof McpJsonRpcError)) {
     return false;
@@ -46,6 +86,7 @@ export async function pollUntilTerminalMcpTask(input: {
   initialPollIntervalMs?: number;
   sleep?: (ms: number) => Promise<void>;
   random?: () => number;
+  wake?: { wait: () => Promise<void>; consume?: () => boolean };
 }): Promise<McpGetTaskResult> {
   const sleep =
     input.sleep ??
@@ -60,12 +101,12 @@ export async function pollUntilTerminalMcpTask(input: {
       if (isFatalMcpPollError(error)) {
         throw error;
       }
-      await sleep(nextTaskPollDelayMs(intervalMs, input.random));
+      await waitForNextPoll(sleep, intervalMs, input.random, input.wake);
       continue;
     }
     const parsed = mcpGetTaskResultSchema.safeParse(raw);
     if (!parsed.success) {
-      await sleep(nextTaskPollDelayMs(intervalMs, input.random));
+      await waitForNextPoll(sleep, intervalMs, input.random, input.wake);
       continue;
     }
     const task = parsed.data;
@@ -78,6 +119,23 @@ export async function pollUntilTerminalMcpTask(input: {
       );
     }
     intervalMs = task.pollIntervalMs ?? intervalMs;
-    await sleep(nextTaskPollDelayMs(intervalMs, input.random));
+    await waitForNextPoll(sleep, intervalMs, input.random, input.wake);
   }
+}
+
+async function waitForNextPoll(
+  sleep: (ms: number) => Promise<void>,
+  intervalMs: number | undefined,
+  random: (() => number) | undefined,
+  wake: { wait: () => Promise<void>; consume?: () => boolean } | undefined,
+): Promise<void> {
+  if (wake?.consume?.()) {
+    return;
+  }
+  const delay = nextTaskPollDelayMs(intervalMs, random);
+  if (!wake) {
+    await sleep(delay);
+    return;
+  }
+  await Promise.race([sleep(delay), wake.wait()]);
 }

@@ -18,6 +18,7 @@ import {
   type StoredMcpTask,
 } from "./types/mcp-task.js";
 import { generateMcpTaskId } from "./utils/generate-mcp-task-id.js";
+import { MCP_TASK_STATUS_CHANNEL } from "./mcp-task-status-channel.js";
 import {
   isMcpTaskExpired,
   toDetailedMcpTask,
@@ -227,7 +228,7 @@ export class TaskStoreService {
     }
 
     const remaining = Object.keys(outstanding);
-    await this.save({
+    await this.saveAndNotify(record.status, {
       ...record,
       status: remaining.length === 0 ? "working" : "input_required",
       inputRequests: remaining.length === 0 ? undefined : outstanding,
@@ -245,7 +246,7 @@ export class TaskStoreService {
     if (isMcpTaskTerminalStatus(record.status)) {
       return;
     }
-    await this.save({
+    await this.saveAndNotify(record.status, {
       ...record,
       status: "cancelled",
       inputRequests: undefined,
@@ -276,7 +277,7 @@ export class TaskStoreService {
       inputRequests: { ...record.inputRequests, ...inputRequests },
       lastUpdatedAtMs: now,
     };
-    await this.save(next);
+    await this.saveAndNotify(record.status, next);
     return next;
   }
 
@@ -322,7 +323,7 @@ export class TaskStoreService {
       inputRequests: undefined,
       lastUpdatedAtMs: now,
     };
-    await this.save(next);
+    await this.saveAndNotify(record.status, next);
     return next;
   }
 
@@ -337,6 +338,23 @@ export class TaskStoreService {
     );
     const row = result.rows[0];
     return row ? rowToRecord(row) : undefined;
+  }
+
+  private async saveAndNotify(
+    previousStatus: McpTaskStatus,
+    record: StoredMcpTask,
+  ): Promise<void> {
+    await this.save(record);
+    if (previousStatus !== record.status) {
+      await this.notifyStatusChange(record.taskId);
+    }
+  }
+
+  private async notifyStatusChange(taskId: string): Promise<void> {
+    await this.queryable.query("SELECT pg_notify($1, $2)", [
+      MCP_TASK_STATUS_CHANNEL,
+      taskId,
+    ]);
   }
 
   private async save(record: StoredMcpTask): Promise<void> {
