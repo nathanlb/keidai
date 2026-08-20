@@ -83,6 +83,21 @@ export class PgBearerRepository implements BearerRepository {
     return { bearerId, agentId };
   }
 
+  async ensureGrant(
+    bearerId: string,
+    agentId: string,
+  ): Promise<BearerAgentGrant> {
+    await this.pool.query(
+      `
+        INSERT INTO bearer_agent_grants (bearer_id, agent_id)
+        VALUES ($1, $2)
+        ON CONFLICT (bearer_id, agent_id) DO NOTHING
+      `,
+      [bearerId, agentId],
+    );
+    return { bearerId, agentId };
+  }
+
   async revoke(bearerId: string, agentId: string): Promise<boolean> {
     const result = await this.pool.query(
       `DELETE FROM bearer_agent_grants WHERE bearer_id = $1 AND agent_id = $2`,

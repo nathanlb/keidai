@@ -16,7 +16,7 @@ function envWithTempDbAndKey(
     FUDA_SIGNING_KEYS: `default=${keyPath}`,
     FUDA_SIGNING_KID: "default",
     FUDA_ISSUER: "https://fuda.test",
-    FUDA_STATIC_SUBJECT_MAPPINGS: "dev-secret=local-dev",
+    FUDA_STATIC_SUBJECT_TOKEN: "dev-secret",
     ...overrides,
   };
 }
@@ -37,8 +37,8 @@ describe("loadRuntimeConfig", () => {
     assert.equal(subjectTokenValidatorConfig?.kind, "static");
     if (subjectTokenValidatorConfig?.kind === "static") {
       assert.equal(
-        subjectTokenValidatorConfig.mappings.get("dev-secret"),
-        "local-dev",
+        subjectTokenValidatorConfig.tokens.has("dev-secret"),
+        true,
       );
     }
   });
@@ -54,7 +54,7 @@ describe("loadRuntimeConfig", () => {
     const { config, subjectTokenValidatorConfig } = loadRuntimeConfig(
       envWithTempDbAndKey({
         FUDA_LISTEN_GROUPS: "public",
-        FUDA_STATIC_SUBJECT_MAPPINGS: "",
+        FUDA_STATIC_SUBJECT_TOKEN: "",
       }),
     );
     assert.equal(config.subjectTokenValidator, null);
@@ -65,7 +65,7 @@ describe("loadRuntimeConfig", () => {
     assert.throws(
       () =>
         loadRuntimeConfig(
-          envWithTempDbAndKey({ FUDA_STATIC_SUBJECT_MAPPINGS: "" }),
+          envWithTempDbAndKey({ FUDA_STATIC_SUBJECT_TOKEN: "" }),
         ),
       (error: unknown) => {
         assert.ok(error instanceof ConfigValidationError);
@@ -80,7 +80,7 @@ describe("loadRuntimeConfig", () => {
       () =>
         loadRuntimeConfig(
           envWithTempDbAndKey({
-            FUDA_STATIC_SUBJECT_MAPPINGS: "",
+            FUDA_STATIC_SUBJECT_TOKEN: "",
             FUDA_PORT: "nope",
           }),
         ),
@@ -99,13 +99,13 @@ describe("loadRuntimeConfig", () => {
       () =>
         loadRuntimeConfig(
           envWithTempDbAndKey({
-            FUDA_STATIC_SUBJECT_MAPPINGS: "no-equals",
+            FUDA_STATIC_SUBJECT_MAPPINGS: "dev-secret=local-dev",
           }),
         ),
       (error: unknown) => {
         assert.ok(error instanceof ConfigValidationError);
         const joined = error.errors.join("\n");
-        assert.match(joined, /expected credential=bearer_id/);
+        assert.match(joined, /FUDA_STATIC_SUBJECT_MAPPINGS is removed/);
         assert.doesNotMatch(joined, /Subject token validator required/);
         return true;
       },
@@ -120,7 +120,7 @@ describe("loadRuntimeConfig", () => {
             FUDA_K8S_SA_OIDC_ISSUER: "https://kubernetes.default.svc",
             FUDA_K8S_SA_OIDC_AUDIENCE: "fuda",
             FUDA_K8S_SA_OIDC_JWKS_URI: "https://example.test/jwks",
-            FUDA_K8S_SA_OIDC_SUBJECT_MAPPINGS: "agents/catalog=catalog-runner",
+            FUDA_K8S_SA_OIDC_SUBJECTS: "agents/catalog",
           }),
         ),
       (error: unknown) => {
@@ -136,7 +136,7 @@ describe("loadRuntimeConfig", () => {
       () =>
         loadRuntimeConfig(
           envWithTempDbAndKey({
-            FUDA_STATIC_SUBJECT_MAPPINGS: "",
+            FUDA_STATIC_SUBJECT_TOKEN: "",
             FUDA_LISTEN_GROUPS: "public",
             FUDA_K8S_SA_OIDC_ISSUER: "https://kubernetes.default.svc",
           }),
@@ -152,21 +152,21 @@ describe("loadRuntimeConfig", () => {
   it("selects k8s SA OIDC when that group is fully configured", () => {
     const { config, subjectTokenValidatorConfig } = loadRuntimeConfig(
       envWithTempDbAndKey({
-        FUDA_STATIC_SUBJECT_MAPPINGS: "",
+        FUDA_STATIC_SUBJECT_TOKEN: "",
         FUDA_K8S_SA_OIDC_ISSUER: "https://kubernetes.default.svc",
         FUDA_K8S_SA_OIDC_AUDIENCE: "fuda",
         FUDA_K8S_SA_OIDC_JWKS_URI: "https://example.test/jwks",
-        FUDA_K8S_SA_OIDC_SUBJECT_MAPPINGS: "agents/catalog=catalog-runner",
+        FUDA_K8S_SA_OIDC_SUBJECTS: "agents/catalog",
       }),
     );
     assert.equal(config.subjectTokenValidator?.kind, "k8s_sa_oidc");
     assert.equal(subjectTokenValidatorConfig?.kind, "k8s_sa_oidc");
     if (subjectTokenValidatorConfig?.kind === "k8s_sa_oidc") {
       assert.equal(
-        subjectTokenValidatorConfig.mappings.get(
+        subjectTokenValidatorConfig.subjects.has(
           "k8s_service_account:agents/catalog",
         ),
-        "catalog-runner",
+        true,
       );
     }
   });

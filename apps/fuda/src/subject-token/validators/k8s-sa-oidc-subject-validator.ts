@@ -1,4 +1,5 @@
 import * as jose from "jose";
+import { PLATFORM_BEARER_ID } from "../../bearers/platform-bearer.js";
 import type { K8sSaOidcSubjectConfig } from "../types/k8s-sa-oidc-subject-config.js";
 import { SubjectTokenValidationError } from "../types/subject-token-validation-error.js";
 import type { SubjectTokenValidator } from "../types/subject-token-validator.js";
@@ -9,8 +10,8 @@ import { registryKey } from "../utils/registry-key.js";
 export type JwtVerifyKey = jose.JWTVerifyGetKey;
 
 /**
- * Validates a Kubernetes projected service-account OIDC token and maps the
- * SA subject to an internal `bearer_id` via validator-private config.
+ * Validates a Kubernetes projected service-account OIDC token and, if the
+ * SA is in the allow-list, returns {@link PLATFORM_BEARER_ID}.
  *
  * Optional `verifyKey` injects a JWKS/key lookup for unit tests. Production
  * fetches JWKS with the in-cluster SA token — many clusters reject anonymous
@@ -44,12 +45,11 @@ export class K8sSaOidcSubjectValidator implements SubjectTokenValidator {
       }
 
       const validatedSubject = parseK8sSaSubject(payload.sub);
-      const bearerId = this.config.mappings.get(registryKey(validatedSubject));
-      if (bearerId === undefined) {
+      if (!this.config.subjects.has(registryKey(validatedSubject))) {
         throw new SubjectTokenValidationError("Invalid subject token");
       }
 
-      return bearerId;
+      return PLATFORM_BEARER_ID;
     } catch (error) {
       throw this.toValidationError(error);
     }

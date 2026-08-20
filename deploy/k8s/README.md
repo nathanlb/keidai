@@ -177,15 +177,19 @@ kubectl -n keidai delete pod "${POD}"
 | Shaiden → Torii MCP | Fuda-minted agent JWT (`aud=torii`) |
 | Torii → Fuda JWKS | HTTP to `http://fuda:3300/.well-known/jwks.json` |
 
-Fuda mapping (validator-private, not in the database):
+Fuda allow-list (validator-private; the `bearers` row is seeded at boot as
+`shaiden-runner`):
 
 ```text
-FUDA_K8S_SA_OIDC_SUBJECT_MAPPINGS=keidai/shaiden=shaiden-runner
+FUDA_K8S_SA_OIDC_SUBJECTS=keidai/shaiden
 ```
 
+A valid projected SA token for that subject is treated as `shaiden-runner`.
+Fuda upserts that bearer at boot and grants it to every agent. Rotating the
+SA (or the Compose shared secret) does not require new grants.
+
 Fuda reconciles platform owners from ConfigMap `keidai-operators` at boot
-(`FUDA_OPERATORS_PATH`). Create agents/bearers/grants via the management API
-(or keidai-ui), not a seed YAML. Torii mounts the same ConfigMap
+(`FUDA_OPERATORS_PATH`). Torii mounts the same ConfigMap
 (`TORII_OPERATORS_PATH`) and wipes OAuth tokens / pending links for
 `owner_id`s no longer in the registry. Restart Torii after editing operators
 so the wipe runs; Fuda reconcile alone does not touch Torii's database.

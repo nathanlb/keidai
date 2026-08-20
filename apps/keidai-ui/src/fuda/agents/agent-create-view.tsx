@@ -7,7 +7,9 @@ import { checkSlugAvailability, createAgent } from "../api/fuda-client.js";
 import { AGENTS_KEY } from "../../shell/hooks/use-fetch-agents.js";
 import { useActingOwner } from "../../shell/hooks/use-acting-owner.js";
 import { useZodForm } from "../../shell/forms/use-zod-form.js";
+import { useFetchBearers } from "../hooks/use-fetch-bearers.js";
 import { useFetchToriiGroups } from "../hooks/use-fetch-torii-groups.js";
+import { PLATFORM_BEARER_ID } from "../platform-bearer.js";
 import { AgentGroupChip } from "./components/agent-group-chip.js";
 import {
   createAgentFormSchema,
@@ -33,6 +35,7 @@ export function AgentCreateView() {
   const { mutate } = useSWRConfig();
   const { owner } = useActingOwner();
   const { data: toriiGroupsData } = useFetchToriiGroups();
+  const { data: bearersData } = useFetchBearers();
   const toriiGroups = toriiGroupsData?.groups ?? [];
   const knownGroupNames = useMemo(
     () => toriiGroups.map((group) => group.name),
@@ -117,6 +120,11 @@ export function AgentCreateView() {
   const canCreate =
     Boolean(owner) && isValid && slugStatus === "available" && !isSubmitting;
 
+  const runner =
+    bearersData?.bearers.find(
+      (bearer) => bearer.bearerId === PLATFORM_BEARER_ID,
+    ) ?? bearersData?.bearers[0];
+
   const onSubmit = handleSubmit(async (values) => {
     if (!canCreate || !owner) {
       return;
@@ -131,9 +139,9 @@ export function AgentCreateView() {
         persona: values.persona,
       });
       await mutate(AGENTS_KEY);
-      navigate(`/agents/${agent.id}?tab=access`, {
+      navigate(`/agents/${agent.id}`, {
         state: {
-          toast: "Agent created. Grant a bearer so a process can act as it.",
+          toast: "Agent created. Shaiden can run it.",
         },
       });
     } catch (error) {
@@ -189,10 +197,7 @@ export function AgentCreateView() {
         editable.
       </p>
 
-      <form
-        className="flex max-w-170 flex-col gap-4"
-        onSubmit={onSubmit}
-      >
+      <form className="flex max-w-170 flex-col gap-4" onSubmit={onSubmit}>
         <div className="flex flex-col gap-4.5 rounded-xl border border-border bg-card p-5">
           <div>
             <label className="mb-1.5 block text-[13px] font-medium">Name</label>
@@ -299,6 +304,26 @@ export function AgentCreateView() {
               {owner?.ownerId ?? "—"}
             </span>{" "}
             — single-valued and fixed at registration.
+          </div>
+
+          <div>
+            <label className="mb-1.5 flex items-center gap-1.5 text-[13px] font-medium">
+              Runtime
+              <Lock className="size-3 text-muted-foreground" aria-hidden />
+              <span className="text-[11.5px] font-normal text-muted-foreground">
+                assigned automatically
+              </span>
+            </label>
+            <div className="flex h-9.5 items-center rounded-md border border-border px-3 font-mono text-[13px]">
+              {runner?.displayName ?? PLATFORM_BEARER_ID}
+            </div>
+            <p className="mt-1.5 text-[11.5px] text-muted-foreground">
+              Shaiden in this ecosystem. Fuda grants{" "}
+              <span className="font-mono text-foreground">
+                {runner?.bearerId ?? PLATFORM_BEARER_ID}
+              </span>{" "}
+              when the agent is created.
+            </p>
           </div>
         </div>
 

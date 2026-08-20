@@ -12,13 +12,13 @@ export function createSubjectTokenValidator(
 ): SubjectTokenValidator {
   switch (config.kind) {
     case "static":
-      return new StaticSubjectValidator({ mappings: config.mappings });
+      return new StaticSubjectValidator({ tokens: config.tokens });
     case "k8s_sa_oidc":
       return new K8sSaOidcSubjectValidator({
         issuer: config.issuer,
         audience: config.audience,
         jwksUri: config.jwksUri,
-        mappings: config.mappings,
+        subjects: config.subjects,
         jwksBearerTokenFile: config.jwksBearerTokenFile,
       });
   }

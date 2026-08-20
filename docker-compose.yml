@@ -38,8 +38,8 @@ services:
       # Mount apps/fuda/keys/dev.pem (see apps/fuda/README.md).
       FUDA_SIGNING_KEYS: "dev=/app/keys/dev.pem"
       FUDA_SIGNING_KID: "dev"
-      # Map Shaiden's subject token to a Fuda bearer_id (create via management API).
-      FUDA_STATIC_SUBJECT_MAPPINGS: ${SHAIDEN_BEARER:-local-dev-secret}=local-dev
+      # Shared secret Shaiden presents; allowed subjects resolve to shaiden-runner.
+      FUDA_STATIC_SUBJECT_TOKEN: ${SHAIDEN_BEARER:-local-dev-secret}
       # Pin container path so host-relative FUDA_OPERATORS_PATH from apps/fuda/.env
       # cannot break in-container boot (mirrors k8s ConfigMap mount).
       FUDA_OPERATORS_PATH: /app/operators/operators.yaml

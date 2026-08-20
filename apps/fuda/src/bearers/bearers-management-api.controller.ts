@@ -5,6 +5,7 @@ import {
   AGENT_REPOSITORY,
   type AgentRepository,
 } from "../agents/types/agent-repository.js";
+import { PLATFORM_BEARER_ID } from "./platform-bearer.js";
 import {
   createBearerBodySchema,
   createGrantBodySchema,
@@ -88,6 +89,10 @@ export class BearersManagementApiController {
 
     app.delete("/api/bearers/:bearerId", async (request, reply) => {
       const { bearerId } = request.params as { bearerId: string };
+      if (bearerId === PLATFORM_BEARER_ID) {
+        reply.code(409).send({ error: "platform bearer cannot be deleted" });
+        return;
+      }
       if (!(await this.bearers.delete(bearerId))) {
         reply.code(404).send({ error: "bearer not found" });
         return;

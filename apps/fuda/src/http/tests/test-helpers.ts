@@ -4,6 +4,9 @@ import {
   type IsolatedSchema,
   type Pool,
 } from "@keidai/postgres";
+import { AGENT_REPOSITORY } from "../../agents/types/agent-repository.js";
+import { ensurePlatformBearer } from "../../bearers/ensure-platform-bearer.js";
+import { BEARER_REPOSITORY } from "../../bearers/types/bearer-repository.js";
 import { loadRuntimeConfig } from "../../config/runtime-config.js";
 import { createContainer, FUDA_DATABASE } from "../../container.js";
 import { StructuredLoggerService } from "../../logging/structured-logger.service.js";
@@ -39,6 +42,15 @@ async function seedSampleOwner(
   await new PgOwnerRepository(pool).upsert(sampleAgentBody.ownerId);
 }
 
+async function seedPlatformBearer(
+  container: Awaited<ReturnType<typeof createContainer>>["container"],
+): Promise<void> {
+  await ensurePlatformBearer(
+    container.resolve(BEARER_REPOSITORY),
+    container.resolve(AGENT_REPOSITORY),
+  );
+}
+
 function wrapServerStart(
   server: FudaHttpServer,
   isolated: IsolatedSchema,
@@ -70,7 +82,7 @@ export async function createTestServer(
     FUDA_ISSUER: "https://fuda.test",
     FUDA_SIGNING_KEYS: `test=${keyPath}`,
     FUDA_SIGNING_KID: "test",
-    FUDA_STATIC_SUBJECT_MAPPINGS: "test-secret=test-bearer",
+    FUDA_STATIC_SUBJECT_TOKEN: "test-secret",
     ...(listenGroups ? { FUDA_LISTEN_GROUPS: listenGroups } : {}),
   });
   const { container } = await createContainer(
@@ -80,6 +92,7 @@ export async function createTestServer(
   );
   container.register(StructuredLoggerService, { useValue: silentLogger });
   await seedSampleOwner(container);
+  await seedPlatformBearer(container);
   return wrapServerStart(container.resolve(FudaHttpServer), isolated);
 }
 
@@ -103,7 +116,7 @@ export async function createTestServerWithKeys(options: {
     FUDA_ISSUER: "https://fuda.test",
     FUDA_SIGNING_KEYS: signingKeys,
     FUDA_SIGNING_KID: options.signingKid,
-    FUDA_STATIC_SUBJECT_MAPPINGS: "test-secret=test-bearer",
+    FUDA_STATIC_SUBJECT_TOKEN: "test-secret",
     ...(options.listenGroups
       ? { FUDA_LISTEN_GROUPS: options.listenGroups }
       : {}),
@@ -115,6 +128,7 @@ export async function createTestServerWithKeys(options: {
   );
   container.register(StructuredLoggerService, { useValue: silentLogger });
   await seedSampleOwner(container);
+  await seedPlatformBearer(container);
   return {
     server: wrapServerStart(container.resolve(FudaHttpServer), isolated),
     container,

@@ -56,7 +56,7 @@ Docker Compose brings up the full stack and publishes **only** the keidai-ui BFF
 docker compose up --build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and sign in with an allowlisted Google operator (`deploy/operators.example.yaml`, mounted into Fuda + BFF). Create agents/bearers/grants via keidai-ui before submitting a Shaiden task — otherwise token exchange fails.
+Open [http://localhost:3000](http://localhost:3000) and sign in with an allowlisted Google operator (`deploy/operators.example.yaml`, mounted into Fuda + BFF). Create an agent in keidai-ui — Fuda assigns the Shaiden runtime automatically.
 
 **Prerequisites** (see [`.env.example`](.env.example) and [`apps/keidai-ui/.env.example`](apps/keidai-ui/.env.example)):
 

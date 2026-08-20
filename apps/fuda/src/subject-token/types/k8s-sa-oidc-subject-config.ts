@@ -1,6 +1,6 @@
 /**
  * Config for the k8s SA OIDC subject validator.
- * Subject → `bearer_id` mappings are validator-private (not schema).
+ * Allowed SA subjects are validator-private (not schema).
  */
 export interface K8sSaOidcSubjectConfig {
   issuer: string;
@@ -11,6 +11,6 @@ export interface K8sSaOidcSubjectConfig {
    * SA token. Many clusters require auth for `/openid/v1/jwks`.
    */
   jwksBearerTokenFile?: string;
-  /** `registryKey(subject)` → internal bearer_id. */
-  mappings: ReadonlyMap<string, string>;
+  /** `registryKey(subject)` values Fuda will accept. */
+  subjects: ReadonlySet<string>;
 }

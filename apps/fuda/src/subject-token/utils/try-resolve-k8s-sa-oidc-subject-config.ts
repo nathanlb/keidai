@@ -1,5 +1,5 @@
 import type { K8sSaOidcSubjectConfig } from "../types/k8s-sa-oidc-subject-config.js";
-import { parseK8sSaSubjectMappings } from "./parse-k8s-sa-subject-mappings.js";
+import { parseK8sSaSubjects } from "./parse-k8s-sa-subjects.js";
 
 function readEnv(
   env: NodeJS.ProcessEnv,
@@ -11,7 +11,7 @@ function readEnv(
 
 /**
  * Resolves `FUDA_K8S_SA_OIDC_*`: all unset → null; any subset → throw;
- * all set (issuer, audience, jwks, subject mappings) → config.
+ * all set (issuer, audience, jwks, subjects) → config.
  */
 export function tryResolveK8sSaOidcSubjectConfig(
   env: NodeJS.ProcessEnv = process.env,
@@ -19,23 +19,21 @@ export function tryResolveK8sSaOidcSubjectConfig(
   const issuer = readEnv(env, "FUDA_K8S_SA_OIDC_ISSUER");
   const audience = readEnv(env, "FUDA_K8S_SA_OIDC_AUDIENCE");
   const jwksUri = readEnv(env, "FUDA_K8S_SA_OIDC_JWKS_URI");
-  const mappingsOrError = parseK8sSaSubjectMappings(
-    env.FUDA_K8S_SA_OIDC_SUBJECT_MAPPINGS,
-  );
+  const subjectsOrError = parseK8sSaSubjects(env.FUDA_K8S_SA_OIDC_SUBJECTS);
 
-  if (typeof mappingsOrError === "string") {
-    throw new Error(mappingsOrError);
+  if (typeof subjectsOrError === "string") {
+    throw new Error(subjectsOrError);
   }
 
-  const mappings = mappingsOrError;
-  const anySet = Boolean(issuer || audience || jwksUri || mappings);
+  const subjects = subjectsOrError;
+  const anySet = Boolean(issuer || audience || jwksUri || subjects);
   if (!anySet) {
     return null;
   }
 
-  if (!issuer || !audience || !jwksUri || !mappings) {
+  if (!issuer || !audience || !jwksUri || !subjects) {
     throw new Error(
-      "K8s SA OIDC is partially configured; set FUDA_K8S_SA_OIDC_ISSUER, FUDA_K8S_SA_OIDC_AUDIENCE, FUDA_K8S_SA_OIDC_JWKS_URI, and FUDA_K8S_SA_OIDC_SUBJECT_MAPPINGS together",
+      "K8s SA OIDC is partially configured; set FUDA_K8S_SA_OIDC_ISSUER, FUDA_K8S_SA_OIDC_AUDIENCE, FUDA_K8S_SA_OIDC_JWKS_URI, and FUDA_K8S_SA_OIDC_SUBJECTS together",
     );
   }
 
@@ -48,7 +46,7 @@ export function tryResolveK8sSaOidcSubjectConfig(
     issuer,
     audience,
     jwksUri,
-    mappings,
+    subjects,
     ...(jwksBearerTokenFile ? { jwksBearerTokenFile } : {}),
   };
 }

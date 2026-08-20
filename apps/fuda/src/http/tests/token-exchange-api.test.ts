@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createRemoteJWKSet, jwtVerify } from "jose";
+import { PLATFORM_BEARER_ID } from "../../bearers/platform-bearer.js";
 import {
   TOKEN_EXCHANGE_AUDIENCE,
   TOKEN_EXCHANGE_TTL_SECONDS,
@@ -8,7 +9,6 @@ import {
 import { createTestServer, sampleAgentBody } from "./test-helpers.js";
 
 const SUBJECT_TOKEN = "test-secret";
-const BEARER_ID = "test-bearer";
 const ISSUER = "https://fuda.test";
 
 async function seedGrantedAgent(baseUrl: string): Promise<string> {
@@ -19,24 +19,6 @@ async function seedGrantedAgent(baseUrl: string): Promise<string> {
   });
   assert.equal(createAgent.status, 201);
   const { agent } = (await createAgent.json()) as { agent: { id: string } };
-
-  const createBearer = await fetch(`${baseUrl}/api/bearers`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      bearerId: BEARER_ID,
-      displayName: "Test bearer",
-    }),
-  });
-  assert.equal(createBearer.status, 201);
-
-  const grant = await fetch(`${baseUrl}/api/bearers/${BEARER_ID}/grants`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ agentId: agent.id }),
-  });
-  assert.equal(grant.status, 201);
-
   return agent.id;
 }
 
@@ -75,7 +57,7 @@ describe("token exchange", () => {
       assert.equal(verified.payload.agent_id, agentId);
       assert.equal(verified.payload.owner_id, sampleAgentBody.ownerId);
       assert.deepEqual(verified.payload.groups, sampleAgentBody.groups);
-      assert.equal(verified.payload.bearer_id, BEARER_ID);
+      assert.equal(verified.payload.bearer_id, PLATFORM_BEARER_ID);
       assert.equal(verified.payload.aud, TOKEN_EXCHANGE_AUDIENCE);
       assert.equal(verified.payload.iss, ISSUER);
       assert.ok(typeof verified.payload.exp === "number");
@@ -122,15 +104,11 @@ describe("token exchange", () => {
       });
       const { agent } = (await createAgent.json()) as { agent: { id: string } };
 
-      await fetch(`${handle.baseUrl}/api/bearers`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          bearerId: BEARER_ID,
-          displayName: "Test bearer",
-        }),
-      });
-      // No grant created.
+      const revoke = await fetch(
+        `${handle.baseUrl}/api/bearers/${PLATFORM_BEARER_ID}/grants/${agent.id}`,
+        { method: "DELETE" },
+      );
+      assert.equal(revoke.status, 204);
 
       const response = await fetch(`${handle.baseUrl}/token`, {
         method: "POST",
@@ -153,15 +131,6 @@ describe("token exchange", () => {
     const server = await createTestServer("management,agent");
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
-      await fetch(`${handle.baseUrl}/api/bearers`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          bearerId: BEARER_ID,
-          displayName: "Test bearer",
-        }),
-      });
-
       const response = await fetch(`${handle.baseUrl}/token`, {
         method: "POST",
         headers: { "content-type": "application/json" },

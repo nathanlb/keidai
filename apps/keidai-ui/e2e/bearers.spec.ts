@@ -219,25 +219,26 @@ test.describe("Bearers page", () => {
     await expect(page.getByText("br_lonely")).toBeVisible();
   });
 
-  test("grant on Agents Access is reflected on Bearers without reload", async ({
+  test("Agents Access shows the assigned runtime without a grant picker", async ({
     page,
   }) => {
     await mockToriiConfig(page, {
       fudaAgents: [alphaAgent],
-      fudaBearers: [ungrantedBearer],
+      fudaBearers: [
+        { bearerId: "shaiden-runner", displayName: "shaiden-runner" },
+      ],
+      fudaGrants: [
+        { bearerId: "shaiden-runner", agentId: alphaAgent.id },
+      ],
     });
 
     await page.goto(`/agents/${alphaAgent.id}?tab=access`);
-    await page.getByRole("button", { name: "Grant a bearer" }).click();
-    await page.getByRole("button", { name: "Grant", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Grant a bearer" })).toHaveCount(
+      0,
+    );
+    await expect(page.getByText("shaiden-runner").first()).toBeVisible();
     await expect(
-      page.getByText(/Bearer granted\. It can now act as alpha/i),
+      page.getByText(/Shaiden is the only process that can act as an agent/i),
     ).toBeVisible();
-
-    await page.goto("/bearers");
-    const table = page.getByRole("table");
-    await expect(table.getByText("staging smoke")).toBeVisible();
-    await expect(table.getByText("alpha", { exact: true })).toBeVisible();
-    await expect(page.getByText(/has no grants/i)).toHaveCount(0);
   });
 });

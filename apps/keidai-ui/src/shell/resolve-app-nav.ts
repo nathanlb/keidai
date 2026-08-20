@@ -1,4 +1,4 @@
-import { findFudaNavItem } from "../fuda/navigation.js";
+import { findFudaNavItem, isFudaManagedRoute } from "../fuda/navigation.js";
 import { findShaidenNavItem } from "../shaiden/navigation.js";
 import { findToriiNavItem } from "../torii/navigation.js";
 
@@ -20,7 +20,7 @@ export function resolveAppSection(pathname: string): string {
   if (findShaidenNavItem(pathname)) {
     return "Shaiden";
   }
-  if (findFudaNavItem(pathname)) {
+  if (findFudaNavItem(pathname) || isFudaManagedRoute(pathname)) {
     return "Fuda";
   }
   return "Torii";

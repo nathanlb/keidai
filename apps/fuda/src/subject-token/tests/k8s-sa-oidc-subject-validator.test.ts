@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { generateKeyPair, exportJWK, SignJWT, type JWK } from "jose";
 import { describe, it, before } from "node:test";
+import { PLATFORM_BEARER_ID } from "../../bearers/platform-bearer.js";
 import { SubjectTokenValidationError } from "../types/subject-token-validation-error.js";
 import type { K8sSaOidcSubjectConfig } from "../types/k8s-sa-oidc-subject-config.js";
 import { registryKey } from "../utils/registry-key.js";
@@ -13,21 +14,16 @@ const ISSUER = "https://kubernetes.default.svc.cluster.local";
 const AUDIENCE = "fuda";
 const NAMESPACE = "agents";
 const SERVICE_ACCOUNT = "catalog-agent";
-const BEARER_ID = "catalog-runner";
-
 const oidcConfig: K8sSaOidcSubjectConfig = {
   issuer: ISSUER,
   audience: AUDIENCE,
   jwksUri: "https://kubernetes.default.svc/openid/v1/jwks",
-  mappings: new Map([
-    [
-      registryKey({
-        kind: "k8s_service_account",
-        namespace: NAMESPACE,
-        serviceAccountName: SERVICE_ACCOUNT,
-      }),
-      BEARER_ID,
-    ],
+  subjects: new Set([
+    registryKey({
+      kind: "k8s_service_account",
+      namespace: NAMESPACE,
+      serviceAccountName: SERVICE_ACCOUNT,
+    }),
   ]),
 };
 
@@ -109,7 +105,7 @@ describe("K8sSaOidcSubjectValidator", () => {
 
     const bearerId = await validator.validate(token);
 
-    assert.equal(bearerId, BEARER_ID);
+    assert.equal(bearerId, PLATFORM_BEARER_ID);
     assert.ok(!bearerId.includes("system:serviceaccount:"));
   });
 

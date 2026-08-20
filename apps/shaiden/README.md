@@ -69,7 +69,7 @@ pnpm install
 pnpm shaiden:dev
 ```
 
-Set `SHAIDEN_BEARER` (subject token) and `FUDA_URL` in the repo root `.env` (or `apps/shaiden/.env`). `SHAIDEN_DATABASE_URL` is required. Local Postgres: `docker compose up postgres -d`. Shaiden exchanges the subject token for an agent JWT via Fuda `POST /token` before calling Torii. Local demo seeds map the bearer through Fuda's subject validator.
+Set `SHAIDEN_BEARER` (subject token) and `FUDA_URL` in the repo root `.env` (or `apps/shaiden/.env`). `SHAIDEN_DATABASE_URL` is required. Local Postgres: `docker compose up postgres -d`. Shaiden exchanges the subject token for an agent JWT via Fuda `POST /token` before calling Torii. Fuda allow-lists the secret and treats it as the platform bearer `shaiden-runner`.
 
 ## Task config (v0)
 
@@ -96,8 +96,8 @@ A sample Task shape still lives in [`src/config/boot-task.ts`](src/config/boot-t
 
 ```bash
 # Requires SHAIDEN_BEARER, FUDA_ISSUER, apps/fuda/keys/dev.pem, and demo Torii
-# secrets in the repo root .env. Create agents/bearers/grants via keidai-ui
-# (or Fuda management API) after first boot — empty registry fails token exchange.
+# secrets in the repo root .env. Fuda seeds shaiden-runner and grants it to
+# every agent at boot / on create.
 docker compose up --build
 ```
 

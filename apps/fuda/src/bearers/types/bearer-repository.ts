@@ -22,6 +22,10 @@ export interface BearerRepository {
     displayName: string,
   ): Promise<BearerRecord | null>;
   grant(bearerId: string, agentId: string): Promise<BearerAgentGrant>;
+  /**
+   * Inserts a grant if missing. Idempotent.
+   */
+  ensureGrant(bearerId: string, agentId: string): Promise<BearerAgentGrant>;
   revoke(bearerId: string, agentId: string): Promise<boolean>;
   listGrantsForBearer(bearerId: string): Promise<BearerAgentGrant[]>;
   listGrantsForAgent(agentId: string): Promise<BearerAgentGrant[]>;

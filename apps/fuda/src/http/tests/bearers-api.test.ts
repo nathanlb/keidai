@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { PLATFORM_BEARER_ID } from "../../bearers/platform-bearer.js";
 import { createTestServer, sampleAgentBody } from "./test-helpers.js";
 
 describe("bearers management API", () => {
@@ -92,6 +93,24 @@ describe("bearers management API", () => {
       assert.equal(
         ((await duplicate.json()) as { error: string }).error,
         "bearer already exists",
+      );
+    } finally {
+      await handle.close();
+    }
+  });
+
+  it("rejects deleting the platform bearer", async () => {
+    const server = await createTestServer("management");
+    const handle = await server.start({ host: "127.0.0.1", port: 0 });
+    try {
+      const response = await fetch(
+        `${handle.baseUrl}/api/bearers/${PLATFORM_BEARER_ID}`,
+        { method: "DELETE" },
+      );
+      assert.equal(response.status, 409);
+      assert.equal(
+        ((await response.json()) as { error: string }).error,
+        "platform bearer cannot be deleted",
       );
     } finally {
       await handle.close();
