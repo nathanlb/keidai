@@ -5,6 +5,7 @@ import { RuntimeConfig } from "../../config/runtime-config.js";
 import { ConversationEntry } from "./conversation-history.js";
 import { createLocalRunReporter } from "../run-reporter.js";
 import type { FudaClient } from "@keidai/shared/clients";
+import type { RunStopController } from "../run-stop-controller.js";
 
 export interface HarnessRunResult {
   run: Run;
@@ -20,6 +21,8 @@ export interface HarnessRunOptions {
   now?: () => number;
   /** Injectable for tests; defaults to HTTP client when `fudaBaseUrl` is set. */
   fudaClient?: FudaClient;
+  /** Process-local cooperative stop for in-flight runs. */
+  stopController?: RunStopController;
 }
 
 export interface LaunchHarnessRunInput {
@@ -57,4 +60,5 @@ export interface DriveHarnessRunInput {
   now: () => number;
   systemPrompt: string;
   fudaClient?: FudaClient;
+  stopController?: RunStopController;
 }

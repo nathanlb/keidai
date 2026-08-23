@@ -79,6 +79,20 @@ export async function sendRunFollowUp(
   );
 }
 
+export async function stopRun(runId: string): Promise<{ runId: string }> {
+  return fetchJsonWithBody<{ runId: string }>(
+    `/api/runs/${encodeURIComponent(runId)}/stop`,
+    { method: "POST" },
+  );
+}
+
+export async function resumeRun(runId: string): Promise<{ runId: string }> {
+  return fetchJsonWithBody<{ runId: string }>(
+    `/api/runs/${encodeURIComponent(runId)}/resume`,
+    { method: "POST" },
+  );
+}
+
 export function getRunsEventsUrl(): string {
   return "/api/runs/events";
 }

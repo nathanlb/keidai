@@ -166,8 +166,8 @@ export class RunStore {
 
   async beginContinuation(
     runId: string,
-    message: string,
-    userMessageStep: RunStep,
+    message?: string,
+    userMessageStep?: RunStep,
   ): Promise<BeginContinuationResult> {
     const result = await this.repository.beginContinuation(
       runId,

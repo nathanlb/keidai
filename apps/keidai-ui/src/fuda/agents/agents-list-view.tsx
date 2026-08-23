@@ -41,7 +41,7 @@ const SHOW_OWNER = true;
 
 function AgentsPageHeader({ onNewAgent }: { onNewAgent: () => void }) {
   return (
-    <div className="mb-[18px] flex items-start justify-between gap-4">
+    <div className="mb-4.5 flex items-start justify-between gap-4">
       <div>
         <div className="text-[23px] font-bold tracking-tight">Agents</div>
         <div className="mt-0.5 text-[13.5px] leading-normal text-muted-foreground">
@@ -65,7 +65,7 @@ function UnknownGroupsBanner({ names }: { names: string[] }) {
   return (
     <div className="mb-3 flex items-start gap-2.5 rounded-md border border-amber-500/45 bg-amber-500/10 px-3.5 py-2.5 text-[13px] leading-normal">
       <TriangleAlert
-        className="mt-0.5 size-[15px] shrink-0 text-amber-500"
+        className="mt-0.5 size-3.5 shrink-0 text-amber-500"
         aria-hidden
       />
       <span>
@@ -79,7 +79,7 @@ function UnknownGroupsBanner({ names }: { names: string[] }) {
 function AgentsEmptyState({ onNewAgent }: { onNewAgent: () => void }) {
   return (
     <PageEmptyState
-      icon={<Bot className="size-[30px]" aria-hidden />}
+      icon={<Bot className="size-6.5" aria-hidden />}
       title="No agents yet"
       description="An agent carries a persona and a set of groups. Shaiden runs it. Create the first one to get started."
       action={
@@ -173,7 +173,7 @@ export function AgentsListView() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="h-auto py-2.5 pl-[18px] text-xs font-medium">
+                    <TableHead className="h-auto py-2.5 pl-4.5 text-xs font-medium">
                       Agent
                     </TableHead>
                     <TableHead className="h-auto py-2.5 text-xs font-medium">
@@ -190,7 +190,7 @@ export function AgentsListView() {
                         Owner
                       </TableHead>
                     ) : null}
-                    <TableHead className="h-auto w-8 py-2.5 pr-[18px]" />
+                    <TableHead className="h-auto w-8 py-2.5 pr-4.5" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -207,7 +207,7 @@ export function AgentsListView() {
                         onClick={() => openAgent(agent.id)}
                         className="cursor-pointer hover:bg-muted/30"
                       >
-                        <TableCell className="py-3 pl-[18px]">
+                        <TableCell className="py-3 pl-4.5">
                           <div className="flex items-center gap-2.5">
                             <Avatar size="sm" className="shrink-0">
                               <AvatarFallback className="bg-secondary text-[10px] text-secondary-foreground">
@@ -233,7 +233,7 @@ export function AgentsListView() {
                           </div>
                         </TableCell>
                         <TableCell className="py-3">
-                          <div className="flex max-w-[260px] flex-wrap gap-1.5">
+                          <div className="flex max-w-65 flex-wrap gap-1.5">
                             {agent.groups.length > 0 ? (
                               agent.groups.map((group) => (
                                 <AgentGroupBadge
@@ -265,7 +265,7 @@ export function AgentsListView() {
                             {agent.ownerId}
                           </TableCell>
                         ) : null}
-                        <TableCell className="py-3 pr-[18px] text-right">
+                        <TableCell className="py-3 pr-4.5 text-right">
                           <ChevronRight
                             className="ml-auto size-4 text-muted-foreground"
                             aria-hidden
@@ -276,7 +276,7 @@ export function AgentsListView() {
                   })}
                 </TableBody>
               </Table>
-              <div className="border-t border-border px-[18px] py-2.5 text-xs text-muted-foreground">
+              <div className="border-t border-border px-4.5 py-2.5 text-xs text-muted-foreground">
                 Showing{" "}
                 <span className="font-mono text-foreground">
                   {filteredAgents.length}

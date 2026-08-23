@@ -61,6 +61,37 @@ export const okDispatch = async (): Promise<ToolDispatchResult> => ({
   text: "ok",
 });
 
+export function deferredDispatch(): {
+  dispatch: (
+    call: ModelToolCall,
+    options?: ToolDispatchOptions,
+  ) => Promise<ToolDispatchResult>;
+  whenPending: Promise<ModelToolCall>;
+  resolve: (result: ToolDispatchResult) => void;
+  reject: (error: Error) => void;
+} {
+  let resolveResult!: (result: ToolDispatchResult) => void;
+  let rejectResult!: (error: Error) => void;
+  let notifyPending!: (call: ModelToolCall) => void;
+  const whenPending = new Promise<ModelToolCall>((res) => {
+    notifyPending = res;
+  });
+
+  const dispatch = (call: ModelToolCall) =>
+    new Promise<ToolDispatchResult>((res, rej) => {
+      notifyPending(call);
+      resolveResult = res;
+      rejectResult = rej;
+    });
+
+  return {
+    dispatch,
+    whenPending,
+    resolve: (result) => resolveResult(result),
+    reject: (error) => rejectResult(error),
+  };
+}
+
 export function deferredParkedResult(): {
   waitForApproval: (approvalId: string) => Promise<ToolDispatchResult>;
   whenPending: Promise<string>;

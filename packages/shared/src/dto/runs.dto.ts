@@ -133,6 +133,9 @@ export interface FollowUpRunResponse {
   runId: string;
 }
 
+export type StopRunResponse = FollowUpRunResponse;
+export type ResumeRunResponse = FollowUpRunResponse;
+
 /** SSE `event:` names on `GET /api/runs/events`. */
 export const RUN_SSE_EVENT = {
   runUpdated: "run_updated",

@@ -7,7 +7,8 @@ export type RunDisplayStatus =
   | "failed"
   | "iteration_exhausted"
   | "timeout"
-  | "human_reject";
+  | "human_reject"
+  | "stopped";
 
 export type RunStatusFilter =
   | "all"
@@ -58,7 +59,8 @@ export function runStatusFilterGroup(
   if (
     status === "iteration_exhausted" ||
     status === "timeout" ||
-    status === "human_reject"
+    status === "human_reject" ||
+    status === "stopped"
   ) {
     return "terminated";
   }
@@ -86,6 +88,7 @@ const ELIGIBLE_FOLLOW_UP_OUTCOMES = new Set<RunDisplayStatus>([
   "goal_met",
   "iteration_exhausted",
   "timeout",
+  "stopped",
 ]);
 
 export function canSendFollowUp(
@@ -98,4 +101,22 @@ export function canSendFollowUp(
   }
 
   return ELIGIBLE_FOLLOW_UP_OUTCOMES.has(status);
+}
+
+export function canStopRun(
+  run: RunListItem,
+  steps: readonly RunStep[],
+): boolean {
+  return deriveRunDisplayStatus(run, { steps }) === "running";
+}
+
+export function isWaitingApproval(
+  run: RunListItem,
+  steps: readonly RunStep[],
+): boolean {
+  return deriveRunDisplayStatus(run, { steps }) === "waiting_approval";
+}
+
+export function canResumeRun(run: RunListItem): boolean {
+  return run.status === "completed" && run.outcome?.status === "stopped";
 }

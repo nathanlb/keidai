@@ -6,6 +6,7 @@ import {
 } from "@keidai/shared";
 import { PolicyDeniedError } from "../mcp/types/policy-denied-error.js";
 import { TaskCancelledError } from "../mcp/types/task-cancelled-error.js";
+import { RUN_STOPPED_TOOL_OUTPUT } from "./pending-tool-calls.js";
 import type { RunReporter } from "./run-reporter.js";
 import {
   describeError,
@@ -115,6 +116,22 @@ export function createHarnessToolDispatcher({
       };
       await recordToolResult(reporter, call, errorResult);
       return errorResult;
+    }
+
+    if (options?.signal?.aborted) {
+      const cancelled = {
+        isError: true as const,
+        text: RUN_STOPPED_TOOL_OUTPUT,
+      };
+      logger?.info("run.tool_result", {
+        runId,
+        toolName: call.toolName,
+        status: "error",
+        error: RUN_STOPPED_TOOL_OUTPUT,
+        dropped: true,
+      });
+      await recordToolResult(reporter, call, cancelled);
+      return cancelled;
     }
 
     if (result.isError && result.policyDenied !== true) {

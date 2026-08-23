@@ -4,11 +4,13 @@ import { runGoalLoop, limits,
   modelStep,
   runTaskLoop,
   approvalRequiredDispatch,
+  deferredDispatch,
   deferredParkedResult,
   okDispatch,
   scriptedModel,
   toolCall,
 } from "../testing/task-loop-harness.js";
+import { findUnansweredToolCalls, RUN_STOPPED_TOOL_OUTPUT } from "../pending-tool-calls.js";
 
 describe("task loop", () => {
   it("completes a multi-step tool sequence with exactly one goal_met outcome", async () => {
@@ -642,5 +644,122 @@ describe("task loop", () => {
     if (result.outcome.status === "failed") {
       assert.match(result.outcome.reason, /cancelled by operator/);
     }
+  });
+
+  it("stops between steps with outcome stopped", async () => {
+    const stop = new AbortController();
+    let modelCalls = 0;
+    const result = await runGoalLoop("goal", limits, {
+      callModel: async () => {
+        modelCalls += 1;
+        return modelStep({
+          text: "",
+          toolCalls: [toolCall("search_issues", `search-${modelCalls}`)],
+        });
+      },
+      dispatchToolCall: async () => ({ isError: false, text: "search ok" }),
+      onHistoryChanged: (history) => {
+        if (history.some((entry) => entry.role === "tool" && entry.output === "search ok")) {
+          stop.abort();
+        }
+      },
+      stopSignal: stop.signal,
+    });
+
+    assert.deepEqual(result.outcome, { status: "stopped" });
+    assert.equal(modelCalls, 1);
+    const toolEntry = result.history.find((entry) => entry.role === "tool");
+    assert.equal(toolEntry?.role, "tool");
+    if (toolEntry?.role === "tool") {
+      assert.equal(toolEntry.output, "search ok");
+      assert.notEqual(toolEntry.isError, true);
+    }
+  });
+
+  it("closes unanswered tool calls when stop arrives after a model step", async () => {
+    const stop = new AbortController();
+    let modelCalls = 0;
+    const result = await runGoalLoop("goal", limits, {
+      callModel: async () => {
+        modelCalls += 1;
+        if (modelCalls === 1) {
+          stop.abort();
+          return modelStep({
+            text: "",
+            toolCalls: [toolCall("search_issues")],
+          });
+        }
+        return modelStep({ text: "should not run", toolCalls: [] });
+      },
+      dispatchToolCall: okDispatch,
+      stopSignal: stop.signal,
+    });
+
+    assert.deepEqual(result.outcome, { status: "stopped" });
+    assert.equal(modelCalls, 1);
+    assert.deepEqual(findUnansweredToolCalls(result.history), []);
+    const toolEntry = result.history.find((entry) => entry.role === "tool");
+    assert.equal(toolEntry?.role, "tool");
+    if (toolEntry?.role === "tool") {
+      assert.equal(toolEntry.isError, true);
+      assert.equal(toolEntry.output, RUN_STOPPED_TOOL_OUTPUT);
+    }
+  });
+
+  it("drops an in-flight tool success and keeps history resume-valid", async () => {
+    const stop = new AbortController();
+    const pending = deferredDispatch();
+    const loop = runGoalLoop("goal", limits, {
+      callModel: scriptedModel([
+        { text: "", toolCalls: [toolCall("slow_tool")] },
+        { text: "should not run", toolCalls: [] },
+      ]),
+      dispatchToolCall: pending.dispatch,
+      stopSignal: stop.signal,
+    });
+
+    await pending.whenPending;
+    stop.abort();
+    pending.resolve({ isError: false, text: "SECRET SUCCESS" });
+    const result = await loop;
+
+    assert.deepEqual(result.outcome, { status: "stopped" });
+    const toolOutputs = result.history
+      .filter((entry) => entry.role === "tool")
+      .map((entry) => (entry.role === "tool" ? entry.output : ""));
+    assert.equal(toolOutputs.includes("SECRET SUCCESS"), false);
+    assert.deepEqual(findUnansweredToolCalls(result.history), []);
+    assert.equal(toolOutputs.at(-1), RUN_STOPPED_TOOL_OUTPUT);
+  });
+
+  it("does not dispatch remaining tool calls after stop", async () => {
+    const stop = new AbortController();
+    const dispatched: string[] = [];
+    const pending = deferredDispatch();
+    const loop = runGoalLoop("goal", limits, {
+      callModel: scriptedModel([
+        {
+          text: "",
+          toolCalls: [toolCall("first_tool"), toolCall("second_tool")],
+        },
+      ]),
+      dispatchToolCall: async (call, options) => {
+        dispatched.push(call.toolName);
+        if (call.toolName === "first_tool") {
+          return pending.dispatch(call, options);
+        }
+        return { isError: false, text: `${call.toolName} result` };
+      },
+      stopSignal: stop.signal,
+    });
+
+    await pending.whenPending;
+    stop.abort();
+    pending.resolve({ isError: false, text: "first result" });
+    const result = await loop;
+
+    assert.deepEqual(result.outcome, { status: "stopped" });
+    assert.deepEqual(dispatched, ["first_tool"]);
+    assert.deepEqual(findUnansweredToolCalls(result.history), []);
   });
 });

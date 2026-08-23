@@ -10,6 +10,7 @@ import { RunsApiController } from "./runs-api.controller.js";
 import { TasksApiController } from "./tasks-api.controller.js";
 import type { RunStore } from "../runs/run-store.js";
 import type { LaunchedHarnessRun, ResumeHarnessRunInput } from "../run/types/harness.js";
+import { RunStopController } from "../run/run-stop-controller.js";
 import type { TaskRepository } from "../tasks/types/task-repository.js";
 import type { ShaidenHttpServerHandle, ShaidenHttpServerOptions } from "./types/shaiden-http-server.js";
 import { registerShaidenRoutes } from "./utils/register-shaiden-routes.js";
@@ -36,6 +37,7 @@ export interface ShaidenHttpServerDeps {
   runtimeConfig: import("../config/runtime-config.js").RuntimeConfig;
   /** When set, task create/patch validate assignee against Fuda. */
   fudaClient?: FudaClient;
+  runStopController?: RunStopController;
 }
 
 export class ShaidenHttpServer {
@@ -49,6 +51,7 @@ export class ShaidenHttpServer {
       resumeHarnessRun: deps.resumeHarnessRun,
       runtimeConfig: deps.runtimeConfig,
       logger: deps.logger,
+      runStopController: deps.runStopController ?? new RunStopController(),
     });
     this.tasksApi = new TasksApiController({
       runStore: deps.runStore,

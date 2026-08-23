@@ -36,7 +36,7 @@ export function AgentAccessPanel({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-border bg-card px-[18px] py-4">
+      <div className="rounded-xl border border-border bg-card px-4.5 py-4">
         <p className="text-[13.5px] leading-relaxed">
           {agent.slug} runs on the Shaiden runtime in this ecosystem.
         </p>
@@ -47,16 +47,16 @@ export function AgentAccessPanel({
       </div>
 
       <Card className="shadow-none">
-        <CardHeader className="border-b border-border px-[18px] py-3.5">
+        <CardHeader className="border-b border-border px-4.5 py-3.5">
           <CardTitle className="text-sm">Runtime</CardTitle>
           <CardDescription>
             Assigned when this agent was created.
           </CardDescription>
         </CardHeader>
-        <CardContent className="px-[18px] py-4">
+        <CardContent className="px-4.5 py-4">
           {runner ? (
             <div className="flex items-center gap-2.5">
-              <span className="flex size-[26px] shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+              <span className="flex size-6.5 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
                 <KeyRound className="size-3.5" aria-hidden />
               </span>
               <div className="min-w-0">

@@ -362,7 +362,7 @@ export function AgentDetailView() {
         open={deleteConfirmOpen}
         onOpenChange={handleDeleteConfirmOpenChange}
       >
-        <DialogContent className="max-w-[420px] sm:rounded-xl">
+        <DialogContent className="max-w-90 sm:rounded-xl">
           <DialogHeader>
             <DialogTitle>Delete agent?</DialogTitle>
             <DialogDescription>

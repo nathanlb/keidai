@@ -1,5 +1,8 @@
 import type { TerminationOutcome } from "@keidai/shared";
-import { findUnansweredToolCalls } from "./pending-tool-calls.js";
+import {
+  closeUnansweredToolCalls,
+  findUnansweredToolCalls,
+} from "./pending-tool-calls.js";
 import { mapTerminalAssessmentToOutcome } from "./step-assessment.js";
 import { isHarnessLocalTool } from "./task-output.js";
 import type { ConversationEntry } from "./types/conversation-history.js";
@@ -39,6 +42,7 @@ function cloneHistory(
  * - harness-only tools (e.g. report_task_output) + assessment -> terminate after dispatch
  * - Torii tool calls                     -> continue (implicit; no assessment needed)
  * - human approval rejection             -> human_reject (harness-driven; no model round-trip)
+ * - operator stop                        -> stopped (cooperative; in-flight tool results dropped)
  * - iteration cap reached                -> iteration_exhausted
  * - wall-clock deadline passed           -> timeout
  * - model or harness-level error         -> failed(reason)
@@ -86,12 +90,20 @@ export async function runTaskLoop(
     await checkpoint();
   };
 
+  const stopRequested = (): boolean => deps.stopSignal?.aborted === true;
+
   const terminate = async (
     outcome: TerminationOutcome,
     iterations: number,
   ): Promise<TaskLoopResult> => {
     await drainPendingUserMessages();
     return { outcome, history, iterations };
+  };
+
+  const stopNow = async (iterations: number): Promise<TaskLoopResult> => {
+    closeUnansweredToolCalls(history);
+    await checkpoint();
+    return terminate({ status: "stopped" }, iterations);
   };
 
   const waitForParkedResult = async (
@@ -123,9 +135,15 @@ export async function runTaskLoop(
     call: ModelToolCall,
     options?: ToolDispatchOptions,
   ): Promise<ToolDispatchResult> => {
-    let result = await deps.dispatchToolCall(call, options);
+    let result = await deps.dispatchToolCall(call, {
+      ...options,
+      signal: options?.signal ?? deps.stopSignal,
+    });
 
     while (result.approvalRequired) {
+      if (stopRequested()) {
+        return result;
+      }
       result = await waitForParkedResult(
         call,
         result.approvalRequired.approvalId,
@@ -162,6 +180,9 @@ export async function runTaskLoop(
     try {
       result = await resolveToolResult(call, options);
     } catch (error) {
+      if (stopRequested()) {
+        return stopNow(iterations);
+      }
       await pushToolErrorResult(call, error);
       return terminate(
         {
@@ -170,6 +191,10 @@ export async function runTaskLoop(
         },
         iterations,
       );
+    }
+
+    if (stopRequested()) {
+      return stopNow(iterations);
     }
 
     await appendToolResult(call, result);
@@ -228,6 +253,10 @@ export async function runTaskLoop(
       return terminate({ status: "timeout" }, iteration - 1);
     }
 
+    if (stopRequested()) {
+      return stopNow(iteration - 1);
+    }
+
     await drainPendingUserMessages();
 
     let step: ModelStep;
@@ -250,6 +279,10 @@ export async function runTaskLoop(
     });
     await checkpoint();
 
+    if (stopRequested()) {
+      return stopNow(iteration);
+    }
+
     if (step.toolCalls.length === 0) {
       return terminate(
         mapTerminalAssessmentToOutcome(step.assessment),
@@ -258,6 +291,9 @@ export async function runTaskLoop(
     }
 
     for (const call of step.toolCalls) {
+      if (stopRequested()) {
+        return stopNow(iteration);
+      }
       const failed = await dispatchCall(call, iteration);
       if (failed) {
         return failed;

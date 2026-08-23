@@ -1,6 +1,9 @@
 import type { ConversationEntry } from "./types/conversation-history.js";
 import type { ModelToolCall } from "./types/task-loop.js";
 
+/** Model-facing tool result written when a run is stopped mid-flight. */
+export const RUN_STOPPED_TOOL_OUTPUT = "cancelled: run stopped";
+
 /** Tool calls on the latest assistant turn that do not yet have a tool result. */
 export function findUnansweredToolCalls(
   history: readonly ConversationEntry[],
@@ -23,4 +26,22 @@ export function findUnansweredToolCalls(
   }
 
   return [];
+}
+
+/**
+ * Append synthetic error results for unanswered tool calls so resume does not
+ * violate "every tool call has a result."
+ */
+export function closeUnansweredToolCalls(
+  history: ConversationEntry[],
+): void {
+  for (const call of findUnansweredToolCalls(history)) {
+    history.push({
+      role: "tool",
+      toolCallId: call.toolCallId,
+      toolName: call.toolName,
+      output: RUN_STOPPED_TOOL_OUTPUT,
+      isError: true,
+    });
+  }
 }
