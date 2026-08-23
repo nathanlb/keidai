@@ -13,6 +13,7 @@ import type {
   ServerConfig,
   ToriiConfig,
 } from "@keidai/shared";
+import type { GroupPolicySnapshot } from "../../policy/types/group-policy.js";
 
 export function projectPublicCredential(
   credential: CredentialConfig,
@@ -29,18 +30,18 @@ export function projectPublicCredential(
   }
 }
 
-/** Union of tools any group grants on a server — UI allow-list projection. */
+/** Union of tools any group lists under `allow` on a server. */
 export function deriveServerPolicy(
-  groups: readonly GroupDefinitionConfig[],
+  groups: readonly GroupPolicySnapshot[],
   serverName: string,
 ): PolicyConfig {
   const allow = new Set<string>();
   for (const group of groups) {
-    for (const permission of group.permissions) {
-      if (permission.server !== serverName) {
+    for (const policy of group.servers) {
+      if (policy.server !== serverName) {
         continue;
       }
-      for (const tool of permission.tools) {
+      for (const tool of policy.allow) {
         allow.add(tool);
       }
     }
@@ -50,7 +51,7 @@ export function deriveServerPolicy(
 
 export function projectPublicServer(
   server: ServerConfig,
-  groups: readonly GroupDefinitionConfig[] = [],
+  groups: readonly GroupPolicySnapshot[] = [],
 ): PublicServerConfig {
   return {
     name: server.name,
@@ -79,11 +80,8 @@ export function projectPublicGroup(
 export function projectConfigServers(
   config: ToriiConfig,
 ): ConfigServersResponse {
-  const groups = config.groups ?? [];
   return {
-    servers: config.servers.map((server) =>
-      projectPublicServer(server, groups),
-    ),
+    servers: config.servers.map((server) => projectPublicServer(server)),
   };
 }
 

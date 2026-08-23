@@ -33,6 +33,7 @@ export function createPolicyEnforcement(
 export async function createApprovalServices(
   config: ToriiConfig | ToriiConfigService,
   persistence?: TestGatewayPersistence,
+  groupPolicies?: GroupPolicyCache,
 ) {
   const ownedPersistence = persistence === undefined;
   const gatewayPersistence =
@@ -41,12 +42,13 @@ export async function createApprovalServices(
     config instanceof ToriiConfigService
       ? config
       : new ToriiConfigService(config);
+  const cache = groupPolicies ?? groupPolicyCacheFromConfig(configService);
   const approvalStore =
     gatewayPersistence.approvalStore ??
     new ApprovalStoreService(gatewayPersistence.pool!);
   const taskStore = gatewayPersistence.taskStore!;
   const approvalGate = new ApprovalGateService(
-    groupPolicyCacheFromConfig(configService),
+    cache,
     approvalStore,
     taskStore,
   );

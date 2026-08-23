@@ -9,6 +9,7 @@ import { GatewayMcpServer } from "../mcp/gateway-mcp-server.service.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
 import { TracesApiController } from "../trace/traces-api.controller.js";
 import { ApprovalsApiController } from "../policy/approvals-api.controller.js";
+import { GroupsApiController } from "../policy/groups-api.controller.js";
 import { TORII_DATABASE } from "../storage/gateway-postgres.js";
 import type { Logger } from "@keidai/shared";
 import {
@@ -43,6 +44,8 @@ export class GatewayHttpServer {
     private readonly tracesApi: TracesApiController,
     @inject(ApprovalsApiController)
     private readonly approvalsApi: ApprovalsApiController,
+    @inject(GroupsApiController)
+    private readonly groupsApi: GroupsApiController,
     @inject(GatewayMcpServer)
     private readonly mcpServer: GatewayMcpServer,
     @inject(StructuredLoggerService)
@@ -99,6 +102,7 @@ export class GatewayHttpServer {
       oauthApi: this.oauthApi,
       tracesApi: this.tracesApi,
       approvalsApi: this.approvalsApi,
+      groupsApi: this.groupsApi,
       mcpServer: this.mcpServer,
     });
 

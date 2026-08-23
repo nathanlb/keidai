@@ -18,10 +18,10 @@ import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
 import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import { createCredentialServices } from "../../credentials/tests/test-helpers.js";
-import { createPolicyEnforcement, createApprovalServices } from "../../policy/tests/test-helpers.js";
+import { createPolicyEnforcement, createApprovalServices, groupPolicyCacheFromConfig } from "../../policy/tests/test-helpers.js";
 import { GatewayHttpServer } from "../gateway-http-server.service.js";
 import { GatewayMcpServer } from "../../mcp/gateway-mcp-server.service.js";
-import { createOAuthApiController, createStubToolCatalog, createTestGatewayHttpServer, createTracesApiController } from "./test-helpers.js";
+import { createOAuthApiController, createGroupsApiController, createStubToolCatalog, createTestGatewayHttpServer, createTracesApiController } from "./test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 
 const sampleConfig: ToriiConfig = {
@@ -137,8 +137,9 @@ describe("Gateway /api/config endpoints", () => {
     const toolCatalog = createStubToolCatalog();
     const services = await createApprovalServices(configService);
     const { approvalsApi } = services;
+    const groupPolicies = groupPolicyCacheFromConfig(configService);
     const gatewayHttpServer = new GatewayHttpServer(
-      new ConfigApiController(new ConfigReadService(configService)),
+      new ConfigApiController(new ConfigReadService(configService, groupPolicies)),
       new ConnectionsApiController(
         new ConnectionReadService(connectionManager, toolCatalog),
         connectionManager,
@@ -147,6 +148,7 @@ describe("Gateway /api/config endpoints", () => {
       createOAuthApiController(configService),
       createTracesApiController({ traceEmitter: new CapturingTraceEmitter() }),
       approvalsApi,
+      createGroupsApiController(configService, services.persistence, groupPolicies),
       new GatewayMcpServer(
         {} as ToolCatalogService,
         {} as ToolDispatchService,

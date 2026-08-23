@@ -1,6 +1,6 @@
 import type { GroupPolicy } from "./types/group-policy.js";
 
-/** In-memory snapshot of group policy. Loaded once at boot in this story. */
+/** In-memory snapshot of group policy. Replaced on every management write. */
 export class GroupPolicyCache {
   constructor(private groups: readonly GroupPolicy[] = []) {}
 

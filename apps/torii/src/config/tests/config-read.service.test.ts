@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import type { ToriiConfig } from "@keidai/shared";
 import { ConfigReadService } from "../config-read.service.js";
 import { ToriiConfigService } from "../torii-config.service.js";
+import { groupPolicyCacheFromConfig } from "../../policy/tests/test-helpers.js";
 
 const sampleConfig: ToriiConfig = {
   oauth_providers: {
@@ -24,19 +25,22 @@ const sampleConfig: ToriiConfig = {
 
 describe("ConfigReadService", () => {
   it("reads sanitized config projections from boot-loaded config", () => {
+    const config = {
+      ...sampleConfig,
+      groups: [
+        {
+          name: "agents",
+          description: "Test agents",
+          permissions: [
+            { server: "github", tools: ["search_issues"] },
+          ],
+        },
+      ],
+    };
+    const configService = new ToriiConfigService(config);
     const service = new ConfigReadService(
-      new ToriiConfigService({
-        ...sampleConfig,
-        groups: [
-          {
-            name: "agents",
-            description: "Test agents",
-            permissions: [
-              { server: "github", tools: ["search_issues"] },
-            ],
-          },
-        ],
-      }),
+      configService,
+      groupPolicyCacheFromConfig(configService),
     );
 
     const servers = service.listServers();
