@@ -342,8 +342,8 @@ export class MockRunRepository implements RunRepository {
 
   async beginContinuation(
     runId: string,
-    message: string,
-    userMessageStep: RunStep,
+    message?: string,
+    userMessageStep?: RunStep,
   ): Promise<BeginContinuationResult> {
     const run = this.runs.get(runId);
     if (!run) {
@@ -363,14 +363,21 @@ export class MockRunRepository implements RunRepository {
       return { ok: false, reason: "missing_history" };
     }
 
-    const updatedHistory = appendUserMessageToHistory(history, message);
+    const hasMessage = typeof message === "string" && message.length > 0;
+    const updatedHistory = hasMessage
+      ? appendUserMessageToHistory(history, message)
+      : history;
     const updated: StoredRun = {
       ...run,
       status: "running",
       outcome: undefined,
       conversationHistory: updatedHistory,
-      steps: [...run.steps, userMessageStep],
-      stepCount: run.steps.length + 1,
+      steps:
+        hasMessage && userMessageStep
+          ? [...run.steps, userMessageStep]
+          : run.steps,
+      stepCount:
+        hasMessage && userMessageStep ? run.steps.length + 1 : run.stepCount,
       updatedAt: new Date().toISOString(),
     };
     this.runs.set(runId, updated);

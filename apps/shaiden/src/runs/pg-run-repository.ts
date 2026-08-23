@@ -533,8 +533,8 @@ export class PgRunRepository implements RunRepository {
 
   async beginContinuation(
     runId: string,
-    message: string,
-    userMessageStep: RunStep,
+    message?: string,
+    userMessageStep?: RunStep,
   ): Promise<BeginContinuationResult> {
     const runRow = await this.getRunRow(runId);
     if (!runRow) {
@@ -555,12 +555,20 @@ export class PgRunRepository implements RunRepository {
       return { ok: false, reason: "missing_history" };
     }
 
-    const updatedHistory = appendUserMessageToHistory(history, message);
-    const normalizedStep = userMessageStep.id
-      ? userMessageStep
-      : createRunStep(userMessageStep as Parameters<typeof createRunStep>[0]);
+    const hasMessage = typeof message === "string" && message.length > 0;
+    const updatedHistory = hasMessage
+      ? appendUserMessageToHistory(history, message)
+      : history;
+    const normalizedStep =
+      hasMessage && userMessageStep
+        ? userMessageStep.id
+          ? userMessageStep
+          : createRunStep(userMessageStep as Parameters<typeof createRunStep>[0])
+        : undefined;
 
-    await this.ensureStepPartition(normalizedStep.timestamp);
+    if (normalizedStep) {
+      await this.ensureStepPartition(normalizedStep.timestamp);
+    }
     return withTransaction(this.pool, async (client) => {
       const result = await client.query(
         `
@@ -568,17 +576,24 @@ export class PgRunRepository implements RunRepository {
           SET status = 'running',
               outcome_json = NULL,
               conversation_history_json = $1::jsonb,
-              step_count = step_count + 1,
-              updated_at = $2
-          WHERE id = $3 AND status = 'completed'
+              step_count = step_count + $2,
+              updated_at = $3
+          WHERE id = $4 AND status = 'completed'
         `,
-        [serializeConversationHistory(updatedHistory), nowIso(), runId],
+        [
+          serializeConversationHistory(updatedHistory),
+          normalizedStep ? 1 : 0,
+          nowIso(),
+          runId,
+        ],
       );
       if ((result.rowCount ?? 0) === 0) {
         return { ok: false, reason: "concurrent_continuation" } as const;
       }
 
-      await this.insertStep(client, runId, normalizedStep);
+      if (normalizedStep) {
+        await this.insertStep(client, runId, normalizedStep);
+      }
       return { ok: true, history: updatedHistory } as const;
     });
   }

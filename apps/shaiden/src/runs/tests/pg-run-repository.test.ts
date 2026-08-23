@@ -274,6 +274,41 @@ describe("PgRunRepository", () => {
     }
   });
 
+  it("reopens a stopped run without appending a user message", async () => {
+    const isolated = await createSchema();
+    try {
+      await seedTask(isolated.pool);
+      const repository = createRepository(isolated.pool);
+      await repository.create({
+        id: "run-1",
+        taskId: "task-1",
+        task: sampleTask,
+        assignee: sampleTask.assignee,
+        goal: sampleTask.goal,
+        startedAt: "2026-07-08T12:00:00.000Z",
+      });
+      const history = [
+        { role: "user" as const, text: "goal" },
+        { role: "assistant" as const, text: "working", toolCalls: [] },
+      ];
+      await repository.setConversationHistory("run-1", history);
+      await repository.complete("run-1", { outcome: { status: "stopped" } });
+
+      const result = await repository.beginContinuation("run-1");
+      assert.equal(result.ok, true);
+      if (result.ok) {
+        assert.deepEqual(result.history, history);
+      }
+
+      const reopened = await repository.get("run-1");
+      assert.equal(reopened?.status, "running");
+      assert.equal(reopened?.outcome, undefined);
+      assert.equal(reopened?.steps.length, 0);
+    } finally {
+      await isolated.close();
+    }
+  });
+
   it("rejects continuation without persisted history", async () => {
     const isolated = await createSchema();
     try {

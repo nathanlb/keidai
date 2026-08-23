@@ -90,7 +90,7 @@ export interface RunRepository {
   listRunWatermarks(): Promise<RunUpdateWatermark[]>;
   beginContinuation(
     runId: string,
-    message: string,
-    userMessageStep: RunStep,
+    message?: string,
+    userMessageStep?: RunStep,
   ): Promise<BeginContinuationResult>;
 }

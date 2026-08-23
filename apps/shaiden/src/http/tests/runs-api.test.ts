@@ -210,4 +210,150 @@ describe("runs follow-up API", () => {
       await persistence.close();
     }
   });
+
+  it("accepts a follow-up on a stopped run", async () => {
+    const persistence = await createTestPersistence();
+    const { app } = await createServer(persistence);
+    try {
+      await createTestRun(persistence, { runId: "run-1", task: sampleTask });
+      await persistence.runStore.setConversationHistory("run-1", [
+        { role: "user", text: "goal" },
+        { role: "assistant", text: "working", toolCalls: [] },
+      ]);
+      await persistence.runStore.completeRun("run-1", {
+        outcome: { status: "stopped" },
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/runs/run-1/follow-up",
+        payload: { message: "try the backup path" },
+      });
+
+      assert.equal(response.statusCode, 202);
+      const reopened = await persistence.runStore.getRun("run-1");
+      assert.equal(reopened?.status, "running");
+      assert.equal(reopened?.steps.at(-1)?.kind, "user_message");
+    } finally {
+      await persistence.close();
+    }
+  });
+});
+
+describe("runs stop API", () => {
+  it("stops a running non-parked run", async () => {
+    const persistence = await createTestPersistence();
+    const { app } = await createServer(persistence);
+    try {
+      await createTestRun(persistence, { runId: "run-1", task: sampleTask });
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/runs/run-1/stop",
+      });
+
+      assert.equal(response.statusCode, 202);
+      assert.deepEqual(response.json(), { runId: "run-1" });
+    } finally {
+      await persistence.close();
+    }
+  });
+
+  it("rejects stop on a terminal run", async () => {
+    const persistence = await createTestPersistence();
+    const { app } = await createServer(persistence);
+    try {
+      await createTestRun(persistence, { runId: "run-1", task: sampleTask });
+      await persistence.runStore.completeRun("run-1", {
+        outcome: { status: "goal_met" },
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/runs/run-1/stop",
+      });
+
+      assert.equal(response.statusCode, 409);
+      assert.match(response.json().error, /not running/);
+    } finally {
+      await persistence.close();
+    }
+  });
+
+  it("rejects stop while parked on approval", async () => {
+    const persistence = await createTestPersistence();
+    const { app } = await createServer(persistence);
+    try {
+      await createTestRun(persistence, { runId: "run-1", task: sampleTask });
+      await persistence.runStore.setParkedMcpTask("run-1", {
+        mcpTaskId: "parked-1",
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/runs/run-1/stop",
+      });
+
+      assert.equal(response.statusCode, 409);
+      assert.match(response.json().error, /waiting for approval/);
+    } finally {
+      await persistence.close();
+    }
+  });
+});
+
+describe("runs resume API", () => {
+  it("resumes a stopped run without a user message", async () => {
+    const persistence = await createTestPersistence();
+    const { app } = await createServer(persistence);
+    try {
+      await createTestRun(persistence, { runId: "run-1", task: sampleTask });
+      await persistence.runStore.setConversationHistory("run-1", [
+        { role: "user", text: "goal" },
+        { role: "assistant", text: "working", toolCalls: [] },
+      ]);
+      await persistence.runStore.completeRun("run-1", {
+        outcome: { status: "stopped" },
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/runs/run-1/resume",
+      });
+
+      assert.equal(response.statusCode, 202);
+      const reopened = await persistence.runStore.getRun("run-1");
+      assert.equal(reopened?.status, "running");
+      assert.equal(
+        reopened?.steps.some((step) => step.kind === "user_message"),
+        false,
+      );
+    } finally {
+      await persistence.close();
+    }
+  });
+
+  it("rejects resume unless the outcome is stopped", async () => {
+    const persistence = await createTestPersistence();
+    const { app } = await createServer(persistence);
+    try {
+      await createTestRun(persistence, { runId: "run-1", task: sampleTask });
+      await persistence.runStore.setConversationHistory("run-1", [
+        { role: "user", text: "goal" },
+      ]);
+      await persistence.runStore.completeRun("run-1", {
+        outcome: { status: "goal_met" },
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/runs/run-1/resume",
+      });
+
+      assert.equal(response.statusCode, 409);
+      assert.match(response.json().error, /not stopped/);
+    } finally {
+      await persistence.close();
+    }
+  });
 });

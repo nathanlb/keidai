@@ -3,6 +3,7 @@ import type { RunVisibilityListItem } from "../api/runs-visibility-client.js";
 import {
   CheckCircle2,
   ChevronRight,
+  CircleStop,
   CircleX,
   Pause,
   Play,
@@ -43,6 +44,8 @@ function StatusIcon({
       return <Timer className={className} aria-hidden />;
     case "human_reject":
       return <UserX className={className} aria-hidden />;
+    case "stopped":
+      return <CircleStop className={className} aria-hidden />;
   }
 }
 

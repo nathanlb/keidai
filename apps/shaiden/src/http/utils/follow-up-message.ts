@@ -34,3 +34,29 @@ export function followUpConflictMessage(reason: string): string {
       return "follow-up is not allowed for this run";
   }
 }
+
+export function stopConflictMessage(reason: string): string {
+  switch (reason) {
+    case "not_running":
+      return "run is not running";
+    case "waiting_approval":
+      return "stop is not allowed while waiting for approval; reject the gated call instead";
+    default:
+      return "run cannot be stopped";
+  }
+}
+
+export function resumeConflictMessage(reason: string): string {
+  switch (reason) {
+    case "not_stopped":
+      return "run is not stopped";
+    case "not_terminal":
+      return "run is still active";
+    case "missing_history":
+      return "run has no persisted conversation history";
+    case "concurrent_continuation":
+      return "run continuation already in progress";
+    default:
+      return "run cannot be resumed";
+  }
+}

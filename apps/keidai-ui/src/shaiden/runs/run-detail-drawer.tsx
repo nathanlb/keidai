@@ -6,6 +6,9 @@ import {
   Button,
   cn,
   Textarea,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@keidai/ui";
 import type { RunReport } from "@keidai/shared";
 import {
@@ -16,6 +19,7 @@ import {
   Play,
   RotateCw,
   Send,
+  CircleStop,
   Timer,
   UserX,
 } from "lucide-react";
@@ -25,13 +29,16 @@ import {
   approveApproval,
   rejectApproval,
 } from "../../torii/api/torii-client.js";
-import { sendRunFollowUp } from "../api/shaiden-client.js";
+import { sendRunFollowUp, stopRun, resumeRun } from "../api/shaiden-client.js";
 import type { RunAssigneeDisplay } from "../api/runs-visibility-client.js";
 import { DetailDrawer } from "../../shell/components/detail-drawer/detail-drawer.js";
 import {
+  canResumeRun,
   canSendFollowUp,
+  canStopRun,
   deriveRunDisplayStatus,
   isRunSuspended,
+  isWaitingApproval,
 } from "./utils/derive-run-display-status.js";
 import { RunLogEntryRow, runLogEntryKey } from "./run-log-entry-row.js";
 import { RUN_STATUS_META } from "./utils/format-run-status.js";
@@ -62,6 +69,8 @@ function StatusIcon({
       return <Timer className={className} aria-hidden />;
     case "human_reject":
       return <UserX className={className} aria-hidden />;
+    case "stopped":
+      return <CircleStop className={className} aria-hidden />;
   }
 }
 
@@ -89,13 +98,23 @@ export function RunDetailDrawer({
   const [followUpMessage, setFollowUpMessage] = useState("");
   const [isSendingFollowUp, setIsSendingFollowUp] = useState(false);
   const [followUpError, setFollowUpError] = useState<string | null>(null);
+  const [isStopping, setIsStopping] = useState(false);
+  const [stopError, setStopError] = useState<string | null>(null);
+  const [isResuming, setIsResuming] = useState(false);
+  const [resumeError, setResumeError] = useState<string | null>(null);
   const followUpFieldId = useId();
   const followUpErrorId = useId();
+  const stopErrorId = useId();
+  const resumeErrorId = useId();
 
   useEffect(() => {
     setFollowUpMessage("");
     setFollowUpError(null);
     setIsSendingFollowUp(false);
+    setStopError(null);
+    setIsStopping(false);
+    setResumeError(null);
+    setIsResuming(false);
   }, [run?.id]);
 
   const handleSendFollowUp = useCallback(async () => {
@@ -161,6 +180,44 @@ export function RunDetailDrawer({
     }
   }, [onRunUpdated, run]);
 
+  const handleStop = useCallback(async () => {
+    if (!run) {
+      return;
+    }
+
+    setIsStopping(true);
+    setStopError(null);
+    try {
+      await stopRun(run.id);
+      onRunUpdated();
+    } catch (error) {
+      setStopError(
+        error instanceof Error ? error.message : "Could not stop run",
+      );
+    } finally {
+      setIsStopping(false);
+    }
+  }, [onRunUpdated, run]);
+
+  const handleResume = useCallback(async () => {
+    if (!run) {
+      return;
+    }
+
+    setIsResuming(true);
+    setResumeError(null);
+    try {
+      await resumeRun(run.id);
+      onRunUpdated();
+    } catch (error) {
+      setResumeError(
+        error instanceof Error ? error.message : "Could not resume run",
+      );
+    } finally {
+      setIsResuming(false);
+    }
+  }, [onRunUpdated, run]);
+
   if (!run) {
     return null;
   }
@@ -168,7 +225,11 @@ export function RunDetailDrawer({
   const status = deriveRunDisplayStatus(run, { steps: run.steps });
   const meta = RUN_STATUS_META[status];
   const suspended = isRunSuspended(run.steps);
+  const waitingApproval = isWaitingApproval(run, run.steps);
   const followUpEnabled = canSendFollowUp(run, run.steps);
+  const stopEnabled = canStopRun(run, run.steps);
+  const showStop = stopEnabled || waitingApproval;
+  const resumeEnabled = canResumeRun(run);
   const assigneeLabel = assigneeDisplay?.displayName ?? run.assignee;
   const runLogEntries = groupRunSteps(run.steps, {
     runEnded: status !== "running",
@@ -241,6 +302,75 @@ export function RunDetailDrawer({
             </Button>
           </div>
         </>
+      ) : null}
+
+      {showStop ? (
+        <div className="space-y-2">
+          {waitingApproval ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="block">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    disabled
+                  >
+                    <CircleStop className="size-3.5" aria-hidden />
+                    Stop
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                Stop is not available while waiting for approval. Reject the
+                gated call instead.
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={isStopping}
+              onClick={() => void handleStop()}
+            >
+              {isStopping ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              ) : (
+                <CircleStop className="size-3.5" aria-hidden />
+              )}
+              Stop
+            </Button>
+          )}
+          {stopError ? (
+            <p id={stopErrorId} className="text-[12px] text-destructive">
+              {stopError}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {resumeEnabled ? (
+        <div className="space-y-2">
+          <Button
+            type="button"
+            className="w-full"
+            disabled={isResuming}
+            onClick={() => void handleResume()}
+          >
+            {isResuming ? (
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            ) : (
+              <Play className="size-3.5" aria-hidden />
+            )}
+            Resume
+          </Button>
+          {resumeError ? (
+            <p id={resumeErrorId} className="text-[12px] text-destructive">
+              {resumeError}
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       <div className="grid grid-cols-2 gap-3">

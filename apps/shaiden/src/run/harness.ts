@@ -203,6 +203,7 @@ export async function launchHarnessRun({
     now: options.now ?? Date.now,
     systemPrompt,
     fudaClient,
+    stopController: options.stopController,
   }).then((result) => result);
 
   return { runId: runDraft.id, done };
@@ -256,6 +257,7 @@ export async function resumeHarnessRun({
     now: options.now ?? Date.now,
     systemPrompt,
     fudaClient,
+    stopController: options.stopController,
   }).catch(async (error) => {
     if (isRunLeaseError(error)) {
       throw error;
@@ -287,6 +289,7 @@ async function driveHarnessRun({
   now,
   systemPrompt,
   fudaClient,
+  stopController,
 }: DriveHarnessRunInput): Promise<HarnessRunResult> {
   const limits = resolveTaskLimits(task);
   const parked = await runStore.getParkedMcpTask(runId);
@@ -302,6 +305,8 @@ async function driveHarnessRun({
     logger.info("run.claim_skipped", { runId, replicaId });
     throw new RunNotClaimedError(runId);
   }
+
+  const stopSignal = stopController?.attach(runId);
 
   let lostLease = false;
   const leaseAbort = new AbortController();
@@ -403,6 +408,7 @@ async function driveHarnessRun({
           onHistoryChanged: async (updatedHistory) => {
             await runStore.setConversationHistory(runId, updatedHistory);
           },
+          stopSignal,
         },
       );
 
@@ -462,6 +468,7 @@ async function driveHarnessRun({
     throw error;
   } finally {
     stopHeartbeat();
+    stopController?.release(runId);
     if (!lostLease) {
       await runStore.releaseRun(runId, replicaId);
     }

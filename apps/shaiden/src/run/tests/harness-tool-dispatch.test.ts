@@ -266,4 +266,36 @@ describe("harness tool dispatch", () => {
       await close();
     }
   });
+
+  it("records a cancelled tool result when the stop signal aborts mid-call", async () => {
+    const { store, reporter, close } = await createHarnessReporter();
+    try {
+      const stop = new AbortController();
+      const dispatch = createHarnessToolDispatcher({
+        runId: "run-1",
+        reporter,
+        availableToolNames: new Set(["slow_tool"]),
+        callTool: async () => {
+          stop.abort();
+          return { isError: false, text: "SECRET SUCCESS" };
+        },
+      });
+
+      const result = await dispatch(toolCall("slow_tool", "call-1"), {
+        signal: stop.signal,
+      });
+
+      assert.equal(result.isError, true);
+      assert.match(result.text, /run stopped/);
+      const steps = await latestSteps(store);
+      const toolResult = steps.find((step) => step.kind === "tool_result");
+      assert.equal(toolResult?.kind, "tool_result");
+      if (toolResult?.kind === "tool_result") {
+        assert.equal(toolResult.status, "error");
+        assert.notEqual(toolResult.outputPreview, "SECRET SUCCESS");
+      }
+    } finally {
+      await close();
+    }
+  });
 });

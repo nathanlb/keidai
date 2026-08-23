@@ -17,6 +17,7 @@ const ELIGIBLE_CONTINUATION_OUTCOMES = new Set<TerminationOutcome["status"]>([
   "goal_met",
   "iteration_exhausted",
   "timeout",
+  "stopped",
 ]);
 
 export function isEligibleContinuationOutcome(

@@ -6,6 +6,7 @@ export const terminationOutcomeSchema = z.discriminatedUnion("status", [
   z.object({ status: z.literal("iteration_exhausted") }),
   z.object({ status: z.literal("timeout") }),
   z.object({ status: z.literal("human_reject") }),
+  z.object({ status: z.literal("stopped") }),
   z.object({
     status: z.literal("failed"),
     reason: z.string().min(1),

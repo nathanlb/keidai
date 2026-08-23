@@ -51,6 +51,7 @@ describe("termination taxonomy", () => {
       { status: "iteration_exhausted" as const },
       { status: "timeout" as const },
       { status: "human_reject" as const },
+      { status: "stopped" as const },
       { status: "failed" as const, reason: "tool unavailable" },
     ]) {
       assert.deepEqual(terminationOutcomeSchema.parse(outcome), outcome);

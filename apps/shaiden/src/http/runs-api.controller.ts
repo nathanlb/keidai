@@ -2,16 +2,20 @@ import {
   RUN_SSE_EVENT,
   type FollowUpRunRequest,
   type FollowUpRunResponse,
+  type Logger,
+  type ResumeRunResponse,
   type RunReport,
   type RunSseEvent,
+  type StopRunResponse,
 } from "@keidai/shared";
-import type { Logger } from "@keidai/shared";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { RuntimeConfig } from "../config/runtime-config.js";
+import type { RunStopController } from "../run/run-stop-controller.js";
 import type {
   LaunchedHarnessRun,
   ResumeHarnessRunInput,
 } from "../run/types/harness.js";
+import type { ConversationEntry } from "../run/types/conversation-history.js";
 import type { RunStore } from "../runs/run-store.js";
 import {
   DEFAULT_RUN_LIST_LIMIT,
@@ -25,6 +29,8 @@ import { createRunStep } from "../runs/utils/create-run-step.js";
 import {
   followUpConflictMessage,
   normalizeFollowUpMessage,
+  resumeConflictMessage,
+  stopConflictMessage,
 } from "./utils/follow-up-message.js";
 
 function parseRunListLimit(request: FastifyRequest): number {
@@ -42,6 +48,7 @@ export interface RunsApiControllerDeps {
   ) => LaunchedHarnessRun | Promise<LaunchedHarnessRun>;
   runtimeConfig: RuntimeConfig;
   logger: Logger;
+  runStopController: RunStopController;
 }
 
 export class RunsApiController {
@@ -119,6 +126,30 @@ export class RunsApiController {
       const response = await this.handleFollowUp(run, runId, message);
       reply.code(response.status).send(response.body);
     });
+
+    app.post("/api/runs/:runId/stop", async (request, reply) => {
+      const { runId } = request.params as { runId: string };
+      const run = await this.deps.runStore.getRun(runId);
+      if (!run) {
+        reply.code(404).send({ error: "run not found" });
+        return;
+      }
+
+      const response = await this.handleStop(run, runId);
+      reply.code(response.status).send(response.body);
+    });
+
+    app.post("/api/runs/:runId/resume", async (request, reply) => {
+      const { runId } = request.params as { runId: string };
+      const run = await this.deps.runStore.getRun(runId);
+      if (!run) {
+        reply.code(404).send({ error: "run not found" });
+        return;
+      }
+
+      const response = await this.handleResume(run, runId);
+      reply.code(response.status).send(response.body);
+    });
   }
 
   private async handleFollowUp(
@@ -160,9 +191,69 @@ export class RunsApiController {
       };
     }
 
+    return this.launchContinuation(run, runId, continuation.history, "follow_up");
+  }
+
+  private async handleStop(
+    run: RunReport,
+    runId: string,
+  ): Promise<{ status: number; body: StopRunResponse | { error: string } }> {
+    if (run.status !== "running") {
+      return {
+        status: 409,
+        body: { error: stopConflictMessage("not_running") },
+      };
+    }
+
+    if (await this.deps.runStore.getParkedMcpTask(runId)) {
+      return {
+        status: 409,
+        body: { error: stopConflictMessage("waiting_approval") },
+      };
+    }
+
+    this.deps.runStopController.requestStop(runId);
+    return { status: 202, body: { runId } };
+  }
+
+  private async handleResume(
+    run: RunReport,
+    runId: string,
+  ): Promise<{ status: number; body: ResumeRunResponse | { error: string } }> {
+    if (run.status === "running") {
+      return {
+        status: 409,
+        body: { error: resumeConflictMessage("not_terminal") },
+      };
+    }
+
+    if (run.status !== "completed" || run.outcome?.status !== "stopped") {
+      return {
+        status: 409,
+        body: { error: resumeConflictMessage("not_stopped") },
+      };
+    }
+
+    const continuation = await this.deps.runStore.beginContinuation(runId);
+    if (!continuation.ok) {
+      return {
+        status: 409,
+        body: { error: resumeConflictMessage(continuation.reason) },
+      };
+    }
+
+    return this.launchContinuation(run, runId, continuation.history, "resume");
+  }
+
+  private async launchContinuation(
+    run: RunReport,
+    runId: string,
+    initialHistory: ConversationEntry[],
+    kind: "follow_up" | "resume",
+  ): Promise<{ status: number; body: FollowUpRunResponse }> {
     const { done } = await this.deps.resumeHarnessRun({
       runId,
-      initialHistory: continuation.history,
+      initialHistory,
       task: run.task,
       runStore: this.deps.runStore,
       options: {
@@ -171,10 +262,13 @@ export class RunsApiController {
     });
     done.catch((error: unknown) => {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      this.deps.logger.error("run.follow_up_failed", {
-        runId,
-        error: errorMessage,
-      });
+      this.deps.logger.error(
+        kind === "resume" ? "run.resume_failed" : "run.follow_up_failed",
+        {
+          runId,
+          error: errorMessage,
+        },
+      );
     });
 
     return { status: 202, body: { runId } };

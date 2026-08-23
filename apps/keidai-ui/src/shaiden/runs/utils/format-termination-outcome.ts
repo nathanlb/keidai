@@ -5,6 +5,7 @@ const OUTCOME_LABELS: Record<TerminationOutcome["status"], string> = {
   iteration_exhausted: "Iteration exhausted",
   timeout: "Timeout",
   human_reject: "Human reject",
+  stopped: "Stopped",
   failed: "Failed",
 };
 
@@ -27,5 +28,7 @@ export function terminationOutcomeBadgeVariant(
       return "secondary";
     case "failed":
       return "destructive";
+    case "stopped":
+      return "outline";
   }
 }

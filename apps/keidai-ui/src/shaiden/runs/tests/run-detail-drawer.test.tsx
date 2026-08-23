@@ -1,4 +1,5 @@
 import type { RunReport } from "@keidai/shared";
+import { TooltipProvider } from "@keidai/ui";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
@@ -7,9 +8,15 @@ import { RunDetailDrawer } from "../run-detail-drawer.js";
 
 vi.mock("../../api/shaiden-client.js", () => ({
   sendRunFollowUp: vi.fn().mockResolvedValue({ runId: "run-1" }),
+  stopRun: vi.fn().mockResolvedValue({ runId: "run-1" }),
+  resumeRun: vi.fn().mockResolvedValue({ runId: "run-1" }),
 }));
 
-import { sendRunFollowUp } from "../../api/shaiden-client.js";
+import {
+  resumeRun,
+  sendRunFollowUp,
+  stopRun,
+} from "../../api/shaiden-client.js";
 
 const baseRun: RunReport = {
   id: "run-1",
@@ -45,15 +52,17 @@ function renderRunDetailDrawer(
   } | null,
 ) {
   return render(
-    <MemoryRouter>
-      <RunDetailDrawer
-        run={run}
-        assigneeDisplay={assigneeDisplay}
-        open
-        onOpenChange={vi.fn()}
-        onRunUpdated={vi.fn()}
-      />
-    </MemoryRouter>,
+    <TooltipProvider>
+      <MemoryRouter>
+        <RunDetailDrawer
+          run={run}
+          assigneeDisplay={assigneeDisplay}
+          open
+          onOpenChange={vi.fn()}
+          onRunUpdated={vi.fn()}
+        />
+      </MemoryRouter>
+    </TooltipProvider>,
   );
 }
 
@@ -339,5 +348,74 @@ describe("RunDetailDrawer run log loader", () => {
     );
 
     expect(screen.getByPlaceholderText(/add guidance/i)).toHaveValue("");
+  });
+
+  it("stops a running run from the drawer", async () => {
+    const user = userEvent.setup();
+    const onRunUpdated = vi.fn();
+    render(
+      <TooltipProvider>
+        <MemoryRouter>
+          <RunDetailDrawer
+            run={baseRun}
+            open
+            onOpenChange={vi.fn()}
+            onRunUpdated={onRunUpdated}
+          />
+        </MemoryRouter>
+      </TooltipProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: /^stop$/i }));
+
+    expect(stopRun).toHaveBeenCalledWith("run-1");
+    expect(onRunUpdated).toHaveBeenCalled();
+  });
+
+  it("disables stop while waiting for approval", () => {
+    renderRunDetailDrawer({
+      ...baseRun,
+      steps: [
+        ...baseRun.steps,
+        {
+          id: "step-2",
+          timestamp: "2026-07-14T12:00:02.000Z",
+          kind: "waiting_approval",
+          toolName: "gmail.create_draft",
+          approvalId: "approval-1",
+        },
+      ],
+    });
+
+    expect(screen.getByRole("button", { name: /^stop$/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /approve/i })).toBeEnabled();
+  });
+
+  it("resumes a stopped run from the drawer", async () => {
+    const user = userEvent.setup();
+    const onRunUpdated = vi.fn();
+    render(
+      <TooltipProvider>
+        <MemoryRouter>
+          <RunDetailDrawer
+            run={{
+              ...baseRun,
+              status: "completed",
+              outcome: { status: "stopped" },
+            }}
+            open
+            onOpenChange={vi.fn()}
+            onRunUpdated={onRunUpdated}
+          />
+        </MemoryRouter>
+      </TooltipProvider>,
+    );
+
+    expect(screen.getByText("Stopped")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /^resume$/i }));
+
+    expect(resumeRun).toHaveBeenCalledWith("run-1");
+    expect(onRunUpdated).toHaveBeenCalled();
+    expect(screen.getByText("Follow-up")).toBeInTheDocument();
   });
 });

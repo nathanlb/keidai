@@ -41,6 +41,8 @@ export interface ToolDispatchResult {
 export interface ToolDispatchOptions {
   runId?: string;
   stepId?: string;
+  /** Cooperative stop signal; in-flight dispatch still runs, result may be dropped. */
+  signal?: AbortSignal;
 }
 
 export interface ApprovalWaitContext {
@@ -73,6 +75,8 @@ export interface TaskLoopDeps {
   onHistoryChanged?: (
     history: readonly ConversationEntry[],
   ) => void | Promise<void>;
+  /** Cooperative operator stop; checked at loop boundaries and after in-flight tools. */
+  stopSignal?: AbortSignal;
 }
 
 export interface TaskLoopStart {

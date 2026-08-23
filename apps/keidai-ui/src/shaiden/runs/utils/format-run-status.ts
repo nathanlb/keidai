@@ -44,6 +44,11 @@ export const RUN_STATUS_META: Record<RunDisplayStatus, RunStatusMeta> = {
       "border-transparent bg-destructive text-destructive-foreground",
     dotClass: "bg-destructive",
   },
+  stopped: {
+    label: "Stopped",
+    badgeClass: "border-border bg-muted/60 text-foreground",
+    dotClass: "bg-foreground/50",
+  },
 };
 
 export const RUN_STATUS_CHIP_ORDER = [

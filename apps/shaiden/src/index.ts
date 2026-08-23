@@ -8,6 +8,7 @@ import { loadRuntimeConfig } from "./config/runtime-config.js";
 import { ShaidenHttpServer } from "./http/shaiden-http-server.js";
 import { defaultLogger } from "./logging/logger.js";
 import { launchHarnessRun, resumeHarnessRun } from "./run/harness.js";
+import { RunStopController } from "./run/run-stop-controller.js";
 import {
   DEFAULT_PARKED_RECLAIM_INTERVAL_MS,
   DEFAULT_RUN_EVENT_POLL_INTERVAL_MS,
@@ -29,10 +30,12 @@ async function main(): Promise<void> {
   // `loadRuntimeConfig` requires FUDA_URL; optional on the type for evals/tests.
   const fudaClient = createHttpFudaClient({ baseUrl: config.fudaBaseUrl! });
   const replicaId = resolveReplicaId();
+  const runStopController = new RunStopController();
   const harnessOptions = {
     replicaId,
     logger: defaultLogger,
     fudaClient,
+    stopController: runStopController,
   };
 
   const resumeParked = () =>
@@ -66,6 +69,7 @@ async function main(): Promise<void> {
     logger: defaultLogger,
     runtimeConfig: config,
     fudaClient,
+    runStopController,
     startTaskRun: ({ task, taskId }) =>
       launchHarnessRun({
         task,
