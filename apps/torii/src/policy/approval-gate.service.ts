@@ -2,14 +2,13 @@ import type { CallToolResult } from "@modelcontextprotocol/server";
 import type { AgentPrincipal, McpCreateTaskResult } from "@keidai/shared";
 import { toCreateTaskResult } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
-import { ToriiConfigService } from "../config/torii-config.service.js";
+import { parseNamespacedTool } from "../catalog/utils/namespacing.js";
 import { TaskStoreService } from "../tasks/task-store.service.js";
 import { DEFAULT_MCP_TASK_TTL_MS } from "../tasks/types/mcp-task.js";
+import { GroupPolicyCache } from "./group-policy-cache.service.js";
 import { ApprovalStoreService, type ApprovalRecord } from "./approval-store.service.js";
-import {
-  hashToolParams,
-  isGatedToolForAgent,
-} from "./utils/approval-tool-args.js";
+import { hashToolParams } from "./utils/approval-tool-args.js";
+import { isGatedToolForGroups } from "./utils/evaluate-policy.js";
 import { toApprovalDeniedToolResult } from "./utils/approval-tool-results.js";
 
 export type GatedCallIntercept =
@@ -18,29 +17,28 @@ export type GatedCallIntercept =
 
 @injectable()
 export class ApprovalGateService {
-  private readonly gatedToolsByAgentId: Map<string, readonly string[]>;
-
   constructor(
-    @inject(ToriiConfigService)
-    configService: ToriiConfigService,
+    @inject(GroupPolicyCache)
+    private readonly groupPolicies: GroupPolicyCache,
     @inject(ApprovalStoreService)
     private readonly approvalStore: ApprovalStoreService,
     @inject(TaskStoreService)
     private readonly taskStore: TaskStoreService,
-  ) {
-    this.gatedToolsByAgentId = new Map(
-      Object.entries(configService.get().gated_tools ?? {}),
-    );
-  }
+  ) {}
 
   requiresApproval(
     principal: AgentPrincipal | undefined,
     toolName: string,
   ): boolean {
-    return isGatedToolForAgent(
+    const parsed = parseNamespacedTool(toolName);
+    if (!parsed) {
+      return false;
+    }
+    return isGatedToolForGroups(
       principal,
-      this.gatedToolsByAgentId,
-      toolName,
+      this.groupPolicies.get(),
+      parsed.server,
+      parsed.bareName,
     );
   }
 

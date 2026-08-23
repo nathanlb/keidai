@@ -14,6 +14,7 @@ import { PENDING_OAUTH_LINK_STORE } from "./credentials/types/pending-oauth-link
 import { TOKEN_REPOSITORY } from "./credentials/types/token-repository.js";
 import { GatewayHttpServer } from "./http/gateway-http-server.service.js";
 import { StructuredLoggerService } from "./logging/structured-logger.service.js";
+import { GroupPolicyCache } from "./policy/group-policy-cache.service.js";
 
 function resolvePort(): number {
   const raw = process.env.TORII_PORT ?? process.env.PORT ?? "3100";
@@ -39,6 +40,9 @@ export async function startServer(): Promise<void> {
   logger.info("boot.migrations_applied", {
     applied: migrations.applied,
     alreadyApplied: migrations.alreadyApplied,
+  });
+  logger.info("boot.group_policies_ready", {
+    groupCount: app.resolve(GroupPolicyCache).get().length,
   });
 
   const oauthReconcile = await applyOperatorsFile(

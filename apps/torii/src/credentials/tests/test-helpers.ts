@@ -13,6 +13,7 @@ import { MockOAuthClientRepository } from "../../testing/mocks/mock-oauth-client
 import { MockPendingLinkStore } from "../../testing/mocks/mock-pending-link-store.js";
 import { MockTokenRepository } from "../../testing/mocks/mock-token-repository.js";
 import { MockTraceRepository } from "../../testing/mocks/mock-trace-repository.js";
+import { MockGroupPolicyRepository } from "../../testing/mocks/mock-group-policy-repository.js";
 import {
   type TestGatewayPersistence,
 } from "../../testing/gateway-persistence.js";
@@ -66,6 +67,7 @@ export function createCredentialServices(
     clientRepository: new MockOAuthClientRepository(),
     pendingLinkStore: new MockPendingLinkStore(),
     traceRepository: new MockTraceRepository(),
+    groupPolicyRepository: new MockGroupPolicyRepository(),
     close: async () => {},
   },
 ): {

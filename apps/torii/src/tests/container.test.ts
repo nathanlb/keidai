@@ -12,6 +12,8 @@ import {
 import { ConnectionManager } from "../connections/connection-manager.service.js";
 import { ToolCatalogService } from "../catalog/tool-catalog.service.js";
 import { createContainer } from "../container.js";
+import { GroupPolicyCache } from "../policy/group-policy-cache.service.js";
+import { testAgentsGroup } from "../testing/test-config.js";
 
 const MINIMAL_CONFIG: ToriiConfig = {
   oauth_providers: {},
@@ -33,6 +35,40 @@ describe("createContainer", () => {
           .connectionManager,
         connectionManager,
       );
+    } finally {
+      await isolated.close();
+    }
+  });
+
+  it("imports YAML group policy into the cache when the groups table is empty", async () => {
+    const isolated = await createIsolatedSchema();
+    try {
+      const { container: app } = await createContainer(
+        {
+          oauth_providers: {},
+          servers: [],
+          groups: [
+            testAgentsGroup([
+              { server: "gmail", tools: ["create_draft", "list_drafts"] },
+            ]),
+          ],
+          gated_tools: {
+            "shaiden-newsletter-01": ["gmail.create_draft"],
+          },
+        },
+        { pool: isolated.pool },
+      );
+      const cache = app.resolve(GroupPolicyCache);
+      const agents = cache.get().find((group) => group.name === "agents");
+      assert.ok(agents);
+      const gmail = agents.servers.find((policy) => policy.server === "gmail");
+      assert.deepEqual(gmail, {
+        server: "gmail",
+        default: "deny",
+        allow: ["create_draft", "list_drafts"],
+        deny: [],
+        gated: ["create_draft"],
+      });
     } finally {
       await isolated.close();
     }

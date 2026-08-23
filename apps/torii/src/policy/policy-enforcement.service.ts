@@ -1,8 +1,8 @@
 import type { AgentPrincipal } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
-import { ToriiConfigService } from "../config/torii-config.service.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
 import type { Logger } from "@keidai/shared";
+import { GroupPolicyCache } from "./group-policy-cache.service.js";
 import type { PolicyEvaluation } from "./types/policy-evaluation.js";
 import type { PolicyEvaluator } from "./types/policy-evaluator.js";
 import {
@@ -13,8 +13,8 @@ import {
 @injectable()
 export class PolicyEnforcementService implements PolicyEvaluator {
   constructor(
-    @inject(ToriiConfigService)
-    private readonly configService: ToriiConfigService,
+    @inject(GroupPolicyCache)
+    private readonly groupPolicies: GroupPolicyCache,
     @inject(StructuredLoggerService)
     private readonly logger: Logger,
   ) {}
@@ -24,8 +24,7 @@ export class PolicyEnforcementService implements PolicyEvaluator {
     server: string,
     tool: string,
   ): PolicyEvaluation {
-    const config = this.configService.get();
-    const groups = config.groups ?? [];
+    const groups = this.groupPolicies.get();
     const evaluation = evaluatePolicy(principal, groups, server, tool);
 
     if (
@@ -47,11 +46,7 @@ export class PolicyEnforcementService implements PolicyEvaluator {
   }
 
   isConfiguredGrant(server: string, tool: string): boolean {
-    return isToolGrantedByAnyGroup(
-      this.configService.get().groups ?? [],
-      server,
-      tool,
-    );
+    return isToolGrantedByAnyGroup(this.groupPolicies.get(), server, tool);
   }
 
   warnUnknownPolicyTools(
@@ -61,12 +56,16 @@ export class PolicyEnforcementService implements PolicyEvaluator {
     const knownTools = new Set(backendToolNames);
     const configuredTools = new Set<string>();
 
-    for (const group of this.configService.get().groups ?? []) {
-      for (const permission of group.permissions) {
-        if (permission.server !== server) {
+    for (const group of this.groupPolicies.get()) {
+      for (const policy of group.servers) {
+        if (policy.server !== server) {
           continue;
         }
-        for (const toolName of permission.tools) {
+        for (const toolName of [
+          ...policy.allow,
+          ...policy.deny,
+          ...policy.gated,
+        ]) {
           configuredTools.add(toolName);
         }
       }

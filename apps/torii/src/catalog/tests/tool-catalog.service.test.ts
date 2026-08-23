@@ -13,6 +13,8 @@ import {
 } from "../types/catalog-tool.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 import { createCredentialServices, bootBackends, withTestAgentPrincipal } from "../../credentials/tests/test-helpers.js";
+import { GroupPolicyCache } from "../../policy/group-policy-cache.service.js";
+import { PolicyEnforcementService } from "../../policy/policy-enforcement.service.js";
 import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
 import { testAgentsGroup } from "../../testing/test-config.js";
 
@@ -146,6 +148,74 @@ describe("ToolCatalogService", () => {
           .sort((left, right) => left.name.localeCompare(right.name)),
         [
           { name: "merge_pull_request", allowed: false },
+          { name: "search_issues", allowed: true },
+        ],
+      );
+    } finally {
+      await closeManagerConnections(connectionManager);
+      await mockServer.close();
+    }
+  });
+
+  it("marks catalog tools allowed when a group default is allow", async () => {
+    const mockServer = await startMockMcpServer({
+      tools: [
+        { name: "search_issues", description: "Search GitHub issues" },
+        { name: "merge_pull_request", description: "Merge a pull request" },
+        { name: "delete_repo", description: "Delete a repository" },
+      ],
+    });
+    const configService = new ToriiConfigService({
+      oauth_providers: {},
+      servers: [serverConfig("github", mockServer.url)],
+    });
+    const { credentialResolver } = createCredentialServices();
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
+    const now = new Date("2026-08-23T00:00:00.000Z");
+    const catalogService = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+      new PolicyEnforcementService(
+        GroupPolicyCache.fromGroups([
+          {
+            id: "group-agents",
+            name: "agents",
+            description: "Default-allow github",
+            createdAt: now,
+            updatedAt: now,
+            servers: [
+              {
+                server: "github",
+                default: "allow",
+                allow: [],
+                deny: ["delete_repo"],
+                gated: [],
+              },
+            ],
+          },
+        ]),
+        createNoopLogger(),
+      ),
+      createNoopLogger(),
+    );
+
+    try {
+      await bootBackends(connectionManager, catalogService);
+      const serverTools = catalogService.getServerTools("github");
+      assert.deepEqual(
+        [...serverTools]
+          .map((tool) => ({
+            name: tool.name,
+            allowed: tool.allowed,
+          }))
+          .sort((left, right) => left.name.localeCompare(right.name)),
+        [
+          { name: "delete_repo", allowed: false },
+          { name: "merge_pull_request", allowed: true },
           { name: "search_issues", allowed: true },
         ],
       );
