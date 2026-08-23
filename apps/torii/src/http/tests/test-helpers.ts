@@ -27,8 +27,12 @@ import type { TraceRepository } from "../../trace/types/trace-repository.js";
 import type { TraceEmitter } from "../../trace/types/trace-emitter.js";
 import {
   createApprovalServices,
+  groupPolicyCacheFromConfig,
   type ApprovalServices,
 } from "../../policy/tests/test-helpers.js";
+import { GroupPolicyCache } from "../../policy/group-policy-cache.service.js";
+import { GroupPolicyManagementService } from "../../policy/group-policy-management.service.js";
+import { GroupsApiController } from "../../policy/groups-api.controller.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 import {
   createInboundIdentityService,
@@ -130,6 +134,20 @@ export function createTracesApiController(
   );
 }
 
+export function createGroupsApiController(
+  configService: ToriiConfigService,
+  persistence: TestGatewayPersistence,
+  cache: GroupPolicyCache = groupPolicyCacheFromConfig(configService),
+): GroupsApiController {
+  return new GroupsApiController(
+    new GroupPolicyManagementService(
+      persistence.groupPolicyRepository,
+      cache,
+      configService,
+    ),
+  );
+}
+
 export async function createTestGatewayHttpServer(
   toolCatalog: ToolCatalogService,
   toolDispatch: ToolDispatchService,
@@ -143,6 +161,7 @@ export async function createTestGatewayHttpServer(
     approvalServices?: ApprovalServices;
     persistence?: TestGatewayPersistence;
     taskStore?: TaskStoreService;
+    groupPolicyCache?: GroupPolicyCache;
   } = {},
 ): Promise<GatewayHttpServer> {
   const configService =
@@ -153,15 +172,21 @@ export async function createTestGatewayHttpServer(
     });
   const ownedPersistence = options.persistence === undefined
     && options.approvalServices === undefined;
+  const groupPolicies =
+    options.groupPolicyCache ?? groupPolicyCacheFromConfig(configService);
   const approvalServices =
     options.approvalServices ??
-    (await createApprovalServices(configService, options.persistence));
+    (await createApprovalServices(
+      configService,
+      options.persistence,
+      groupPolicies,
+    ));
   const persistence = options.persistence ?? approvalServices.persistence;
   const pool = persistence.pool;
   if (!pool) {
     throw new Error("createTestGatewayHttpServer requires postgres persistence");
   }
-  const configRead = new ConfigReadService(configService);
+  const configRead = new ConfigReadService(configService, groupPolicies);
   const connectionManager =
     options.connectionManager ??
     new ConnectionManager(
@@ -190,6 +215,13 @@ export async function createTestGatewayHttpServer(
     traceEmitter,
     createNoopLogger(),
   );
+  const groupsApi = new GroupsApiController(
+    new GroupPolicyManagementService(
+      persistence.groupPolicyRepository,
+      groupPolicies,
+      configService,
+    ),
+  );
 
   const server = new GatewayHttpServer(
     new ConfigApiController(configRead),
@@ -202,6 +234,7 @@ export async function createTestGatewayHttpServer(
       createOAuthApiController(configService, { persistence }),
     new TracesApiController(traceRead),
     approvalServices.approvalsApi,
+    groupsApi,
     mcpServer,
     createNoopLogger(),
     pool,

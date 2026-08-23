@@ -11,8 +11,8 @@ import { GatewayHttpServer } from "../gateway-http-server.service.js";
 import { GatewayMcpServer } from "../../mcp/gateway-mcp-server.service.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import { createCapturingLogger } from "../../logging/tests/test-helpers.js";
-import { createOAuthApiController, createStubToolCatalog, createTracesApiController } from "./test-helpers.js";
-import { createApprovalServices } from "../../policy/tests/test-helpers.js";
+import { createOAuthApiController, createGroupsApiController, createStubToolCatalog, createTracesApiController } from "./test-helpers.js";
+import { createApprovalServices, groupPolicyCacheFromConfig } from "../../policy/tests/test-helpers.js";
 
 describe("Gateway HTTP access logging", () => {
   it("emits structured access logs without secrets", async () => {
@@ -32,8 +32,9 @@ describe("Gateway HTTP access logging", () => {
     );
     const services = await createApprovalServices(configService);
     const { approvalsApi } = services;
+    const groupPolicies = groupPolicyCacheFromConfig(configService);
     const gatewayHttpServer = new GatewayHttpServer(
-      new ConfigApiController(new ConfigReadService(configService)),
+      new ConfigApiController(new ConfigReadService(configService, groupPolicies)),
       new ConnectionsApiController(
         new ConnectionReadService(connectionManager, createStubToolCatalog()),
         connectionManager,
@@ -42,6 +43,7 @@ describe("Gateway HTTP access logging", () => {
       createOAuthApiController(configService),
       createTracesApiController(),
       approvalsApi,
+      createGroupsApiController(configService, services.persistence, groupPolicies),
       new GatewayMcpServer(
         {} as never,
         {} as never,

@@ -6,6 +6,7 @@ import {
   projectConfigOAuthProviders,
   projectConfigServers,
   projectPublicCredential,
+  projectPublicServer,
 } from "../project-config-api.js";
 
 const fullConfig: ToriiConfig = {
@@ -61,7 +62,7 @@ describe("project-config-api", () => {
         strategy: "service_key",
         inject: { header: "Authorization" },
       },
-      policy: { default: "deny", allow: ["get_issue", "list_issues"] },
+      policy: { default: "deny", allow: [] },
     });
     assert.deepEqual(result.servers[1]!.credential, {
       strategy: "user_oauth",
@@ -75,6 +76,28 @@ describe("project-config-api", () => {
       false,
       "service key must not leak",
     );
+  });
+
+  it("derives a server allow-list from persisted group policy", () => {
+    const projected = projectPublicServer(fullConfig.servers[0]!, [
+      {
+        name: "agents",
+        servers: [
+          {
+            server: "linear",
+            default: "deny",
+            allow: ["get_issue", "list_issues"],
+            deny: [],
+            gated: [],
+          },
+        ],
+      },
+    ]);
+
+    assert.deepEqual(projected.policy, {
+      default: "deny",
+      allow: ["get_issue", "list_issues"],
+    });
   });
 
   it("projects group definitions without exposing permissions", () => {

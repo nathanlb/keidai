@@ -5,6 +5,7 @@ import type { OAuthApiController } from "../../credentials/oauth-api.controller.
 import type { GatewayMcpServer } from "../../mcp/gateway-mcp-server.service.js";
 import type { TracesApiController } from "../../trace/traces-api.controller.js";
 import type { ApprovalsApiController } from "../../policy/approvals-api.controller.js";
+import type { GroupsApiController } from "../../policy/groups-api.controller.js";
 
 export interface GatewayRouteControllers {
   configApi: ConfigApiController;
@@ -12,6 +13,7 @@ export interface GatewayRouteControllers {
   oauthApi: OAuthApiController;
   tracesApi: TracesApiController;
   approvalsApi: ApprovalsApiController;
+  groupsApi: GroupsApiController;
   mcpServer: GatewayMcpServer;
 }
 
@@ -25,5 +27,6 @@ export function registerGatewayRoutes(
   controllers.oauthApi.registerRoutes(app);
   controllers.tracesApi.registerRoutes(app);
   controllers.approvalsApi.registerRoutes(app);
+  controllers.groupsApi.registerRoutes(app);
   controllers.mcpServer.registerRoutes(app);
 }

@@ -49,6 +49,8 @@ import { ApprovalReadService } from "./policy/approval-read.service.js";
 import { ApprovalStoreService } from "./policy/approval-store.service.js";
 import { TaskStoreService } from "./tasks/task-store.service.js";
 import { ApprovalsApiController } from "./policy/approvals-api.controller.js";
+import { GroupPolicyManagementService } from "./policy/group-policy-management.service.js";
+import { GroupsApiController } from "./policy/groups-api.controller.js";
 import { StructuredLoggerService } from "./logging/structured-logger.service.js";
 import { TraceEmitterService } from "./trace/trace-emitter.service.js";
 import { TraceReadService } from "./trace/trace-read.service.js";
@@ -255,6 +257,16 @@ export async function createContainer(
   appContainer.register(
     ApprovalsApiController,
     { useClass: ApprovalsApiController },
+    SINGLETON,
+  );
+  appContainer.register(
+    GroupPolicyManagementService,
+    { useClass: GroupPolicyManagementService },
+    SINGLETON,
+  );
+  appContainer.register(
+    GroupsApiController,
+    { useClass: GroupsApiController },
     SINGLETON,
   );
   appContainer.register(
