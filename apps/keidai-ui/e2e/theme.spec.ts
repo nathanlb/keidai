@@ -11,7 +11,7 @@ test.describe("Theme toggle", () => {
       localStorage.setItem("keidai-ui-theme", "dark");
     });
 
-    await page.goto("/connections");
+    await page.goto("/home");
 
     const root = page.locator("html");
     await expect(root).toHaveClass(/dark/);

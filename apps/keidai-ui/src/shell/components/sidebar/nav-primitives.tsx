@@ -2,7 +2,7 @@ import { cn } from "@keidai/ui";
 import type { ReactNode } from "react";
 
 export const navItemClassName =
-  "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-sidebar-foreground no-underline transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
+  "flex items-center gap-[9px] rounded-[6px] px-2 py-[7px] text-[13.5px] font-medium text-sidebar-foreground no-underline transition-[background,color] duration-150 ease-out hover:bg-sidebar-accent hover:text-sidebar-accent-foreground motion-reduce:transition-none";
 
 export function sidebarNavLinkTestId(path: string): string {
   const slug = path.replace(/^\//, "").replace(/\//g, "-");
@@ -26,8 +26,8 @@ export function NavLabel({
     <div
       data-testid={section ? `sidebar-nav-section-${section}` : undefined}
       className={cn(
-        "px-2 pb-1 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase",
-        spaced ? "flex items-center gap-1.5 pt-3.5" : "pt-2.5",
+        "px-2 pb-1 text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase",
+        spaced ? "pt-3.5" : "pt-1",
       )}
     >
       {children}

@@ -3,28 +3,25 @@ import { AppShell } from "./app-shell.js";
 import { AppProvider } from "./context/app-provider.js";
 import { OperatorAuthGate } from "./components/operator-auth-gate.js";
 import { PlatformSidebarNav } from "./components/sidebar/platform-sidebar-nav.js";
-import { resolveAppNav, resolveAppSection } from "./resolve-app-nav.js";
+import { resolveAppNav, resolveAppSection } from "./navigation.js";
 import { isFudaManagedRoute } from "../fuda/navigation.js";
 import { OAuthLinkProvider } from "../torii/oauth/context/oauth-link-provider.js";
 import type { AppShellBreadcrumb } from "./types/index.js";
 
 function buildBreadcrumb(
+  pathname: string,
   section: string,
-  current: NonNullable<ReturnType<typeof resolveAppNav>>,
+  current: ReturnType<typeof resolveAppNav>,
 ): AppShellBreadcrumb {
-  if ("breadcrumb" in current && current.breadcrumb) {
-    const segments = current.breadcrumb;
+  if (current) {
     return {
       section,
-      page: segments.at(-1)?.label ?? current.label,
-      segments,
+      page: current.label,
     };
   }
 
-  return {
-    section,
-    page: current.label,
-  };
+  const fallback = pathname.split("/").filter(Boolean)[0] ?? "Keidai";
+  return { section, page: fallback };
 }
 
 export function KeidaiLayout() {
@@ -32,32 +29,27 @@ export function KeidaiLayout() {
   const current = resolveAppNav(pathname);
   const section = resolveAppSection(pathname);
   const onFudaManagedRoute = isFudaManagedRoute(pathname);
+  const suppressHeader =
+    onFudaManagedRoute || !current || current.suppressPageHeader;
 
   return (
     <AppProvider>
       <OperatorAuthGate>
         <OAuthLinkProvider>
           <AppShell
-            breadcrumb={
-              onFudaManagedRoute && current
-                ? { section: "Fuda", page: current.label }
-                : current
-                  ? buildBreadcrumb(section, current)
-                  : { section, page: section }
-            }
+            breadcrumb={buildBreadcrumb(pathname, section, current)}
             pageHeader={
-              onFudaManagedRoute || !current
+              suppressHeader || !current
                 ? undefined
                 : {
                     title: current.title,
                     description: current.description,
-                    configChip: section === "Torii" ? "torii.yaml" : undefined,
-                    showRefresh:
-                      "showRefresh" in current ? current.showRefresh : undefined,
+                    configChip: current.configChip,
+                    showRefresh: current.showRefresh,
                   }
             }
             sidebarNav={<PlatformSidebarNav />}
-            sidebarSubtitle="Agent ecosystem"
+            sidebarSubtitle="ecosystem console"
           />
         </OAuthLinkProvider>
       </OperatorAuthGate>

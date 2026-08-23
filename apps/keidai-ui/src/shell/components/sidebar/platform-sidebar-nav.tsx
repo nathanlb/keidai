@@ -1,13 +1,13 @@
-import { FudaSidebarNav } from "../../../fuda/sidebar-nav.js";
-import { ToriiSidebarNav } from "../../../torii/sidebar-nav.js";
-import { ShaidenSidebarNav } from "../../../shaiden/sidebar-nav.js";
+import { useLocation } from "react-router";
+import { resolveNavMode } from "../../navigation.js";
+import { ConfigureSidebarNav } from "./configure-sidebar-nav.js";
+import { WorkspaceSidebarNav } from "./workspace-sidebar-nav.js";
 
 export function PlatformSidebarNav() {
-  return (
-    <>
-      <ToriiSidebarNav />
-      <FudaSidebarNav />
-      <ShaidenSidebarNav />
-    </>
+  const { pathname } = useLocation();
+  return resolveNavMode(pathname) === "configure" ? (
+    <ConfigureSidebarNav />
+  ) : (
+    <WorkspaceSidebarNav />
   );
 }

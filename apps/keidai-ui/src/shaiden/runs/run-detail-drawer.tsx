@@ -24,6 +24,7 @@ import {
   UserX,
 } from "lucide-react";
 import { Link } from "react-router";
+import { taskEditHref } from "../navigation.js";
 import { useCallback, useEffect, useId, useState } from "react";
 import {
   approveApproval,
@@ -253,7 +254,7 @@ export function RunDetailDrawer({
         <span className="font-mono">
           {run.id} · {assigneeLabel} ·{" "}
           <Link
-            to={`/shaiden/tasks?task=${encodeURIComponent(run.taskId)}`}
+            to={taskEditHref(run.taskId)}
             className="text-primary hover:underline"
           >
             task {run.taskId}

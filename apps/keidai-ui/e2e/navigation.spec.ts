@@ -2,57 +2,86 @@ import { expect, test } from "@playwright/test";
 import { mockToriiConfig } from "./helpers/mock-torii.js";
 import { sidebarNavLink, sidebarNavSection } from "./helpers/sidebar.js";
 
-test.describe("Torii navigation", () => {
+test.describe("App shell navigation", () => {
   test.beforeEach(async ({ page }) => {
     await mockToriiConfig(page);
   });
 
-  test("redirects the home route to Connections", async ({ page }) => {
+  test("redirects the home route to Home", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page).toHaveURL(/\/connections$/);
+    await expect(page).toHaveURL(/\/home$/);
     await expect(
-      page.getByText("Backend connection health for Torii."),
+      page.getByText(/what needs you, what's running/i),
     ).toBeVisible();
   });
 
-  test("navigates between sidebar pages", async ({ page }) => {
+  test("swaps the full sidebar when entering and leaving Configure", async ({
+    page,
+  }) => {
+    await page.goto("/home");
+
+    await expect(sidebarNavSection(page, "operate")).toBeVisible();
+    await expect(sidebarNavLink(page, "/home")).toBeVisible();
+    await expect(sidebarNavLink(page, "/agents")).toBeVisible();
+    await expect(sidebarNavLink(page, "/tasks")).toBeVisible();
+    await expect(sidebarNavLink(page, "/runs")).toBeVisible();
+    await expect(sidebarNavLink(page, "/approvals")).toBeVisible();
+    await expect(sidebarNavLink(page, "/activity")).toBeVisible();
+    await expect(page.getByTestId("sidebar-configure-door")).toBeVisible();
+    await expect(page.getByTestId("backend-health-footer")).toHaveCount(0);
+    await expect(sidebarNavLink(page, "/bearers")).toHaveCount(0);
+
+    await page.getByTestId("sidebar-configure-door").click();
+
+    await expect(page).toHaveURL(/\/configure\/connections/);
+    await expect(sidebarNavSection(page, "configure")).toBeVisible();
+    await expect(sidebarNavSection(page, "operate")).toHaveCount(0);
+    await expect(sidebarNavLink(page, "/configure/connections")).toBeVisible();
+    await expect(sidebarNavLink(page, "/configure/providers")).toBeVisible();
+    await expect(sidebarNavLink(page, "/configure/groups")).toBeVisible();
+    await expect(page.getByTestId("backend-health-footer")).toBeVisible();
+    await expect(page.getByTestId("sidebar-configure-door")).toHaveCount(0);
+
+    await page.getByTestId("sidebar-configure-back").click();
+    await expect(page).toHaveURL(/\/home$/);
+    await expect(sidebarNavSection(page, "operate")).toBeVisible();
+  });
+
+  test("keeps Configure mode on a hard refresh", async ({ page }) => {
+    await page.goto("/configure/providers");
+    await expect(sidebarNavSection(page, "configure")).toBeVisible();
+
+    await page.reload();
+
+    await expect(page).toHaveURL(/\/configure\/providers$/);
+    await expect(sidebarNavSection(page, "configure")).toBeVisible();
+    await expect(sidebarNavLink(page, "/configure/providers")).toBeVisible();
+  });
+
+  test("redirects retired routes onto the new IA", async ({ page }) => {
     await page.goto("/connections");
+    await expect(page).toHaveURL(/\/configure\/connections$/);
+
+    await page.goto("/oauth-providers");
+    await expect(page).toHaveURL(/\/configure\/providers$/);
+
+    await page.goto("/shaiden/tasks");
+    await expect(page).toHaveURL(/\/tasks$/);
+
+    await page.goto("/shaiden/runs");
+    await expect(page).toHaveURL(/\/runs$/);
+  });
+
+  test("navigates between workspace pages", async ({ page }) => {
+    await page.goto("/home");
 
     await sidebarNavLink(page, "/agents").click();
     await expect(page).toHaveURL(/\/agents$/);
     await expect(page.getByText("No agents yet")).toBeVisible();
 
-    await page.getByRole("link", { name: "Activity & traces" }).click();
+    await sidebarNavLink(page, "/activity").click();
     await expect(page).toHaveURL(/\/activity$/);
     await expect(page.getByText("No activity yet")).toBeVisible();
-  });
-
-  test("shows the Fuda agents section in the sidebar", async ({
-    page,
-  }) => {
-    await page.goto("/connections");
-
-    await expect(sidebarNavSection(page, "fuda")).toBeVisible();
-    await expect(sidebarNavLink(page, "/agents")).toBeVisible();
-    await expect(sidebarNavLink(page, "/bearers")).toHaveCount(0);
-  });
-
-  test("shows the Shaiden tasks and runs sections in the sidebar", async ({
-    page,
-  }) => {
-    await page.goto("/connections");
-
-    await expect(sidebarNavSection(page, "shaiden")).toBeVisible();
-    await expect(sidebarNavLink(page, "/shaiden/tasks")).toBeVisible();
-    await expect(sidebarNavLink(page, "/shaiden/runs")).toBeVisible();
-
-    await sidebarNavLink(page, "/shaiden/tasks").click();
-
-    await expect(page).toHaveURL("/shaiden/tasks");
-
-    await sidebarNavLink(page, "/shaiden/runs").click();
-
-    await expect(page).toHaveURL("/shaiden/runs");
   });
 });

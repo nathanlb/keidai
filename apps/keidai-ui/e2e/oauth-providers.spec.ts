@@ -12,7 +12,7 @@ test.describe("OAuth providers page", () => {
   }) => {
     await mockToriiConfig(page, emptyOAuthProvidersConfig);
 
-    await page.goto("/oauth-providers");
+    await page.goto("/configure/providers");
 
     await expect(page.getByText("No OAuth providers configured")).toBeVisible();
     await expect(
@@ -23,7 +23,7 @@ test.describe("OAuth providers page", () => {
   test("lists provider config and linked owner grants", async ({ page }) => {
     await mockToriiConfig(page, linkedGitHubProvidersConfig);
 
-    await page.goto("/oauth-providers");
+    await page.goto("/configure/providers");
 
     await expect(page.getByText("GitHub", { exact: true })).toBeVisible();
     await expect(page.getByText("2 scopes")).toBeVisible();
@@ -65,7 +65,7 @@ test.describe("OAuth providers page", () => {
       });
     });
 
-    await page.goto("/oauth-providers");
+    await page.goto("/configure/providers");
 
     await page.getByRole("button", { name: "Link account", exact: true }).click();
     await expect(page.getByRole("dialog")).toBeVisible();

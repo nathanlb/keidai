@@ -1,5 +1,13 @@
 import { createBrowserRouter, Navigate } from "react-router";
 import { KeidaiLayout } from "./shell/keidai-layout.js";
+import { PreserveSearchRedirect } from "./shell/components/preserve-search-redirect.js";
+import {
+  CONNECTIONS_PATH,
+  HOME_PATH,
+  PROVIDERS_PATH,
+  RUNS_PATH,
+  TASKS_PATH,
+} from "./shell/navigation.js";
 
 export const router = createBrowserRouter([
   {
@@ -8,10 +16,37 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="/connections" replace />,
+        element: <Navigate to={HOME_PATH} replace />,
+      },
+      {
+        path: "home",
+        lazy: async () => {
+          const { HomePage } = await import("./shell/pages/home-page.js");
+          return { Component: HomePage };
+        },
       },
       {
         path: "connections",
+        element: <PreserveSearchRedirect to={CONNECTIONS_PATH} />,
+      },
+      {
+        path: "oauth-providers",
+        element: <PreserveSearchRedirect to={PROVIDERS_PATH} />,
+      },
+      {
+        path: "shaiden/tasks",
+        element: <PreserveSearchRedirect to={TASKS_PATH} />,
+      },
+      {
+        path: "shaiden/runs",
+        element: <PreserveSearchRedirect to={RUNS_PATH} />,
+      },
+      {
+        path: "configure",
+        element: <PreserveSearchRedirect to={CONNECTIONS_PATH} />,
+      },
+      {
+        path: "configure/connections",
         lazy: async () => {
           const { ConnectionsPage } = await import(
             "./torii/pages/connections-page.js"
@@ -20,12 +55,19 @@ export const router = createBrowserRouter([
         },
       },
       {
-        path: "oauth-providers",
+        path: "configure/providers",
         lazy: async () => {
           const { OAuthProvidersPage } = await import(
             "./torii/pages/oauth-providers-page.js"
           );
           return { Component: OAuthProvidersPage };
+        },
+      },
+      {
+        path: "configure/groups",
+        lazy: async () => {
+          const { GroupsPage } = await import("./torii/pages/groups-page.js");
+          return { Component: GroupsPage };
         },
       },
       {
@@ -97,14 +139,28 @@ export const router = createBrowserRouter([
         },
       },
       {
-        path: "shaiden/tasks",
+        path: "tasks",
         lazy: async () => {
           const { TasksPage } = await import("./shaiden/pages/tasks-page.js");
           return { Component: TasksPage };
         },
       },
       {
-        path: "shaiden/runs",
+        path: "tasks/:taskId",
+        lazy: async () => {
+          const { TasksPage } = await import("./shaiden/pages/tasks-page.js");
+          return { Component: TasksPage };
+        },
+      },
+      {
+        path: "runs",
+        lazy: async () => {
+          const { RunsPage } = await import("./shaiden/pages/runs-page.js");
+          return { Component: RunsPage };
+        },
+      },
+      {
+        path: "runs/:runId",
         lazy: async () => {
           const { RunsPage } = await import("./shaiden/pages/runs-page.js");
           return { Component: RunsPage };

@@ -12,6 +12,7 @@ import {
   UserX,
 } from "lucide-react";
 import { Link } from "react-router";
+import { taskEditHref } from "../navigation.js";
 import { OwnerAvatar } from "../../shell/components/owner-avatar/owner-avatar.js";
 import { deriveRunDisplayStatus } from "./utils/derive-run-display-status.js";
 import { RUN_STATUS_META } from "./utils/format-run-status.js";
@@ -83,7 +84,7 @@ export function RunsTableRow({
           {run.goalPreview}
         </div>
         <Link
-          to={`/shaiden/tasks?task=${encodeURIComponent(run.taskId)}`}
+          to={taskEditHref(run.taskId)}
           className="mt-0.5 inline truncate font-mono text-[11px] text-muted-foreground hover:underline"
           title={run.taskId}
           onClick={(event) => event.stopPropagation()}

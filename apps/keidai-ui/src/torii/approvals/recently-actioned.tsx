@@ -2,6 +2,7 @@ import type { ApprovalRecordView } from "@keidai/shared";
 import { cn } from "@keidai/ui";
 import { Ban, CheckCheck, X } from "lucide-react";
 import { Link } from "react-router";
+import { runDetailHref } from "../../shaiden/navigation.js";
 import { TablePaginationFooter } from "../../shell/components/table-pagination/table-pagination-footer.js";
 import { paginateItems } from "../../shell/components/table-pagination/paginate-items.js";
 import { useTablePageIndex } from "../../shell/components/table-pagination/use-table-page-index.js";
@@ -80,7 +81,7 @@ export function RecentlyActioned({
                   </div>
                   {item.runId ? (
                     <Link
-                      to={`/shaiden/runs?run=${encodeURIComponent(item.runId)}`}
+                      to={runDetailHref(item.runId)}
                       className="block truncate font-mono text-[11px] text-primary hover:underline"
                       title={item.runId}
                       onClick={(event) => event.stopPropagation()}

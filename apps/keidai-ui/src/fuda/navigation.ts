@@ -1,7 +1,8 @@
 import type { LucideIcon } from "lucide-react";
 import { Bot } from "lucide-react";
+import { AGENTS_PATH } from "../shell/navigation.js";
 
-export const AGENTS_PATH = "/agents";
+export { AGENTS_PATH };
 export const BEARERS_PATH = "/bearers";
 
 export interface FudaNavItem {

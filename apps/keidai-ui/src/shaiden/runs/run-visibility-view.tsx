@@ -17,13 +17,18 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Link, useSearchParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { TablePaginationFooter } from "../../shell/components/table-pagination/table-pagination-footer.js";
 import { paginateItems } from "../../shell/components/table-pagination/paginate-items.js";
 import { useTablePageIndex } from "../../shell/components/table-pagination/use-table-page-index.js";
 import { useFetchRun } from "../../shell/hooks/use-fetch-run.js";
 import { useRunsVisibility } from "../hooks/use-runs-visibility.js";
-import { NEW_TASK_HREF, NEW_TASK_PARAM } from "../navigation.js";
+import {
+  NEW_TASK_HREF,
+  NEW_TASK_PARAM,
+  RUN_ID_PARAM,
+  RUNS_PATH,
+} from "../navigation.js";
 import { TaskAuthoringDialog } from "../tasks/task-authoring-dialog.js";
 import { RunDetailDrawer } from "./run-detail-drawer.js";
 import { RunsSearchBar } from "./runs-search-bar.js";
@@ -38,8 +43,6 @@ import {
   type RunFilters,
 } from "./utils/filter-runs.js";
 import type { RunStatusFilter } from "./utils/derive-run-display-status.js";
-
-const RUN_ID_PARAM = "run";
 
 function RunsEmptyState() {
   return (
@@ -95,8 +98,10 @@ function withRunsOverlays(
 }
 
 export function RunVisibilityView() {
+  const navigate = useNavigate();
+  const { runId: runIdFromPath } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const requestedRunId = searchParams.get(RUN_ID_PARAM);
+  const requestedRunId = runIdFromPath ?? searchParams.get(RUN_ID_PARAM);
   const newTaskOpen = searchParams.has(NEW_TASK_PARAM);
   const [filters, setFilters] = useState<RunFilters>(EMPTY_RUN_FILTERS);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(
@@ -194,10 +199,14 @@ export function RunVisibilityView() {
       setDrawerOpen(open);
       if (!open) {
         setSelectedRunId(null);
+        if (runIdFromPath) {
+          navigate(RUNS_PATH, { replace: true });
+          return;
+        }
         syncSearchParams({ runId: null });
       }
     },
-    [syncSearchParams],
+    [navigate, runIdFromPath, syncSearchParams],
   );
 
   const onNewTaskOpenChange = useCallback(
