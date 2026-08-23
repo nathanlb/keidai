@@ -41,6 +41,10 @@ import { GatewayHttpServer } from "./http/gateway-http-server.service.js";
 import { GatewayMcpServer } from "./mcp/gateway-mcp-server.service.js";
 import { PolicyEnforcementService } from "./policy/policy-enforcement.service.js";
 import { ApprovalGateService } from "./policy/approval-gate.service.js";
+import { GroupPolicyCache } from "./policy/group-policy-cache.service.js";
+import { PgGroupPolicyRepository } from "./policy/pg-group-policy-repository.service.js";
+import { GROUP_POLICY_REPOSITORY } from "./policy/types/group-policy-repository.js";
+import { importYamlGroupPoliciesIfEmpty } from "./policy/utils/import-yaml-group-policies.js";
 import { ApprovalReadService } from "./policy/approval-read.service.js";
 import { ApprovalStoreService } from "./policy/approval-store.service.js";
 import { TaskStoreService } from "./tasks/task-store.service.js";
@@ -79,10 +83,20 @@ export async function createContainer(
   let oauthClientRepository: PgOAuthClientRepository | undefined;
   let pendingLinkStore: PgPendingLinkStore | undefined;
   let traceRepository: PgTraceRepository | undefined;
+  let groupPolicyRepository: PgGroupPolicyRepository | undefined;
   let approvalStore: ApprovalStoreService | undefined;
   let taskStore: TaskStoreService | undefined;
 
   appContainer.register(TORII_DATABASE, { useValue: pool });
+  groupPolicyRepository = new PgGroupPolicyRepository(pool);
+  await importYamlGroupPoliciesIfEmpty(groupPolicyRepository, config);
+  const groupPolicyCache = new GroupPolicyCache(
+    await groupPolicyRepository.list(),
+  );
+  appContainer.register(GROUP_POLICY_REPOSITORY, {
+    useValue: groupPolicyRepository,
+  });
+  appContainer.register(GroupPolicyCache, { useValue: groupPolicyCache });
   appContainer.register(ToriiConfigService, {
     useValue: new ToriiConfigService(config),
   });

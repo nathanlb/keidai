@@ -5,20 +5,29 @@ import {
   createTestGatewayPersistence,
   type TestGatewayPersistence,
 } from "../../testing/gateway-persistence.js";
+import { GroupPolicyCache } from "../group-policy-cache.service.js";
 import { ApprovalGateService } from "../approval-gate.service.js";
 import { ApprovalReadService } from "../approval-read.service.js";
 import { ApprovalStoreService } from "../approval-store.service.js";
 import { ApprovalsApiController } from "../approvals-api.controller.js";
 import { PolicyEnforcementService } from "../policy-enforcement.service.js";
+import { yamlConfigToGroupPolicies } from "../utils/yaml-config-to-group-policies.js";
+
+export function groupPolicyCacheFromConfig(
+  config: ToriiConfig | ToriiConfigService,
+): GroupPolicyCache {
+  const resolved =
+    config instanceof ToriiConfigService ? config.get() : config;
+  return GroupPolicyCache.fromGroups(yamlConfigToGroupPolicies(resolved));
+}
 
 export function createPolicyEnforcement(
   config: ToriiConfig | ToriiConfigService,
 ): PolicyEnforcementService {
-  const configService =
-    config instanceof ToriiConfigService
-      ? config
-      : new ToriiConfigService(config);
-  return new PolicyEnforcementService(configService, createNoopLogger());
+  return new PolicyEnforcementService(
+    groupPolicyCacheFromConfig(config),
+    createNoopLogger(),
+  );
 }
 
 export async function createApprovalServices(
@@ -37,7 +46,7 @@ export async function createApprovalServices(
     new ApprovalStoreService(gatewayPersistence.pool!);
   const taskStore = gatewayPersistence.taskStore!;
   const approvalGate = new ApprovalGateService(
-    configService,
+    groupPolicyCacheFromConfig(configService),
     approvalStore,
     taskStore,
   );

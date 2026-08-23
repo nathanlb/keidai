@@ -11,6 +11,8 @@ import type { OAuthClientRepository } from "../credentials/types/oauth-client-re
 import type { PendingOAuthLinkStore } from "../credentials/types/pending-oauth-link-store.js";
 import type { TokenRepository } from "../credentials/types/token-repository.js";
 import { ApprovalStoreService } from "../policy/approval-store.service.js";
+import { PgGroupPolicyRepository } from "../policy/pg-group-policy-repository.service.js";
+import type { GroupPolicyRepository } from "../policy/types/group-policy-repository.js";
 import { openGatewayDatabase } from "../storage/gateway-postgres.js";
 import { TaskStoreService } from "../tasks/task-store.service.js";
 import { PgTraceRepository } from "../trace/pg-trace-repository.service.js";
@@ -19,6 +21,7 @@ import { MockOAuthClientRepository } from "./mocks/mock-oauth-client-repository.
 import { MockPendingLinkStore } from "./mocks/mock-pending-link-store.js";
 import { MockTokenRepository } from "./mocks/mock-token-repository.js";
 import { MockTraceRepository } from "./mocks/mock-trace-repository.js";
+import { MockGroupPolicyRepository } from "./mocks/mock-group-policy-repository.js";
 
 export type TestGatewayBackend = "postgres" | "memory";
 
@@ -27,6 +30,7 @@ export interface TestGatewayPersistence {
   clientRepository: OAuthClientRepository;
   pendingLinkStore: PendingOAuthLinkStore;
   traceRepository: TraceRepository;
+  groupPolicyRepository: GroupPolicyRepository;
   /** Present when backend is `"postgres"`. */
   approvalStore?: ApprovalStoreService;
   /** Present when backend is `"postgres"`. */
@@ -52,6 +56,7 @@ export async function createTestGatewayPersistence(
       clientRepository: new MockOAuthClientRepository(),
       pendingLinkStore: new MockPendingLinkStore(),
       traceRepository: new MockTraceRepository(),
+      groupPolicyRepository: new MockGroupPolicyRepository(),
       close: async () => {},
     };
   }
@@ -68,6 +73,7 @@ export async function createTestGatewayPersistence(
     clientRepository: new PgOAuthClientRepository(pool),
     pendingLinkStore: new PgPendingLinkStore(pool),
     traceRepository: new PgTraceRepository(pool),
+    groupPolicyRepository: new PgGroupPolicyRepository(pool),
     approvalStore: new ApprovalStoreService(pool),
     taskStore: new TaskStoreService(pool),
     close: () => isolated.close(),

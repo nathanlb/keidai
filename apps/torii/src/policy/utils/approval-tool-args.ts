@@ -2,7 +2,6 @@ import { createHash } from "node:crypto";
 import {
   TORII_RUN_ID_ARG,
   TORII_STEP_ID_ARG,
-  type AgentPrincipal,
 } from "@keidai/shared";
 
 export interface ParsedToolArguments {
@@ -56,17 +55,4 @@ function stableStringify(value: unknown): string {
   return `{${keys
     .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
     .join(",")}}`;
-}
-
-export function isGatedToolForAgent(
-  principal: AgentPrincipal | undefined,
-  gatedToolsByAgentId: ReadonlyMap<string, readonly string[]>,
-  toolName: string,
-): boolean {
-  if (!principal) {
-    return false;
-  }
-
-  const gatedTools = gatedToolsByAgentId.get(principal.agentId);
-  return gatedTools?.includes(toolName) ?? false;
 }

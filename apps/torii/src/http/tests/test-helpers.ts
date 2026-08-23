@@ -42,6 +42,7 @@ import { MockOAuthClientRepository } from "../../testing/mocks/mock-oauth-client
 import { MockPendingLinkStore } from "../../testing/mocks/mock-pending-link-store.js";
 import { MockTokenRepository } from "../../testing/mocks/mock-token-repository.js";
 import { MockTraceRepository } from "../../testing/mocks/mock-trace-repository.js";
+import { MockGroupPolicyRepository } from "../../testing/mocks/mock-group-policy-repository.js";
 
 // Opt out of ecosystem BFF service-token hardening for HTTP unit tests.
 // Gate-focused tests clear this and set BFF_SERVICE_TOKEN explicitly.
@@ -73,6 +74,7 @@ function memoryPersistence(): TestGatewayPersistence {
     clientRepository: new MockOAuthClientRepository(),
     pendingLinkStore: new MockPendingLinkStore(),
     traceRepository: new MockTraceRepository(),
+    groupPolicyRepository: new MockGroupPolicyRepository(),
     close: async () => {},
   };
 }

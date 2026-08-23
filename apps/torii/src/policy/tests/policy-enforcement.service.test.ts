@@ -2,10 +2,10 @@ import "reflect-metadata";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ToriiConfig } from "@keidai/shared";
-import { ToriiConfigService } from "../../config/torii-config.service.js";
 import { TEST_AGENT_PRINCIPAL } from "../../identity/tests/test-agent-principal.js";
 import { createCapturingLogger } from "../../logging/tests/test-helpers.js";
 import { PolicyEnforcementService } from "../policy-enforcement.service.js";
+import { groupPolicyCacheFromConfig } from "./test-helpers.js";
 
 describe("PolicyEnforcementService", () => {
   it("warns when policy references tools absent from the backend catalog", () => {
@@ -33,7 +33,7 @@ describe("PolicyEnforcementService", () => {
     };
     const logger = createCapturingLogger();
     const service = new PolicyEnforcementService(
-      new ToriiConfigService(config),
+      groupPolicyCacheFromConfig(config),
       logger,
     );
 
@@ -78,7 +78,7 @@ describe("PolicyEnforcementService", () => {
     };
     const logger = createCapturingLogger();
     const service = new PolicyEnforcementService(
-      new ToriiConfigService(config),
+      groupPolicyCacheFromConfig(config),
       logger,
     );
 
