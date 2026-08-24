@@ -30,23 +30,50 @@ export function projectPublicCredential(
   }
 }
 
-/** Union of tools any group lists under `allow` on a server. */
+/**
+ * Display projection of every group's policy on one server.
+ * Evaluation stays per-principal; this is what Connections shows.
+ */
 export function deriveServerPolicy(
   groups: readonly GroupPolicySnapshot[],
   serverName: string,
 ): PolicyConfig {
   const allow = new Set<string>();
+  const deny = new Set<string>();
+  const gated = new Set<string>();
+  let defaultAllow = false;
+
   for (const group of groups) {
     for (const policy of group.servers) {
       if (policy.server !== serverName) {
         continue;
       }
+      if (policy.default === "allow") {
+        defaultAllow = true;
+      }
       for (const tool of policy.allow) {
         allow.add(tool);
       }
+      for (const tool of policy.deny) {
+        deny.add(tool);
+      }
+      for (const tool of policy.gated) {
+        gated.add(tool);
+      }
     }
   }
-  return { default: "deny", allow: [...allow].sort() };
+
+  const derived: PolicyConfig = {
+    default: defaultAllow ? "allow" : "deny",
+    allow: [...allow].sort(),
+  };
+  if (deny.size > 0) {
+    derived.deny = [...deny].sort();
+  }
+  if (gated.size > 0) {
+    derived.gated = [...gated].sort();
+  }
+  return derived;
 }
 
 export function projectPublicServer(

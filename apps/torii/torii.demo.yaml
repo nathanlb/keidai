@@ -73,22 +73,3 @@ servers:
     credential:
       strategy: user_oauth
       provider: google
-
-groups:
-  - name: agents
-    description: Demo agent access for the open-torii digest scenario
-    permissions:
-      - server: linear
-        tools: [list_issues, get_issue, list_projects, list_initiatives]
-      - server: github
-        tools: [search_issues, get_file_contents]
-      - server: notion
-        tools: [notion-search, notion-fetch]
-      - server: gmail
-        tools: [create_draft, list_drafts]
-
-# Tools that require human approval before Torii proxies upstream,
-# keyed by Fuda agent id (create agents via keidai-ui / management API).
-gated_tools:
-  shaiden-newsletter-01:
-    - gmail.create_draft

@@ -37,6 +37,23 @@ describe("formatPolicySummary", () => {
   it("formats allow-default policies", () => {
     expect(formatPolicySummary({ default: "allow" })).toBe("allow");
   });
+
+  it("includes gated and deny lists in the summary", () => {
+    expect(
+      formatPolicySummary({
+        default: "deny",
+        allow: ["list"],
+        gated: ["send"],
+      }),
+    ).toBe("deny · 2 allowed · 1 gated");
+    expect(
+      formatPolicySummary({
+        default: "allow",
+        deny: ["delete"],
+        gated: ["share"],
+      }),
+    ).toBe("allow · 1 denied · 1 gated");
+  });
 });
 
 describe("formatCredentialSubStatus", () => {

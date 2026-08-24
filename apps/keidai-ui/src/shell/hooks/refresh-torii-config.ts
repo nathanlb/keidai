@@ -5,6 +5,8 @@ import { isOAuthConnectionsKey } from "./use-fetch-oauth-connections.js";
 import { OAUTH_PROVIDERS_KEY } from "./use-fetch-oauth-providers.js";
 import { SERVERS_KEY } from "./use-fetch-servers.js";
 import { TORII_STATUS_KEY, SHAIDEN_STATUS_KEY } from "./backend-health.js";
+import { TORII_GROUPS_KEY } from "../../fuda/hooks/use-fetch-torii-groups.js";
+import { GROUPS_KEY } from "../../torii/groups/hooks/use-fetch-groups.js";
 import { TASKS_KEY } from "../../shaiden/hooks/use-fetch-tasks.js";
 import { RUNS_VISIBILITY_KEY } from "../../shaiden/hooks/use-runs-visibility.js";
 
@@ -17,6 +19,8 @@ export function refreshToriiConfig(mutate: SwrMutate): void {
   void mutate(SHAIDEN_STATUS_KEY, undefined, revalidate);
   void mutate(AGENTS_KEY, undefined, revalidate);
   void mutate(SERVERS_KEY, undefined, revalidate);
+  void mutate(GROUPS_KEY, undefined, revalidate);
+  void mutate(TORII_GROUPS_KEY, undefined, revalidate);
   void mutate(OAUTH_PROVIDERS_KEY, undefined, revalidate);
   void mutate(isOAuthConnectionsKey, undefined, revalidate);
   void mutate(TRACE_STATS_KEY, undefined, revalidate);

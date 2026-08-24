@@ -55,26 +55,3 @@ servers:
       url: https://mcp.deepwiki.com/mcp
     credential:
       strategy: none
-
-# Group definitions are Torii's RBAC vocabulary. Fuda assigns group names to
-# agents; Torii defines what each grants. Unknown groups on a principal fail closed.
-groups:
-  - name: agents
-    description: Default agent access for registered workloads
-    permissions:
-      - server: github
-        tools:
-          - search_issues
-          - get_file_contents
-      - server: stripe
-        tools:
-          - list_customers
-      - server: deepwiki
-        tools:
-          - read_wiki_structure
-
-# Optional: tools that require human approval before Torii proxies upstream,
-# keyed by Fuda agent id.
-# gated_tools:
-#   agent-catalog-01:
-#     - github.create_issue

@@ -25,7 +25,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { PageEmptyState } from "../../shell/components/page-content/page-empty-state.js";
 import { useFetchAgents } from "../../shell/hooks/use-fetch-agents.js";
 import { useAgentListExtras } from "../hooks/use-agent-list-extras.js";
@@ -94,7 +94,8 @@ function AgentsEmptyState({ onNewAgent }: { onNewAgent: () => void }) {
 
 export function AgentsListView() {
   const navigate = useNavigate();
-  const [query, setQuery] = useState("");
+  const [searchParams] = useSearchParams();
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const { data, error, isLoading } = useFetchAgents();
   const { data: toriiGroupsData } = useFetchToriiGroups();
 

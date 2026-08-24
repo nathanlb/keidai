@@ -14,8 +14,9 @@ export interface PublicServerConfig {
   transport: { type: "http"; url: string };
   credential: PublicCredentialConfig;
   /**
-   * Derived allow-list: union of tools any group grants on this server.
-   * Always `default: "deny"` — live allow/deny is keyed on the principal's groups.
+   * Derived projection of group policy on this server: union of explicit
+   * allow/deny/gated lists, and `default: "allow"` when any group defaults
+   * to allow. Live evaluation is still keyed on the principal's groups.
    */
   policy: PolicyConfig;
 }

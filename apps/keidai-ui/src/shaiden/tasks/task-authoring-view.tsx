@@ -375,7 +375,7 @@ export function TaskAuthoringView({
                 placeholder={`Describe what "done" looks like…  e.g. "Draft and send the weekly newsletter, but pause for my approval before sending."`}
                 required
                 disabled={isArchived}
-                className="min-h-[118px] text-[13.5px] leading-relaxed focus-visible:ring-[3px] focus-visible:ring-ring/30"
+                className="min-h-29.5 text-[13.5px] leading-relaxed focus-visible:ring-[3px] focus-visible:ring-ring/30"
               />
             </section>
 
