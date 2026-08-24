@@ -71,6 +71,12 @@ test.describe("App shell navigation", () => {
 
     await page.goto("/shaiden/runs");
     await expect(page).toHaveURL(/\/runs$/);
+
+    await page.goto("/bearers");
+    await expect(page).toHaveURL(/\/agents$/);
+
+    await page.goto("/bearers/br_abc123");
+    await expect(page).toHaveURL(/\/agents$/);
   });
 
   test("navigates between workspace pages", async ({ page }) => {

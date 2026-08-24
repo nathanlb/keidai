@@ -4,7 +4,7 @@ import { AppProvider } from "./context/app-provider.js";
 import { OperatorAuthGate } from "./components/operator-auth-gate.js";
 import { PlatformSidebarNav } from "./components/sidebar/platform-sidebar-nav.js";
 import { resolveAppNav, resolveAppSection } from "./navigation.js";
-import { isFudaManagedRoute } from "../fuda/navigation.js";
+import { isFudaAgentsRoute } from "../fuda/navigation.js";
 import { OAuthLinkProvider } from "../torii/oauth/context/oauth-link-provider.js";
 import type { AppShellBreadcrumb } from "./types/index.js";
 
@@ -28,9 +28,9 @@ export function KeidaiLayout() {
   const { pathname } = useLocation();
   const current = resolveAppNav(pathname);
   const section = resolveAppSection(pathname);
-  const onFudaManagedRoute = isFudaManagedRoute(pathname);
+  const onFudaAgentsRoute = isFudaAgentsRoute(pathname);
   const suppressHeader =
-    onFudaManagedRoute || !current || current.suppressPageHeader;
+    onFudaAgentsRoute || !current || current.suppressPageHeader;
 
   return (
     <AppProvider>

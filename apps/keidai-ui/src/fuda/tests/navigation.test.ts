@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  findFudaNavItem,
-  fudaNavItems,
-  isFudaBearersRoute,
-} from "../navigation.js";
+import { findFudaNavItem, fudaNavItems } from "../navigation.js";
 
 describe("findFudaNavItem", () => {
   it("returns the agents nav item for list and nested agent routes", () => {
@@ -15,7 +11,6 @@ describe("findFudaNavItem", () => {
   it("does not expose bearers as a nav item", () => {
     expect(findFudaNavItem("/bearers")).toBeUndefined();
     expect(findFudaNavItem("/bearers/new")).toBeUndefined();
-    expect(isFudaBearersRoute("/bearers/br_abc123")).toBe(true);
   });
 
   it("returns undefined for unknown paths", () => {

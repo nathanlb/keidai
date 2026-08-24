@@ -1,9 +1,11 @@
 import { cn } from "@keidai/ui";
 import { ChevronLeft } from "lucide-react";
-import { Link, NavLink, useLocation, useSearchParams } from "react-router";
-import { useLastWorkspacePath } from "../../hooks/use-last-workspace-path.js";
-import { configureNavItems, isNavItemActive } from "../../navigation.js";
-import { parseConfigureDeepLink } from "../../utils/configure-deep-link.js";
+import { Link, NavLink, useLocation } from "react-router";
+import {
+  configureNavItems,
+  HOME_PATH,
+  isNavItemActive,
+} from "../../navigation.js";
 import {
   NavIcon,
   NavLabel,
@@ -13,15 +15,11 @@ import {
 
 export function ConfigureSidebarNav() {
   const { pathname } = useLocation();
-  const [searchParams] = useSearchParams();
-  const lastWorkspacePath = useLastWorkspacePath();
-  const { returnTo } = parseConfigureDeepLink(searchParams);
-  const backTo = returnTo ?? lastWorkspacePath;
 
   return (
     <>
       <Link
-        to={backTo}
+        to={HOME_PATH}
         data-testid="sidebar-configure-back"
         className={cn(
           navItemClassName,
@@ -34,28 +32,25 @@ export function ConfigureSidebarNav() {
 
       <NavLabel section="configure">Configure</NavLabel>
 
-      {configureNavItems.map((item) => {
-        const search = searchParams.toString();
-        return (
-          <NavLink
-            key={item.path}
-            to={{ pathname: item.path, search: search ? `?${search}` : "" }}
-            data-testid={sidebarNavLinkTestId(item.path)}
-            className={() =>
-              cn(
-                navItemClassName,
-                isNavItemActive(item, pathname) &&
-                  "bg-sidebar-accent font-semibold text-sidebar-accent-foreground",
-              )
-            }
-          >
-            <NavIcon>
-              <item.icon className="size-4" />
-            </NavIcon>
-            {item.label}
-          </NavLink>
-        );
-      })}
+      {configureNavItems.map((item) => (
+        <NavLink
+          key={item.path}
+          to={item.path}
+          data-testid={sidebarNavLinkTestId(item.path)}
+          className={() =>
+            cn(
+              navItemClassName,
+              isNavItemActive(item, pathname) &&
+                "bg-sidebar-accent font-semibold text-sidebar-accent-foreground",
+            )
+          }
+        >
+          <NavIcon>
+            <item.icon className="size-4" />
+          </NavIcon>
+          {item.label}
+        </NavLink>
+      ))}
     </>
   );
 }
