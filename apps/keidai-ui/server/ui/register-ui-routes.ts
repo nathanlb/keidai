@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type { OperatorApiBackends } from "../create-server.js";
-import { registerShaidenRunsRoute } from "./shaiden/runs.route.js";
+import { registerShaidenRunsRoute } from "./runs/runs.route.js";
 
 export interface RegisterUiRoutesOptions {
   backends: OperatorApiBackends;
