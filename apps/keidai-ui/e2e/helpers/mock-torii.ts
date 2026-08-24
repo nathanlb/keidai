@@ -24,6 +24,11 @@ import type {
   PersonaVersion,
 } from "../../src/lib/api/agents.js";
 import type { ToriiGroupDefinition } from "../../src/lib/api/gateway.js";
+import {
+  buildHomeDigestSourcesResponse,
+  collectRunningRunIds,
+} from "../../server/ui/home/build-home-digest-sources.js";
+import { buildRunsVisibilityResponse } from "../../server/ui/runs/build-runs-visibility-response.js";
 
 export interface MockToriiConfig {
   servers?: ConfigServersResponse;
@@ -363,6 +368,38 @@ export async function mockToriiConfig(
         runs: runs.runs.map((run) => ({ ...run, assigneeDisplay: null })),
         agentsById: {},
       },
+    });
+  });
+
+  await page.route(/\/api\/ui\/home\/digest(\?|$)/, async (route) => {
+    if (!healthy || !shaidenHealthy) {
+      await route.fulfill({ status: 503, body: "Gateway unavailable" });
+      return;
+    }
+
+    const activeTasks = taskState.filter((task) => !task.archivedAt);
+    const runsVisibility = buildRunsVisibilityResponse(runs, agentState);
+    const runningIds = collectRunningRunIds(
+      approvalState,
+      runsVisibility.runs,
+    );
+    const runReports: Record<string, RunReport> = {};
+    for (const runId of runningIds) {
+      const report = runDetails[runId];
+      if (report) {
+        runReports[runId] = report;
+      }
+    }
+
+    await route.fulfill({
+      json: buildHomeDigestSourcesResponse({
+        approvals: approvalState,
+        runs: runsVisibility.runs,
+        runReports,
+        tasks: activeTasks,
+        agents: agentState,
+        groups: groupState,
+      }),
     });
   });
 

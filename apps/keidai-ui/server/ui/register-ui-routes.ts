@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type { OperatorApiBackends } from "../create-server.js";
+import { registerHomeDigestRoute } from "./home/home.route.js";
 import { registerShaidenRunsRoute } from "./runs/runs.route.js";
 
 export interface RegisterUiRoutesOptions {
@@ -18,5 +19,6 @@ export async function registerUiRoutes(
   app: FastifyInstance,
   options: RegisterUiRoutesOptions,
 ): Promise<void> {
+  await registerHomeDigestRoute(app, options);
   await registerShaidenRunsRoute(app, options);
 }
