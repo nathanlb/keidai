@@ -2,7 +2,9 @@
 
 Operator-facing UI for the Keidai platform.
 
-Design reference: [keidai-ui — Frontend](https://app.notion.com/p/keidai-ui-Frontend-38507ec181ff81b38d8df7349de05381). Shared components and tokens live in `@keidai/ui` (`packages/ui`).
+Shared components and tokens live in `@keidai/ui` (`packages/ui`). For public
+component boundaries and deployment topology, see
+[Keidai architecture](../../docs/architecture.md).
 
 ## Stack
 
@@ -16,9 +18,14 @@ Design reference: [keidai-ui — Frontend](https://app.notion.com/p/keidai-ui-Fr
 ```
 src/
   shell/         # Shared app chrome (sidebar, top bar, theme, gateway status)
-  torii/         # Torii module (nav, pages, layout)
+  agents/        # Agent management views
+  connections/   # Backend connection and policy views
+  oauth/         # OAuth provider views and linking flows
+  home/          # Operator home views
   routes.tsx     # Route tree
-server/          # Fastify BFF (auth, API proxy, prod static entry; `dev.ts` API-only)
+server/
+  ui/            # View-specific /api/ui/* aggregation routes
+  # Fastify BFF auth, API proxy, and production static entry (`dev.ts` is API-only)
 dist/
   client/        # Vite build output
   server/        # Compiled server entrypoints

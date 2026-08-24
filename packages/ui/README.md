@@ -48,11 +48,11 @@ Gold-standard patterns in keidai-ui:
 
 | Pattern | File |
 |---------|------|
-| Page with summary tiles + Card + Table | `apps/keidai-ui/src/torii/connections/connections-view.tsx` |
-| Table row with Badge and Button actions | `apps/keidai-ui/src/torii/connections/connection-server-row.tsx` |
-| Grouped Card sections with nested Table | `apps/keidai-ui/src/torii/agents/agents-owners-view.tsx` |
-| Dialog multi-step flow | `apps/keidai-ui/src/torii/oauth/oauth-link-dialog.tsx` |
-| Expandable provider Card | `apps/keidai-ui/src/torii/oauth/oauth-provider-card.tsx` |
+| Page with summary tiles + Card + Table | `apps/keidai-ui/src/connections/connections-view.tsx` |
+| Table row with Badge and Button actions | `apps/keidai-ui/src/connections/connection-server-row.tsx` |
+| Grouped Card sections with nested Table | `apps/keidai-ui/src/agents/agents-list-view.tsx` |
+| Dialog multi-step flow | `apps/keidai-ui/src/oauth/oauth-link-dialog.tsx` |
+| Expandable provider Card | `apps/keidai-ui/src/oauth/oauth-provider-card.tsx` |
 
 ## Agent / contributor checklist
 

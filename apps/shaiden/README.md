@@ -25,7 +25,7 @@ Working steps continue implicitly when the model calls Torii tools. `report_step
 
 Tokens are minted when the harness needs Torii credentials and reminted when near expiry, including on each `tasks/get` poll while parked, so a long-parked task picks up revoked grants and group changes. Fuda unreachable at first mint fails the run clearly; mid-run Fuda outages keep a still-valid cached JWT.
 
-### Evals (NAT-112)
+### Evals
 
 Eval suites live in `eval/`, separate from unit tests. They are **not** run by `pnpm test`. They cover stochastic self-assessment through the real harness (Torii MCP + model); deterministic limit/timeout/connectivity cases stay in `src/**/tests/**`.
 
@@ -73,7 +73,7 @@ Set `SHAIDEN_BEARER` (subject token) and `FUDA_URL` in the repo root `.env` (or 
 
 ## Task config (v0)
 
-Author a Task in keidai-ui (`/shaiden/tasks`) and submit it with `POST /api/tasks/run` (create saved task + start run) or run a saved task with `POST /api/tasks/:taskId/run`. The body is validated with `taskSchema` (`goal`, `trigger: { type: "now" }`, `assignee`, optional `limits`). Shaiden accepts the run asynchronously (`202` + `{ runId, taskId }`) and streams progress over `GET /api/runs/events`.
+Author a Task in keidai-ui (`/tasks`) and submit it with `POST /api/tasks/run` (create saved task + start run) or run a saved task with `POST /api/tasks/:taskId/run`. The body is validated with `taskSchema` (`goal`, `trigger: { type: "now" }`, `assignee`, optional `limits`). Shaiden accepts the run asynchronously (`202` + `{ runId, taskId }`) and streams progress over `GET /api/runs/events`.
 
 Saved tasks are listed at `GET /api/tasks` and persist in Postgres (`SHAIDEN_DATABASE_URL`). Runs store a task snapshot at start time so later task edits do not rewrite history.
 
