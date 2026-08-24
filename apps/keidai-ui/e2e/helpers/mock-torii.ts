@@ -22,8 +22,8 @@ import type {
   Grant,
   ManagementAgent,
   PersonaVersion,
-} from "../../src/fuda/api/fuda-client.js";
-import type { ToriiGroupDefinition } from "../../src/torii/api/torii-client.js";
+} from "../../src/lib/api/agents.js";
+import type { ToriiGroupDefinition } from "../../src/lib/api/gateway.js";
 
 export interface MockToriiConfig {
   servers?: ConfigServersResponse;

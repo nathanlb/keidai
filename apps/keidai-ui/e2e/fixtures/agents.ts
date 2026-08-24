@@ -1,4 +1,4 @@
-import type { ManagementAgent } from "../../src/fuda/api/fuda-client.js";
+import type { ManagementAgent } from "../../src/lib/api/agents.js";
 import type { MockToriiConfig } from "../helpers/mock-torii.js";
 
 export const alphaAgent: ManagementAgent = {

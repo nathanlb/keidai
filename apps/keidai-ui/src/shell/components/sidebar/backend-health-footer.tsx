@@ -1,9 +1,9 @@
 import { useRef, useState, type FocusEvent } from "react";
 import { cn } from "@keidai/ui";
-import type { ServiceHealth } from "../../types/service-health.js";
-import { useFudaStatus } from "../../hooks/use-fuda-status.js";
-import { useToriiStatus } from "../../hooks/use-torii-status.js";
-import { useShaidenStatus } from "../../hooks/use-shaiden-status.js";
+import type { ServiceHealth } from "../../../lib/types/service-health.js";
+import { useFudaStatus } from "../../../lib/hooks/use-fuda-status.js";
+import { useToriiStatus } from "../../../lib/hooks/use-torii-status.js";
+import { useShaidenStatus } from "../../../lib/hooks/use-shaiden-status.js";
 
 type ServiceStatusKind = "healthy" | "degraded" | "down";
 

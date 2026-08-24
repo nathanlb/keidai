@@ -1,4 +1,4 @@
-import { TABLE_PAGE_SIZE } from "../../constants/list-limits.js";
+import { TABLE_PAGE_SIZE } from "../../../lib/constants/list-limits.js";
 
 export interface PaginatedItems<T> {
   pageItems: T[];

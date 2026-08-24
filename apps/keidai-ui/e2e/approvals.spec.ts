@@ -81,8 +81,6 @@ test.describe("Approvals panel", () => {
     await mockToriiConfig(page, { approvals: [pendingApproval] });
     await page.goto("/home");
 
-    const approvalsLink = page.getByRole("link", { name: "Approvals" });
-    await expect(approvalsLink).toContainText("1");
     await expect(page.getByTestId("sidebar-nav-link-approvals")).toContainText(
       "1",
     );

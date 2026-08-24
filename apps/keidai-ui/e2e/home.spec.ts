@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { ApprovalRecordView, RunListItem, RunReport } from "@keidai/shared";
 import { mockToriiConfig } from "./helpers/mock-torii.js";
-import type { ManagementAgent } from "../src/fuda/api/fuda-client.js";
+import type { ManagementAgent } from "../src/lib/api/agents.js";
 
 const opsBot: ManagementAgent = {
   id: "agt-ops",

@@ -1,7 +1,7 @@
 import { cn } from "@keidai/ui";
 import { Fragment } from "react";
 import { NavLink, useLocation } from "react-router";
-import { usePendingApprovalsCount } from "../../hooks/use-approvals.js";
+import { usePendingApprovalsCount } from "../../../lib/hooks/use-approvals.js";
 import {
   homeNavItem,
   isNavItemActive,

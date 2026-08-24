@@ -2,7 +2,7 @@ import { Suspense, useCallback, useEffect, type ReactNode } from "react";
 import { Outlet } from "react-router";
 import { useSWRConfig } from "swr";
 import { cn, TooltipProvider } from "@keidai/ui";
-import { refreshToriiConfig } from "./hooks/refresh-torii-config.js";
+import { refreshToriiConfig } from "../lib/hooks/refresh-torii-config.js";
 import { useShellDesktop } from "./hooks/use-media-query.js";
 import { useShellUi } from "./hooks/use-shell-ui.js";
 import { useTheme } from "./hooks/use-theme.js";

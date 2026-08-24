@@ -8,8 +8,8 @@ import {
   resolveAppNavSection,
   type AppNavSection,
 } from "./navigation.js";
-import { isFudaAgentsRoute } from "../fuda/navigation.js";
-import { OAuthLinkProvider } from "../torii/oauth/context/oauth-link-provider.js";
+import { isFudaAgentsRoute } from "../agents/navigation.js";
+import { OAuthLinkProvider } from "../oauth/context/oauth-link-provider.js";
 import type { AppShellBreadcrumb } from "./types/index.js";
 
 function buildBreadcrumb(

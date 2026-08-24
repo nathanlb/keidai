@@ -1,0 +1,415 @@
+import { PageEmptyState } from "../shell/components/page-content/page-empty-state.js";
+import {
+  Button,
+  Card,
+  CardContent,
+  Table,
+  TableBody,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@keidai/ui";
+import { Search, Workflow } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
+import { TablePaginationFooter } from "../shell/components/table-pagination/table-pagination-footer.js";
+import { paginateItems } from "../shell/components/table-pagination/paginate-items.js";
+import { useTablePageIndex } from "../shell/components/table-pagination/use-table-page-index.js";
+import { useFetchRun } from "../lib/hooks/use-fetch-run.js";
+import { useRunsVisibility } from "./hooks/use-runs-visibility.js";
+import {
+  NEW_TASK_HREF,
+  NEW_TASK_PARAM,
+  RUN_ID_PARAM,
+  RUNS_PATH,
+} from "./navigation.js";
+import { TaskAuthoringDialog } from "../tasks/task-authoring-dialog.js";
+import { RunDetailDrawer } from "./run-detail-drawer.js";
+import { RunsSearchBar } from "./runs-search-bar.js";
+import { runsTableColumns } from "./runs-table-columns.js";
+import { RunsStatusChips } from "./runs-status-chips.js";
+import { RunsSummaryTiles } from "./runs-summary-tiles.js";
+import { RunsTableRow } from "./runs-table-row.js";
+import { summarizeRunStats } from "./utils/count-run-statuses.js";
+import {
+  EMPTY_RUN_FILTERS,
+  filterRuns,
+  type RunFilters,
+} from "./utils/filter-runs.js";
+import type { RunStatusFilter } from "./utils/derive-run-display-status.js";
+
+function RunsEmptyState() {
+  return (
+    <PageEmptyState
+      icon={<Workflow className="size-7.5" aria-hidden />}
+      title="No runs yet"
+      description="Author a Task and run it to observe step sequence, tool calls, and termination outcome here."
+      action={
+        <Button asChild type="button">
+          <Link to={NEW_TASK_HREF}>Configure a task</Link>
+        </Button>
+      }
+    />
+  );
+}
+
+function RunsNoMatchEmptyState({
+  onClearFilters,
+}: {
+  onClearFilters: () => void;
+}) {
+  return (
+    <PageEmptyState
+      icon={<Search className="size-4.5" aria-hidden />}
+      title="No runs match these filters"
+      description="Try a different status or search term."
+      contentClassName="py-12"
+      action={
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onClearFilters}
+        >
+          Clear filters
+        </Button>
+      }
+    />
+  );
+}
+
+function withRunsOverlays(
+  content: ReactNode,
+  overlays: { taskDialog: ReactNode; runDrawer: ReactNode },
+) {
+  return (
+    <>
+      {content}
+      {overlays.taskDialog}
+      {overlays.runDrawer}
+    </>
+  );
+}
+
+export function RunVisibilityView() {
+  const navigate = useNavigate();
+  const { runId: runIdFromPath } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedRunId = runIdFromPath ?? searchParams.get(RUN_ID_PARAM);
+  const newTaskOpen = searchParams.has(NEW_TASK_PARAM);
+  const [filters, setFilters] = useState<RunFilters>(EMPTY_RUN_FILTERS);
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(
+    requestedRunId,
+  );
+  const [drawerOpen, setDrawerOpen] = useState(Boolean(requestedRunId));
+  const {
+    runs,
+    error,
+    isLoading,
+    suspendedRunIds,
+    refresh,
+    resolveAssigneeDisplay,
+  } = useRunsVisibility(true);
+  const {
+    data: fetchedRun,
+    error: fetchRunError,
+    isLoading: isFetchingRun,
+    refresh: refreshRun,
+  } = useFetchRun(selectedRunId);
+
+  useEffect(() => {
+    if (!requestedRunId) {
+      return;
+    }
+    setSelectedRunId(requestedRunId);
+    setDrawerOpen(true);
+  }, [requestedRunId]);
+
+  const selectedRun = useMemo(() => {
+    if (!selectedRunId) {
+      return null;
+    }
+    if (fetchedRun?.id === selectedRunId) {
+      return fetchedRun;
+    }
+    return null;
+  }, [fetchedRun, selectedRunId]);
+
+  const stats = useMemo(
+    () => summarizeRunStats(runs, suspendedRunIds),
+    [runs, suspendedRunIds],
+  );
+
+  const filteredRuns = useMemo(
+    () => filterRuns(runs, filters, suspendedRunIds),
+    [filters, runs, suspendedRunIds],
+  );
+  const { pageIndex, onPageChange } = useTablePageIndex([filters]);
+  const {
+    pageItems: pageRuns,
+    shownCount,
+    canGoNewer,
+    canGoOlder,
+  } = paginateItems(filteredRuns, pageIndex);
+
+  const syncSearchParams = useCallback(
+    (patch: { runId?: string | null; newTask?: boolean }) => {
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          if (patch.runId !== undefined) {
+            if (patch.runId) {
+              next.set(RUN_ID_PARAM, patch.runId);
+            } else {
+              next.delete(RUN_ID_PARAM);
+            }
+          }
+          if (patch.newTask !== undefined) {
+            if (patch.newTask) {
+              next.set(NEW_TASK_PARAM, "1");
+            } else {
+              next.delete(NEW_TASK_PARAM);
+            }
+          }
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
+  const onOpenRun = useCallback(
+    (runId: string) => {
+      setSelectedRunId(runId);
+      setDrawerOpen(true);
+      syncSearchParams({ runId, newTask: false });
+    },
+    [syncSearchParams],
+  );
+
+  const onDrawerOpenChange = useCallback(
+    (open: boolean) => {
+      setDrawerOpen(open);
+      if (!open) {
+        setSelectedRunId(null);
+        if (runIdFromPath) {
+          navigate(RUNS_PATH, { replace: true });
+          return;
+        }
+        syncSearchParams({ runId: null });
+      }
+    },
+    [navigate, runIdFromPath, syncSearchParams],
+  );
+
+  const onNewTaskOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) {
+        setSelectedRunId(null);
+        setDrawerOpen(false);
+        syncSearchParams({ runId: null, newTask: true });
+        return;
+      }
+      syncSearchParams({ newTask: false });
+    },
+    [syncSearchParams],
+  );
+
+  const onClearFilters = useCallback(() => {
+    setFilters(EMPTY_RUN_FILTERS);
+  }, []);
+
+  const onStatusChange = useCallback((status: RunStatusFilter) => {
+    setFilters((current) => ({ ...current, status }));
+  }, []);
+
+  const onRunUpdated = useCallback(() => {
+    if (!selectedRunId) {
+      return;
+    }
+    void refreshRun();
+    void refresh();
+  }, [refresh, refreshRun, selectedRunId]);
+
+  const overlays = {
+    taskDialog: (
+      <TaskAuthoringDialog
+        open={newTaskOpen}
+        onOpenChange={onNewTaskOpenChange}
+      />
+    ),
+    runDrawer: (
+      <RunDetailDrawer
+        run={selectedRun}
+        assigneeDisplay={
+          selectedRun ? resolveAssigneeDisplay(selectedRun.assignee) : null
+        }
+        open={drawerOpen}
+        onOpenChange={onDrawerOpenChange}
+        onRunUpdated={onRunUpdated}
+      />
+    ),
+  };
+
+  if (isLoading && runs.length === 0 && !selectedRunId) {
+    return withRunsOverlays(
+      <p className="text-sm text-muted-foreground">Loading runs…</p>,
+      overlays,
+    );
+  }
+
+  if (error && runs.length === 0 && !selectedRunId) {
+    return withRunsOverlays(
+      <p className="text-sm text-destructive">
+        Could not load runs from the service.
+      </p>,
+      overlays,
+    );
+  }
+
+  if (runs.length === 0 && !selectedRunId) {
+    return withRunsOverlays(<RunsEmptyState />, overlays);
+  }
+
+  const hasMatches = filteredRuns.length > 0;
+
+  return withRunsOverlays(
+    <div className="space-y-4">
+      {runs.length > 0 ? (
+        <>
+          <RunsSummaryTiles
+            runsToday={stats.runsToday}
+            running={stats.running}
+            awaitingReview={stats.awaitingReview}
+            failed={stats.failed}
+          />
+
+          <RunsSearchBar
+            query={filters.query}
+            onQueryChange={(query) =>
+              setFilters((current) => ({ ...current, query }))
+            }
+          />
+
+          <RunsStatusChips
+            counts={stats.statusCounts}
+            active={filters.status}
+            onChange={onStatusChange}
+          />
+
+          {hasMatches ? (
+            <Card className="overflow-hidden shadow-none">
+              <CardContent className="p-0">
+                <Table
+                  className={runsTableColumns.tableClassName}
+                  style={runsTableColumns.tableStyle}
+                >
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead
+                        className={runsTableColumns.headClassName("run")}
+                        style={runsTableColumns.headStyle("run")}
+                      >
+                        Run
+                      </TableHead>
+                      <TableHead
+                        className={runsTableColumns.headClassName("started")}
+                        style={runsTableColumns.headStyle("started")}
+                      >
+                        Started
+                      </TableHead>
+                      <TableHead
+                        className={runsTableColumns.headClassName("iterations")}
+                        style={runsTableColumns.headStyle("iterations")}
+                      >
+                        Iterations
+                      </TableHead>
+                      <TableHead
+                        className={runsTableColumns.headClassName("duration")}
+                        style={runsTableColumns.headStyle("duration")}
+                      >
+                        Duration
+                      </TableHead>
+                      <TableHead
+                        className={runsTableColumns.headClassName("status")}
+                        style={runsTableColumns.headStyle("status")}
+                      >
+                        Status
+                      </TableHead>
+                      <TableHead
+                        className={runsTableColumns.headClassName("agent")}
+                        style={runsTableColumns.headStyle("agent")}
+                      >
+                        Agent
+                      </TableHead>
+                      <TableHead
+                        className={runsTableColumns.headClassName("chevron")}
+                        style={runsTableColumns.headStyle("chevron")}
+                      />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pageRuns.map((run) => (
+                      <RunsTableRow
+                        key={run.id}
+                        run={run}
+                        suspendedRunIds={suspendedRunIds}
+                        selected={selectedRunId === run.id}
+                        onOpen={onOpenRun}
+                      />
+                    ))}
+                  </TableBody>
+                </Table>
+                <TablePaginationFooter
+                  shownCount={shownCount}
+                  totalCount={runs.length}
+                  totalLabel="runs in buffer"
+                  canGoNewer={canGoNewer}
+                  canGoOlder={canGoOlder}
+                  onPageChange={onPageChange}
+                  pageIndex={pageIndex}
+                />
+              </CardContent>
+            </Card>
+          ) : (
+            <RunsNoMatchEmptyState onClearFilters={onClearFilters} />
+          )}
+        </>
+      ) : selectedRunId ? (
+        fetchRunError ? (
+          <Card className="shadow-none">
+            <CardContent className="flex flex-col items-center px-6 py-12 text-center">
+              <div className="text-sm font-semibold">Run not found</div>
+              <p className="mt-1 text-[12.5px] text-muted-foreground">
+                Could not load run{" "}
+                <span className="font-mono text-foreground">
+                  {selectedRunId}
+                </span>{" "}
+                from the service.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-3.5"
+                onClick={() => onDrawerOpenChange(false)}
+              >
+                Dismiss
+              </Button>
+            </CardContent>
+          </Card>
+        ) : isFetchingRun || !selectedRun ? (
+          <p className="text-sm text-muted-foreground">Loading run…</p>
+        ) : null
+      ) : null}
+    </div>,
+    overlays,
+  );
+}
