@@ -12,14 +12,14 @@ import {
 } from "@keidai/ui";
 import { ListChecks, Plus } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import { TablePaginationFooter } from "../../shell/components/table-pagination/table-pagination-footer.js";
 import { paginateItems } from "../../shell/components/table-pagination/paginate-items.js";
 import { useTablePageIndex } from "../../shell/components/table-pagination/use-table-page-index.js";
 import { runSavedTask } from "../api/shaiden-client.js";
 import { useFetchTasks } from "../hooks/use-fetch-tasks.js";
 import { useRunsVisibility } from "../hooks/use-runs-visibility.js";
-import { TASK_PARAM } from "../navigation.js";
+import { runDetailHref, TASK_PARAM, TASKS_PATH } from "../navigation.js";
 import { TaskAuthoringDialog } from "./task-authoring-dialog.js";
 import { TasksTableRow } from "./tasks-table-row.js";
 import { tasksTableColumns } from "./tasks-table-columns.js";
@@ -43,8 +43,9 @@ function TasksEmptyState({ onNewTask }: { onNewTask: () => void }) {
 
 export function TasksListView() {
   const navigate = useNavigate();
+  const { taskId: taskIdFromPath } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const editTaskId = searchParams.get(TASK_PARAM);
+  const editTaskId = taskIdFromPath ?? searchParams.get(TASK_PARAM);
   const { data, error, isLoading, refresh } = useFetchTasks();
   const { runs } = useRunsVisibility(true);
   const [newTaskOpen, setNewTaskOpen] = useState(false);
@@ -93,9 +94,13 @@ export function TasksListView() {
         return;
       }
       setNewTaskOpen(false);
+      if (taskIdFromPath) {
+        navigate(TASKS_PATH, { replace: true });
+        return;
+      }
       syncTaskParam(null);
     },
-    [syncTaskParam],
+    [navigate, syncTaskParam, taskIdFromPath],
   );
 
   const handleRunTask = useCallback(
@@ -108,7 +113,7 @@ export function TasksListView() {
       });
       try {
         const { runId } = await runSavedTask(taskId);
-        void navigate(`/shaiden/runs?run=${encodeURIComponent(runId)}`);
+        void navigate(runDetailHref(runId));
       } catch (err) {
         setRunError(
           err instanceof Error ? err.message : "Failed to start task",

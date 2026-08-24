@@ -18,18 +18,22 @@ export function Breadcrumb({ breadcrumb }: BreadcrumbProps) {
     breadcrumb.segments && breadcrumb.segments.length > 0
       ? breadcrumb.segments
       : [{ label: breadcrumb.page }];
+  const hasSection = Boolean(breadcrumb.section);
 
   return (
     <BreadcrumbRoot className="min-w-0 text-[13.5px]">
       <BreadcrumbList>
-        <BreadcrumbItem className="text-muted-foreground">
-          {breadcrumb.section}
-        </BreadcrumbItem>
+        {hasSection ? (
+          <BreadcrumbItem className="text-muted-foreground">
+            {breadcrumb.section}
+          </BreadcrumbItem>
+        ) : null}
         {trail.map((segment, index) => {
           const isLast = index === trail.length - 1;
+          const showSeparator = hasSection || index > 0;
           return (
             <span key={`${segment.label}-${index}`} className="contents">
-              <BreadcrumbSeparator />
+              {showSeparator ? <BreadcrumbSeparator /> : null}
               <BreadcrumbItem className="min-w-0">
                 {isLast ? (
                   <BreadcrumbPage className="truncate">

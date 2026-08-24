@@ -7,7 +7,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@keidai/ui";
-import { Check, ChevronsUpDown, LogOut, UserPlus } from "lucide-react";
+import {
+  Check,
+  ChevronsUpDown,
+  LogOut,
+  Settings,
+  UserPlus,
+} from "lucide-react";
 import { useActingOwner } from "../../hooks/use-acting-owner.js";
 import { useOperatorSession } from "../../hooks/use-operator-session.js";
 import { OwnerAvatar } from "../owner-avatar/owner-avatar.js";
@@ -56,11 +62,6 @@ export function OwnerSwitcher() {
             </span>
           </span>
           <Check className="ml-auto size-3.75 shrink-0 text-success" />
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem disabled className="gap-2">
-          <UserPlus className="size-3.75 text-muted-foreground" />
-          Add operator
         </DropdownMenuItem>
         {status === "authenticated" ? (
           <>

@@ -80,14 +80,14 @@ test.describe("Shaiden tasks", () => {
       runDetails: { "run-from-task": runFromTask },
     });
 
-    await page.goto("/shaiden/runs?new_task=1");
+    await page.goto("/runs?new_task=1");
 
     const dialog = page.getByRole("dialog", { name: "New task" });
     await expect(dialog).toBeVisible();
 
     await createAndRunTask(dialog, "Compose weekly status report");
 
-    await expect(page).toHaveURL(/\/shaiden\/runs\?run=run-from-task$/);
+    await expect(page).toHaveURL(/\/runs\/run-from-task$/);
     await expect(dialog).toBeHidden();
     await expect(
       page.getByText("run-from-task · shaiden-newsletter-01"),
@@ -104,7 +104,7 @@ test.describe("Shaiden tasks", () => {
       runDetails: { "run-from-task": runFromTask },
     });
 
-    await page.goto("/shaiden/tasks");
+    await page.goto("/tasks");
 
     await expect(
       page.getByRole("cell", { name: "Compose weekly status report" }),
@@ -112,7 +112,7 @@ test.describe("Shaiden tasks", () => {
 
     await page.getByRole("button", { name: "Run" }).click();
 
-    await expect(page).toHaveURL(/\/shaiden\/runs\?run=run-from-task$/);
+    await expect(page).toHaveURL(/\/runs\/run-from-task$/);
   });
 
   test("starts a second saved task while another run is in flight", async ({
@@ -137,7 +137,7 @@ test.describe("Shaiden tasks", () => {
       runDetails: { "run-saved-1": runningRunForSavedTask },
     });
 
-    await page.goto("/shaiden/tasks");
+    await page.goto("/tasks");
 
     const runningRow = page.getByRole("row", { name: savedTask.goal });
     const idleRow = page.getByRole("row", { name: secondSavedTask.goal });
@@ -147,7 +147,7 @@ test.describe("Shaiden tasks", () => {
 
     await idleRow.getByRole("button", { name: "Run" }).click();
 
-    await expect(page).toHaveURL(/\/shaiden\/runs\?run=run-from-task$/);
+    await expect(page).toHaveURL(/\/runs\/run-from-task$/);
     await expect(
       page.getByRole("cell", { name: savedTask.goal }),
     ).toBeVisible();
@@ -160,7 +160,7 @@ test.describe("Shaiden tasks", () => {
       fudaAgents: [shaidenAgent],
     });
 
-    await page.goto("/shaiden/runs?new_task=1");
+    await page.goto("/runs?new_task=1");
 
     await expect(page.getByRole("dialog")).toBeVisible();
     await expect(
@@ -174,7 +174,7 @@ test.describe("Shaiden tasks", () => {
       tasks: { tasks: [savedTask] },
     });
 
-    await page.goto("/shaiden/tasks?task=task-saved-1");
+    await page.goto("/tasks?task=task-saved-1");
 
     const dialog = page.getByRole("dialog", { name: "Edit task" });
     await expect(dialog).toBeVisible();
@@ -196,7 +196,7 @@ test.describe("Shaiden tasks", () => {
       tasks: { tasks: [savedTask] },
     });
 
-    await page.goto("/shaiden/tasks");
+    await page.goto("/tasks");
 
     await page.getByRole("button", { name: "Edit" }).click();
 
@@ -221,7 +221,7 @@ test.describe("Shaiden tasks", () => {
       tasks: { tasks: [savedTask] },
     });
 
-    await page.goto("/shaiden/tasks?task=task-saved-1");
+    await page.goto("/tasks?task=task-saved-1");
 
     const dialog = page.getByRole("dialog", { name: "Edit task" });
     await expect(dialog).toBeVisible();
@@ -248,7 +248,7 @@ test.describe("Shaiden tasks", () => {
       tasks: { tasks: [savedTask] },
     });
 
-    await page.goto("/shaiden/tasks?task=task-saved-1");
+    await page.goto("/tasks?task=task-saved-1");
 
     const dialog = page.getByRole("dialog", { name: "Edit task" });
     await expect(dialog).toBeVisible();
@@ -271,7 +271,7 @@ test.describe("Shaiden tasks", () => {
       tasks: { tasks: [savedTask] },
     });
 
-    await page.goto("/shaiden/tasks?task=task-saved-1");
+    await page.goto("/tasks?task=task-saved-1");
 
     const dialog = page.getByRole("dialog", { name: "Edit task" });
     await expect(dialog).toBeVisible();
@@ -310,7 +310,7 @@ test.describe("Shaiden tasks", () => {
       tasks: { tasks: [savedTask] },
     });
 
-    await page.goto("/shaiden/tasks?task=task-saved-1");
+    await page.goto("/tasks?task=task-saved-1");
 
     const dialog = page.getByRole("dialog", { name: "Edit task" });
     await expect(dialog).toBeVisible();

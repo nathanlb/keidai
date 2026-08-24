@@ -79,10 +79,12 @@ test.describe("Approvals panel", () => {
 
   test("shows pending count badge in sidebar nav", async ({ page }) => {
     await mockToriiConfig(page, { approvals: [pendingApproval] });
-    await page.goto("/connections");
+    await page.goto("/home");
 
     const approvalsLink = page.getByRole("link", { name: "Approvals" });
     await expect(approvalsLink).toContainText("1");
-    await expect(page.getByText("1 awaiting review")).toBeVisible();
+    await expect(page.getByTestId("sidebar-nav-link-approvals")).toContainText(
+      "1",
+    );
   });
 });

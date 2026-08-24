@@ -30,6 +30,7 @@ import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import { Controller } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { fetchTask, startTaskRun, updateTask } from "../api/shaiden-client.js";
+import { RUNS_PATH, runDetailHref } from "../navigation.js";
 import { useFetchTaskRuntime } from "../hooks/use-fetch-task-runtime.js";
 import { useActingOwner } from "../../shell/hooks/use-acting-owner.js";
 import { useFetchAgents } from "../../shell/hooks/use-fetch-agents.js";
@@ -318,7 +319,7 @@ export function TaskAuthoringView({
 
       const { runId } = await startTaskRun(task);
       onTaskSaved?.();
-      void navigate(`/shaiden/runs?run=${encodeURIComponent(runId)}`);
+      void navigate(runDetailHref(runId));
     } catch (error) {
       setSubmitError(
         error instanceof Error
@@ -335,7 +336,7 @@ export function TaskAuthoringView({
       onCancel();
       return;
     }
-    void navigate("/shaiden/runs");
+    void navigate(RUNS_PATH);
   }
 
   return (

@@ -1,6 +1,7 @@
 import { Button, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@keidai/ui";
 import { CheckCheck, Play } from "lucide-react";
 import { Link } from "react-router";
+import { RUNS_PATH } from "../../shaiden/navigation.js";
 
 export function ApprovalsEmptyState() {
   return (
@@ -19,7 +20,7 @@ export function ApprovalsEmptyState() {
       </EmptyHeader>
       <EmptyContent>
         <Button variant="outline" asChild>
-          <Link to="/shaiden/runs">
+          <Link to={RUNS_PATH}>
             <Play className="size-3.5" />
             View run history
           </Link>

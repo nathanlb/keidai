@@ -140,7 +140,7 @@ describe("TasksListView concurrent runs", () => {
 
     resolveStart({ runId: "run-b", taskId: taskB.id });
     await vi.waitFor(() => {
-      expect(navigate).toHaveBeenCalledWith("/shaiden/runs?run=run-b");
+      expect(navigate).toHaveBeenCalledWith("/runs/run-b");
     });
   });
 });

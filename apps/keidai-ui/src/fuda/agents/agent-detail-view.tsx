@@ -28,6 +28,7 @@ import {
   useSearchParams,
 } from "react-router";
 import { deleteAgent, updateAgent } from "../api/fuda-client.js";
+import { RUNS_PATH } from "../../shaiden/navigation.js";
 import {
   agentGrantsKey,
   useFetchAgentGrants,
@@ -274,7 +275,7 @@ export function AgentDetailView() {
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => navigate("/shaiden/runs")}
+            onClick={() => navigate(RUNS_PATH)}
           >
             <Activity className="size-3.5" aria-hidden />
             View runs

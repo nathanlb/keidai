@@ -38,15 +38,6 @@ export interface Grant {
   agentId: string;
 }
 
-export interface CreateBearerRequest {
-  bearerId: string;
-  displayName: string;
-}
-
-export interface UpdateBearerRequest {
-  displayName: string;
-}
-
 export interface CreateAgentRequest {
   slug: string;
   name: string;
@@ -160,67 +151,10 @@ export async function fetchBearers(): Promise<{ bearers: Bearer[] }> {
   return fetchJson("/api/bearers");
 }
 
-export async function fetchBearer(
-  bearerId: string,
-): Promise<{ bearer: Bearer; grants: Grant[] }> {
-  return fetchJson(`/api/bearers/${encodeURIComponent(bearerId)}`);
-}
-
-export async function createBearer(
-  bearer: CreateBearerRequest,
-): Promise<{ bearer: Bearer }> {
-  return fetchJsonWithBody("/api/bearers", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(bearer),
-  });
-}
-
-export async function updateBearer(
-  bearerId: string,
-  update: UpdateBearerRequest,
-): Promise<{ bearer: Bearer }> {
-  return fetchJsonWithBody(`/api/bearers/${encodeURIComponent(bearerId)}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(update),
-  });
-}
-
-export async function deleteBearer(bearerId: string): Promise<void> {
-  return sendNoContent(`/api/bearers/${encodeURIComponent(bearerId)}`, {
-    method: "DELETE",
-  });
-}
-
 export async function fetchAgentGrants(
   agentId: string,
 ): Promise<{ grants: Grant[] }> {
   return fetchJson(`/api/agents/${encodeURIComponent(agentId)}/grants`);
-}
-
-export async function grantBearer(
-  bearerId: string,
-  agentId: string,
-): Promise<{ grant: Grant }> {
-  return fetchJsonWithBody(
-    `/api/bearers/${encodeURIComponent(bearerId)}/grants`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ agentId }),
-    },
-  );
-}
-
-export async function revokeBearerGrant(
-  bearerId: string,
-  agentId: string,
-): Promise<void> {
-  return sendNoContent(
-    `/api/bearers/${encodeURIComponent(bearerId)}/grants/${encodeURIComponent(agentId)}`,
-    { method: "DELETE" },
-  );
 }
 
 export async function fetchFudaHealth(): Promise<ServiceHealth> {
