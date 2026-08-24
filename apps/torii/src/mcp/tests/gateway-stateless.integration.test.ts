@@ -73,15 +73,17 @@ async function withGateway(
     ],
   });
 
+  const groups = [
+    testAgentsGroup([
+      { server: "github", tools: ["search_issues", "echo"] },
+    ]),
+  ];
   const configService = new ToriiConfigService({
     oauth_providers: {},
     servers: [serverConfig("github", backend.url)],
-    groups: [
-      testAgentsGroup([
-        { server: "github", tools: ["search_issues", "echo"] },
-      ]),
-    ],
   });
+  const approvalServices = await createApprovalServices(groups);
+  const policyEnforcement = createPolicyEnforcement(groups);
   const { credentialResolver } = createCredentialServices();
   const connectionManager = new ConnectionManager(
     configService,
@@ -91,7 +93,7 @@ async function withGateway(
   const toolCatalog = new ToolCatalogService(
     connectionManager,
     credentialResolver,
-    createPolicyEnforcement(configService),
+    policyEnforcement,
     createNoopLogger(),
   );
   const toolDispatch = new ToolDispatchService(
@@ -99,13 +101,14 @@ async function withGateway(
     connectionManager,
     credentialResolver,
     new CapturingTraceEmitter(),
-    createPolicyEnforcement(configService),
-    (await createApprovalServices(configService)).approvalGate,
-    (await createApprovalServices(configService)).taskStore,
+    policyEnforcement,
+    approvalServices.approvalGate,
+    approvalServices.taskStore,
   );
   const gatewayHttpServer = await createTestGatewayHttpServer(
     toolCatalog,
     toolDispatch,
+    { groups },
   );
 
   try {

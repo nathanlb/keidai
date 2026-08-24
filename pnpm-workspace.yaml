@@ -5,6 +5,7 @@ allowBuilds:
   "@modelcontextprotocol/inspector": true
   esbuild: true
   protobufjs: true
+minimumReleaseAge: 7200 # 5 days
 minimumReleaseAgeExclude:
   - "@modelcontextprotocol/inspector@2.2.0"
 # thread-stream@4.2.0 ships package/.claude/settings.local.json which Cursor's

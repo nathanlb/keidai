@@ -14,7 +14,7 @@ export interface PublicServerConfig {
   transport: { type: "http"; url: string };
   credential: PublicCredentialConfig;
   /**
-   * Derived projection of group policy on this server: union of explicit
+   * Derived projection of persisted group policy on this server: union of explicit
    * allow/deny/gated lists, and `default: "allow"` when any group defaults
    * to allow. Live evaluation is still keyed on the principal's groups.
    */

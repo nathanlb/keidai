@@ -44,7 +44,7 @@ import { ApprovalGateService } from "./policy/approval-gate.service.js";
 import { GroupPolicyCache } from "./policy/group-policy-cache.service.js";
 import { PgGroupPolicyRepository } from "./policy/pg-group-policy-repository.service.js";
 import { GROUP_POLICY_REPOSITORY } from "./policy/types/group-policy-repository.js";
-import { importYamlGroupPoliciesIfEmpty } from "./policy/utils/import-yaml-group-policies.js";
+import { seedDemoGroupPoliciesIfEmpty } from "./policy/utils/seed-demo-group-policies.js";
 import { ApprovalReadService } from "./policy/approval-read.service.js";
 import { ApprovalStoreService } from "./policy/approval-store.service.js";
 import { TaskStoreService } from "./tasks/task-store.service.js";
@@ -91,7 +91,7 @@ export async function createContainer(
 
   appContainer.register(TORII_DATABASE, { useValue: pool });
   groupPolicyRepository = new PgGroupPolicyRepository(pool);
-  await importYamlGroupPoliciesIfEmpty(groupPolicyRepository, config);
+  await seedDemoGroupPoliciesIfEmpty(groupPolicyRepository);
   const groupPolicyCache = new GroupPolicyCache(
     await groupPolicyRepository.list(),
   );

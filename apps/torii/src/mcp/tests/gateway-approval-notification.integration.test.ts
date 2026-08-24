@@ -131,6 +131,10 @@ async function withGatedGateway(
     ],
   });
 
+  const groups = [testAgentsGroup([{ server: "gmail", tools: ["create_draft"] }])];
+  const gatedTools = {
+    [TEST_AGENT_PRINCIPAL.agentId]: ["gmail.create_draft"],
+  };
   const configService = new ToriiConfigService({
     oauth_providers: {},
     servers: [
@@ -140,15 +144,14 @@ async function withGatedGateway(
         credential: { strategy: "none" },
       },
     ],
-    groups: [testAgentsGroup([{ server: "gmail", tools: ["create_draft"] }])],
-    gated_tools: {
-      [TEST_AGENT_PRINCIPAL.agentId]: ["gmail.create_draft"],
-    },
   });
   const approvalServices = await createApprovalServices(
-    configService,
+    groups,
     gatewayPersistence,
+    undefined,
+    gatedTools,
   );
+  const policyEnforcement = createPolicyEnforcement(groups, gatedTools);
   const { credentialResolver } = createCredentialServices();
   const connectionManager = new ConnectionManager(
     configService,
@@ -158,7 +161,7 @@ async function withGatedGateway(
   const toolCatalog = new ToolCatalogService(
     connectionManager,
     credentialResolver,
-    createPolicyEnforcement(configService),
+    policyEnforcement,
     createNoopLogger(),
   );
   const toolDispatch = new ToolDispatchService(
@@ -166,7 +169,7 @@ async function withGatedGateway(
     connectionManager,
     credentialResolver,
     new CapturingTraceEmitter(),
-    createPolicyEnforcement(configService),
+    policyEnforcement,
     approvalServices.approvalGate,
     approvalServices.taskStore,
   );
@@ -176,6 +179,8 @@ async function withGatedGateway(
     {
       approvalServices,
       configService,
+      groups,
+      gatedTools,
       ...(options.passPersistenceToHttp === false
         ? {}
         : { persistence: gatewayPersistence }),

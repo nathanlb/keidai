@@ -67,14 +67,4 @@ export interface ToriiConfig {
   gateway_base_url?: string;
   oauth_providers: Record<string, OAuthProviderConfig>;
   servers: ServerConfig[];
-  /**
-   * Group definitions — the allow source for tool policy.
-   * A principal group absent from this list fails closed (grants nothing).
-   */
-  groups?: GroupDefinitionConfig[];
-  /**
-   * Namespaced tools that require human approval before Torii proxies upstream,
-   * keyed by Fuda agent id. Operator-owned policy — not agent identity data.
-   */
-  gated_tools?: Record<string, string[]>;
 }

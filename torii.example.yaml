@@ -1,7 +1,7 @@
 # Torii gateway configuration — loaded at boot, no database required.
 #
 # Shapes match @keidai/shared (ToriiConfig, ServerConfig, CredentialConfig,
-# GroupDefinitionConfig, OAuthProviderConfig).
+# OAuthProviderConfig). Group policy is authored in keidai-ui and stored in Torii Postgres.
 # Env refs use ${env:VAR} and are resolved before validation.
 #
 # Agent identity lives in Fuda — this file is operator-owned deployment config only.

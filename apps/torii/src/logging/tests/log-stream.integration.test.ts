@@ -31,6 +31,7 @@ describe("gateway log streams", () => {
     const mockServer = await startMockMcpServer({
       tools: [{ name: "ping", description: "Ping" }],
     });
+    const groups = [testAgentsGroup([{ server: "demo", tools: ["ping"] }])];
     const configService = new ToriiConfigService({
       oauth_providers: {},
       servers: [
@@ -40,9 +41,10 @@ describe("gateway log streams", () => {
           credential: { strategy: "none" },
         },
       ],
-      groups: [testAgentsGroup([{ server: "demo", tools: ["ping"] }])],
     });
     const { credentialResolver } = createCredentialServices();
+    const approvalServices = await createApprovalServices(groups);
+    const policyEnforcement = createPolicyEnforcement(groups);
     const logger = createCapturingLogger();
     const connectionManager = new ConnectionManager(
       configService,
@@ -52,7 +54,7 @@ describe("gateway log streams", () => {
     const toolCatalog = new ToolCatalogService(
       connectionManager,
       credentialResolver,
-      createPolicyEnforcement(configService),
+      policyEnforcement,
       logger,
     );
     const traceEmitter = new CapturingTraceEmitter();
@@ -61,9 +63,9 @@ describe("gateway log streams", () => {
       connectionManager,
       credentialResolver,
       traceEmitter,
-      createPolicyEnforcement(configService),
-      (await createApprovalServices(configService)).approvalGate,
-      (await createApprovalServices(configService)).taskStore,
+      policyEnforcement,
+      approvalServices.approvalGate,
+      approvalServices.taskStore,
     );
 
     const stdoutLines: string[] = [];

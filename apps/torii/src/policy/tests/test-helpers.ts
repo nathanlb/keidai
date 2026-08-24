@@ -1,5 +1,4 @@
-import type { ToriiConfig } from "@keidai/shared";
-import { ToriiConfigService } from "../../config/torii-config.service.js";
+import type { GroupDefinitionConfig } from "@keidai/shared";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 import {
   createTestGatewayPersistence,
@@ -11,38 +10,38 @@ import { ApprovalReadService } from "../approval-read.service.js";
 import { ApprovalStoreService } from "../approval-store.service.js";
 import { ApprovalsApiController } from "../approvals-api.controller.js";
 import { PolicyEnforcementService } from "../policy-enforcement.service.js";
-import { yamlConfigToGroupPolicies } from "../utils/yaml-config-to-group-policies.js";
+import { buildGroupPolicies } from "../utils/build-group-policies.js";
 
-export function groupPolicyCacheFromConfig(
-  config: ToriiConfig | ToriiConfigService,
+export function groupPolicyCacheFromDefinitions(
+  groups: GroupDefinitionConfig[] = [],
+  gatedTools?: Record<string, string[]>,
 ): GroupPolicyCache {
-  const resolved =
-    config instanceof ToriiConfigService ? config.get() : config;
-  return GroupPolicyCache.fromGroups(yamlConfigToGroupPolicies(resolved));
+  return GroupPolicyCache.fromGroups(
+    buildGroupPolicies({ groups, gatedTools }),
+  );
 }
 
 export function createPolicyEnforcement(
-  config: ToriiConfig | ToriiConfigService,
+  groups: GroupDefinitionConfig[] = [],
+  gatedTools?: Record<string, string[]>,
 ): PolicyEnforcementService {
   return new PolicyEnforcementService(
-    groupPolicyCacheFromConfig(config),
+    groupPolicyCacheFromDefinitions(groups, gatedTools),
     createNoopLogger(),
   );
 }
 
 export async function createApprovalServices(
-  config: ToriiConfig | ToriiConfigService,
+  groups: GroupDefinitionConfig[] = [],
   persistence?: TestGatewayPersistence,
   groupPolicies?: GroupPolicyCache,
+  gatedTools?: Record<string, string[]>,
 ) {
   const ownedPersistence = persistence === undefined;
   const gatewayPersistence =
     persistence ?? (await createTestGatewayPersistence("postgres"));
-  const configService =
-    config instanceof ToriiConfigService
-      ? config
-      : new ToriiConfigService(config);
-  const cache = groupPolicies ?? groupPolicyCacheFromConfig(configService);
+  const cache =
+    groupPolicies ?? groupPolicyCacheFromDefinitions(groups, gatedTools);
   const approvalStore =
     gatewayPersistence.approvalStore ??
     new ApprovalStoreService(gatewayPersistence.pool!);

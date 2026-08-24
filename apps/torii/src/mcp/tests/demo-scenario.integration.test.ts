@@ -116,6 +116,14 @@ describe("Demo scenario — open-torii status digest", () => {
     await tokenRepository.set(DEMO_OWNER, "notion", { accessToken: notionToken });
     await tokenRepository.set(DEMO_OWNER, "google", { accessToken: googleToken });
 
+    const groups = [
+      testAgentsGroup([
+        { server: "linear", tools: ["list_issues", "get_issue", "list_projects"] },
+        { server: "github", tools: ["search_issues", "get_file_contents"] },
+        { server: "notion", tools: ["notion-search", "notion-fetch"] },
+        { server: "gmail", tools: ["create_draft"] },
+      ]),
+    ];
     const configService = new ToriiConfigService({
       oauth_providers: DEMO_OAUTH_PROVIDERS,
       servers: [
@@ -140,27 +148,21 @@ describe("Demo scenario — open-torii status digest", () => {
           credential: { strategy: "user_oauth", provider: "google" },
         },
       ],
-      groups: [
-        testAgentsGroup([
-          { server: "linear", tools: ["list_issues", "get_issue", "list_projects"] },
-          { server: "github", tools: ["search_issues", "get_file_contents"] },
-          { server: "notion", tools: ["notion-search", "notion-fetch"] },
-          { server: "gmail", tools: ["create_draft"] },
-        ]),
-      ],
     });
+    const approvalServices = await createApprovalServices(groups);
+    const policyEnforcement = createPolicyEnforcement(groups);
 
     const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
-    const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
+    const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, policyEnforcement, createNoopLogger());
     const traceEmitter = new CapturingTraceEmitter();
     const toolDispatch = new ToolDispatchService(
       toolCatalog,
       connectionManager,
       credentialResolver,
       traceEmitter,
-      createPolicyEnforcement(configService),
-      (await createApprovalServices(configService)).approvalGate,
-      (await createApprovalServices(configService)).taskStore,
+      policyEnforcement,
+      approvalServices.approvalGate,
+      approvalServices.taskStore,
     );
     const gatewayHttpServer = await createTestGatewayHttpServer(
       toolCatalog,
@@ -168,6 +170,7 @@ describe("Demo scenario — open-torii status digest", () => {
       {
         identityResolver: new FixedIdentityResolver(DEMO_PRINCIPAL),
         traceEmitter,
+        groups,
       },
     );
 

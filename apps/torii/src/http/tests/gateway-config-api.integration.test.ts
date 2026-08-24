@@ -18,11 +18,29 @@ import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
 import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import { createCredentialServices } from "../../credentials/tests/test-helpers.js";
-import { createPolicyEnforcement, createApprovalServices, groupPolicyCacheFromConfig } from "../../policy/tests/test-helpers.js";
+import {
+  createPolicyEnforcement,
+  createApprovalServices,
+  groupPolicyCacheFromDefinitions,
+} from "../../policy/tests/test-helpers.js";
 import { GatewayHttpServer } from "../gateway-http-server.service.js";
 import { GatewayMcpServer } from "../../mcp/gateway-mcp-server.service.js";
-import { createOAuthApiController, createGroupsApiController, createStubToolCatalog, createTestGatewayHttpServer, createTracesApiController } from "./test-helpers.js";
+import {
+  createOAuthApiController,
+  createGroupsApiController,
+  createStubToolCatalog,
+  createTestGatewayHttpServer,
+  createTracesApiController,
+} from "./test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
+
+const groups = [
+  {
+    name: "agents",
+    description: "Demo agent access",
+    permissions: [{ server: "github", tools: ["search_issues"] }],
+  },
+];
 
 const sampleConfig: ToriiConfig = {
   oauth_providers: {
@@ -40,27 +58,30 @@ const sampleConfig: ToriiConfig = {
       credential: { strategy: "user_oauth", provider: "github" },
     },
   ],
-  groups: [
-    {
-      name: "agents",
-      description: "Demo agent access",
-      permissions: [{ server: "github", tools: ["search_issues"] }],
-    },
-  ],
 };
 
 async function createGateway(): Promise<GatewayHttpServer> {
   const configService = new ToriiConfigService(sampleConfig);
   const { credentialResolver } = createCredentialServices();
-  const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
-  const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
-  const services = await createApprovalServices(configService);
+  const connectionManager = new ConnectionManager(
+    configService,
+    new DefaultMcpClientConnector(credentialResolver),
+    createNoopLogger(),
+  );
+  const policyEnforcement = createPolicyEnforcement(groups);
+  const toolCatalog = new ToolCatalogService(
+    connectionManager,
+    credentialResolver,
+    policyEnforcement,
+    createNoopLogger(),
+  );
+  const services = await createApprovalServices(groups);
   const toolDispatch = new ToolDispatchService(
     toolCatalog,
     connectionManager,
     credentialResolver,
     new CapturingTraceEmitter(),
-    createPolicyEnforcement(configService),
+    policyEnforcement,
     services.approvalGate,
     services.taskStore,
   );
@@ -68,6 +89,7 @@ async function createGateway(): Promise<GatewayHttpServer> {
   return createTestGatewayHttpServer(toolCatalog, toolDispatch, {
     configService,
     approvalServices: services,
+    groups,
   });
 }
 
@@ -92,7 +114,7 @@ describe("Gateway /api/config endpoints", () => {
       const servers = (await serversRes.json()) as ConfigServersResponse;
       const providers =
         (await providersRes.json()) as ConfigOAuthProvidersResponse;
-      const groups = (await groupsRes.json()) as ConfigGroupsResponse;
+      const groupList = (await groupsRes.json()) as ConfigGroupsResponse;
 
       assert.deepEqual(servers, {
         servers: [
@@ -109,11 +131,11 @@ describe("Gateway /api/config endpoints", () => {
         client_id: "gh-client",
         scopes: ["repo"],
       });
-      assert.deepEqual(groups, {
+      assert.deepEqual(groupList, {
         groups: [{ name: "agents", description: "Demo agent access" }],
       });
 
-      const body = JSON.stringify({ servers, providers, groups });
+      const body = JSON.stringify({ servers, providers, groups: groupList });
       assert.equal(body.includes("gh-secret"), false);
     } finally {
       await gateway.close();
@@ -135,9 +157,9 @@ describe("Gateway /api/config endpoints", () => {
       createNoopLogger(),
     );
     const toolCatalog = createStubToolCatalog();
-    const services = await createApprovalServices(configService);
+    const services = await createApprovalServices();
     const { approvalsApi } = services;
-    const groupPolicies = groupPolicyCacheFromConfig(configService);
+    const groupPolicies = groupPolicyCacheFromDefinitions();
     const gatewayHttpServer = new GatewayHttpServer(
       new ConfigApiController(new ConfigReadService(configService, groupPolicies)),
       new ConnectionsApiController(

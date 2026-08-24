@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import type { ToriiConfig } from "@keidai/shared";
 import { ConfigReadService } from "../config-read.service.js";
 import { ToriiConfigService } from "../torii-config.service.js";
-import { groupPolicyCacheFromConfig } from "../../policy/tests/test-helpers.js";
+import { groupPolicyCacheFromDefinitions } from "../../policy/tests/test-helpers.js";
 
 const sampleConfig: ToriiConfig = {
   oauth_providers: {
@@ -25,27 +25,24 @@ const sampleConfig: ToriiConfig = {
 
 describe("ConfigReadService", () => {
   it("reads sanitized config projections from boot-loaded config", () => {
-    const config = {
-      ...sampleConfig,
-      groups: [
-        {
-          name: "agents",
-          description: "Test agents",
-          permissions: [
-            { server: "github", tools: ["search_issues"] },
-          ],
-        },
-      ],
-    };
-    const configService = new ToriiConfigService(config);
+    const groups = [
+      {
+        name: "agents",
+        description: "Test agents",
+        permissions: [
+          { server: "github", tools: ["search_issues"] },
+        ],
+      },
+    ];
+    const configService = new ToriiConfigService(sampleConfig);
     const service = new ConfigReadService(
       configService,
-      groupPolicyCacheFromConfig(configService),
+      groupPolicyCacheFromDefinitions(groups),
     );
 
     const servers = service.listServers();
     const providers = service.listOAuthProviders();
-    const groups = service.listGroups();
+    const groupList = service.listGroups();
 
     assert.equal(servers.servers.length, 1);
     assert.equal(servers.servers[0]?.name, "github");
@@ -54,11 +51,11 @@ describe("ConfigReadService", () => {
       allow: ["search_issues"],
     });
     assert.deepEqual(providers.providers.github?.scopes, ["repo"]);
-    assert.deepEqual(groups, {
+    assert.deepEqual(groupList, {
       groups: [{ name: "agents", description: "Test agents" }],
     });
     assert.equal(
-      JSON.stringify({ servers, providers, groups }).includes("secret"),
+      JSON.stringify({ servers, providers, groups: groupList }).includes("secret"),
       false,
     );
   });

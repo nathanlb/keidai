@@ -5,10 +5,22 @@ import type { ToriiConfig } from "@keidai/shared";
 import { TEST_AGENT_PRINCIPAL } from "../../identity/tests/test-agent-principal.js";
 import { createCapturingLogger } from "../../logging/tests/test-helpers.js";
 import { PolicyEnforcementService } from "../policy-enforcement.service.js";
-import { groupPolicyCacheFromConfig } from "./test-helpers.js";
+import { groupPolicyCacheFromDefinitions } from "./test-helpers.js";
 
 describe("PolicyEnforcementService", () => {
   it("warns when policy references tools absent from the backend catalog", () => {
+    const groups = [
+      {
+        name: "agents",
+        description: "Test agents group",
+        permissions: [
+          {
+            server: "github",
+            tools: ["stale_tool", "removed_tool"],
+          },
+        ],
+      },
+    ];
     const config: ToriiConfig = {
       oauth_providers: {},
       servers: [
@@ -18,22 +30,10 @@ describe("PolicyEnforcementService", () => {
           credential: { strategy: "none" },
         },
       ],
-      groups: [
-        {
-          name: "agents",
-          description: "Test agents group",
-          permissions: [
-            {
-              server: "github",
-              tools: ["stale_tool", "removed_tool"],
-            },
-          ],
-        },
-      ],
     };
     const logger = createCapturingLogger();
     const service = new PolicyEnforcementService(
-      groupPolicyCacheFromConfig(config),
+      groupPolicyCacheFromDefinitions(groups),
       logger,
     );
 
@@ -59,6 +59,13 @@ describe("PolicyEnforcementService", () => {
   });
 
   it("logs and denies when the principal carries an unknown group", () => {
+    const groups = [
+      {
+        name: "agents",
+        description: "Test agents group",
+        permissions: [{ server: "github", tools: ["search_issues"] }],
+      },
+    ];
     const config: ToriiConfig = {
       oauth_providers: {},
       servers: [
@@ -68,17 +75,10 @@ describe("PolicyEnforcementService", () => {
           credential: { strategy: "none" },
         },
       ],
-      groups: [
-        {
-          name: "agents",
-          description: "Test agents group",
-          permissions: [{ server: "github", tools: ["search_issues"] }],
-        },
-      ],
     };
     const logger = createCapturingLogger();
     const service = new PolicyEnforcementService(
-      groupPolicyCacheFromConfig(config),
+      groupPolicyCacheFromDefinitions(groups),
       logger,
     );
 

@@ -47,28 +47,43 @@ describe("Gateway MCP tools/list", () => {
       ],
     });
 
+    const groups = [
+      testAgentsGroup([
+        { server: "github", tools: ["search_issues", "get_file_contents"] },
+      ]),
+    ];
     const configService = new ToriiConfigService({
       oauth_providers: {},
       servers: [serverConfig("github", backend.url)],
-      groups: [
-        testAgentsGroup([
-          { server: "github", tools: ["search_issues", "get_file_contents"] },
-        ]),
-      ],
     });
     const { credentialResolver } = createCredentialServices();
-    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
-    const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
+    const policyEnforcement = createPolicyEnforcement(groups);
+    const approvalServices = await createApprovalServices(groups);
+    const toolCatalog = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+      policyEnforcement,
+      createNoopLogger(),
+    );
     const toolDispatch = new ToolDispatchService(
       toolCatalog,
       connectionManager,
       credentialResolver,
       new CapturingTraceEmitter(),
-      createPolicyEnforcement(configService),
-      (await createApprovalServices(configService)).approvalGate,
-      (await createApprovalServices(configService)).taskStore,
+      policyEnforcement,
+      approvalServices.approvalGate,
+      approvalServices.taskStore,
     );
-    const gatewayHttpServer = await createTestGatewayHttpServer(toolCatalog, toolDispatch);
+    const gatewayHttpServer = await createTestGatewayHttpServer(
+      toolCatalog,
+      toolDispatch,
+      { groups },
+    );
 
     try {
       await connectionManager.connectAll();

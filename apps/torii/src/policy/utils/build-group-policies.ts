@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
-import type { GroupDefinitionConfig, ToriiConfig } from "@keidai/shared";
+import type { GroupDefinitionConfig } from "@keidai/shared";
 import { parseNamespacedTool } from "../../catalog/utils/namespacing.js";
 import type { GroupPolicy, GroupServerPolicy } from "../types/group-policy.js";
 
 export const AGENTS_GROUP_NAME = "agents";
 
-function yamlGroupToPolicy(
+function groupDefinitionToPolicy(
   group: GroupDefinitionConfig,
   now: Date,
 ): GroupPolicy {
@@ -68,20 +68,22 @@ function attachGatedTool(
   }
 }
 
-/**
- * Maps current YAML `groups` / `gated_tools` onto persisted group policy.
- * Allow-lists become `default: deny` + `allow`; YAML `gated_tools` namespaced
- * names are attached as bare tools on the `agents` group's matching server.
- */
-export function yamlConfigToGroupPolicies(config: ToriiConfig): GroupPolicy[] {
+export interface BuildGroupPoliciesInput {
+  groups?: GroupDefinitionConfig[];
+  /** Namespaced tool names keyed by agent id — merged onto the agents group. */
+  gatedTools?: Record<string, string[]>;
+}
+
+/** Builds in-memory group policy snapshots for tests and demo seeding. */
+export function buildGroupPolicies(input: BuildGroupPoliciesInput = {}): GroupPolicy[] {
   const now = new Date();
   const groups = new Map<string, GroupPolicy>();
 
-  for (const group of config.groups ?? []) {
-    groups.set(group.name, yamlGroupToPolicy(group, now));
+  for (const group of input.groups ?? []) {
+    groups.set(group.name, groupDefinitionToPolicy(group, now));
   }
 
-  for (const namespacedTools of Object.values(config.gated_tools ?? {})) {
+  for (const namespacedTools of Object.values(input.gatedTools ?? {})) {
     for (const namespaced of namespacedTools) {
       const parsed = parseNamespacedTool(namespaced);
       if (!parsed) {
@@ -96,4 +98,37 @@ export function yamlConfigToGroupPolicies(config: ToriiConfig): GroupPolicy[] {
   }
 
   return [...groups.values()];
+}
+
+/** Compose/kind demo policy — agents group plus gmail draft gating. */
+export function createDemoGroupPolicies(): GroupPolicy[] {
+  return buildGroupPolicies({
+    groups: [
+      {
+        name: AGENTS_GROUP_NAME,
+        description: "Demo agent access for the open-torii digest scenario",
+        permissions: [
+          {
+            server: "linear",
+            tools: ["list_issues", "get_issue", "list_projects", "list_initiatives"],
+          },
+          {
+            server: "github",
+            tools: ["search_issues", "get_file_contents"],
+          },
+          {
+            server: "notion",
+            tools: ["notion-search", "notion-fetch"],
+          },
+          {
+            server: "gmail",
+            tools: ["create_draft", "list_drafts"],
+          },
+        ],
+      },
+    ],
+    gatedTools: {
+      "shaiden-newsletter-01": ["gmail.create_draft"],
+    },
+  });
 }

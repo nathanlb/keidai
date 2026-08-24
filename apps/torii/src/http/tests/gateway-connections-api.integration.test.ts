@@ -49,10 +49,12 @@ function createConnectionsGateway(
   configService: ToriiConfigService,
   connectionManager: ConnectionManager,
   toolCatalog = createStubToolCatalog(),
+  groups?: ReturnType<typeof testAgentsGroup>[],
 ): Promise<GatewayHttpServer> {
   return createTestGatewayHttpServer(toolCatalog, {} as never, {
     configService,
     connectionManager,
+    groups,
   });
 }
 
@@ -180,14 +182,14 @@ describe("Gateway /api/connections endpoints", () => {
         { name: "list_drafts", description: "List drafts" },
       ],
     });
-    const configService = new ToriiConfigService({
-      oauth_providers: {},
-      servers: [serverConfig("gmail", mockServer.url)],
-      groups: [
+        const groups = [
         testAgentsGroup([
           { server: "gmail", tools: ["create_draft", "list_drafts"] },
         ]),
-      ],
+      ];
+    const configService = new ToriiConfigService({
+      oauth_providers: {},
+      servers: [serverConfig("gmail", mockServer.url)],
     });
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(
@@ -198,13 +200,14 @@ describe("Gateway /api/connections endpoints", () => {
     const toolCatalog = new ToolCatalogService(
       connectionManager,
       credentialResolver,
-      createPolicyEnforcement(configService),
+      createPolicyEnforcement(groups),
       createNoopLogger(),
     );
     const gatewayHttpServer = await createConnectionsGateway(
       configService,
       connectionManager,
       toolCatalog,
+      groups,
     );
 
     try {
@@ -270,6 +273,9 @@ describe("Gateway /api/connections endpoints", () => {
       accessToken: "linked-access-token",
     });
 
+        const groups = [
+        testAgentsGroup([{ server: "github", tools: ["search_issues"] }]),
+      ];
     const configService = new ToriiConfigService({
       oauth_providers: oauthProviders,
       servers: [
@@ -278,9 +284,6 @@ describe("Gateway /api/connections endpoints", () => {
           transport: { type: "http", url: mockServer.url },
           credential: { strategy: "user_oauth", provider: "github" },
         },
-      ],
-      groups: [
-        testAgentsGroup([{ server: "github", tools: ["search_issues"] }]),
       ],
     });
     const connectionManager = new ConnectionManager(
@@ -291,13 +294,14 @@ describe("Gateway /api/connections endpoints", () => {
     const toolCatalog = new ToolCatalogService(
       connectionManager,
       credentialResolver,
-      createPolicyEnforcement(configService),
+      createPolicyEnforcement(groups),
       createNoopLogger(),
     );
     const gatewayHttpServer = await createConnectionsGateway(
       configService,
       connectionManager,
       toolCatalog,
+      groups,
     );
 
     try {

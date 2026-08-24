@@ -130,6 +130,7 @@ describe("Gateway backend-originated tasks", () => {
       tools: [{ name: "search_issues", description: "Search issues" }],
       onJsonRpc: backendTaskJsonRpc,
     });
+    const groups = [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])];
     const configService = new ToriiConfigService({
       oauth_providers: {},
       servers: [
@@ -139,7 +140,6 @@ describe("Gateway backend-originated tasks", () => {
           credential: { strategy: "none" },
         },
       ],
-      groups: [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])],
     });
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(
@@ -147,10 +147,12 @@ describe("Gateway backend-originated tasks", () => {
       new DefaultMcpClientConnector(credentialResolver),
       createNoopLogger(),
     );
+    const policyEnforcement = createPolicyEnforcement(groups);
+    const approvalServices = await createApprovalServices(groups, persistence);
     const toolCatalog = new ToolCatalogService(
       connectionManager,
       credentialResolver,
-      createPolicyEnforcement(configService),
+      policyEnforcement,
       createNoopLogger(),
     );
     const toolDispatch = new ToolDispatchService(
@@ -158,14 +160,14 @@ describe("Gateway backend-originated tasks", () => {
       connectionManager,
       credentialResolver,
       new CapturingTraceEmitter(),
-      createPolicyEnforcement(configService),
-      (await createApprovalServices(configService, persistence)).approvalGate,
+      policyEnforcement,
+      approvalServices.approvalGate,
       persistence.taskStore!,
     );
     const gatewayHttpServer = await createTestGatewayHttpServer(
       toolCatalog,
       toolDispatch,
-      { persistence, configService },
+      { persistence, configService, groups },
     );
 
     try {
@@ -224,6 +226,10 @@ describe("Gateway backend-originated tasks", () => {
       tools: [{ name: "create_draft", description: "Create a draft email" }],
       onJsonRpc: backendTaskJsonRpc,
     });
+    const groups = [testAgentsGroup([{ server: "gmail", tools: ["create_draft"] }])];
+    const gatedTools = {
+      [TEST_AGENT_PRINCIPAL.agentId]: ["gmail.create_draft"],
+    };
     const configService = new ToriiConfigService({
       oauth_providers: {},
       servers: [
@@ -233,12 +239,9 @@ describe("Gateway backend-originated tasks", () => {
           credential: { strategy: "none" },
         },
       ],
-      groups: [testAgentsGroup([{ server: "gmail", tools: ["create_draft"] }])],
-      gated_tools: {
-        [TEST_AGENT_PRINCIPAL.agentId]: ["gmail.create_draft"],
-      },
     });
-    const approvalServices = await createApprovalServices(configService, persistence);
+    const approvalServices = await createApprovalServices(groups, persistence, undefined, gatedTools);
+    const policyEnforcement = createPolicyEnforcement(groups, gatedTools);
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(
       configService,
@@ -248,7 +251,7 @@ describe("Gateway backend-originated tasks", () => {
     const toolCatalog = new ToolCatalogService(
       connectionManager,
       credentialResolver,
-      createPolicyEnforcement(configService),
+      policyEnforcement,
       createNoopLogger(),
     );
     const toolDispatch = new ToolDispatchService(
@@ -256,14 +259,14 @@ describe("Gateway backend-originated tasks", () => {
       connectionManager,
       credentialResolver,
       new CapturingTraceEmitter(),
-      createPolicyEnforcement(configService),
+      policyEnforcement,
       approvalServices.approvalGate,
       approvalServices.taskStore,
     );
     const gatewayHttpServer = await createTestGatewayHttpServer(
       toolCatalog,
       toolDispatch,
-      { persistence, approvalServices, configService },
+      { persistence, approvalServices, configService, groups, gatedTools },
     );
 
     try {
