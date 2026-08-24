@@ -27,10 +27,6 @@ export const router = createBrowserRouter([
         },
       },
       {
-        path: "connections",
-        element: <PreserveSearchRedirect to={CONNECTIONS_PATH} />,
-      },
-      {
         path: "oauth-providers",
         element: <PreserveSearchRedirect to={PROVIDERS_PATH} />,
       },
@@ -47,7 +43,7 @@ export const router = createBrowserRouter([
         element: <PreserveSearchRedirect to={CONNECTIONS_PATH} />,
       },
       {
-        path: "configure/connections",
+        path: "connections",
         lazy: async () => {
           const { ConnectionsPage } =
             await import("./connections/pages/connections-page.js");

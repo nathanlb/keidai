@@ -28,17 +28,17 @@ test.describe("App shell navigation", () => {
     await expect(sidebarNavLink(page, "/runs")).toBeVisible();
     await expect(sidebarNavLink(page, "/approvals")).toBeVisible();
     await expect(sidebarNavLink(page, "/activity")).toBeVisible();
+    await expect(sidebarNavLink(page, "/connections")).toBeVisible();
     await expect(page.getByTestId("sidebar-configure-door")).toBeVisible();
     await expect(page.getByTestId("backend-health-footer")).toHaveCount(0);
     await expect(sidebarNavLink(page, "/bearers")).toHaveCount(0);
 
     await page.getByTestId("sidebar-configure-door").click();
 
-    await expect(page).toHaveURL(/\/configure\/connections/);
+    await expect(page).toHaveURL(/\/configure\/groups/);
     await expect(sidebarNavSection(page, "configure")).toBeVisible();
     await expect(sidebarNavSection(page, "operate")).toHaveCount(0);
     await expect(sidebarNavSection(page, "observe")).toHaveCount(0);
-    await expect(sidebarNavLink(page, "/configure/connections")).toBeVisible();
     await expect(sidebarNavLink(page, "/configure/providers")).toBeVisible();
     await expect(sidebarNavLink(page, "/configure/groups")).toBeVisible();
     await expect(page.getByTestId("backend-health-footer")).toBeVisible();
@@ -59,26 +59,6 @@ test.describe("App shell navigation", () => {
     await expect(page).toHaveURL(/\/configure\/providers$/);
     await expect(sidebarNavSection(page, "configure")).toBeVisible();
     await expect(sidebarNavLink(page, "/configure/providers")).toBeVisible();
-  });
-
-  test("redirects retired routes onto the new IA", async ({ page }) => {
-    await page.goto("/connections");
-    await expect(page).toHaveURL(/\/configure\/connections$/);
-
-    await page.goto("/oauth-providers");
-    await expect(page).toHaveURL(/\/configure\/providers$/);
-
-    await page.goto("/shaiden/tasks");
-    await expect(page).toHaveURL(/\/tasks$/);
-
-    await page.goto("/shaiden/runs");
-    await expect(page).toHaveURL(/\/runs$/);
-
-    await page.goto("/bearers");
-    await expect(page).toHaveURL(/\/agents$/);
-
-    await page.goto("/bearers/br_abc123");
-    await expect(page).toHaveURL(/\/agents$/);
   });
 
   test("navigates between workspace pages", async ({ page }) => {

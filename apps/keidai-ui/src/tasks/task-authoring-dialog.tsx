@@ -17,6 +17,7 @@ interface TaskAuthoringDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   taskId?: string;
+  defaultAssignee?: string;
   onTaskSaved?: () => void;
 }
 
@@ -24,6 +25,7 @@ export function TaskAuthoringDialog({
   open,
   onOpenChange,
   taskId,
+  defaultAssignee,
   onTaskSaved,
 }: TaskAuthoringDialogProps) {
   const isEditMode = Boolean(taskId);
@@ -164,6 +166,7 @@ export function TaskAuthoringDialog({
           <TaskAuthoringView
             key={taskId ?? "new"}
             taskId={taskId}
+            defaultAssignee={defaultAssignee}
             onCancel={requestClose}
             onTaskSaved={handleTaskSaved}
             onDirtyChange={setIsDirty}
@@ -202,8 +205,8 @@ export function TaskAuthoringDialog({
           <DialogHeader>
             <DialogTitle>Archive task?</DialogTitle>
             <DialogDescription>
-              This removes the task from your saved list. Past runs are kept, but
-              you cannot restore the task from the UI.
+              This removes the task from your saved list. Past runs are kept,
+              but you cannot restore the task from the UI.
             </DialogDescription>
           </DialogHeader>
           {archiveError ? (

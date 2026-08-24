@@ -60,11 +60,11 @@ describe("resolveAppNav", () => {
     expect(resolveAppNav("/runs")?.label).toBe("Runs");
     expect(resolveAppNav("/runs/4821")?.label).toBe("Runs");
     expect(resolveAppNav("/approvals")?.label).toBe("Approvals");
+    expect(resolveAppNav("/connections")?.label).toBe("Connections");
     expect(resolveAppNav("/activity")?.label).toBe("Gateway activity");
   });
 
   it("resolves configure routes from the URL", () => {
-    expect(resolveAppNav("/configure/connections")?.label).toBe("Connections");
     expect(resolveAppNav("/configure/providers")?.label).toBe("OAuth providers");
     expect(resolveAppNav("/configure/groups")?.label).toBe("Groups & tools");
     expect(resolveAppNav("/configure/groups/ops-write")?.label).toBe(
@@ -79,7 +79,6 @@ describe("resolveAppNav", () => {
   it("does not treat bearers or retired service paths as nav items", () => {
     expect(resolveAppNav("/bearers")).toBeUndefined();
     expect(resolveAppNav("/bearers/br_1")).toBeUndefined();
-    expect(resolveAppNav("/connections")).toBeUndefined();
     expect(resolveAppNav("/oauth-providers")).toBeUndefined();
     expect(resolveAppNav("/shaiden/tasks")).toBeUndefined();
     expect(resolveAppNav("/shaiden/runs")).toBeUndefined();
