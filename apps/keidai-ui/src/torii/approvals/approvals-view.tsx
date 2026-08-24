@@ -1,8 +1,10 @@
 import { Badge } from "@keidai/ui";
 import { useCallback, useState } from "react";
+import { useSearchParams } from "react-router";
 import { TablePaginationFooter } from "../../shell/components/table-pagination/table-pagination-footer.js";
 import { paginateItems } from "../../shell/components/table-pagination/paginate-items.js";
 import { useTablePageIndex } from "../../shell/components/table-pagination/use-table-page-index.js";
+import { APPROVAL_ID_PARAM } from "../../shell/navigation.js";
 import {
   approveApproval,
   cancelApproval,
@@ -16,7 +18,10 @@ import { RecentlyActioned } from "./recently-actioned.js";
 export function ApprovalsView() {
   const { pending, recentlyActioned, bufferCount, pendingCount, isLoading, refresh } =
     useApprovals();
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const [expandedId, setExpandedId] = useState<string | null>(
+    () => searchParams.get(APPROVAL_ID_PARAM),
+  );
   const { pageIndex, onPageChange } = useTablePageIndex([pending.length]);
   const {
     pageItems: pagePending,

@@ -4,6 +4,7 @@ import {
   NEW_TASK_PARAM,
   runDetailHref,
   RUNS_PATH,
+  TASKS_NEW_HREF,
   TASKS_PATH,
   taskEditHref,
 } from "../navigation.js";
@@ -20,5 +21,9 @@ describe("shaiden path helpers", () => {
 describe("task authoring deep links", () => {
   it("opens the dialog over runs via query param", () => {
     expect(NEW_TASK_HREF).toBe(`/runs?${NEW_TASK_PARAM}=1`);
+  });
+
+  it("opens the dialog over tasks from Home", () => {
+    expect(TASKS_NEW_HREF).toBe(`/tasks?${NEW_TASK_PARAM}=1`);
   });
 });

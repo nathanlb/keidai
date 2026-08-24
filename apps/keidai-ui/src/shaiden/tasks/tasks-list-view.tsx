@@ -19,7 +19,12 @@ import { useTablePageIndex } from "../../shell/components/table-pagination/use-t
 import { runSavedTask } from "../api/shaiden-client.js";
 import { useFetchTasks } from "../hooks/use-fetch-tasks.js";
 import { useRunsVisibility } from "../hooks/use-runs-visibility.js";
-import { runDetailHref, TASK_PARAM, TASKS_PATH } from "../navigation.js";
+import {
+  NEW_TASK_PARAM,
+  runDetailHref,
+  TASK_PARAM,
+  TASKS_PATH,
+} from "../navigation.js";
 import { TaskAuthoringDialog } from "./task-authoring-dialog.js";
 import { TasksTableRow } from "./tasks-table-row.js";
 import { tasksTableColumns } from "./tasks-table-columns.js";
@@ -46,6 +51,7 @@ export function TasksListView() {
   const { taskId: taskIdFromPath } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const editTaskId = taskIdFromPath ?? searchParams.get(TASK_PARAM);
+  const newTaskFromQuery = searchParams.has(NEW_TASK_PARAM);
   const { data, error, isLoading, refresh } = useFetchTasks();
   const { runs } = useRunsVisibility(true);
   const [newTaskOpen, setNewTaskOpen] = useState(false);
@@ -56,7 +62,7 @@ export function TasksListView() {
 
   const tasks = data?.tasks ?? [];
   const runningTaskIds = useMemo(() => collectRunningTaskIds(runs), [runs]);
-  const authoringOpen = newTaskOpen || Boolean(editTaskId);
+  const authoringOpen = newTaskOpen || newTaskFromQuery || Boolean(editTaskId);
   const { pageIndex, onPageChange } = useTablePageIndex([tasks.length]);
   const {
     pageItems: pageTasks,
@@ -98,9 +104,17 @@ export function TasksListView() {
         navigate(TASKS_PATH, { replace: true });
         return;
       }
-      syncTaskParam(null);
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          next.delete(TASK_PARAM);
+          next.delete(NEW_TASK_PARAM);
+          return next;
+        },
+        { replace: true },
+      );
     },
-    [navigate, syncTaskParam, taskIdFromPath],
+    [navigate, setSearchParams, taskIdFromPath],
   );
 
   const handleRunTask = useCallback(
@@ -232,7 +246,11 @@ export function TasksListView() {
       <TaskAuthoringDialog
         open={authoringOpen}
         onOpenChange={onAuthoringOpenChange}
-        taskId={newTaskOpen ? undefined : (editTaskId ?? undefined)}
+        taskId={
+          newTaskOpen || newTaskFromQuery
+            ? undefined
+            : (editTaskId ?? undefined)
+        }
         onTaskSaved={() => void refresh()}
       />
     </>

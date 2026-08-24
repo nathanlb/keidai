@@ -11,9 +11,8 @@ test.describe("App shell navigation", () => {
     await page.goto("/");
 
     await expect(page).toHaveURL(/\/home$/);
-    await expect(
-      page.getByText(/what needs you, what's running/i),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
+    await expect(page.getByTestId("home-all-clear")).toBeVisible();
   });
 
   test("swaps the full sidebar when entering and leaving Configure", async ({
@@ -22,6 +21,7 @@ test.describe("App shell navigation", () => {
     await page.goto("/home");
 
     await expect(sidebarNavSection(page, "operate")).toBeVisible();
+    await expect(sidebarNavSection(page, "observe")).toBeVisible();
     await expect(sidebarNavLink(page, "/home")).toBeVisible();
     await expect(sidebarNavLink(page, "/agents")).toBeVisible();
     await expect(sidebarNavLink(page, "/tasks")).toBeVisible();
@@ -37,6 +37,7 @@ test.describe("App shell navigation", () => {
     await expect(page).toHaveURL(/\/configure\/connections/);
     await expect(sidebarNavSection(page, "configure")).toBeVisible();
     await expect(sidebarNavSection(page, "operate")).toHaveCount(0);
+    await expect(sidebarNavSection(page, "observe")).toHaveCount(0);
     await expect(sidebarNavLink(page, "/configure/connections")).toBeVisible();
     await expect(sidebarNavLink(page, "/configure/providers")).toBeVisible();
     await expect(sidebarNavLink(page, "/configure/groups")).toBeVisible();
@@ -46,6 +47,7 @@ test.describe("App shell navigation", () => {
     await page.getByTestId("sidebar-configure-back").click();
     await expect(page).toHaveURL(/\/home$/);
     await expect(sidebarNavSection(page, "operate")).toBeVisible();
+    await expect(sidebarNavSection(page, "observe")).toBeVisible();
   });
 
   test("keeps Configure mode on a hard refresh", async ({ page }) => {

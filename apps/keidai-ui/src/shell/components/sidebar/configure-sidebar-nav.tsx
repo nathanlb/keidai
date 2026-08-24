@@ -2,7 +2,7 @@ import { cn } from "@keidai/ui";
 import { ChevronLeft } from "lucide-react";
 import { Link, NavLink, useLocation } from "react-router";
 import {
-  configureNavItems,
+  configureNavSection,
   HOME_PATH,
   isNavItemActive,
 } from "../../navigation.js";
@@ -30,9 +30,11 @@ export function ConfigureSidebarNav() {
         Back
       </Link>
 
-      <NavLabel section="configure">Configure</NavLabel>
+      <NavLabel section={configureNavSection.id}>
+        {configureNavSection.label}
+      </NavLabel>
 
-      {configureNavItems.map((item) => (
+      {configureNavSection.items.map((item) => (
         <NavLink
           key={item.path}
           to={item.path}

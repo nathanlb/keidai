@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   resolveAppNav,
+  resolveAppNavSection,
   resolveAppSection,
   resolveNavMode,
 } from "../navigation.js";
@@ -18,6 +19,33 @@ describe("resolveNavMode", () => {
     expect(resolveNavMode("/agents")).toBe("workspace");
     expect(resolveNavMode("/runs/4821")).toBe("workspace");
     expect(resolveNavMode("/approvals")).toBe("workspace");
+    expect(resolveNavMode("/activity")).toBe("workspace");
+  });
+});
+
+describe("resolveAppNavSection", () => {
+  it("maps workspace routes to Operate and Observe sections", () => {
+    expect(resolveAppNavSection("/agents")?.id).toBe("operate");
+    expect(resolveAppNavSection("/agents/agt-1")?.id).toBe("operate");
+    expect(resolveAppNavSection("/tasks")?.id).toBe("operate");
+    expect(resolveAppNavSection("/runs/4821")?.id).toBe("operate");
+    expect(resolveAppNavSection("/approvals")?.id).toBe("operate");
+    expect(resolveAppNavSection("/activity")?.id).toBe("observe");
+  });
+
+  it("maps configure routes to the Configure section", () => {
+    expect(resolveAppNavSection("/configure")?.id).toBe("configure");
+    expect(resolveAppNavSection("/configure/connections")?.id).toBe(
+      "configure",
+    );
+    expect(resolveAppNavSection("/configure/groups/ops-write")?.id).toBe(
+      "configure",
+    );
+  });
+
+  it("returns undefined for Home and unknown routes", () => {
+    expect(resolveAppNavSection("/home")).toBeUndefined();
+    expect(resolveAppNavSection("/bearers")).toBeUndefined();
   });
 });
 
@@ -43,6 +71,9 @@ describe("resolveAppNav", () => {
       "Groups & tools",
     );
     expect(resolveAppSection("/configure/connections")).toBe("Configure");
+    expect(resolveAppSection("/activity")).toBe("Observe");
+    expect(resolveAppSection("/agents")).toBe("Operate");
+    expect(resolveAppSection("/runs/4821")).toBe("Operate");
   });
 
   it("does not treat bearers or retired service paths as nav items", () => {
@@ -52,7 +83,6 @@ describe("resolveAppNav", () => {
     expect(resolveAppNav("/oauth-providers")).toBeUndefined();
     expect(resolveAppNav("/shaiden/tasks")).toBeUndefined();
     expect(resolveAppNav("/shaiden/runs")).toBeUndefined();
-    expect(resolveAppSection("/agents")).toBe("");
     expect(resolveAppSection("/home")).toBe("");
   });
 });
