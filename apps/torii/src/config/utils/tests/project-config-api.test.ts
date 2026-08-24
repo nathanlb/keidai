@@ -39,16 +39,17 @@ const fullConfig: ToriiConfig = {
       credential: { strategy: "none" },
     },
   ],
-  groups: [
-    {
-      name: "agents",
-      description: "Full access agents group",
-      permissions: [
-        { server: "linear", tools: ["list_issues", "get_issue"] },
-      ],
-    },
-  ],
 };
+
+const groupDefinitions = [
+  {
+    name: "agents",
+    description: "Full access agents group",
+    permissions: [
+      { server: "linear", tools: ["list_issues", "get_issue"] },
+    ],
+  },
+];
 
 describe("project-config-api", () => {
   it("projects servers with credential strategy only", () => {
@@ -137,7 +138,7 @@ describe("project-config-api", () => {
   });
 
   it("projects group definitions without exposing permissions", () => {
-    const result = projectConfigGroups(fullConfig);
+    const result = projectConfigGroups(groupDefinitions);
 
     assert.deepEqual(result.groups, [
       { name: "agents", description: "Full access agents group" },
@@ -177,7 +178,7 @@ describe("project-config-api", () => {
 
     assert.deepEqual(projectConfigServers(empty), { servers: [] });
     assert.deepEqual(projectConfigOAuthProviders(empty), { providers: {} });
-    assert.deepEqual(projectConfigGroups(empty), { groups: [] });
+    assert.deepEqual(projectConfigGroups(), { groups: [] });
   });
 
   it("projects all credential strategies", () => {

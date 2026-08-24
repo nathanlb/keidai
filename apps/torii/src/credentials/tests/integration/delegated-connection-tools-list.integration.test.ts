@@ -50,6 +50,7 @@ describe("user_oauth credentials with tools/list", () => {
       tools: [{ name: "search_issues", description: "Search GitHub issues" }],
     });
 
+        const groups = [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])];
     const configService = new ToriiConfigService({
       oauth_providers: {
         github: {
@@ -60,10 +61,9 @@ describe("user_oauth credentials with tools/list", () => {
         },
       },
       servers: [userOAuthServer("github", mockServer.url)],
-      groups: [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])],
     });
     const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
-    const catalogService = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
+    const catalogService = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(groups), createNoopLogger());
 
     try {
       await withTestAgentPrincipal(async () => {
@@ -84,6 +84,7 @@ describe("user_oauth credentials with tools/list", () => {
       tools: [{ name: "search_issues", description: "Search GitHub issues" }],
     });
 
+        const groups = [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])];
     const configService = new ToriiConfigService({
       oauth_providers: {
         github: {
@@ -94,11 +95,10 @@ describe("user_oauth credentials with tools/list", () => {
         },
       },
       servers: [userOAuthServer("github", mockServer.url)],
-      groups: [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])],
     });
     const logger = createCapturingLogger();
     const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), logger);
-    const catalogService = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), logger);
+    const catalogService = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(groups), logger);
 
     try {
       await withTestAgentPrincipal(async () => {

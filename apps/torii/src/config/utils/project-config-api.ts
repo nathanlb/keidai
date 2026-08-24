@@ -122,8 +122,10 @@ export function projectConfigOAuthProviders(
   return { providers };
 }
 
-export function projectConfigGroups(config: ToriiConfig): ConfigGroupsResponse {
+export function projectConfigGroups(
+  groups: readonly GroupDefinitionConfig[] = [],
+): ConfigGroupsResponse {
   return {
-    groups: (config.groups ?? []).map(projectPublicGroup),
+    groups: groups.map(projectPublicGroup),
   };
 }

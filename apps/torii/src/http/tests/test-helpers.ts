@@ -1,6 +1,7 @@
 import type {
   AgentIdentityResolver,
   AgentPrincipal,
+  GroupDefinitionConfig,
 } from "@keidai/shared";
 import type { CatalogTool } from "../../catalog/types/catalog-tool.js";
 import type { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
@@ -27,7 +28,7 @@ import type { TraceRepository } from "../../trace/types/trace-repository.js";
 import type { TraceEmitter } from "../../trace/types/trace-emitter.js";
 import {
   createApprovalServices,
-  groupPolicyCacheFromConfig,
+  groupPolicyCacheFromDefinitions,
   type ApprovalServices,
 } from "../../policy/tests/test-helpers.js";
 import { GroupPolicyCache } from "../../policy/group-policy-cache.service.js";
@@ -137,7 +138,7 @@ export function createTracesApiController(
 export function createGroupsApiController(
   configService: ToriiConfigService,
   persistence: TestGatewayPersistence,
-  cache: GroupPolicyCache = groupPolicyCacheFromConfig(configService),
+  cache: GroupPolicyCache = groupPolicyCacheFromDefinitions(),
 ): GroupsApiController {
   return new GroupsApiController(
     new GroupPolicyManagementService(
@@ -161,6 +162,8 @@ export async function createTestGatewayHttpServer(
     approvalServices?: ApprovalServices;
     persistence?: TestGatewayPersistence;
     taskStore?: TaskStoreService;
+    groups?: GroupDefinitionConfig[];
+    gatedTools?: Record<string, string[]>;
     groupPolicyCache?: GroupPolicyCache;
   } = {},
 ): Promise<GatewayHttpServer> {
@@ -173,13 +176,15 @@ export async function createTestGatewayHttpServer(
   const ownedPersistence = options.persistence === undefined
     && options.approvalServices === undefined;
   const groupPolicies =
-    options.groupPolicyCache ?? groupPolicyCacheFromConfig(configService);
+    options.groupPolicyCache ??
+    groupPolicyCacheFromDefinitions(options.groups, options.gatedTools);
   const approvalServices =
     options.approvalServices ??
     (await createApprovalServices(
-      configService,
+      options.groups,
       options.persistence,
       groupPolicies,
+      options.gatedTools,
     ));
   const persistence = options.persistence ?? approvalServices.persistence;
   const pool = persistence.pool;

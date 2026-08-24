@@ -51,17 +51,6 @@ const validDocument = {
       },
     },
   ],
-  groups: [
-    {
-      name: "agents",
-      description: "Test agents group",
-      permissions: [
-        { server: "github", tools: ["search_issues"] },
-        { server: "stripe", tools: ["list_customers"] },
-        { server: "deepwiki", tools: ["read_wiki_structure"] },
-      ],
-    },
-  ],
 };
 
 function expectValidationError(
@@ -104,25 +93,6 @@ describe("loadConfigFromDocument", () => {
         : undefined,
       "sk_test_123",
     );
-    assert.deepEqual(config.gated_tools, {});
-    assert.equal(config.groups?.length, 1);
-    assert.equal(config.groups?.[0]?.name, "agents");
-  });
-
-  it("loads gated_tools keyed by agent id", () => {
-    const config = loadConfigFromDocument(
-      {
-        ...validDocument,
-        gated_tools: {
-          "agent-catalog-01": ["github.create_issue"],
-        },
-      },
-      validEnv,
-    );
-
-    assert.deepEqual(config.gated_tools, {
-      "agent-catalog-01": ["github.create_issue"],
-    });
   });
 
   it("rejects unrecognized agents key", () => {
@@ -206,51 +176,6 @@ describe("loadConfigFromDocument", () => {
           validEnv,
         ),
       ['duplicate server name "github"'],
-    );
-  });
-
-  it("fails on duplicate group names", () => {
-    expectValidationError(
-      () =>
-        loadConfigFromDocument(
-          {
-            ...validDocument,
-            groups: [
-              {
-                name: "agents",
-                description: "First agents group",
-                permissions: [{ server: "github", tools: ["search_issues"] }],
-              },
-              {
-                name: "agents",
-                description: "Duplicate agents group",
-                permissions: [{ server: "stripe", tools: ["list_customers"] }],
-              },
-            ],
-          },
-          validEnv,
-        ),
-      ['duplicate group name "agents"'],
-    );
-  });
-
-  it("fails when a group permission references an unknown server", () => {
-    expectValidationError(
-      () =>
-        loadConfigFromDocument(
-          {
-            ...validDocument,
-            groups: [
-              {
-                name: "agents",
-                description: "Test agents group",
-                permissions: [{ server: "unknown-server", tools: ["do_thing"] }],
-              },
-            ],
-          },
-          validEnv,
-        ),
-      ['permission server "unknown-server" is not defined in servers'],
     );
   });
 
@@ -348,7 +273,6 @@ describe("loadConfigFromDocument", () => {
             },
           },
         ],
-        groups: [],
       },
       validEnv,
     );

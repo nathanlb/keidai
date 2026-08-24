@@ -48,14 +48,14 @@ describe("ToolCatalogService", () => {
         { name: "get_file_contents", description: "Read a repository file" },
       ],
     });
+    const groups = [
+      testAgentsGroup([
+        { server: "github", tools: ["search_issues", "get_file_contents"] },
+      ]),
+    ];
     const configService = new ToriiConfigService({
       oauth_providers: {},
       servers: [serverConfig("github", mockServer.url)],
-      groups: [
-        testAgentsGroup([
-          { server: "github", tools: ["search_issues", "get_file_contents"] },
-        ]),
-      ],
     });
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(
@@ -66,7 +66,7 @@ describe("ToolCatalogService", () => {
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
-      createPolicyEnforcement(configService),
+      createPolicyEnforcement(groups),
       createNoopLogger(),
     );
 
@@ -114,8 +114,8 @@ describe("ToolCatalogService", () => {
           credential: { strategy: "none" },
         },
       ],
-      groups: [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])],
     });
+    const groups = [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])];
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(
       configService,
@@ -125,7 +125,7 @@ describe("ToolCatalogService", () => {
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
-      createPolicyEnforcement(configService),
+      createPolicyEnforcement(groups),
       createNoopLogger(),
     );
 
@@ -243,13 +243,13 @@ describe("ToolCatalogService", () => {
           ...serverConfig("deepwiki", badServer.url),
         },
       ],
-      groups: [
-        testAgentsGroup([
-          { server: "stripe", tools: ["list_customers"] },
-          { server: "deepwiki", tools: ["read_wiki_structure"] },
-        ]),
-      ],
     });
+    const groups = [
+      testAgentsGroup([
+        { server: "stripe", tools: ["list_customers"] },
+        { server: "deepwiki", tools: ["read_wiki_structure"] },
+      ]),
+    ];
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(
       configService,
@@ -271,7 +271,7 @@ describe("ToolCatalogService", () => {
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
-      createPolicyEnforcement(configService),
+      createPolicyEnforcement(groups),
       createNoopLogger(),
     );
 
@@ -303,8 +303,8 @@ describe("ToolCatalogService", () => {
           ...serverConfig("offline", closedUrl),
         },
       ],
-      groups: [testAgentsGroup([{ server: "offline", tools: ["ping"] }])],
     });
+    const groups = [testAgentsGroup([{ server: "offline", tools: ["ping"] }])];
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(
       configService,
@@ -314,7 +314,7 @@ describe("ToolCatalogService", () => {
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
-      createPolicyEnforcement(configService),
+      createPolicyEnforcement(groups),
       createNoopLogger(),
     );
 
@@ -344,13 +344,13 @@ describe("ToolCatalogService", () => {
         serverConfig("zeta", zeta.url),
         serverConfig("alpha", alpha.url),
       ],
-      groups: [
-        testAgentsGroup([
-          { server: "zeta", tools: ["zoom"] },
-          { server: "alpha", tools: ["beta", "alpha"] },
-        ]),
-      ],
     });
+    const groups = [
+      testAgentsGroup([
+        { server: "zeta", tools: ["zoom"] },
+        { server: "alpha", tools: ["beta", "alpha"] },
+      ]),
+    ];
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(
       configService,
@@ -360,7 +360,7 @@ describe("ToolCatalogService", () => {
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
-      createPolicyEnforcement(configService),
+      createPolicyEnforcement(groups),
       createNoopLogger(),
     );
 

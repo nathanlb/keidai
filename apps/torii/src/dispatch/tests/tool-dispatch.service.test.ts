@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { ToriiConfig } from "@keidai/shared";
+import type { GroupDefinitionConfig, ToriiConfig } from "@keidai/shared";
 import { PolicyDecision, TORII_RUN_ID_ARG, TORII_STEP_ID_ARG, TORII_CALL_META_KEY } from "@keidai/shared";
 import { ConnectionManager } from "../../connections/connection-manager.service.js";
 import { DefaultMcpClientConnector } from "../../connections/mcp-client-connector.service.js";
@@ -93,7 +93,8 @@ async function closeManagerConnections(
 
 async function createDispatchStack(
   servers: ToriiConfig["servers"][number][],
-  groups: ToriiConfig["groups"] = [],
+  groups: GroupDefinitionConfig[] = [],
+  gatedTools?: Record<string, string[]>,
 ): Promise<{
   connectionManager: ConnectionManager;
   toolCatalog: ToolCatalogService;
@@ -114,19 +115,18 @@ async function createDispatchStack(
       },
     },
     servers,
-    groups,
   });
   const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
-  const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
+  const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(groups, gatedTools), createNoopLogger());
   const traceEmitter = new CapturingTraceEmitter();
-  const services = await createApprovalServices(configService);
+  const services = await createApprovalServices(groups, undefined, undefined, gatedTools);
   const { approvalGate, taskStore } = services;
   const toolDispatch = new ToolDispatchService(
     toolCatalog,
     connectionManager,
     credentialResolver,
     traceEmitter,
-    createPolicyEnforcement(configService),
+    createPolicyEnforcement(groups, gatedTools),
     approvalGate,
     taskStore,
   );
@@ -447,21 +447,21 @@ describe("ToolDispatchService", () => {
     const { tokenRepository, credentialResolver } = createCredentialServices({
       oauth_providers: oauthProviders,
     });
+    const groups = [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])];
     const configService = new ToriiConfigService({
       oauth_providers: oauthProviders,
       servers: [userOAuthServer("github", mockServer.url)],
-      groups: [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])],
     });
     const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
-    const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
+    const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(groups), createNoopLogger());
     const traceEmitter = new CapturingTraceEmitter();
-    const { approvalGate, taskStore } = await createApprovalServices(configService);
+    const { approvalGate, taskStore } = await createApprovalServices(groups);
     const toolDispatch = new ToolDispatchService(
       toolCatalog,
       connectionManager,
       credentialResolver,
       traceEmitter,
-      createPolicyEnforcement(configService),
+      createPolicyEnforcement(groups),
       approvalGate,
       taskStore,
     );

@@ -106,6 +106,15 @@ export async function startEvalToriiStack(
     accessToken: googleToken,
   });
 
+  const groups = [
+    testAgentsGroup([
+      { server: "linear", tools: ["list_issues", "get_issue"] },
+      ...(includeGmail ? [{ server: "gmail", tools: ["create_draft"] }] : []),
+    ]),
+  ];
+  const gatedTools = includeGmail
+    ? { [EVAL_AGENT_ID]: ["gmail.create_draft"] }
+    : undefined;
   const configService = new ToriiConfigService({
     oauth_providers: EVAL_OAUTH_PROVIDERS,
     servers: [
@@ -127,15 +136,6 @@ export async function startEvalToriiStack(
           ]
         : []),
     ],
-    groups: [
-      testAgentsGroup([
-        { server: "linear", tools: ["list_issues", "get_issue"] },
-        ...(includeGmail ? [{ server: "gmail", tools: ["create_draft"] }] : []),
-      ]),
-    ],
-    gated_tools: includeGmail
-      ? { [EVAL_AGENT_ID]: ["gmail.create_draft"] }
-      : {},
   });
 
   const connectionManager = new ConnectionManager(
@@ -143,7 +143,7 @@ export async function startEvalToriiStack(
     new DefaultMcpClientConnector(credentialResolver),
     createNoopLogger(),
   );
-  const policyEnforcement = createPolicyEnforcement(configService);
+  const policyEnforcement = createPolicyEnforcement(groups, gatedTools);
   const toolCatalog = new ToolCatalogService(
     connectionManager,
     credentialResolver,
@@ -151,7 +151,12 @@ export async function startEvalToriiStack(
     createNoopLogger(),
   );
   const traceEmitter = new CapturingTraceEmitter();
-  const approvalServices = await createApprovalServices(configService);
+  const approvalServices = await createApprovalServices(
+    groups,
+    undefined,
+    undefined,
+    gatedTools,
+  );
   const toolDispatch = new ToolDispatchService(
     toolCatalog,
     connectionManager,
@@ -171,6 +176,8 @@ export async function startEvalToriiStack(
       connectionManager,
       approvalServices,
       persistence: approvalServices.persistence,
+      groups,
+      gatedTools,
     },
   );
 

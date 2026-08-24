@@ -47,10 +47,10 @@ describe("service_key credentials with tools/list", () => {
       tools: [{ name: "list_customers", description: "List Stripe customers" }],
     });
 
+    const groups = [testAgentsGroup([{ server: "stripe", tools: ["list_customers"] }])];
     const configService = new ToriiConfigService({
       oauth_providers: {},
       servers: [serviceKeyServer("stripe", mockServer.url, secretKey)],
-      groups: [testAgentsGroup([{ server: "stripe", tools: ["list_customers"] }])],
     });
     const { credentialResolver } = createCredentialServices();
     const logger = createCapturingLogger();
@@ -62,7 +62,7 @@ describe("service_key credentials with tools/list", () => {
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
-      createPolicyEnforcement(configService),
+      createPolicyEnforcement(groups),
       logger,
     );
 
@@ -105,7 +105,7 @@ describe("service_key credentials with tools/list", () => {
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
-      createPolicyEnforcement(configService),
+      createPolicyEnforcement(),
       logger,
     );
 
@@ -139,6 +139,7 @@ describe("service_key credentials with Stripe MCP", () => {
       return;
     }
 
+        const groups = [testAgentsGroup([{ server: "stripe", tools: ["list_customers"] }])];
     const configService = new ToriiConfigService({
       oauth_providers: {},
       servers: [
@@ -151,7 +152,6 @@ describe("service_key credentials with Stripe MCP", () => {
           },
         },
       ],
-      groups: [testAgentsGroup([{ server: "stripe", tools: ["list_customers"] }])],
     });
     const { credentialResolver } = createCredentialServices();
     const logger = createCapturingLogger();
@@ -163,7 +163,7 @@ describe("service_key credentials with Stripe MCP", () => {
     const catalogService = new ToolCatalogService(
       connectionManager,
       credentialResolver,
-      createPolicyEnforcement(configService),
+      createPolicyEnforcement(groups),
       logger,
     );
 

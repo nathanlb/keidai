@@ -57,14 +57,14 @@ describe("none credentials with tools/list", () => {
       },
     });
 
+        const groups = [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])];
     const configService = new ToriiConfigService({
       oauth_providers: {},
       servers: [noneServer("deepwiki", mockServer.url)],
-      groups: [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])],
     });
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
-    const catalogService = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
+    const catalogService = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(groups), createNoopLogger());
 
     try {
       await bootBackends(connectionManager, catalogService);
@@ -135,6 +135,7 @@ describe("none credentials with tools/call", () => {
 
 describe("none credentials with DeepWiki MCP", () => {
   it("lists and calls tools from DeepWiki", async () => {
+        const groups = [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])];
     const configService = new ToriiConfigService({
       oauth_providers: {},
       servers: [
@@ -147,11 +148,10 @@ describe("none credentials with DeepWiki MCP", () => {
           credential: { strategy: "none" },
         },
       ],
-      groups: [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])],
     });
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
-    const catalogService = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(configService), createNoopLogger());
+    const catalogService = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(groups), createNoopLogger());
 
     try {
       await bootBackends(connectionManager, catalogService);

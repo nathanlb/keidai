@@ -1,23 +1,18 @@
 import "reflect-metadata";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { ToriiConfig } from "@keidai/shared";
 import { TEST_AGENT_PRINCIPAL } from "../../identity/tests/test-helpers.js";
 import { createTestGatewayPersistence } from "../../testing/gateway-persistence.js";
 import { ApprovalGateService } from "../approval-gate.service.js";
 import { ApprovalReadService } from "../approval-read.service.js";
-import { groupPolicyCacheFromConfig } from "./test-helpers.js";
+import { groupPolicyCacheFromDefinitions } from "./test-helpers.js";
 import {
   hashToolParams,
   parseToolArguments,
 } from "../utils/approval-tool-args.js";
 
-async function createGate(gatedTools: NonNullable<ToriiConfig["gated_tools"]>) {
-  const cache = groupPolicyCacheFromConfig({
-    oauth_providers: {},
-    servers: [],
-    gated_tools: gatedTools,
-  });
+async function createGate(gatedTools: Record<string, string[]>) {
+  const cache = groupPolicyCacheFromDefinitions([], gatedTools);
   const persistence = await createTestGatewayPersistence("postgres");
   const store = persistence.approvalStore!;
   const taskStore = persistence.taskStore!;

@@ -60,21 +60,6 @@ const credentialSchema = z.discriminatedUnion("strategy", [
     .strict(),
 ]);
 
-const groupPermissionSchema = z
-  .object({
-    server: z.string().min(1, "server is required"),
-    tools: z.array(z.string().min(1)),
-  })
-  .strict();
-
-const groupDefinitionSchema = z
-  .object({
-    name: z.string().min(1, "name is required"),
-    description: z.string().min(1, "description is required"),
-    permissions: z.array(groupPermissionSchema),
-  })
-  .strict();
-
 const serverSchema = z
   .object({
     name: z.string().min(1, "name is required"),
@@ -91,16 +76,10 @@ export const toriiConfigSchema = z
     gateway_base_url: z.string().url().optional(),
     oauth_providers: z.record(z.string(), oauthProviderSchema),
     servers: z.array(serverSchema).min(1, "at least one server is required"),
-    groups: z.array(groupDefinitionSchema).default([]),
-    gated_tools: z
-      .record(z.string().min(1), z.array(z.string().min(1)))
-      .default({}),
   })
   .strict()
   .superRefine((config, ctx) => {
     const seenNames = new Map<string, number>();
-    const seenGroupNames = new Map<string, number>();
-    const serverNames = new Set(config.servers.map((server) => server.name));
 
     config.servers.forEach((server, index) => {
       const firstIndex = seenNames.get(server.name);
@@ -123,29 +102,6 @@ export const toriiConfigSchema = z
           });
         }
       }
-    });
-
-    config.groups.forEach((group, index) => {
-      const firstGroupIndex = seenGroupNames.get(group.name);
-      if (firstGroupIndex !== undefined) {
-        ctx.addIssue({
-          code: "custom",
-          message: `duplicate group name "${group.name}" (also defined at groups[${firstGroupIndex}])`,
-          path: ["groups", index, "name"],
-        });
-      } else {
-        seenGroupNames.set(group.name, index);
-      }
-
-      group.permissions.forEach((permission, permissionIndex) => {
-        if (!serverNames.has(permission.server)) {
-          ctx.addIssue({
-            code: "custom",
-            message: `group "${group.name}": permission server "${permission.server}" is not defined in servers`,
-            path: ["groups", index, "permissions", permissionIndex, "server"],
-          });
-        }
-      });
     });
   });
 

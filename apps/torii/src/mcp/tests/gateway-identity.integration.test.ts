@@ -123,12 +123,14 @@ describe("Gateway inbound identity", () => {
       tools: [{ name: "read_wiki_structure", description: "Read wiki" }],
     });
 
+    const groups = [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])];
     const configService = new ToriiConfigService({
       oauth_providers: {},
       servers: [noneServer("deepwiki", backend.url)],
-      groups: [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])],
     });
     const { credentialResolver } = createCredentialServices();
+    const approvalServices = await createApprovalServices(groups);
+    const policyEnforcement = createPolicyEnforcement(groups);
     const connectionManager = new ConnectionManager(
       configService,
       new DefaultMcpClientConnector(credentialResolver),
@@ -137,7 +139,7 @@ describe("Gateway inbound identity", () => {
     const toolCatalog = new ToolCatalogService(
       connectionManager,
       credentialResolver,
-      createPolicyEnforcement(configService),
+      policyEnforcement,
       createNoopLogger(),
     );
     const traceEmitter = new CapturingTraceEmitter();
@@ -146,9 +148,9 @@ describe("Gateway inbound identity", () => {
       connectionManager,
       credentialResolver,
       traceEmitter,
-      createPolicyEnforcement(configService),
-      (await createApprovalServices(configService)).approvalGate,
-      (await createApprovalServices(configService)).taskStore,
+      policyEnforcement,
+      approvalServices.approvalGate,
+      approvalServices.taskStore,
     );
     const gatewayHttpServer = await createTestGatewayHttpServer(
       toolCatalog,
@@ -156,6 +158,7 @@ describe("Gateway inbound identity", () => {
       {
         identityResolver: createIdentityResolver(),
         traceEmitter,
+        groups,
       },
     );
 
@@ -197,12 +200,14 @@ describe("Gateway inbound identity", () => {
       tools: [{ name: "read_wiki_structure", description: "Read wiki" }],
     });
 
+    const groups = [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])];
     const configService = new ToriiConfigService({
       oauth_providers: {},
       servers: [noneServer("deepwiki", backend.url)],
-      groups: [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])],
     });
     const { credentialResolver } = createCredentialServices();
+    const approvalServices = await createApprovalServices(groups);
+    const policyEnforcement = createPolicyEnforcement(groups);
     const connectionManager = new ConnectionManager(
       configService,
       new DefaultMcpClientConnector(credentialResolver),
@@ -211,7 +216,7 @@ describe("Gateway inbound identity", () => {
     const toolCatalog = new ToolCatalogService(
       connectionManager,
       credentialResolver,
-      createPolicyEnforcement(configService),
+      policyEnforcement,
       createNoopLogger(),
     );
     const traceEmitter = new CapturingTraceEmitter();
@@ -220,9 +225,9 @@ describe("Gateway inbound identity", () => {
       connectionManager,
       credentialResolver,
       traceEmitter,
-      createPolicyEnforcement(configService),
-      (await createApprovalServices(configService)).approvalGate,
-      (await createApprovalServices(configService)).taskStore,
+      policyEnforcement,
+      approvalServices.approvalGate,
+      approvalServices.taskStore,
     );
     const gatewayHttpServer = await createTestGatewayHttpServer(
       toolCatalog,
@@ -230,6 +235,7 @@ describe("Gateway inbound identity", () => {
       {
         identityResolver: createIdentityResolver(),
         traceEmitter,
+        groups,
       },
     );
 
