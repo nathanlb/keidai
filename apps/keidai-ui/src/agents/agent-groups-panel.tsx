@@ -1,193 +1,260 @@
-import { Button, Input } from "@keidai/ui";
 import {
-  Circle,
-  CircleCheckBig,
-  TriangleAlert,
-  UsersRound,
-} from "lucide-react";
+  Button,
+  cn,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from "@keidai/ui";
+import type { GroupView } from "@keidai/shared";
+import { ExternalLink, Search, UsersRound, X } from "lucide-react";
 import { useMemo, useState } from "react";
-import type { ToriiGroupDefinition } from "../lib/api/gateway.js";
+import { Link } from "react-router";
 import type { ManagementAgent } from "../lib/api/agents.js";
-import { AgentGroupChip } from "./components/agent-group-chip.js";
-import {
-  collectUnknownGroups,
-  isKnownGroup,
-} from "./utils/collect-unknown-groups.js";
+import { GROUPS_PATH } from "../shell/navigation.js";
+import { filterJoinableGroups } from "./utils/filter-joinable-groups.js";
+import { isKnownGroup } from "./utils/collect-unknown-groups.js";
 
 export interface AgentGroupsPanelProps {
   agent: ManagementAgent;
-  toriiGroups: ToriiGroupDefinition[];
+  definedGroups: GroupView[];
+  groupsLoading: boolean;
   onChangeGroups: (groups: string[]) => Promise<void>;
+  onNotify: (message: string) => void;
 }
 
 export function AgentGroupsPanel({
   agent,
-  toriiGroups,
+  definedGroups,
+  groupsLoading,
   onChangeGroups,
+  onNotify,
 }: AgentGroupsPanelProps) {
-  const [groupInput, setGroupInput] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [query, setQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const knownGroupNames = useMemo(
-    () => toriiGroups.map((group) => group.name),
-    [toriiGroups],
+  const definedByName = useMemo(
+    () => new Map(definedGroups.map((group) => [group.name, group])),
+    [definedGroups],
   );
-  const unknownGroups = useMemo(
-    () => collectUnknownGroups(agent.groups, knownGroupNames),
-    [agent.groups, knownGroupNames],
+  const knownNames = useMemo(
+    () => definedGroups.map((group) => group.name),
+    [definedGroups],
+  );
+  const joinable = useMemo(
+    () => filterJoinableGroups(definedGroups, agent.groups, query),
+    [agent.groups, definedGroups, query],
   );
 
-  const candidateGroup = groupInput.trim();
-  const addDisabled = !candidateGroup || agent.groups.includes(candidateGroup);
-
-  async function applyGroups(nextGroups: string[]) {
+  async function applyGroups(next: string[], toast: string) {
     setIsSaving(true);
+    setError(null);
     try {
-      await onChangeGroups(nextGroups);
+      await onChangeGroups(next);
+      onNotify(toast);
+      setAdding(false);
+      setQuery("");
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Failed to update groups",
+      );
     } finally {
       setIsSaving(false);
     }
   }
 
-  async function handleAdd() {
-    if (addDisabled) {
-      return;
-    }
-    await applyGroups([...agent.groups, candidateGroup]);
-    setGroupInput("");
-  }
-
-  async function handleRemove(group: string) {
-    await applyGroups(agent.groups.filter((existing) => existing !== group));
-  }
-
-  async function handleToggleTorii(group: string) {
-    const isMember = agent.groups.includes(group);
-    await applyGroups(
-      isMember
-        ? agent.groups.filter((existing) => existing !== group)
-        : [...agent.groups, group],
-    );
-  }
-
   return (
-    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_296px]">
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
-        <div className="border-b border-border px-4.5 py-3.5">
-          <div className="text-sm font-semibold">Groups</div>
-          <div className="mt-0.5 text-xs text-muted-foreground">
-            Torii keys its policy on these strings. Fuda stores them as written.
-          </div>
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="flex items-start justify-between gap-3.5 border-b border-border px-[18px] py-3.5">
+        <div className="min-w-0">
+          <div className="text-[13.5px] font-semibold">Groups</div>
+          <p className="mt-0.5 text-xs leading-normal text-muted-foreground">
+            Membership is how this agent gets abilities. Policy lives under
+            Configure → Groups &amp; tools.
+          </p>
         </div>
-
-        <div className="px-4.5 py-4">
-          <div className="flex flex-wrap gap-1.5">
-            {agent.groups.length > 0 ? (
-              agent.groups.map((group) => (
-                <AgentGroupChip
-                  key={group}
-                  name={group}
-                  known={isKnownGroup(group, knownGroupNames)}
-                  onRemove={() => void handleRemove(group)}
-                />
-              ))
-            ) : (
-              <p className="text-[13px] text-muted-foreground">
-                No groups. Every gated tool call will be denied.
-              </p>
-            )}
-          </div>
-
-          <div className="mt-4 flex gap-2">
-            <Input
-              value={groupInput}
-              onChange={(event) => setGroupInput(event.target.value)}
-              placeholder="Add a group…"
-              className="h-9 max-w-70"
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  void handleAdd();
-                }
-              }}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-9"
-              disabled={addDisabled || isSaving}
-              onClick={() => void handleAdd()}
-            >
-              Add
-            </Button>
-          </div>
-
-          {unknownGroups.length > 0 ? (
-            <div className="mt-4 flex items-start gap-2.5 rounded-md border border-amber-500/45 bg-amber-500/10 px-3.5 py-2.5 text-[13px] leading-normal">
-              <TriangleAlert
-                className="mt-0.5 size-3.75 shrink-0 text-amber-500"
-                aria-hidden
-              />
-              <span>
-                {unknownGroups.length === 1
-                  ? `Torii does not define ${unknownGroups[0]}.`
-                  : `Torii does not define ${unknownGroups.join(", ")}.`}{" "}
-                Fuda will save it — Torii fails closed on groups it does not
-                define, so calls relying on it will be denied.
-              </span>
-            </div>
-          ) : null}
-        </div>
+        {adding ? null : (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7.5 shrink-0 border-dashed"
+            disabled={isSaving || groupsLoading}
+            onClick={() => {
+              setAdding(true);
+              setQuery("");
+            }}
+          >
+            Join a group
+          </Button>
+        )}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
-        <div className="flex items-center gap-2 border-b border-border px-3.75 py-3">
-          <UsersRound className="size-3.5 text-muted-foreground" aria-hidden />
-          <div className="text-[13px] font-semibold">Defined in Torii</div>
-        </div>
-        <div className="flex flex-col">
-          {toriiGroups.length === 0 ? (
-            <p className="px-3.75 py-3 text-[12.5px] text-muted-foreground">
-              No group definitions available yet.
-            </p>
-          ) : (
-            toriiGroups.map((group) => {
-              const isMember = agent.groups.includes(group.name);
-              return (
+      {adding ? (
+        <div className="border-b border-border px-[18px] py-3">
+          <div className="relative max-w-[380px]">
+            <InputGroup className="h-8.5">
+              <InputGroupAddon align="inline-start">
+                <InputGroupText>
+                  <Search aria-hidden />
+                </InputGroupText>
+              </InputGroupAddon>
+              <InputGroupInput
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search defined groups…"
+                aria-label="Search defined groups"
+                autoFocus
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    setAdding(false);
+                    setQuery("");
+                  }
+                }}
+              />
+              <InputGroupAddon align="inline-end">
                 <button
                   type="button"
-                  key={group.name}
-                  onClick={() => void handleToggleTorii(group.name)}
-                  className="flex items-center gap-2.5 border-b border-border px-3.75 py-2.5 text-left hover:bg-muted/30"
+                  className="text-muted-foreground hover:text-foreground"
+                  aria-label="Cancel joining a group"
+                  onClick={() => {
+                    setAdding(false);
+                    setQuery("");
+                  }}
                 >
-                  {isMember ? (
-                    <CircleCheckBig
-                      className="size-3.75 shrink-0 text-(--green-600)"
-                      aria-hidden
-                    />
-                  ) : (
-                    <Circle
-                      className="size-3.75 shrink-0 text-muted-foreground"
-                      aria-hidden
-                    />
-                  )}
-                  <div className="min-w-0">
-                    <div className="font-mono text-xs">{group.name}</div>
-                    <div className="mt-0.5 text-[11px] text-muted-foreground">
-                      {group.description}
-                    </div>
-                  </div>
+                  <X className="size-3.5" aria-hidden />
                 </button>
-              );
-            })
-          )}
+              </InputGroupAddon>
+            </InputGroup>
+            <div className="absolute z-20 mt-1.5 w-full overflow-hidden rounded-lg border border-border bg-popover shadow-lg">
+              {joinable.length === 0 ? (
+                <p className="px-3 py-3 text-xs text-muted-foreground">
+                  {definedGroups.length === 0
+                    ? "No defined groups yet."
+                    : definedGroups.length === agent.groups.filter((name) =>
+                          isKnownGroup(name, knownNames),
+                        ).length
+                      ? "This agent is already in every defined group."
+                      : "No group matches that search."}
+                </p>
+              ) : (
+                joinable.map((group) => (
+                  <button
+                    key={group.id}
+                    type="button"
+                    disabled={isSaving}
+                    onClick={() =>
+                      void applyGroups(
+                        [...agent.groups, group.name],
+                        `Joined ${group.name}. Effective tools recomputed.`,
+                      )
+                    }
+                    className="flex w-full items-center gap-2.5 border-b border-border px-3 py-2.5 text-left last:border-b-0 hover:bg-muted/45"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="font-mono text-[12.5px] font-medium">
+                        {group.name}
+                      </div>
+                      <div className="mt-px truncate text-[11px] text-muted-foreground">
+                        {group.description || "No description"}
+                      </div>
+                    </div>
+                    <span className="shrink-0 text-[11px] text-muted-foreground">
+                      +{group.servers.length} server
+                      {group.servers.length === 1 ? "" : "s"}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
         </div>
-        <div className="px-3.75 py-2.5 text-[11.5px] leading-normal text-muted-foreground">
-          Authored on Groups &amp; tools. A soft join — Fuda does not validate
-          group names on write.
-        </div>
-      </div>
+      ) : null}
+
+      {agent.groups.length === 0 ? (
+        <p className="px-[18px] py-4 text-[12.5px] leading-normal text-muted-foreground">
+          No groups. Every tool call this agent makes will be denied at the
+          gateway.
+        </p>
+      ) : (
+        agent.groups.map((name) => {
+          const defined = definedByName.get(name);
+          const known = Boolean(defined);
+          const servers = defined?.servers.map((policy) => policy.server) ?? [];
+          return (
+            <div
+              key={name}
+              className="flex items-center gap-3 border-b border-border px-[18px] py-3 last:border-b-0 hover:bg-muted/45"
+            >
+              <div
+                className={cn(
+                  "flex size-7.5 shrink-0 items-center justify-center rounded-lg",
+                  known
+                    ? "bg-secondary text-secondary-foreground"
+                    : "bg-[color-mix(in_srgb,var(--destructive)_16%,transparent)] text-destructive",
+                )}
+              >
+                <UsersRound className="size-3.5" aria-hidden />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={cn(
+                      "font-mono text-[13.5px] font-semibold",
+                      known ? "text-foreground" : "text-destructive",
+                    )}
+                  >
+                    {name}
+                  </span>
+                  {known ? null : (
+                    <span className="inline-flex items-center rounded-full bg-[color-mix(in_srgb,var(--destructive)_16%,transparent)] px-2 py-px text-[11px] text-destructive">
+                      not defined
+                    </span>
+                  )}
+                </div>
+                <p className="mt-0.5 text-[11.5px] leading-normal text-muted-foreground">
+                  {known
+                    ? `${defined?.description || "No description"}${
+                        servers.length > 0 ? ` · reaches ${servers.join(", ")}` : ""
+                      }`
+                    : "No policy defines this group, so it grants nothing and every call relying on it is denied at the gateway. Define it or leave it."}
+                </p>
+              </div>
+              {known ? (
+                <Link
+                  to={`${GROUPS_PATH}/${encodeURIComponent(name)}`}
+                  className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Open policy
+                  <ExternalLink className="size-3" aria-hidden />
+                </Link>
+              ) : null}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-6.5 shrink-0 text-muted-foreground"
+                disabled={isSaving}
+                aria-label={`Leave ${name}`}
+                onClick={() =>
+                  void applyGroups(
+                    agent.groups.filter((existing) => existing !== name),
+                    `Left ${name}. Effective tools recomputed.`,
+                  )
+                }
+              >
+                <X className="size-3.5" aria-hidden />
+              </Button>
+            </div>
+          );
+        })
+      )}
+
+      {error ? (
+        <p className="px-[18px] py-2.5 text-sm text-destructive">{error}</p>
+      ) : null}
     </div>
   );
 }

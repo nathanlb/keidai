@@ -1,13 +1,13 @@
 import { ChevronRight, Settings } from "lucide-react";
 import { Link } from "react-router";
-import { CONNECTIONS_PATH } from "../../navigation.js";
+import { GROUPS_PATH } from "../../navigation.js";
 import { navItemClassName, NavIcon } from "./nav-primitives.js";
 
 export function ConfigureDoor() {
   return (
     <div className="border-t border-sidebar-border p-2">
       <Link
-        to={CONNECTIONS_PATH}
+        to={GROUPS_PATH}
         data-testid="sidebar-configure-door"
         className={navItemClassName}
       >

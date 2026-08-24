@@ -1,8 +1,5 @@
 import { PageEmptyState } from "../shell/components/page-content/page-empty-state.js";
 import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
   Button,
   Card,
   CardContent,
@@ -15,30 +12,17 @@ import {
   TableHeader,
   TableRow,
 } from "@keidai/ui";
-import { Cable, RefreshCw, Shield } from "lucide-react";
+import { Cable, RefreshCw } from "lucide-react";
 import { useConnectionsPage } from "./context/use-connections-page.js";
 import { ConnectionDetailDrawer } from "./connection-detail-drawer.js";
 import { ConnectionServerRow } from "./connection-server-row.js";
 import { ConnectionsSummaryTiles } from "./connections-summary-tiles.js";
 import { LinkingRequiredBanner } from "./linking-required-banner.js";
 
-function PrivacyBanner() {
-  return (
-    <Alert className="mb-4">
-      <Shield className="size-4" aria-hidden />
-      <AlertTitle>Credentials stay private</AlertTitle>
-      <AlertDescription>
-        API keys, client secrets, and access tokens are never shown — only
-        strategy, policy, and connection health.
-      </AlertDescription>
-    </Alert>
-  );
-}
-
 function ConnectionsEmptyState() {
   return (
     <PageEmptyState
-      icon={<Cable className="size-[30px]" aria-hidden />}
+      icon={<Cable className="size-7.5" aria-hidden />}
       title="No servers configured"
       description={
         <>
@@ -79,7 +63,7 @@ export function ConnectionsView() {
           <ConnectionsSummaryTiles counts={counts} />
 
           <Card className="overflow-hidden shadow-none">
-            <CardHeader className="flex flex-row items-start justify-between space-y-0 px-[18px] py-4">
+            <CardHeader className="flex flex-row items-start justify-between space-y-0 px-4.5 py-4">
               <div className="space-y-1">
                 <CardTitle className="text-base font-semibold">
                   Backend MCP servers
@@ -108,7 +92,7 @@ export function ConnectionsView() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="h-auto py-2.5 pl-[18px] text-xs font-medium">
+                    <TableHead className="h-auto py-2.5 pl-4.5 text-xs font-medium">
                       Server
                     </TableHead>
                     <TableHead className="h-auto py-2.5 text-xs font-medium">
@@ -126,7 +110,7 @@ export function ConnectionsView() {
                     <TableHead className="h-auto py-2.5 text-xs font-medium">
                       Status
                     </TableHead>
-                    <TableHead className="h-auto w-0 whitespace-nowrap py-2.5 pr-[18px]" />
+                    <TableHead className="h-auto w-0 whitespace-nowrap py-2.5 pr-4.5" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>

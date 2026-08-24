@@ -12,15 +12,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@keidai/ui";
-import {
-  Activity,
-  ArrowLeft,
-  KeyRound,
-  Lock,
-  Trash2,
-  User,
-} from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { ArrowLeft, Lock, Play, Trash2, User } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useLocation,
   useNavigate,
@@ -28,37 +21,51 @@ import {
   useSearchParams,
 } from "react-router";
 import { deleteAgent, updateAgent } from "../lib/api/agents.js";
-import { RUNS_PATH } from "../runs/navigation.js";
-import {
-  agentGrantsKey,
-  useFetchAgentGrants,
-} from "./hooks/use-fetch-agent-grants.js";
+import { runSavedTask } from "../lib/api/tasks.js";
 import { AGENTS_KEY } from "../lib/hooks/use-fetch-agents.js";
+import { useLiveConnections } from "../lib/hooks/use-live-connections.js";
+import { useFetchGroups } from "../groups/hooks/use-fetch-groups.js";
+import { useFetchServerCatalogues } from "../groups/hooks/use-fetch-server-catalogues.js";
+import { formatRunRelative } from "../runs/utils/format-run-time.js";
+import { runDetailHref } from "../runs/navigation.js";
+import {
+  RUNS_VISIBILITY_KEY,
+  useRunsVisibility,
+} from "../runs/hooks/use-runs-visibility.js";
+import { AGENTS_PATH } from "../shell/navigation.js";
+import { TASKS_KEY, useFetchTasks } from "../tasks/hooks/use-fetch-tasks.js";
+import { TaskAuthoringDialog } from "../tasks/task-authoring-dialog.js";
+import { useSWRConfig } from "swr";
+import { AgentEffectiveToolsPanel } from "./agent-effective-tools-panel.js";
+import { AgentGroupsPanel } from "./agent-groups-panel.js";
+import { AgentPersonaPanel } from "./agent-persona-panel.js";
+import { AgentRunsPanel } from "./agent-runs-panel.js";
+import { AgentTasksPanel } from "./agent-tasks-panel.js";
+import { AgentsToast } from "./components/agents-toast.js";
+import { agentGrantsKey } from "./hooks/use-fetch-agent-grants.js";
 import { useFetchAgent } from "./hooks/use-fetch-agent.js";
-import { useFetchBearers } from "./hooks/use-fetch-bearers.js";
 import {
   personaVersionsKey,
   useFetchPersonaVersions,
 } from "./hooks/use-fetch-persona-versions.js";
-import { useFetchToriiGroups } from "./hooks/use-fetch-torii-groups.js";
-import { useSWRConfig } from "swr";
-import { AgentAccessPanel } from "./agent-access-panel.js";
-import { AgentGroupsPanel } from "./agent-groups-panel.js";
-import { AgentPersonaPanel } from "./agent-persona-panel.js";
-import { AgentsToast } from "./components/agents-toast.js";
 import { useAgentsToast } from "./hooks/use-agents-toast.js";
+import {
+  collectAgentRuns,
+  collectAgentTasks,
+  isAgentRunning,
+  latestRun,
+} from "./utils/agent-activity.js";
 import { collectUnknownGroups } from "./utils/collect-unknown-groups.js";
-import { PLATFORM_BEARER_ID } from "../lib/constants/platform-bearer.js";
 
-type DetailTab = "persona" | "access" | "groups";
+type DetailTab = "config" | "tasks" | "runs";
 
 const TAB_PARAM = "tab";
-const VALID_TABS: DetailTab[] = ["persona", "access", "groups"];
+const VALID_TABS: DetailTab[] = ["config", "tasks", "runs"];
 
 function parseTab(value: string | null): DetailTab {
   return VALID_TABS.includes(value as DetailTab)
     ? (value as DetailTab)
-    : "persona";
+    : "config";
 }
 
 export function AgentDetailView() {
@@ -71,6 +78,12 @@ export function AgentDetailView() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<string | undefined>();
+  const [startingTaskIds, setStartingTaskIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [runError, setRunError] = useState<string | null>(null);
 
   const navigationToast =
     (location.state as { toast?: string } | null)?.toast ?? null;
@@ -85,12 +98,42 @@ export function AgentDetailView() {
     isLoading: personasLoading,
     refresh: refreshPersonas,
   } = useFetchPersonaVersions(agentId);
-  const { data: grantsData } = useFetchAgentGrants(agentId);
-  const { data: bearersData } = useFetchBearers();
-  const { data: toriiGroupsData } = useFetchToriiGroups();
+  const { data: groupsData, isLoading: groupsLoading } = useFetchGroups();
+  const {
+    data: tasksData,
+    isLoading: tasksLoading,
+    refresh: refreshTasks,
+  } = useFetchTasks();
+  const {
+    runs: visibilityRuns,
+    isLoading: runsLoading,
+    suspendedRunIds,
+  } = useRunsVisibility(true);
+  const { connections } = useLiveConnections();
 
-  // Clear the create-flow toast from navigation state once shown, so a
-  // refresh or back-navigation doesn't replay it.
+  const definedGroups = groupsData?.groups ?? [];
+  const knownGroupNames = useMemo(
+    () => definedGroups.map((group) => group.name),
+    [definedGroups],
+  );
+  const agent = data?.agent;
+  const serverNames = useMemo(() => {
+    if (!agent) {
+      return [] as string[];
+    }
+    const names = new Set<string>();
+    for (const group of definedGroups) {
+      if (agent.groups.includes(group.name)) {
+        for (const policy of group.servers) {
+          names.add(policy.server);
+        }
+      }
+    }
+    return [...names].sort();
+  }, [agent, definedGroups]);
+  const { catalogues, isLoading: cataloguesLoading } =
+    useFetchServerCatalogues(serverNames);
+
   useEffect(() => {
     if (initialToastRef.current) {
       navigate(`${location.pathname}${location.search}`, {
@@ -98,7 +141,6 @@ export function AgentDetailView() {
         state: null,
       });
     }
-    // Runs once on mount.
   }, []);
 
   const setTab = useCallback(
@@ -106,7 +148,7 @@ export function AgentDetailView() {
       setSearchParams(
         (current) => {
           const params = new URLSearchParams(current);
-          if (next === "persona") {
+          if (next === "config") {
             params.delete(TAB_PARAM);
           } else {
             params.set(TAB_PARAM, next);
@@ -126,6 +168,21 @@ export function AgentDetailView() {
     setDeleteConfirmOpen(open);
   }, []);
 
+  const agentTasks = useMemo(
+    () => collectAgentTasks(tasksData?.tasks ?? [], agent?.id ?? ""),
+    [agent?.id, tasksData?.tasks],
+  );
+  const agentRuns = useMemo(
+    () => collectAgentRuns(visibilityRuns, agent?.id ?? ""),
+    [agent?.id, visibilityRuns],
+  );
+  const unknownGroupCount = collectUnknownGroups(
+    agent?.groups ?? [],
+    knownGroupNames,
+  ).length;
+  const runningNow = isAgentRunning(agentRuns);
+  const lastRun = latestRun(agentRuns);
+
   if (isLoading && !data) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -135,7 +192,7 @@ export function AgentDetailView() {
     );
   }
 
-  if (error || !data) {
+  if (error || !agent) {
     return (
       <>
         <Button
@@ -143,7 +200,7 @@ export function AgentDetailView() {
           variant="ghost"
           size="sm"
           className="-ml-2 mb-3 text-muted-foreground"
-          onClick={() => navigate("/agents")}
+          onClick={() => navigate(AGENTS_PATH)}
         >
           <ArrowLeft className="size-3.5" aria-hidden />
           All agents
@@ -155,24 +212,16 @@ export function AgentDetailView() {
     );
   }
 
-  const agent = data.agent;
+  const loaded = agent;
   const versions = personaData?.personas ?? [];
-  const grants = grantsData?.grants ?? [];
-  const bearers = bearersData?.bearers ?? [];
-  const toriiGroups = toriiGroupsData?.groups ?? [];
-  const knownGroupNames = toriiGroups.map((group) => group.name);
-  const unknownGroupCount = collectUnknownGroups(
-    agent.groups,
-    knownGroupNames,
-  ).length;
 
   async function handleSavePersona(content: string) {
-    const nextVersion = agent.currentPersonaVersion + 1;
-    await updateAgent(agent.id, { persona: content });
+    const nextVersion = loaded.currentPersonaVersion + 1;
+    await updateAgent(loaded.id, { persona: content });
     await Promise.all([refresh(), refreshPersonas()]);
     await mutate(AGENTS_KEY);
     showToast(
-      `Persona saved as v${nextVersion}. v${agent.currentPersonaVersion} stays pinned to past runs.`,
+      `Persona saved as v${nextVersion}. v${loaded.currentPersonaVersion} stays pinned to past runs.`,
     );
   }
 
@@ -180,48 +229,72 @@ export function AgentDetailView() {
     version: number;
     content: string;
   }) {
-    const nextVersion = agent.currentPersonaVersion + 1;
-    await updateAgent(agent.id, { persona: version.content });
+    const nextVersion = loaded.currentPersonaVersion + 1;
+    await updateAgent(loaded.id, { persona: version.content });
     await Promise.all([refresh(), refreshPersonas()]);
     await mutate(AGENTS_KEY);
     showToast(`v${version.version} restored as v${nextVersion}.`);
   }
 
   async function handleChangeGroups(nextGroups: string[]) {
-    await updateAgent(agent.id, { groups: nextGroups });
+    await updateAgent(loaded.id, { groups: nextGroups });
     await refresh();
     await mutate(AGENTS_KEY);
   }
 
   async function handleDeleteConfirm() {
-    if (!data) {
-      return;
-    }
-
     setIsDeleting(true);
     setDeleteError(null);
     try {
-      await deleteAgent(data.agent.id);
+      await deleteAgent(loaded.id);
       await mutate(AGENTS_KEY);
-      void mutate(personaVersionsKey(data.agent.id), undefined, {
+      void mutate(personaVersionsKey(loaded.id), undefined, {
         revalidate: false,
       });
-      void mutate(agentGrantsKey(data.agent.id), undefined, {
-        revalidate: false,
-      });
-      navigate("/agents");
-    } catch (error) {
+      void mutate(agentGrantsKey(loaded.id), undefined, { revalidate: false });
+      navigate(AGENTS_PATH);
+    } catch (cause) {
       setDeleteError(
-        error instanceof Error ? error.message : "Failed to delete agent",
+        cause instanceof Error ? cause.message : "Failed to delete agent",
       );
     } finally {
       setIsDeleting(false);
     }
   }
 
-  const runnerName =
-    bearers.find((bearer) => bearer.bearerId === PLATFORM_BEARER_ID)
-      ?.displayName ?? PLATFORM_BEARER_ID;
+  async function handleRunTask(taskId: string) {
+    setRunError(null);
+    setStartingTaskIds((current) => {
+      const next = new Set(current);
+      next.add(taskId);
+      return next;
+    });
+    try {
+      const { runId } = await runSavedTask(taskId);
+      void mutate(RUNS_VISIBILITY_KEY);
+      void navigate(runDetailHref(runId));
+    } catch (cause) {
+      setRunError(
+        cause instanceof Error ? cause.message : "Failed to start task",
+      );
+    } finally {
+      setStartingTaskIds((current) => {
+        const next = new Set(current);
+        next.delete(taskId);
+        return next;
+      });
+    }
+  }
+
+  function openNewTask() {
+    setEditingTaskId(undefined);
+    setTaskDialogOpen(true);
+  }
+
+  function openEditTask(taskId: string) {
+    setEditingTaskId(taskId);
+    setTaskDialogOpen(true);
+  }
 
   return (
     <>
@@ -230,7 +303,7 @@ export function AgentDetailView() {
         variant="ghost"
         size="sm"
         className="-ml-2 mb-3 text-muted-foreground"
-        onClick={() => navigate("/agents")}
+        onClick={() => navigate(AGENTS_PATH)}
       >
         <ArrowLeft className="size-3.5" aria-hidden />
         All agents
@@ -256,6 +329,12 @@ export function AgentDetailView() {
                 Immutable — this is what appears in traces
               </TooltipContent>
             </Tooltip>
+            {runningNow ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--green-600)_16%,transparent)] px-2.5 py-0.5 text-xs text-(--green-600)">
+                <span className="size-1.5 rounded-full bg-(--green-600)" />
+                Running now
+              </span>
+            ) : null}
           </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-3.5 text-[12.5px] text-muted-foreground">
             <span className="font-mono">{agent.id}</span>
@@ -264,9 +343,11 @@ export function AgentDetailView() {
               Owned by{" "}
               <span className="font-mono text-foreground">{agent.ownerId}</span>
             </span>
-            <span className="inline-flex items-center gap-1.5">
-              <KeyRound className="size-3" aria-hidden />
-              {runnerName}
+            <span>
+              Last run{" "}
+              <span className="text-foreground">
+                {lastRun ? formatRunRelative(lastRun.startedAt) : "never"}
+              </span>
             </span>
           </div>
         </div>
@@ -275,10 +356,10 @@ export function AgentDetailView() {
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => navigate(RUNS_PATH)}
+            onClick={openNewTask}
           >
-            <Activity className="size-3.5" aria-hidden />
-            View runs
+            <Play className="size-3.5" aria-hidden />
+            Run a task
           </Button>
           <Button
             type="button"
@@ -293,20 +374,14 @@ export function AgentDetailView() {
         </div>
       </div>
 
-      <div className="mb-5 mt-5 flex gap-1 border-b border-border">
-        {[
-          {
-            key: "persona" as const,
-            label: "Persona",
-            count: agent.currentPersonaVersion,
-          },
-          { key: "access" as const, label: "Access", count: grants.length },
-          {
-            key: "groups" as const,
-            label: "Groups",
-            count: agent.groups.length,
-          },
-        ].map((item) => {
+      <div className="mt-5 mb-5 flex gap-1 border-b border-border">
+        {(
+          [
+            { key: "config" as const, label: "Config", count: null },
+            { key: "tasks" as const, label: "Tasks", count: agentTasks.length },
+            { key: "runs" as const, label: "Runs", count: agentRuns.length },
+          ] as const
+        ).map((item) => {
           const isActive = tab === item.key;
           return (
             <button
@@ -321,10 +396,12 @@ export function AgentDetailView() {
               }
             >
               {item.label}
-              <span className="font-mono text-[11.5px] text-muted-foreground">
-                {item.count}
-              </span>
-              {item.key === "groups" && unknownGroupCount > 0 ? (
+              {item.count !== null ? (
+                <span className="font-mono text-[11.5px] text-muted-foreground">
+                  {item.count}
+                </span>
+              ) : null}
+              {item.key === "config" && unknownGroupCount > 0 ? (
                 <span
                   className="size-1.5 rounded-full bg-amber-500"
                   aria-hidden
@@ -335,27 +412,73 @@ export function AgentDetailView() {
         })}
       </div>
 
-      {tab === "persona" ? (
-        <AgentPersonaPanel
-          agent={agent}
-          versions={versions}
-          versionsLoading={personasLoading}
-          onSave={handleSavePersona}
-          onRestore={handleRestorePersona}
+      {tab === "config" ? (
+        <div className="flex flex-col gap-4">
+          <AgentPersonaPanel
+            agent={agent}
+            versions={versions}
+            versionsLoading={personasLoading}
+            onSave={handleSavePersona}
+            onRestore={handleRestorePersona}
+          />
+          <AgentGroupsPanel
+            agent={agent}
+            definedGroups={definedGroups}
+            groupsLoading={groupsLoading}
+            onChangeGroups={handleChangeGroups}
+            onNotify={showToast}
+          />
+          <AgentEffectiveToolsPanel
+            membership={agent.groups}
+            groups={definedGroups}
+            catalogues={catalogues}
+            cataloguesLoading={cataloguesLoading}
+            connections={connections}
+          />
+        </div>
+      ) : null}
+
+      {tab === "tasks" ? (
+        <AgentTasksPanel
+          tasks={agentTasks}
+          runs={agentRuns}
+          isLoading={tasksLoading}
+          onNew={openNewTask}
+          onEdit={openEditTask}
+          onRun={(taskId) => void handleRunTask(taskId)}
+          startingTaskIds={startingTaskIds}
+          runError={runError}
         />
       ) : null}
 
-      {tab === "access" ? (
-        <AgentAccessPanel agent={agent} bearers={bearers} grants={grants} />
-      ) : null}
-
-      {tab === "groups" ? (
-        <AgentGroupsPanel
-          agent={agent}
-          toriiGroups={toriiGroups}
-          onChangeGroups={handleChangeGroups}
+      {tab === "runs" ? (
+        <AgentRunsPanel
+          runs={agentRuns}
+          suspendedRunIds={suspendedRunIds}
+          isLoading={runsLoading}
+          onOpenRun={(runId) => navigate(runDetailHref(runId))}
         />
       ) : null}
+
+      <TaskAuthoringDialog
+        open={taskDialogOpen}
+        onOpenChange={(open) => {
+          setTaskDialogOpen(open);
+          if (!open) {
+            setEditingTaskId(undefined);
+          }
+        }}
+        taskId={editingTaskId}
+        defaultAssignee={editingTaskId ? undefined : agent.id}
+        onTaskSaved={() => {
+          void refreshTasks();
+          void mutate(TASKS_KEY);
+          void mutate(RUNS_VISIBILITY_KEY);
+          showToast(
+            editingTaskId ? "Task saved." : "Task created and run started.",
+          );
+        }}
+      />
 
       <AgentsToast message={toastMessage} />
 
@@ -367,8 +490,7 @@ export function AgentDetailView() {
           <DialogHeader>
             <DialogTitle>Delete agent?</DialogTitle>
             <DialogDescription>
-              Delete {agent.name}? This revokes all bearer access and cannot be
-              undone.
+              Delete {agent.name}? This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           {deleteError ? (

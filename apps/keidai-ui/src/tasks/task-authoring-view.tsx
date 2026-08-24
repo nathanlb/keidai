@@ -166,6 +166,7 @@ function AssigneeTriggerContent({
 
 interface TaskAuthoringViewProps {
   taskId?: string;
+  defaultAssignee?: string;
   onCancel?: () => void;
   onTaskSaved?: () => void;
   onDirtyChange?: (dirty: boolean) => void;
@@ -174,6 +175,7 @@ interface TaskAuthoringViewProps {
 
 export function TaskAuthoringView({
   taskId,
+  defaultAssignee,
   onCancel,
   onTaskSaved,
   onDirtyChange,
@@ -276,11 +278,14 @@ export function TaskAuthoringView({
     if (isEditMode || assignee || !runtimeReady) {
       return;
     }
-    const first = options[0];
+    const preferred = defaultAssignee
+      ? options.find((option) => option.agentId === defaultAssignee)
+      : undefined;
+    const first = preferred ?? options[0];
     if (first) {
       setValue("assignee", first.agentId);
     }
-  }, [assignee, isEditMode, options, runtimeReady, setValue]);
+  }, [assignee, defaultAssignee, isEditMode, options, runtimeReady, setValue]);
 
   const selectedOption =
     options.find((option) => option.agentId === assignee) ?? null;
