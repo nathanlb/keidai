@@ -47,10 +47,10 @@ Use `cn` from `@keidai/ui` for conditional classes. Use design tokens (`bg-card`
 
 Copy patterns from these before inventing new markup:
 
-- `apps/keidai-ui/src/torii/connections/connections-view.tsx` — Card + Table page layout
-- `apps/keidai-ui/src/torii/connections/connection-server-row.tsx` — TableRow, Badge, Button
-- `apps/keidai-ui/src/torii/agents/agents-owners-view.tsx` — grouped Card + Table
-- `apps/keidai-ui/src/torii/oauth/oauth-link-dialog.tsx` — Dialog flow
+- `apps/keidai-ui/src/connections/connections-view.tsx` — Card + Table page layout
+- `apps/keidai-ui/src/connections/connection-server-row.tsx` — TableRow, Badge, Button
+- `apps/keidai-ui/src/agents/agents-list-view.tsx` — grouped Card + Table
+- `apps/keidai-ui/src/oauth/oauth-link-dialog.tsx` — Dialog flow
 
 ## Missing primitive?
 

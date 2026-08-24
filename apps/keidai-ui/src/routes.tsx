@@ -22,7 +22,7 @@ export const router = createBrowserRouter([
       {
         path: "home",
         lazy: async () => {
-          const { HomePage } = await import("./shell/pages/home-page.js");
+          const { HomePage } = await import("./home/pages/home-page.js");
           return { Component: HomePage };
         },
       },
@@ -50,7 +50,7 @@ export const router = createBrowserRouter([
         path: "configure/connections",
         lazy: async () => {
           const { ConnectionsPage } =
-            await import("./torii/pages/connections-page.js");
+            await import("./connections/pages/connections-page.js");
           return { Component: ConnectionsPage };
         },
       },
@@ -58,14 +58,14 @@ export const router = createBrowserRouter([
         path: "configure/providers",
         lazy: async () => {
           const { OAuthProvidersPage } =
-            await import("./torii/pages/oauth-providers-page.js");
+            await import("./oauth/pages/oauth-providers-page.js");
           return { Component: OAuthProvidersPage };
         },
       },
       {
         path: "configure/groups",
         lazy: async () => {
-          const { GroupsPage } = await import("./torii/pages/groups-page.js");
+          const { GroupsPage } = await import("./groups/pages/groups-page.js");
           return { Component: GroupsPage };
         },
       },
@@ -73,7 +73,7 @@ export const router = createBrowserRouter([
         path: "configure/groups/new",
         lazy: async () => {
           const { GroupCreatePage } =
-            await import("./torii/pages/group-create-page.js");
+            await import("./groups/pages/group-create-page.js");
           return { Component: GroupCreatePage };
         },
       },
@@ -81,14 +81,14 @@ export const router = createBrowserRouter([
         path: "configure/groups/:name",
         lazy: async () => {
           const { GroupDetailPage } =
-            await import("./torii/pages/group-detail-page.js");
+            await import("./groups/pages/group-detail-page.js");
           return { Component: GroupDetailPage };
         },
       },
       {
         path: "agents",
         lazy: async () => {
-          const { AgentsPage } = await import("./fuda/pages/agents-page.js");
+          const { AgentsPage } = await import("./agents/pages/agents-page.js");
           return { Component: AgentsPage };
         },
       },
@@ -96,7 +96,7 @@ export const router = createBrowserRouter([
         path: "agents/new",
         lazy: async () => {
           const { AgentCreatePage } =
-            await import("./fuda/pages/agent-create-page.js");
+            await import("./agents/pages/agent-create-page.js");
           return { Component: AgentCreatePage };
         },
       },
@@ -104,7 +104,7 @@ export const router = createBrowserRouter([
         path: "agents/:agentId",
         lazy: async () => {
           const { AgentDetailPage } =
-            await import("./fuda/pages/agent-detail-page.js");
+            await import("./agents/pages/agent-detail-page.js");
           return { Component: AgentDetailPage };
         },
       },
@@ -120,7 +120,7 @@ export const router = createBrowserRouter([
         path: "approvals",
         lazy: async () => {
           const { ApprovalsPage } =
-            await import("./torii/pages/approvals-page.js");
+            await import("./approvals/pages/approvals-page.js");
           return { Component: ApprovalsPage };
         },
       },
@@ -128,35 +128,35 @@ export const router = createBrowserRouter([
         path: "activity",
         lazy: async () => {
           const { ActivityTracesPage } =
-            await import("./torii/pages/activity-traces-page.js");
+            await import("./activity/pages/activity-traces-page.js");
           return { Component: ActivityTracesPage };
         },
       },
       {
         path: "tasks",
         lazy: async () => {
-          const { TasksPage } = await import("./shaiden/pages/tasks-page.js");
+          const { TasksPage } = await import("./tasks/pages/tasks-page.js");
           return { Component: TasksPage };
         },
       },
       {
         path: "tasks/:taskId",
         lazy: async () => {
-          const { TasksPage } = await import("./shaiden/pages/tasks-page.js");
+          const { TasksPage } = await import("./tasks/pages/tasks-page.js");
           return { Component: TasksPage };
         },
       },
       {
         path: "runs",
         lazy: async () => {
-          const { RunsPage } = await import("./shaiden/pages/runs-page.js");
+          const { RunsPage } = await import("./runs/pages/runs-page.js");
           return { Component: RunsPage };
         },
       },
       {
         path: "runs/:runId",
         lazy: async () => {
-          const { RunsPage } = await import("./shaiden/pages/runs-page.js");
+          const { RunsPage } = await import("./runs/pages/runs-page.js");
           return { Component: RunsPage };
         },
       },

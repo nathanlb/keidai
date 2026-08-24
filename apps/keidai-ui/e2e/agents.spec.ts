@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import type { ManagementAgent } from "../src/fuda/api/fuda-client.js";
+import type { ManagementAgent } from "../src/lib/api/agents.js";
 import { mockToriiConfig } from "./helpers/mock-torii.js";
 
 const alphaAgent: ManagementAgent = {

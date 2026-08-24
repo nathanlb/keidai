@@ -3,16 +3,22 @@ import { AppShell } from "./app-shell.js";
 import { AppProvider } from "./context/app-provider.js";
 import { OperatorAuthGate } from "./components/operator-auth-gate.js";
 import { PlatformSidebarNav } from "./components/sidebar/platform-sidebar-nav.js";
-import { resolveAppNav, resolveAppSection } from "./navigation.js";
-import { isFudaAgentsRoute } from "../fuda/navigation.js";
-import { OAuthLinkProvider } from "../torii/oauth/context/oauth-link-provider.js";
+import {
+  resolveAppNav,
+  resolveAppNavSection,
+  type AppNavSection,
+} from "./navigation.js";
+import { isFudaAgentsRoute } from "../agents/navigation.js";
+import { OAuthLinkProvider } from "../oauth/context/oauth-link-provider.js";
 import type { AppShellBreadcrumb } from "./types/index.js";
 
 function buildBreadcrumb(
   pathname: string,
-  section: string,
+  navSection: AppNavSection | undefined,
   current: ReturnType<typeof resolveAppNav>,
 ): AppShellBreadcrumb {
+  const section = navSection?.label ?? "";
+
   if (current) {
     return {
       section,
@@ -27,7 +33,7 @@ function buildBreadcrumb(
 export function KeidaiLayout() {
   const { pathname } = useLocation();
   const current = resolveAppNav(pathname);
-  const section = resolveAppSection(pathname);
+  const navSection = resolveAppNavSection(pathname);
   const onFudaAgentsRoute = isFudaAgentsRoute(pathname);
   const suppressHeader =
     onFudaAgentsRoute || !current || current.suppressPageHeader;
@@ -37,7 +43,7 @@ export function KeidaiLayout() {
       <OperatorAuthGate>
         <OAuthLinkProvider>
           <AppShell
-            breadcrumb={buildBreadcrumb(pathname, section, current)}
+            breadcrumb={buildBreadcrumb(pathname, navSection, current)}
             pageHeader={
               suppressHeader || !current
                 ? undefined

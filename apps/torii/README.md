@@ -1,16 +1,20 @@
 # ⛩️ Torii — MCP Gateway
 
-Torii is the MCP gateway component of [Keidai](https://app.notion.com/p/Keidai-Agent-Platform-38307ec181ff815b8276d59d005fd612) — the agent ecosystem monorepo. One endpoint for agents, fan-out to many backends. v0 is a long-lived proxy process + a config file, with structured traces to stdout/OTel and structured operational logs to stderr.
+Torii is Keidai's MCP gateway and control plane. It offers one endpoint for
+agents and fans out to many backends. Its boot-time config declares backend
+connections; Postgres stores OAuth state, group policy, approval records, and
+call traces.
 
 **Keidai** (境内) is the umbrella; **Torii** (鳥居, the gate) is this service. Torii owns access control and credential lifecycle at the MCP boundary. Agent identity (Fuda/AIdP) and execution (Shaiden/Runtime) live elsewhere in Keidai.
 
-Design docs: [Torii — MCP Gateway](https://app.notion.com/p/38307ec181ff80e49dd8ff384139f8b2) · [Keidai — Agent Ecosystem](https://app.notion.com/p/38307ec181ff815b8276d59d005fd612)
+For public component boundaries and credential flow, see
+[Keidai architecture](../../docs/architecture.md).
 
 ## Stack
 
 - **Runtime:** Node.js 24 (LTS)
 - **Framework:** TypeScript, Fastify, tsyringe, official MCP SDK
-- **Config:** `torii.yaml` at boot — no database
+- **Config:** `torii.yaml` at boot plus required Postgres persistence
 - **Shared types:** `@keidai/shared` (`packages/shared`)
 
 ## Layout
@@ -27,7 +31,7 @@ src/
   logging/      # structured operational logs (stderr)
   identity/     # inbound agent identity (Fuda JWT, validated offline against JWKS)
   storage/      # Postgres schema and connection
-  http/         # Fastify server assembly, health, keidai-ui static serving
+  http/         # Fastify server assembly and health endpoints
   mcp/          # inbound gateway MCP server (Fastify + SDK)
   container.ts  # tsyringe registrations
   index.ts      # process entry / boot sequence
@@ -73,7 +77,6 @@ pnpm --filter @keidai/torii start
 | `TORII_CONFIG_PATH` | `./torii.yaml` | Gateway config file |
 | `TORII_PORT` | `3100` (falls back to `PORT`) | HTTP listen port |
 | `TORII_HOST` | `127.0.0.1` | HTTP bind address |
-| `TORII_UI_CLIENT_ROOT` | — | Legacy: path to built keidai-ui client (`dist/client`). Prefer the keidai-ui BFF as the public edge; leave unset in compose/k8s |
 | `TORII_DATABASE_URL` | — | Required. Postgres connection string (OAuth tokens, provider clients, call traces, approval ledger) |
 | `TORII_OPERATORS_PATH` | — | Optional `operators.yaml`. When set, boot wipes OAuth tokens and pending links for `owner_id`s absent from the registry. Unset is a no-op (never wipe without a registry). Compose/k8s pin this to the mounted operators file |
 | `TORII_GATEWAY_BASE_URL` | — | Stable **public** base URL for OAuth callbacks (overrides per-request Host derivation). With the BFF edge, set this to the BFF origin (e.g. `http://localhost:3000`), not Torii's ClusterIP/`localhost:3100` |
@@ -161,6 +164,19 @@ pnpm --filter @keidai/torii dev:inspect
 ```
 
 This launches [@modelcontextprotocol/inspector](https://github.com/modelcontextprotocol/inspector) via a local auth shim that injects `Authorization: Bearer <DEMO_AGENT_BEARER>` on every request to Torii. The bearer must be a Fuda-minted agent JWT (or a local demo token accepted by your Fuda subject validator). Without it, Torii returns `401` and the Inspector incorrectly attempts MCP OAuth — you will see **OAuth Authentication Failed**.
+
+To mint a development token, create an agent through keidai-ui (or Fuda's
+management API), then exchange a subject token with Fuda:
+
+```bash
+curl -sS http://127.0.0.1:3300/token \
+  -H 'content-type: application/json' \
+  --data "{\"subject_token\":\"$SHAIDEN_BEARER\",\"agent_id\":\"<agent-id>\"}"
+```
+
+Export the returned `access_token` as `DEMO_AGENT_BEARER`. The agent must have
+a grant for the subject's bearer (agents created through keidai-ui receive the
+`shaiden-runner` grant automatically). Tokens expire in five minutes.
 
 The Inspector UI opens automatically at `http://localhost:6274` (or prints the URL with a session token). Torii's MCP endpoint defaults to `http://127.0.0.1:3100/mcp`; override with `TORII_HOST` / `TORII_PORT` if needed.
 

@@ -71,8 +71,7 @@ Traces (`call_traces`) and Shaiden `run_steps` are weekly range-partitioned;
 partitions older than 7 days are dropped (`KEIDAI_PARTITION_RETENTION_DAYS`).
 Torii runs two replicas behind ClusterIP `service/torii` (see
 [Torii replicas](#torii-replicas)). Fuda, Shaiden, keidai-ui, and Postgres
-stay at 1. High availability (CloudNativePG, standby, object-storage PITR)
-is a later GCP deploy (NAT-160), not this local overlay.
+stay at 1. Cloud production high availability is outside this local overlay.
 
 Wiping the `postgres-data` PVC (or deleting the kind node) resets local data.
 There is no SQLite dump converter.
@@ -154,10 +153,12 @@ Expect two Ready pods and `ClusterIP None`.
 
 Then:
 
-1. Start a Shaiden run that parks on a gated tool (`gmail.create_draft` for
-   agent `shaiden-newsletter-01` in the demo config). Approve it from the UI
-   while both Torii pods are Ready. The run should finish even if approve and
-   `tasks/get` hit different pods (check each pod's logs for the request).
+1. Before this test, create agent `shaiden-newsletter-01`, assign it the demo
+   group that gates `gmail.create_draft`, and link the required Gmail OAuth
+   account. Then start a Shaiden run that parks on that tool. Approve it from
+   the UI while both Torii pods are Ready. The run should finish even if
+   approve and `tasks/get` hit different pods (check each pod's logs for the
+   request).
 2. Park another gated run, delete **one** Torii pod, then approve. The
    remaining pod should still see the approval and MCP task; the run should
    finish. Deployment will recreate the deleted pod.
@@ -218,7 +219,6 @@ the BFF all mount that file at boot.
 - Postgres is a single Deployment + PVC. Do not set `*_DB_PATH`.
 - Torii is `replicas: 2` behind ClusterIP with no session affinity; other
   apps stay at 1.
-- Do not set `TORII_UI_CLIENT_ROOT` — the UI is served by keidai-ui only.
 - `TORII_GATEWAY_BASE_URL=http://localhost:3000` so backend OAuth initiate
   returns BFF-origin callbacks.
 - Management APIs require `BFF_SERVICE_TOKEN` (set in `secrets.env`);

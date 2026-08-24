@@ -343,6 +343,191 @@ describe("createServer", () => {
     }
   });
 
+  it("serves aggregated home digest from the BFF UI route", async () => {
+    const toriiBackend = createHttpServer((req, res) => {
+      if (req.url === "/api/approvals?limit=200") {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(
+          JSON.stringify([
+            {
+              id: "approval-1",
+              agentId: "agent-1",
+              ownerId: "owner-a",
+              toolName: "gmail.send_email",
+              params: { to: "team@example.com" },
+              runId: "run-parked",
+              status: "pending",
+              createdAt: "2026-01-01T00:00:00.000Z",
+              expiresAt: "2026-01-02T00:00:00.000Z",
+            },
+          ]),
+        );
+        return;
+      }
+      if (req.url === "/api/groups") {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ groups: [] }));
+        return;
+      }
+      res.writeHead(404).end();
+    });
+
+    const fudaBackend = createHttpServer((req, res) => {
+      if (req.url === "/api/agents") {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(
+          JSON.stringify({
+            agents: [
+              {
+                id: "agent-1",
+                name: "Demo Agent",
+                slug: "demo-agent",
+                ownerId: "owner-a",
+                groups: ["ops"],
+                persona: "Demo persona",
+                currentPersonaVersion: 1,
+                createdAt: "2026-01-01T00:00:00.000Z",
+                updatedAt: "2026-01-01T00:00:00.000Z",
+              },
+            ],
+          }),
+        );
+        return;
+      }
+      res.writeHead(404).end();
+    });
+
+    const shaidenBackend = createHttpServer((req, res) => {
+      if (req.url === "/api/runs?limit=200") {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(
+          JSON.stringify({
+            runs: [
+              {
+                id: "run-parked",
+                taskId: "task-1",
+                startedAt: "2026-01-01T00:00:00.000Z",
+                assignee: "agent-1",
+                goalPreview: "Parked task",
+                status: "running",
+                stepCount: 1,
+              },
+              {
+                id: "run-live",
+                taskId: "task-2",
+                startedAt: "2026-01-01T00:00:00.000Z",
+                assignee: "agent-1",
+                goalPreview: "Live task",
+                status: "running",
+                stepCount: 2,
+              },
+            ],
+          }),
+        );
+        return;
+      }
+      if (req.url === "/api/tasks?limit=200") {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ tasks: [] }));
+        return;
+      }
+      if (req.url === "/api/runs/run-live") {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(
+          JSON.stringify({
+            id: "run-live",
+            taskId: "task-2",
+            startedAt: "2026-01-01T00:00:00.000Z",
+            assignee: "agent-1",
+            goalPreview: "Live task",
+            status: "running",
+            stepCount: 2,
+            task: {
+              goal: "Live task",
+              trigger: { type: "now" },
+              assignee: "agent-1",
+              limits: { max_iterations: 10, timeout_seconds: 600 },
+            },
+            steps: [
+              {
+                id: "step-1",
+                kind: "model",
+                timestamp: "2026-01-01T00:00:00.000Z",
+                text: "Working on it",
+              },
+            ],
+          }),
+        );
+        return;
+      }
+      res.writeHead(404).end();
+    });
+
+    await Promise.all([
+      new Promise<void>((resolve) => toriiBackend.listen(0, "127.0.0.1", resolve)),
+      new Promise<void>((resolve) => fudaBackend.listen(0, "127.0.0.1", resolve)),
+      new Promise<void>((resolve) =>
+        shaidenBackend.listen(0, "127.0.0.1", resolve),
+      ),
+    ]);
+
+    const toriiAddress = toriiBackend.address();
+    const fudaAddress = fudaBackend.address();
+    const shaidenAddress = shaidenBackend.address();
+    assert(toriiAddress && typeof toriiAddress === "object");
+    assert(fudaAddress && typeof fudaAddress === "object");
+    assert(shaidenAddress && typeof shaidenAddress === "object");
+
+    const uiApp = await createServer({
+      auth: false,
+      bffServiceToken: null,
+      backends: {
+        torii: `http://127.0.0.1:${toriiAddress.port}`,
+        fuda: `http://127.0.0.1:${fudaAddress.port}`,
+        shaiden: `http://127.0.0.1:${shaidenAddress.port}`,
+      },
+    });
+    await uiApp.listen({ port: 0, host: "127.0.0.1" });
+
+    try {
+      const address = uiApp.server.address();
+      assert(address && typeof address === "object");
+      const response = await fetch(
+        `http://127.0.0.1:${address.port}/api/ui/home/digest`,
+      );
+      assert.equal(response.status, 200);
+
+      const body = (await response.json()) as {
+        approvals: Array<{ id: string }>;
+        runs: Array<{
+          id: string;
+          assigneeDisplay: { displayName: string } | null;
+        }>;
+        runReports: Record<string, { id: string }>;
+        agents: Array<{ slug: string }>;
+      };
+      assert.equal(body.approvals.length, 1);
+      assert.equal(body.runs.length, 2);
+      assert.equal(body.runs[1]?.assigneeDisplay?.displayName, "Demo Agent");
+      assert.equal(body.runReports["run-live"]?.id, "run-live");
+      assert.equal(body.runReports["run-parked"], undefined);
+      assert.equal(body.agents[0]?.slug, "demo-agent");
+    } finally {
+      await uiApp.close();
+      await Promise.all([
+        new Promise<void>((resolve, reject) => {
+          toriiBackend.close((error) => (error ? reject(error) : resolve()));
+        }),
+        new Promise<void>((resolve, reject) => {
+          fudaBackend.close((error) => (error ? reject(error) : resolve()));
+        }),
+        new Promise<void>((resolve, reject) => {
+          shaidenBackend.close((error) => (error ? reject(error) : resolve()));
+        }),
+      ]);
+    }
+  });
+
   it("injects BFF_SERVICE_TOKEN on proxied management API requests", async () => {
     let seenAuthorization: string | string[] | undefined;
     const tokenBackend = createHttpServer((req, res) => {

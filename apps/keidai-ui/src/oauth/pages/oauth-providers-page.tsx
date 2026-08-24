@@ -1,0 +1,116 @@
+import { useCallback, useMemo } from "react";
+import type { OAuthConnectionStatus } from "@keidai/shared";
+import { useActingOwner } from "../../shell/hooks/use-acting-owner.js";
+import { useFetchAgents } from "../../lib/hooks/use-fetch-agents.js";
+import { useFetchOAuthConnections } from "../../lib/hooks/use-fetch-oauth-connections.js";
+import { useFetchOAuthProviders } from "../../lib/hooks/use-fetch-oauth-providers.js";
+import { buildOAuthProviderSummaries } from "../utils/build-oauth-provider-summaries.js";
+import { buildToriiOAuthCallbackUrl } from "../utils/build-torii-oauth-callback-url.js";
+import { resolveOAuthProviderOwnerIds } from "../utils/resolve-oauth-provider-owner-ids.js";
+import { useOAuthLink } from "../context/use-oauth-link.js";
+import { OAuthProvidersView } from "../oauth-providers-view.js";
+
+export function OAuthProvidersPage() {
+  const {
+    data: providersData,
+    error: providersError,
+    isLoading: providersLoading,
+  } = useFetchOAuthProviders();
+
+  const {
+    data: agentsData,
+    error: agentsError,
+    isLoading: agentsLoading,
+  } = useFetchAgents();
+
+  const { owner } = useActingOwner();
+
+  const ownerIds = useMemo(
+    () =>
+      resolveOAuthProviderOwnerIds(
+        owner?.ownerId,
+        (agentsData?.agents ?? []).map((agent) => agent.ownerId),
+      ),
+    [agentsData, owner?.ownerId],
+  );
+
+  const {
+    data: connectionsByOwner,
+    error: connectionsError,
+    isLoading: connectionsLoading,
+    patchOwnerConnections,
+    refresh: refreshConnections,
+  } = useFetchOAuthConnections(ownerIds);
+
+  const handleLinkCompleted = useCallback(
+    async (ownerId: string, connections: OAuthConnectionStatus[]) => {
+      await patchOwnerConnections(ownerId, connections);
+      await refreshConnections();
+    },
+    [patchOwnerConnections, refreshConnections],
+  );
+
+  const linkDialog = useOAuthLink();
+
+  const isLoading =
+    providersLoading ||
+    agentsLoading ||
+    (ownerIds.length > 0 && connectionsLoading && !connectionsByOwner);
+
+  const error = providersError ?? agentsError ?? connectionsError;
+
+  const summaries = useMemo(
+    () =>
+      buildOAuthProviderSummaries(
+        providersData?.providers ?? {},
+        ownerIds,
+        connectionsByOwner ?? new Map(),
+      ),
+    [connectionsByOwner, ownerIds, providersData],
+  );
+
+  const handleLinkProvider = useCallback(
+    (providerId: string) => {
+      if (!owner) {
+        return;
+      }
+      const summary = summaries.find((entry) => entry.id === providerId);
+      if (!summary || summary.aggregateStatus === "misconfigured") {
+        return;
+      }
+
+      linkDialog.openLink(
+        {
+          providerId,
+          providerLabel: summary.label,
+          ownerId: owner.ownerId,
+          scopes: summary.config.scopes,
+          redirectUri: buildToriiOAuthCallbackUrl(providerId),
+        },
+        { onLinked: handleLinkCompleted },
+      );
+    },
+    [handleLinkCompleted, linkDialog, owner, summaries],
+  );
+
+  if (isLoading && !providersData) {
+    return (
+      <p className="text-sm text-muted-foreground">Loading OAuth providers…</p>
+    );
+  }
+
+  if (error) {
+    return (
+      <p className="text-sm text-destructive">
+        Could not load OAuth provider configuration from the gateway.
+      </p>
+    );
+  }
+
+  return (
+    <OAuthProvidersView
+      providers={summaries}
+      onLinkProvider={handleLinkProvider}
+    />
+  );
+}

@@ -16,6 +16,7 @@ export const AGENTS_PATH = "/agents";
 export const TASKS_PATH = "/tasks";
 export const RUNS_PATH = "/runs";
 export const APPROVALS_PATH = "/approvals";
+export const APPROVAL_ID_PARAM = "approval";
 export const ACTIVITY_PATH = "/activity";
 export const CONFIGURE_PATH = "/configure";
 export const CONNECTIONS_PATH = "/configure/connections";
@@ -36,12 +37,25 @@ export interface AppNavItem {
   isActive: (pathname: string) => boolean;
 }
 
+export interface AppNavSection {
+  id: string;
+  label: string;
+  mode: NavMode;
+  items: AppNavItem[];
+}
+
 function exact(path: string): (pathname: string) => boolean {
   return (pathname) => pathname === path;
 }
 
 function prefix(path: string): (pathname: string) => boolean {
   return (pathname) => pathname === path || pathname.startsWith(`${path}/`);
+}
+
+function isConfigurePath(pathname: string): boolean {
+  return (
+    pathname === CONFIGURE_PATH || pathname.startsWith(`${CONFIGURE_PATH}/`)
+  );
 }
 
 export const homeNavItem: AppNavItem = {
@@ -51,6 +65,7 @@ export const homeNavItem: AppNavItem = {
   description: "What needs you, what's running, and whether the work succeeded.",
   icon: House,
   showRefresh: false,
+  suppressPageHeader: true,
   isActive: exact(HOME_PATH),
 };
 
@@ -93,6 +108,9 @@ export const operateNavItems: AppNavItem[] = [
     icon: ShieldCheck,
     isActive: exact(APPROVALS_PATH),
   },
+];
+
+export const observeNavItems: AppNavItem[] = [
   {
     path: ACTIVITY_PATH,
     label: "Gateway activity",
@@ -137,27 +155,63 @@ export const configureNavItems: AppNavItem[] = [
   },
 ];
 
-const allNavItems: AppNavItem[] = [
-  homeNavItem,
-  ...operateNavItems,
-  ...configureNavItems,
+export const workspaceNavSections: AppNavSection[] = [
+  {
+    id: "operate",
+    label: "Operate",
+    mode: "workspace",
+    items: operateNavItems,
+  },
+  {
+    id: "observe",
+    label: "Observe",
+    mode: "workspace",
+    items: observeNavItems,
+  },
 ];
 
-export function resolveNavMode(pathname: string): NavMode {
-  return pathname === CONFIGURE_PATH || pathname.startsWith(`${CONFIGURE_PATH}/`)
-    ? "configure"
-    : "workspace";
-}
+export const configureNavSection: AppNavSection = {
+  id: "configure",
+  label: "Configure",
+  mode: "configure",
+  items: configureNavItems,
+};
+
+const allNavSections: AppNavSection[] = [
+  ...workspaceNavSections,
+  configureNavSection,
+];
+
+const allNavItems: AppNavItem[] = [
+  homeNavItem,
+  ...allNavSections.flatMap((section) => section.items),
+];
 
 export function resolveAppNav(pathname: string): AppNavItem | undefined {
   return allNavItems.find((item) => item.isActive(pathname));
 }
 
-export function resolveAppSection(pathname: string): string {
-  if (resolveNavMode(pathname) === "configure") {
-    return "Configure";
+export function resolveAppNavSection(
+  pathname: string,
+): AppNavSection | undefined {
+  const item = resolveAppNav(pathname);
+  if (item) {
+    return allNavSections.find((section) =>
+      section.items.some((candidate) => candidate.path === item.path),
+    );
   }
-  return "";
+  if (isConfigurePath(pathname)) {
+    return configureNavSection;
+  }
+  return undefined;
+}
+
+export function resolveNavMode(pathname: string): NavMode {
+  return resolveAppNavSection(pathname)?.mode ?? "workspace";
+}
+
+export function resolveAppSection(pathname: string): string {
+  return resolveAppNavSection(pathname)?.label ?? "";
 }
 
 export function isNavItemActive(item: AppNavItem, pathname: string): boolean {

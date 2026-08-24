@@ -1,0 +1,158 @@
+import { Badge, cn, TableCell, TableRow } from "@keidai/ui";
+import type { RunVisibilityListItem } from "../lib/api/runs.js";
+import {
+  CheckCircle2,
+  ChevronRight,
+  CircleStop,
+  CircleX,
+  Pause,
+  Play,
+  RotateCw,
+  Timer,
+  UserX,
+} from "lucide-react";
+import { Link } from "react-router";
+import { taskEditHref } from "./navigation.js";
+import { OwnerAvatar } from "../shell/components/owner-avatar/owner-avatar.js";
+import { deriveRunDisplayStatus } from "./utils/derive-run-display-status.js";
+import { RUN_STATUS_META } from "./utils/format-run-status.js";
+import {
+  formatRunClock,
+  formatRunDuration,
+  formatRunIterations,
+  formatRunRelative,
+} from "./utils/format-run-time.js";
+import { runsTableColumns } from "./runs-table-columns.js";
+
+function StatusIcon({
+  status,
+}: {
+  status: ReturnType<typeof deriveRunDisplayStatus>;
+}) {
+  const className = "size-3";
+  switch (status) {
+    case "running":
+      return <Play className={className} aria-hidden />;
+    case "waiting_approval":
+      return <Pause className={className} aria-hidden />;
+    case "goal_met":
+      return <CheckCircle2 className={className} aria-hidden />;
+    case "failed":
+      return <CircleX className={className} aria-hidden />;
+    case "iteration_exhausted":
+      return <RotateCw className={className} aria-hidden />;
+    case "timeout":
+      return <Timer className={className} aria-hidden />;
+    case "human_reject":
+      return <UserX className={className} aria-hidden />;
+    case "stopped":
+      return <CircleStop className={className} aria-hidden />;
+  }
+}
+
+export function RunsTableRow({
+  run,
+  suspendedRunIds,
+  selected,
+  onOpen,
+}: {
+  run: RunVisibilityListItem;
+  suspendedRunIds: ReadonlySet<string>;
+  selected: boolean;
+  onOpen: (runId: string) => void;
+}) {
+  const status = deriveRunDisplayStatus(run, { suspendedRunIds });
+  const meta = RUN_STATUS_META[status];
+  const assigneeLabel = run.assigneeDisplay?.displayName ?? run.assignee;
+  const assigneeInitials =
+    run.assigneeDisplay?.initials ?? run.assignee.slice(0, 2).toUpperCase();
+
+  return (
+    <TableRow
+      data-state={selected ? "selected" : undefined}
+      className="cursor-pointer border-border hover:bg-muted/30"
+      onClick={() => onOpen(run.id)}
+    >
+      <TableCell
+        className={runsTableColumns.cellClassName("run")}
+        style={runsTableColumns.cellStyle("run")}
+      >
+        <div
+          className="truncate text-[13px] font-semibold"
+          title={run.goalPreview}
+        >
+          {run.goalPreview}
+        </div>
+        <Link
+          to={taskEditHref(run.taskId)}
+          className="mt-0.5 inline truncate font-mono text-[11px] text-muted-foreground hover:underline"
+          title={run.taskId}
+          onClick={(event) => event.stopPropagation()}
+        >
+          task {run.taskId}
+        </Link>
+      </TableCell>
+      <TableCell
+        className={runsTableColumns.cellClassName("started")}
+        style={runsTableColumns.cellStyle("started")}
+      >
+        <div className="truncate font-mono text-[12.5px] text-foreground">
+          {formatRunClock(run.startedAt)}
+        </div>
+        <div className="truncate text-[11px] text-muted-foreground">
+          {formatRunRelative(run.startedAt)}
+        </div>
+      </TableCell>
+      <TableCell
+        className={runsTableColumns.cellClassName("iterations")}
+        style={runsTableColumns.cellStyle("iterations")}
+      >
+        {formatRunIterations(run)}
+      </TableCell>
+      <TableCell
+        className={runsTableColumns.cellClassName("duration")}
+        style={runsTableColumns.cellStyle("duration")}
+      >
+        {formatRunDuration(run)}
+      </TableCell>
+      <TableCell
+        className={runsTableColumns.cellClassName("status")}
+        style={runsTableColumns.cellStyle("status")}
+      >
+        <Badge
+          variant="outline"
+          className={cn(
+            "max-w-full gap-1 truncate font-normal",
+            meta.badgeClass,
+          )}
+        >
+          <StatusIcon status={status} />
+          <span className="truncate">{meta.label}</span>
+        </Badge>
+      </TableCell>
+      <TableCell
+        className={runsTableColumns.cellClassName("agent")}
+        style={runsTableColumns.cellStyle("agent")}
+      >
+        <div className="flex min-w-0 items-center gap-2">
+          <OwnerAvatar
+            initials={assigneeInitials}
+            className="size-5.5 shrink-0 bg-secondary text-[9px] text-secondary-foreground"
+          />
+          <span className="truncate text-xs" title={run.assignee}>
+            {assigneeLabel}
+          </span>
+        </div>
+      </TableCell>
+      <TableCell
+        className={runsTableColumns.cellClassName("chevron")}
+        style={runsTableColumns.cellStyle("chevron")}
+      >
+        <ChevronRight
+          className="ml-auto size-3.5 shrink-0 text-muted-foreground"
+          aria-hidden
+        />
+      </TableCell>
+    </TableRow>
+  );
+}

@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 
-export type SidebarNavSection = "operate" | "configure";
+export type SidebarNavSection = "operate" | "observe" | "configure";
 
 export function sidebarNav(page: Page) {
   return page.getByTestId("sidebar-nav");
