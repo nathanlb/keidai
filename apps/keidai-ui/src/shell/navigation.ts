@@ -132,7 +132,8 @@ export const configureNavItems: AppNavItem[] = [
       "Which tools each group may use, and which agents inherit that policy.",
     icon: UsersRound,
     showRefresh: false,
-    isActive: exact(GROUPS_PATH),
+    suppressPageHeader: true,
+    isActive: prefix(GROUPS_PATH),
   },
 ];
 

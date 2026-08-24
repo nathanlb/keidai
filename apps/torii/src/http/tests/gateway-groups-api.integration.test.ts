@@ -86,6 +86,7 @@ describe("Gateway /api/groups", () => {
       assert.deepEqual(servers.servers[0]?.policy, {
         default: "deny",
         allow: ["create_draft", "list_drafts"],
+        gated: ["create_draft"],
       });
 
       const getResponse = await fetch(

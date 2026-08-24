@@ -21,15 +21,11 @@ export function SidebarPanel({
 
   return (
     <>
-      <div className="box-border flex h-[58px] shrink-0 items-center gap-2.5 border-b border-sidebar-border px-3.5">
-        <KeidaiLogo
-          size={30}
-          title=""
-          className="size-[30px] shrink-0 rounded-lg"
-        />
+      <div className="box-border flex h-14.5 shrink-0 items-center gap-2.5 border-b border-sidebar-border px-3.5">
+        <KeidaiLogo size={28} title="" className="shrink-0" />
         <div className="min-w-0 leading-tight">
           <div className="text-[13.5px] font-semibold text-sidebar-foreground">
-            keidai
+            Keidai
           </div>
           <div className="text-[11px] text-muted-foreground">{subtitle}</div>
         </div>
@@ -54,7 +50,7 @@ interface SidebarProps extends SidebarPanelProps {}
 
 export function Sidebar(props: SidebarProps) {
   return (
-    <aside className="hidden w-[248px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex">
+    <aside className="hidden w-62 shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex">
       <SidebarPanel {...props} />
     </aside>
   );

@@ -100,6 +100,42 @@ describe("project-config-api", () => {
     });
   });
 
+  it("projects default allow, deny, and gated lists from group policy", () => {
+    const projected = projectPublicServer(fullConfig.servers[0]!, [
+      {
+        name: "readers",
+        servers: [
+          {
+            server: "linear",
+            default: "allow",
+            allow: [],
+            deny: ["delete_issue"],
+            gated: ["create_issue"],
+          },
+        ],
+      },
+      {
+        name: "writers",
+        servers: [
+          {
+            server: "linear",
+            default: "deny",
+            allow: ["list_issues"],
+            deny: [],
+            gated: [],
+          },
+        ],
+      },
+    ]);
+
+    assert.deepEqual(projected.policy, {
+      default: "allow",
+      allow: ["list_issues"],
+      deny: ["delete_issue"],
+      gated: ["create_issue"],
+    });
+  });
+
   it("projects group definitions without exposing permissions", () => {
     const result = projectConfigGroups(fullConfig);
 

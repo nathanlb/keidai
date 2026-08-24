@@ -16,6 +16,7 @@ import {
 import { useFetchServerTools } from "../../shell/hooks/use-fetch-server-tools.js";
 import { useConnectionsPage } from "./context/use-connections-page.js";
 import { formatPolicySummary } from "./utils/format-policy-summary.js";
+import { ToolDescription } from "../components/tool-description.js";
 
 function ConnectionStatusBadge({
   state,
@@ -104,9 +105,10 @@ function ToolListItem({ tool }: { tool: ServerToolView }) {
       <div className="min-w-0">
         <div className="font-mono text-[13px] font-semibold">{tool.name}</div>
         {tool.description ? (
-          <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
-            {tool.description}
-          </p>
+          <ToolDescription
+            text={tool.description}
+            className="mt-1 text-[12px]"
+          />
         ) : null}
       </div>
       <Badge
@@ -176,6 +178,8 @@ export function ConnectionDetailDrawer() {
   const isReconnecting = isServerReconnecting(summary.name);
   const policySummary = formatPolicySummary(server.policy);
   const allowedTools = server.policy.allow ?? [];
+  const gatedTools = server.policy.gated ?? [];
+  const deniedTools = server.policy.deny ?? [];
   const needsLink = summary.rowAction === "link" && summary.linkProviderId;
   const credentialSubStatus = summary.credentialSubStatus;
   const credentialDetailDestructive =
@@ -272,12 +276,30 @@ export function ConnectionDetailDrawer() {
           <p className="font-mono text-[12.5px] text-muted-foreground">
             {policySummary}
           </p>
-          {allowedTools.length > 0 ? (
+          {allowedTools.length + gatedTools.length + deniedTools.length > 0 ? (
             <div className="mt-2.5 flex flex-wrap gap-1.5">
               {allowedTools.map((toolName) => (
                 <Badge
-                  key={toolName}
+                  key={`allow-${toolName}`}
                   variant="outline"
+                  className="font-mono text-[11px] font-normal"
+                >
+                  {toolName}
+                </Badge>
+              ))}
+              {gatedTools.map((toolName) => (
+                <Badge
+                  key={`gated-${toolName}`}
+                  variant="warning"
+                  className="font-mono text-[11px] font-normal"
+                >
+                  {toolName}
+                </Badge>
+              ))}
+              {deniedTools.map((toolName) => (
+                <Badge
+                  key={`deny-${toolName}`}
+                  variant="destructive"
                   className="font-mono text-[11px] font-normal"
                 >
                   {toolName}

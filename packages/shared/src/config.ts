@@ -32,6 +32,7 @@ export interface PolicyConfig {
   default: "allow" | "deny";
   allow?: string[];
   deny?: string[];
+  gated?: string[];
 }
 
 /** Tool grants a group confers on one backend server. */

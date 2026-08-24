@@ -1,10 +1,18 @@
 import { Button, Input } from "@keidai/ui";
-import { Circle, CircleCheckBig, TriangleAlert, UsersRound } from "lucide-react";
+import {
+  Circle,
+  CircleCheckBig,
+  TriangleAlert,
+  UsersRound,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import type { ToriiGroupDefinition } from "../../torii/api/torii-client.js";
 import type { ManagementAgent } from "../api/fuda-client.js";
 import { AgentGroupChip } from "./components/agent-group-chip.js";
-import { collectUnknownGroups, isKnownGroup } from "./utils/collect-unknown-groups.js";
+import {
+  collectUnknownGroups,
+  isKnownGroup,
+} from "./utils/collect-unknown-groups.js";
 
 export interface AgentGroupsPanelProps {
   agent: ManagementAgent;
@@ -65,15 +73,14 @@ export function AgentGroupsPanel({
   return (
     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_296px]">
       <div className="overflow-hidden rounded-xl border border-border bg-card">
-        <div className="border-b border-border px-[18px] py-3.5">
+        <div className="border-b border-border px-4.5 py-3.5">
           <div className="text-sm font-semibold">Groups</div>
           <div className="mt-0.5 text-xs text-muted-foreground">
-            Torii keys its policy on these strings. Fuda stores them as
-            written.
+            Torii keys its policy on these strings. Fuda stores them as written.
           </div>
         </div>
 
-        <div className="px-[18px] py-4">
+        <div className="px-4.5 py-4">
           <div className="flex flex-wrap gap-1.5">
             {agent.groups.length > 0 ? (
               agent.groups.map((group) => (
@@ -96,7 +103,7 @@ export function AgentGroupsPanel({
               value={groupInput}
               onChange={(event) => setGroupInput(event.target.value)}
               placeholder="Add a group…"
-              className="h-9 max-w-[280px]"
+              className="h-9 max-w-70"
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
                   event.preventDefault();
@@ -119,7 +126,7 @@ export function AgentGroupsPanel({
           {unknownGroups.length > 0 ? (
             <div className="mt-4 flex items-start gap-2.5 rounded-md border border-amber-500/45 bg-amber-500/10 px-3.5 py-2.5 text-[13px] leading-normal">
               <TriangleAlert
-                className="mt-0.5 size-[15px] shrink-0 text-amber-500"
+                className="mt-0.5 size-3.75 shrink-0 text-amber-500"
                 aria-hidden
               />
               <span>
@@ -135,13 +142,13 @@ export function AgentGroupsPanel({
       </div>
 
       <div className="overflow-hidden rounded-xl border border-border bg-card">
-        <div className="flex items-center gap-2 border-b border-border px-[15px] py-3">
+        <div className="flex items-center gap-2 border-b border-border px-3.75 py-3">
           <UsersRound className="size-3.5 text-muted-foreground" aria-hidden />
           <div className="text-[13px] font-semibold">Defined in Torii</div>
         </div>
         <div className="flex flex-col">
           {toriiGroups.length === 0 ? (
-            <p className="px-[15px] py-3 text-[12.5px] text-muted-foreground">
+            <p className="px-3.75 py-3 text-[12.5px] text-muted-foreground">
               No group definitions available yet.
             </p>
           ) : (
@@ -152,16 +159,16 @@ export function AgentGroupsPanel({
                   type="button"
                   key={group.name}
                   onClick={() => void handleToggleTorii(group.name)}
-                  className="flex items-center gap-2.5 border-b border-border px-[15px] py-2.5 text-left hover:bg-muted/30"
+                  className="flex items-center gap-2.5 border-b border-border px-3.75 py-2.5 text-left hover:bg-muted/30"
                 >
                   {isMember ? (
                     <CircleCheckBig
-                      className="size-[15px] shrink-0 text-(--green-600)"
+                      className="size-3.75 shrink-0 text-(--green-600)"
                       aria-hidden
                     />
                   ) : (
                     <Circle
-                      className="size-[15px] shrink-0 text-muted-foreground"
+                      className="size-3.75 shrink-0 text-muted-foreground"
                       aria-hidden
                     />
                   )}
@@ -176,9 +183,9 @@ export function AgentGroupsPanel({
             })
           )}
         </div>
-        <div className="px-[15px] py-2.5 text-[11.5px] leading-normal text-muted-foreground">
-          Read from Torii&apos;s policy file. A soft join — Fuda does not
-          validate group names on write.
+        <div className="px-3.75 py-2.5 text-[11.5px] leading-normal text-muted-foreground">
+          Authored on Groups &amp; tools. A soft join — Fuda does not validate
+          group names on write.
         </div>
       </div>
     </div>

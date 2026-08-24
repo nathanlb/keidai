@@ -4,6 +4,7 @@ import type {
   ConfigOAuthProvidersResponse,
   ConfigServersResponse,
   ConnectionsResponse,
+  GroupView,
   OAuthConnectionsResponse,
   OAuthInitiateResponse,
   ServerToolsResponse,
@@ -53,6 +54,8 @@ export interface MockToriiConfig {
   fudaPersonaVersions?: Record<string, PersonaVersion[]>;
   /** NAT-124 (Torii group definitions) — defaults to an empty known set. */
   toriiGroups?: ToriiGroupDefinition[];
+  /** NAT-179 group policy records. When omitted, derived from `toriiGroups`. */
+  toriiGroupPolicies?: GroupView[];
   fudaHealthy?: boolean;
 }
 
@@ -89,6 +92,7 @@ export async function mockToriiConfig(
     fudaGrants = [],
     fudaPersonaVersions = {},
     toriiGroups = [],
+    toriiGroupPolicies,
     fudaHealthy = healthy,
   }: MockToriiConfig = {},
 ): Promise<void> {
@@ -111,6 +115,28 @@ export async function mockToriiConfig(
   }
   const bearerState: Bearer[] = fudaBearers.map((bearer) => ({ ...bearer }));
   const grantState: Grant[] = fudaGrants.map((grant) => ({ ...grant }));
+  const now = "2026-08-01T00:00:00.000Z";
+  const groupState: GroupView[] = (
+    toriiGroupPolicies ??
+    toriiGroups.map((group, index) => ({
+      id: `grp-${index + 1}`,
+      name: group.name,
+      description: group.description,
+      createdAt: now,
+      updatedAt: now,
+      servers: [],
+    }))
+  ).map((group) => ({
+    ...group,
+    servers: group.servers.map((policy) => ({ ...policy })),
+  }));
+
+  function pickerGroups() {
+    return groupState.map((group) => ({
+      name: group.name,
+      description: group.description,
+    }));
+  }
 
   // E2E runs Vite without the API-only BFF; fulfill a session so
   // OperatorAuthGate + useActingOwner see a valid operator principal
@@ -602,7 +628,87 @@ export async function mockToriiConfig(
   });
 
   await page.route("**/api/config/groups", async (route) => {
-    await route.fulfill({ json: { groups: toriiGroups } });
+    await route.fulfill({ json: { groups: pickerGroups() } });
+  });
+
+  await page.route(/\/api\/groups\/[^/]+$/, async (route) => {
+    const url = new URL(route.request().url());
+    const id = decodeURIComponent(url.pathname.split("/").at(-1) ?? "");
+    const method = route.request().method();
+    const index = groupState.findIndex((group) => group.id === id);
+
+    if (method === "GET") {
+      if (index === -1) {
+        await route.fulfill({ status: 404, json: { error: "group not found" } });
+        return;
+      }
+      await route.fulfill({ json: { group: groupState[index] } });
+      return;
+    }
+
+    if (method === "PATCH") {
+      if (index === -1) {
+        await route.fulfill({ status: 404, json: { error: "group not found" } });
+        return;
+      }
+      const body = route.request().postDataJSON() as {
+        description?: string;
+        servers?: GroupView["servers"];
+      };
+      const current = groupState[index]!;
+      const next: GroupView = {
+        ...current,
+        description: body.description ?? current.description,
+        servers: body.servers ?? current.servers,
+        updatedAt: new Date().toISOString(),
+      };
+      groupState[index] = next;
+      await route.fulfill({ json: { group: next } });
+      return;
+    }
+
+    if (method === "DELETE") {
+      if (index === -1) {
+        await route.fulfill({ status: 404, json: { error: "group not found" } });
+        return;
+      }
+      groupState.splice(index, 1);
+      await route.fulfill({ status: 204, body: "" });
+      return;
+    }
+
+    await route.continue();
+  });
+
+  await page.route(/\/api\/groups(\?|$)/, async (route) => {
+    if (route.request().method() === "POST") {
+      const body = route.request().postDataJSON() as {
+        name: string;
+        description?: string;
+        servers?: GroupView["servers"];
+      };
+      if (groupState.some((group) => group.name === body.name)) {
+        await route.fulfill({
+          status: 409,
+          json: { error: "group name already exists" },
+        });
+        return;
+      }
+      const createdAt = new Date().toISOString();
+      const group: GroupView = {
+        id: `grp-${groupState.length + 1}`,
+        name: body.name,
+        description: body.description ?? "",
+        createdAt,
+        updatedAt: createdAt,
+        servers: body.servers ?? [],
+      };
+      groupState.push(group);
+      await route.fulfill({ status: 201, json: { group } });
+      return;
+    }
+
+    await route.fulfill({ json: { groups: groupState } });
   });
 
   await page.route(/\/api\/agents\/slugs\/[^/]+\/availability$/, async (route) => {

@@ -39,6 +39,9 @@ describe("resolveAppNav", () => {
     expect(resolveAppNav("/configure/connections")?.label).toBe("Connections");
     expect(resolveAppNav("/configure/providers")?.label).toBe("OAuth providers");
     expect(resolveAppNav("/configure/groups")?.label).toBe("Groups & tools");
+    expect(resolveAppNav("/configure/groups/ops-write")?.label).toBe(
+      "Groups & tools",
+    );
     expect(resolveAppSection("/configure/connections")).toBe("Configure");
   });
 

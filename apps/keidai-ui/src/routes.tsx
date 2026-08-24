@@ -70,6 +70,22 @@ export const router = createBrowserRouter([
         },
       },
       {
+        path: "configure/groups/new",
+        lazy: async () => {
+          const { GroupCreatePage } =
+            await import("./torii/pages/group-create-page.js");
+          return { Component: GroupCreatePage };
+        },
+      },
+      {
+        path: "configure/groups/:name",
+        lazy: async () => {
+          const { GroupDetailPage } =
+            await import("./torii/pages/group-detail-page.js");
+          return { Component: GroupDetailPage };
+        },
+      },
+      {
         path: "agents",
         lazy: async () => {
           const { AgentsPage } = await import("./fuda/pages/agents-page.js");

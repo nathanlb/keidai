@@ -5,6 +5,10 @@ import type {
   ConfigOAuthProvidersResponse,
   ConfigServersResponse,
   ConnectionsResponse,
+  CreateGroupRequest,
+  GroupResponse,
+  GroupsResponse,
+  GroupView,
   OAuthConnectionsResponse,
   OAuthInitiateResponse,
   PublicGroupDefinition,
@@ -13,6 +17,7 @@ import type {
   TraceListQuery,
   TraceStatsResponse,
   TracesResponse,
+  UpdateGroupRequest,
 } from "@keidai/shared";
 
 import type { ServiceHealth } from "../../shell/types/service-health.js";
@@ -46,10 +51,41 @@ export function getToriiOrigin(): string {
   return "http://localhost:3000";
 }
 
+async function readErrorMessage(
+  response: Response,
+  fallback: string,
+): Promise<string> {
+  const body = (await response.json().catch(() => null)) as {
+    error?: string;
+  } | null;
+  return body?.error ?? fallback;
+}
+
 async function fetchJson<T>(path: string): Promise<T> {
   const response = await fetch(path);
   if (!response.ok) {
-    throw new Error(`Gateway request failed: ${response.status}`);
+    throw new Error(
+      await readErrorMessage(
+        response,
+        `Gateway request failed: ${response.status}`,
+      ),
+    );
+  }
+  return (await response.json()) as T;
+}
+
+async function fetchJsonWithBody<T>(
+  path: string,
+  init: RequestInit,
+): Promise<T> {
+  const response = await fetch(path, init);
+  if (!response.ok) {
+    throw new Error(
+      await readErrorMessage(
+        response,
+        `Gateway request failed: ${response.status}`,
+      ),
+    );
   }
   return (await response.json()) as T;
 }
@@ -92,6 +128,57 @@ export async function fetchToriiGroups(): Promise<ToriiGroupsResponse> {
     return await fetchJson<ToriiGroupsResponse>("/api/config/groups");
   } catch {
     return { groups: [] };
+  }
+}
+
+export async function fetchGroups(): Promise<GroupsResponse> {
+  return fetchJson<GroupsResponse>("/api/groups");
+}
+
+export async function fetchGroup(id: string): Promise<GroupView> {
+  const response = await fetchJson<GroupResponse>(
+    `/api/groups/${encodeURIComponent(id)}`,
+  );
+  return response.group;
+}
+
+export async function createGroup(
+  body: CreateGroupRequest,
+): Promise<GroupView> {
+  const response = await fetchJsonWithBody<GroupResponse>("/api/groups", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return response.group;
+}
+
+export async function updateGroup(
+  id: string,
+  body: UpdateGroupRequest,
+): Promise<GroupView> {
+  const response = await fetchJsonWithBody<GroupResponse>(
+    `/api/groups/${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
+  return response.group;
+}
+
+export async function deleteGroup(id: string): Promise<void> {
+  const response = await fetch(`/api/groups/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readErrorMessage(
+        response,
+        `Delete group failed: ${response.status}`,
+      ),
+    );
   }
 }
 
