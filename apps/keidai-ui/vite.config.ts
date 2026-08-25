@@ -60,39 +60,38 @@ export default defineConfig({
   build: {
     outDir: "dist/client",
     emptyOutDir: true,
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks(id) {
-          if (!id.includes("node_modules")) {
-            return;
-          }
-
-          if (
-            id.includes("/react-dom/") ||
-            id.includes("/react/") ||
-            id.includes("/react-router") ||
-            id.includes("/scheduler/")
-          ) {
-            return "react-vendor";
-          }
-
-          if (id.includes("/lucide-react/")) {
-            return "icons";
-          }
-
-          if (
-            id.includes("/@radix-ui/") ||
-            id.includes("/@keidai/ui/") ||
-            id.includes("/class-variance-authority/") ||
-            id.includes("/clsx/") ||
-            id.includes("/tailwind-merge/")
-          ) {
-            return "ui-vendor";
-          }
-
-          if (id.includes("/swr/")) {
-            return "swr";
-          }
+        codeSplitting: {
+          groups: [
+            {
+              name: "react-vendor",
+              test: (id) =>
+                id.includes("node_modules") &&
+                (id.includes("/react-dom/") ||
+                  id.includes("/react/") ||
+                  id.includes("/react-router") ||
+                  id.includes("/scheduler/")),
+            },
+            {
+              name: "icons",
+              test: (id) => id.includes("/lucide-react/"),
+            },
+            {
+              name: "ui-vendor",
+              test: (id) =>
+                id.includes("node_modules") &&
+                (id.includes("/@radix-ui/") ||
+                  id.includes("/@keidai/ui/") ||
+                  id.includes("/class-variance-authority/") ||
+                  id.includes("/clsx/") ||
+                  id.includes("/tailwind-merge/")),
+            },
+            {
+              name: "swr",
+              test: (id) => id.includes("/swr/"),
+            },
+          ],
         },
       },
     },
