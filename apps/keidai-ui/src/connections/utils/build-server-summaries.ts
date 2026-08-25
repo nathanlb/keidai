@@ -6,8 +6,6 @@ import type {
   PublicServerConfig,
 } from "@keidai/shared";
 import { formatCredentialSubStatus } from "./format-credential-substatus.js";
-import { formatPolicySummary } from "./format-policy-summary.js";
-import { formatPolicyTooltip } from "./format-policy-tooltip.js";
 
 export type ServerRowAction = "link" | "none";
 
@@ -23,8 +21,6 @@ export interface ServerConnectionSummary {
   endpoint: string;
   credentialStrategy: PublicServerConfig["credential"]["strategy"];
   credentialSubStatus: { label: string; warning: boolean };
-  policySummary: string;
-  policyAllowTooltip?: string;
   toolCount: number | null;
   state: ConnectionState;
   error?: string;
@@ -131,8 +127,6 @@ export function buildServerSummaries(
             : undefined,
           oauthConnection,
         }),
-        policySummary: formatPolicySummary(server.policy),
-        policyAllowTooltip: formatPolicyTooltip(server.policy),
         toolCount:
           state === "connected" && connection?.toolCount !== undefined
             ? connection.toolCount

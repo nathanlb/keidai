@@ -1,8 +1,6 @@
 import type { ServerToolView } from "@keidai/shared";
 import { Badge, Button, cn } from "@keidai/ui";
 import {
-  Ban,
-  Check,
   Link2,
   Loader2,
   RefreshCw,
@@ -15,7 +13,6 @@ import {
 } from "../shell/components/detail-drawer/detail-drawer.js";
 import { useFetchServerTools } from "../lib/hooks/use-fetch-server-tools.js";
 import { useConnectionsPage } from "./context/use-connections-page.js";
-import { formatPolicySummary } from "./utils/format-policy-summary.js";
 import { ToolDescription } from "../lib/components/tool-description.js";
 
 function ConnectionStatusBadge({
@@ -105,57 +102,15 @@ function ToolsPlaceholder({ message }: { message: string }) {
 function ToolListItem({ tool }: { tool: ServerToolView }) {
   return (
     <div className="
-      flex items-start justify-between gap-3 rounded-lg border border-border
-      px-3 py-2.5
+      rounded-lg border border-border px-3 py-2.5
     ">
-      <div className="min-w-0">
-        <div className="font-mono text-[13px] font-semibold">{tool.name}</div>
-        {tool.description ? (
-          <ToolDescription
-            text={tool.description}
-            className="mt-1 text-[12px]"
-          />
-        ) : null}
-      </div>
-      <Badge
-        variant={tool.allowed ? "secondary" : "outline"}
-        className="shrink-0 gap-1 font-normal"
-      >
-        {tool.allowed ? (
-          <Check className="size-2.75" aria-hidden />
-        ) : (
-          <Ban className="size-2.75" aria-hidden />
-        )}
-        {tool.allowed ? "Allowed" : "Blocked"}
-      </Badge>
-    </div>
-  );
-}
-
-function ToolListGroup({
-  label,
-  tools,
-}: {
-  label: string;
-  tools: ServerToolView[];
-}) {
-  if (tools.length === 0) {
-    return null;
-  }
-
-  return (
-    <div>
-      <div className="
-        mb-2 text-[11px] font-semibold tracking-wider text-muted-foreground
-        uppercase
-      ">
-        {label}
-      </div>
-      <div className="flex flex-col gap-2">
-        {tools.map((tool) => (
-          <ToolListItem key={tool.name} tool={tool} />
-        ))}
-      </div>
+      <div className="font-mono text-[13px] font-semibold">{tool.name}</div>
+      {tool.description ? (
+        <ToolDescription
+          text={tool.description}
+          className="mt-1 text-[12px]"
+        />
+      ) : null}
     </div>
   );
 }
@@ -185,10 +140,6 @@ export function ConnectionDetailDrawer() {
   }
 
   const isReconnecting = isServerReconnecting(summary.name);
-  const policySummary = formatPolicySummary(server.policy);
-  const allowedTools = server.policy.allow ?? [];
-  const gatedTools = server.policy.gated ?? [];
-  const deniedTools = server.policy.deny ?? [];
   const needsLink = summary.rowAction === "link" && summary.linkProviderId;
   const credentialSubStatus = summary.credentialSubStatus;
   const credentialDetailDestructive =
@@ -202,12 +153,7 @@ export function ConnectionDetailDrawer() {
         : tools.length === 0 && !toolsLoading
           ? "No tools reported by this backend."
           : null;
-  const allowedToolEntries = sortToolsByName(
-    tools.filter((tool) => tool.allowed),
-  );
-  const blockedToolEntries = sortToolsByName(
-    tools.filter((tool) => !tool.allowed),
-  );
+  const listedTools = sortToolsByName(tools);
 
   return (
     <DetailDrawer
@@ -291,46 +237,6 @@ export function ConnectionDetailDrawer() {
       </div>
 
       <div>
-        <DetailDrawerSectionLabel>Policy</DetailDrawerSectionLabel>
-        <div className="rounded-lg border border-border p-3.5">
-          <p className="font-mono text-[12.5px] text-muted-foreground">
-            {policySummary}
-          </p>
-          {allowedTools.length + gatedTools.length + deniedTools.length > 0 ? (
-            <div className="mt-2.5 flex flex-wrap gap-1.5">
-              {allowedTools.map((toolName) => (
-                <Badge
-                  key={`allow-${toolName}`}
-                  variant="outline"
-                  className="font-mono text-[11px] font-normal"
-                >
-                  {toolName}
-                </Badge>
-              ))}
-              {gatedTools.map((toolName) => (
-                <Badge
-                  key={`gated-${toolName}`}
-                  variant="warning"
-                  className="font-mono text-[11px] font-normal"
-                >
-                  {toolName}
-                </Badge>
-              ))}
-              {deniedTools.map((toolName) => (
-                <Badge
-                  key={`deny-${toolName}`}
-                  variant="destructive"
-                  className="font-mono text-[11px] font-normal"
-                >
-                  {toolName}
-                </Badge>
-              ))}
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      <div>
         <div className="mb-2.5 flex items-baseline justify-between">
           <DetailDrawerSectionLabel>Tools</DetailDrawerSectionLabel>
           <div className="font-mono text-[11.5px] text-muted-foreground">
@@ -342,9 +248,10 @@ export function ConnectionDetailDrawer() {
         ) : toolsUnavailableMessage ? (
           <ToolsPlaceholder message={toolsUnavailableMessage} />
         ) : (
-          <div className="flex flex-col gap-4">
-            <ToolListGroup label="Allowed" tools={allowedToolEntries} />
-            <ToolListGroup label="Blocked" tools={blockedToolEntries} />
+          <div className="flex flex-col gap-2">
+            {listedTools.map((tool) => (
+              <ToolListItem key={tool.name} tool={tool} />
+            ))}
           </div>
         )}
       </div>

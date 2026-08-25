@@ -103,10 +103,8 @@ function CredentialSubStatus({
 
 export function ConnectionServerRow({
   summary,
-  policyTooltip,
 }: {
   summary: ServerConnectionSummary;
-  policyTooltip?: string;
 }) {
   const { onOpenServer } = useConnectionsPage();
 
@@ -149,12 +147,6 @@ export function ConnectionServerRow({
             warning={summary.credentialSubStatus.warning}
           />
         </div>
-      </TableCell>
-      <TableCell
-        className="py-3 font-mono text-xs text-muted-foreground"
-        title={policyTooltip}
-      >
-        {summary.policySummary}
       </TableCell>
       <TableCell
         className="
