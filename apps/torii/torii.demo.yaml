@@ -1,8 +1,8 @@
 # Demo gateway config — open-torii status digest scenario (NAT-16).
 #
-# Loaded via TORII_CONFIG_PATH=./torii.demo.yaml (compose) or the k8s ConfigMap
-# mount (see deploy/k8s/base/). Keep this file and deploy/k8s/base/torii.demo.yaml
-# in sync when changing demo gateway config.
+# Loaded via TORII_CONFIG_PATH=./torii.demo.yaml (compose) or the Helm chart
+# file deploy/k8s/chart/files/torii.yaml. Keep this file and the chart file in
+# sync when changing demo gateway config.
 #
 # Link OAuth providers via the keidai-ui OAuth providers screen before running
 # the demo. Register provider callback URLs as

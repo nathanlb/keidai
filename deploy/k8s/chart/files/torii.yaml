@@ -1,17 +1,10 @@
-# Demo gateway config — open-torii status digest scenario (NAT-16).
-#
-# Loaded via TORII_CONFIG_PATH=./torii.demo.yaml (compose) or the k8s ConfigMap
-# mount (see deploy/k8s/base/). Keep this file and deploy/k8s/base/torii.demo.yaml
-# in sync when changing demo gateway config.
+# Gateway config mounted into Torii. Override with values.torii.config (inline)
+# or replace chart/files/torii.yaml. Keep in sync with apps/torii/torii.demo.yaml
+# when changing demo backends.
 #
 # Link OAuth providers via the keidai-ui OAuth providers screen before running
-# the demo. Register provider callback URLs as
-# {gateway_base}/oauth/callback/{provider}. With the BFF edge that is
-# http://localhost:3000/oauth/callback/... (compose and kind). Direct Torii
-# :3100 callbacks are only for local Torii-without-BFF experiments.
-#
-# Agent identity lives in Fuda (management API / keidai-ui). See the Demo
-# section in the repo root README.md.
+# demos. Register provider callback URLs as
+# {publicUrl}/oauth/callback/{provider}.
 
 oauth_providers:
   github:
@@ -32,7 +25,6 @@ oauth_providers:
     client_id: ${env:GOOGLE_CLIENT_ID}
     client_secret: ${env:GOOGLE_CLIENT_SECRET}
     scopes:
-      # Gmail MCP requires compose (not drafts) — see Google Workspace MCP docs.
       - https://www.googleapis.com/auth/gmail.readonly
       - https://www.googleapis.com/auth/gmail.compose
       - https://www.googleapis.com/auth/gmail.drafts
@@ -66,7 +58,6 @@ servers:
       provider: notion
 
   - name: gmail
-    # Google managed Gmail MCP (developer preview) — no local sidecar required.
     transport:
       type: http
       url: https://gmailmcp.googleapis.com/mcp/v1

@@ -8,8 +8,27 @@ import {
   createIsolatedSchema,
   isUniqueViolation,
   runMigrations,
+  shouldAutoMigrate,
   type Migration,
 } from "../index.js";
+
+describe("shouldAutoMigrate", () => {
+  it("defaults to true when unset", () => {
+    assert.equal(shouldAutoMigrate({}), true);
+    assert.equal(shouldAutoMigrate({ KEIDAI_AUTO_MIGRATE: "" }), true);
+  });
+
+  it("is false for false/0/no", () => {
+    assert.equal(shouldAutoMigrate({ KEIDAI_AUTO_MIGRATE: "false" }), false);
+    assert.equal(shouldAutoMigrate({ KEIDAI_AUTO_MIGRATE: "0" }), false);
+    assert.equal(shouldAutoMigrate({ KEIDAI_AUTO_MIGRATE: "no" }), false);
+  });
+
+  it("is true for other values", () => {
+    assert.equal(shouldAutoMigrate({ KEIDAI_AUTO_MIGRATE: "true" }), true);
+    assert.equal(shouldAutoMigrate({ KEIDAI_AUTO_MIGRATE: "1" }), true);
+  });
+});
 
 describe("runMigrations", () => {
   it("applies pending migrations and records them", async () => {

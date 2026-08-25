@@ -18,7 +18,7 @@ services:
       start_period: 10s
 
   fuda:
-    image: keidai-fuda:latest
+    image: keidai-fuda:${KEIDAI_IMAGE_TAG:-0.0.0-local}
     build:
       context: .
       dockerfile: apps/fuda/Dockerfile
@@ -60,7 +60,7 @@ services:
       start_period: 15s
 
   torii:
-    image: keidai-torii:latest
+    image: keidai-torii:${KEIDAI_IMAGE_TAG:-0.0.0-local}
     build:
       context: .
       dockerfile: apps/torii/Dockerfile
@@ -99,7 +99,7 @@ services:
       start_period: 15s
 
   shaiden:
-    image: keidai-shaiden:latest
+    image: keidai-shaiden:${KEIDAI_IMAGE_TAG:-0.0.0-local}
     build:
       context: .
       dockerfile: apps/shaiden/Dockerfile
@@ -122,7 +122,7 @@ services:
       SHAIDEN_DATABASE_URL: postgres://shaiden:${POSTGRES_PASSWORD:-keidai-local}@postgres:5432/shaiden
 
   keidai-ui:
-    image: keidai-keidai-ui:latest
+    image: keidai-ui:${KEIDAI_IMAGE_TAG:-0.0.0-local}
     build:
       context: .
       dockerfile: apps/keidai-ui/Dockerfile

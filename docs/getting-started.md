@@ -57,13 +57,13 @@ For service-specific required values, follow the relevant service README:
 
 ## Run locally on Kubernetes
 
-The Kubernetes manifests use projected service-account tokens between Shaiden
-and Fuda and publish only the BFF. Copy `deploy/k8s/secrets.example.env` to
+The Helm chart uses projected service-account tokens between Shaiden and Fuda
+and publishes only the BFF. Copy `deploy/k8s/secrets.example.env` to
 `deploy/k8s/secrets.env`, set the required values, then run:
 
 ```bash
 pnpm k8s:up
 ```
 
-The complete runbook, prerequisites, and teardown instructions are in
+The complete runbook, Helm values, image tags, and teardown instructions are in
 [deploy/k8s/README.md](../deploy/k8s/README.md).

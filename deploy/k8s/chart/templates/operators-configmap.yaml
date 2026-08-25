@@ -1,0 +1,18 @@
+{{- $existing := lookup "v1" "ConfigMap" .Release.Namespace "keidai-operators" }}
+{{- $operators := .Values.operators | default "" }}
+{{- if and (eq $operators "") $existing }}
+  {{- $operators = index $existing.data "operators.yaml" }}
+{{- end }}
+{{- if eq $operators "" }}
+  {{- fail "operators YAML is required on first install (values.operators or --set-file). up.sh loads this from KEIDAI_OPERATORS_FILE." }}
+{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keidai-operators
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "keidai.labels" . | nindent 4 }}
+data:
+  operators.yaml: |
+{{ $operators | nindent 4 }}

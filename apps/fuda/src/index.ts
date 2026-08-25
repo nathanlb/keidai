@@ -16,6 +16,8 @@ import { applyOperatorsFile } from "./owners/apply-operators-file.js";
 import { OWNER_REPOSITORY } from "./owners/types/owner-repository.js";
 import { BEARER_REPOSITORY } from "./bearers/types/bearer-repository.js";
 import { ensurePlatformBearer } from "./bearers/ensure-platform-bearer.js";
+import { discoverClusterOidcIssuer } from "./subject-token/utils/discover-cluster-oidc-issuer.js";
+import type { SubjectTokenValidatorConfig } from "./subject-token/types/subject-token-validator-config.js";
 
 function waitForShutdown(): Promise<void> {
   return new Promise((resolve) => {
@@ -25,19 +27,42 @@ function waitForShutdown(): Promise<void> {
   });
 }
 
+async function resolveSubjectTokenValidatorConfig(
+  config: SubjectTokenValidatorConfig | null,
+): Promise<SubjectTokenValidatorConfig | null> {
+  if (config?.kind !== "k8s_sa_oidc" || config.issuer) {
+    return config;
+  }
+
+  const issuer = await discoverClusterOidcIssuer();
+  return { ...config, issuer };
+}
+
 export async function startServer(): Promise<void> {
-  const { config, subjectTokenValidatorConfig } = loadRuntimeConfig();
+  const loaded = loadRuntimeConfig();
+  const subjectTokenValidatorConfig = await resolveSubjectTokenValidatorConfig(
+    loaded.subjectTokenValidatorConfig,
+  );
   const { container: app, migrations } = await createContainer(
-    config,
+    loaded.config,
     subjectTokenValidatorConfig,
   );
   const logger = app.resolve(StructuredLoggerService);
   const httpServer = app.resolve(FudaHttpServer);
 
   logger.info("boot.config_loaded", {
-    listenGroups: config.listenGroups,
-    databaseUrl: config.databaseUrl,
+    listenGroups: loaded.config.listenGroups,
+    databaseUrl: loaded.config.databaseUrl,
   });
+  if (
+    subjectTokenValidatorConfig?.kind === "k8s_sa_oidc" &&
+    loaded.subjectTokenValidatorConfig?.kind === "k8s_sa_oidc" &&
+    !loaded.subjectTokenValidatorConfig.issuer
+  ) {
+    logger.info("boot.k8s_sa_oidc_issuer_discovered", {
+      issuer: subjectTokenValidatorConfig.issuer,
+    });
+  }
   logger.info("boot.migrations_applied", {
     applied: migrations.applied,
     alreadyApplied: migrations.alreadyApplied,
@@ -66,7 +91,7 @@ export async function startServer(): Promise<void> {
   const http = await httpServer.start();
   logger.info("boot.listening", {
     url: http.baseUrl,
-    listenGroups: config.listenGroups,
+    listenGroups: loaded.config.listenGroups,
   });
 
   try {

@@ -119,7 +119,8 @@ Allowed subjects always resolve to the platform bearer `shaiden-runner`.
 | Variable | Notes |
 |----------|-------|
 | `FUDA_STATIC_SUBJECT_TOKEN` | Shared secret (comma-list for rotation) for local/pre-cluster use. Same value as `SHAIDEN_BEARER`. |
-| `FUDA_K8S_SA_OIDC_ISSUER` / `_AUDIENCE` / `_JWKS_URI` / `_SUBJECTS` | Set all four together. Audience should be `fuda` (projected volume `aud`). Subjects: `namespace/serviceAccount,...` |
+| `FUDA_K8S_SA_OIDC_AUDIENCE` / `_JWKS_URI` / `_SUBJECTS` | Set these three together. Audience should be `fuda` (projected volume `aud`). Subjects: `namespace/serviceAccount,...` |
+| `FUDA_K8S_SA_OIDC_ISSUER` | Optional. When omitted in-cluster, Fuda discovers the issuer from `https://kubernetes.default.svc/.well-known/openid-configuration`. |
 | `FUDA_K8S_SA_OIDC_JWKS_BEARER_TOKEN_FILE` | Optional. Defaults to the in-cluster SA token path. Required in practice on clusters that disable anonymous JWKS access (e.g. OrbStack). |
 
 Exactly one config group may be set. Partial k8s env fails at boot; setting
@@ -161,7 +162,7 @@ Automated rotation scheduling is out of scope for v0.
 | `FUDA_SIGNING_KID` | — | Required. Active signing kid |
 | `FUDA_ISSUER` | — | Required. Absolute URL used as JWT `iss` |
 | `FUDA_STATIC_SUBJECT_TOKEN` | — | Subject-validator config group (alternative: `FUDA_K8S_SA_OIDC_*`). Exactly one group required when `agent` is enabled. Shared secret, or comma-list for rotation |
-| `FUDA_K8S_SA_OIDC_ISSUER` | — | K8s SA OIDC issuer (with audience, JWKS, subjects) |
+| `FUDA_K8S_SA_OIDC_ISSUER` | discovered in-cluster | Optional. K8s SA OIDC issuer; discovered from kubernetes.default.svc well-known when unset |
 | `FUDA_K8S_SA_OIDC_AUDIENCE` | — | Expected JWT audience (deploy projected volume with `aud=fuda`) |
 | `FUDA_K8S_SA_OIDC_JWKS_URI` | — | Cluster JWKS endpoint |
 | `FUDA_K8S_SA_OIDC_SUBJECTS` | — | `namespace/serviceAccount` allow-list (validator-private). Allowed SAs resolve to `shaiden-runner` |

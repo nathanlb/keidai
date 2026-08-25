@@ -2,11 +2,13 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: shaiden
-  namespace: keidai
+  namespace: {{ .Release.Namespace }}
   labels:
+    {{- include "keidai.labels" . | nindent 4 }}
+    app.kubernetes.io/name: shaiden
     app: shaiden
 spec:
-  replicas: 1
+  replicas: {{ .Values.shaiden.replicas }}
   strategy:
     type: RollingUpdate
   selector:
@@ -16,24 +18,26 @@ spec:
     metadata:
       labels:
         app: shaiden
+      annotations:
+        checksum/config: {{ include "keidai.configChecksum" . }}
+        checksum/secret: {{ include "keidai.secretChecksum" . }}
     spec:
       serviceAccountName: shaiden
+      {{- include "keidai.imagePullSecrets" . | nindent 6 }}
       securityContext:
         fsGroup: 1001
       initContainers:
         - name: wait-postgres
-          image: postgres:16-alpine
-          imagePullPolicy: IfNotPresent
-          command:
-            [
-              "sh",
-              "-c",
-              "until pg_isready -h postgres -U postgres; do sleep 1; done",
-            ]
+          image: {{ .Values.postgres.image | quote }}
+          imagePullPolicy: {{ .Values.postgres.pullPolicy }}
+          envFrom:
+            - secretRef:
+                name: keidai-secrets
+          command: ["sh", "-c", {{ include "keidai.appDbWaitCommand" (list . "SHAIDEN_DATABASE_URL") | quote }}]
       containers:
         - name: shaiden
-          image: keidai-shaiden:latest
-          imagePullPolicy: IfNotPresent
+          image: {{ include "keidai.image" (list "keidai-shaiden" .) | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 3200
               name: http
@@ -71,7 +75,10 @@ apiVersion: v1
 kind: Service
 metadata:
   name: shaiden
-  namespace: keidai
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "keidai.labels" . | nindent 4 }}
+    app.kubernetes.io/name: shaiden
 spec:
   type: ClusterIP
   selector:
