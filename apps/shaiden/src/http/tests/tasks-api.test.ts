@@ -10,6 +10,7 @@ import type { LaunchedHarnessRun } from "../../run/types/harness.js";
 import { resumeHarnessRun } from "../../run/harness.js";
 import type { RuntimeConfig } from "../../config/runtime-config.js";
 import { ShaidenHttpServer } from "../shaiden-http-server.js";
+import { readPackageVersion } from "../utils/read-package-version.js";
 import { TaskAlreadyRunningError } from "../../runs/types/run-repository.js";
 import {
   createTestPersistence,
@@ -474,7 +475,7 @@ describe("tasks API", () => {
       assert.equal(health.status, 200);
       assert.deepEqual(await health.json(), {
         ok: true,
-        version: "0.0.0",
+        version: readPackageVersion(),
       });
 
       const runtime = await fetch(`${handle.baseUrl}/api/tasks/runtime`);
