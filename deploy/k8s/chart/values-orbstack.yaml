@@ -1,0 +1,17 @@
+# OrbStack overlay — local Docker image store, BFF LoadBalancer on localhost.
+publicUrl: http://localhost:3000
+
+image:
+  registry: ""
+  tag: 0.0.0-local
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+keidaiUi:
+  service:
+    type: LoadBalancer
+  hostPort: null
+
+ingress:
+  enabled: false

@@ -3,6 +3,7 @@ import {
   ensureWeeklyPartitions,
   requireDatabaseUrl,
   runMigrations,
+  shouldAutoMigrate,
   type MigrationResult,
   type Pool,
 } from "@keidai/postgres";
@@ -15,14 +16,44 @@ export interface OpenGatewayDatabaseResult {
   migrations: MigrationResult;
 }
 
+export interface OpenGatewayDatabaseOptions {
+  pool?: Pool;
+  /** Override env `KEIDAI_AUTO_MIGRATE`. Migrate CLI always passes true. */
+  migrate?: boolean;
+}
+
 export async function openGatewayDatabase(
   connectionString: string,
-  existingPool?: Pool,
+  existingPoolOrOptions?: Pool | OpenGatewayDatabaseOptions,
 ): Promise<OpenGatewayDatabaseResult> {
-  const pool = existingPool ?? createPool(connectionString);
-  const migrations = await runMigrations(pool, toriiMigrations);
+  const options: OpenGatewayDatabaseOptions =
+    existingPoolOrOptions &&
+    typeof existingPoolOrOptions === "object" &&
+    "query" in existingPoolOrOptions
+      ? { pool: existingPoolOrOptions }
+      : ((existingPoolOrOptions as OpenGatewayDatabaseOptions | undefined) ?? {});
+  const pool = options.pool ?? createPool(connectionString);
+  const migrate = options.migrate ?? shouldAutoMigrate();
+  const migrations = migrate
+    ? await runMigrations(pool, toriiMigrations)
+    : { applied: [], alreadyApplied: [] };
   await ensureWeeklyPartitions(pool, "call_traces", new Date(), 1);
   return { pool, migrations };
+}
+
+/** Apply pending Torii migrations (Helm migrate Job). */
+export async function migrateGatewayDatabase(
+  connectionString: string,
+  existingPool?: Pool,
+): Promise<MigrationResult> {
+  const { pool, migrations } = await openGatewayDatabase(connectionString, {
+    pool: existingPool,
+    migrate: true,
+  });
+  if (!existingPool) {
+    await pool.end();
+  }
+  return migrations;
 }
 
 export function resolveToriiDatabaseUrl(

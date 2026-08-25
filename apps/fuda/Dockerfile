@@ -48,4 +48,5 @@ EXPOSE 3300
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \
   CMD node -e "fetch('http://127.0.0.1:' + (process.env.FUDA_PORT || 3300) + '/api/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
 
+# Default: HTTP server. Helm migrate Job overrides to `node dist/migrate.js`.
 CMD ["node", "dist/index.js"]

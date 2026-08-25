@@ -3,6 +3,10 @@
  * Allowed SA subjects are validator-private (not schema).
  */
 export interface K8sSaOidcSubjectConfig {
+  /**
+   * Expected JWT `iss`. Empty string means discover from the apiserver
+   * well-known document at boot (`discoverClusterOidcIssuer`).
+   */
   issuer: string;
   audience: string;
   jwksUri: string;

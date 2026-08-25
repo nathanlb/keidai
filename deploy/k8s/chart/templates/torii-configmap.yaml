@@ -1,0 +1,18 @@
+{{- $config := .Values.torii.config | default "" }}
+{{- if eq $config "" }}
+  {{- $config = .Files.Get .Values.torii.configFile }}
+{{- end }}
+{{- if eq $config "" }}
+  {{- fail (printf "Torii config empty — set values.torii.config or ensure chart file %s exists" .Values.torii.configFile) }}
+{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: torii-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "keidai.labels" . | nindent 4 }}
+    app.kubernetes.io/name: torii
+data:
+  torii.yaml: |
+{{ $config | nindent 4 }}

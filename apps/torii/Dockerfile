@@ -32,9 +32,9 @@ RUN addgroup -g 1001 torii \
   && chown -R torii:torii /app
 
 ENV NODE_ENV=production \
-    TORII_HOST=0.0.0.0 \
-    TORII_PORT=3100 \
-    TORII_CONFIG_PATH=/app/torii.yaml
+  TORII_HOST=0.0.0.0 \
+  TORII_PORT=3100 \
+  TORII_CONFIG_PATH=/app/torii.yaml
 
 COPY --from=build --chown=torii:torii /out/dist ./dist
 COPY --from=build --chown=torii:torii /out/node_modules ./node_modules
@@ -48,4 +48,5 @@ EXPOSE 3100
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \
   CMD node -e "fetch('http://127.0.0.1:' + (process.env.TORII_PORT || 3100) + '/api/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
 
+# Default: HTTP server. Helm migrate Job overrides to `node dist/migrate.js`.
 CMD ["node", "dist/index.js"]

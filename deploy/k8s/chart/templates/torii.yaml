@@ -2,11 +2,13 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: torii
-  namespace: keidai
+  namespace: {{ .Release.Namespace }}
   labels:
+    {{- include "keidai.labels" . | nindent 4 }}
+    app.kubernetes.io/name: torii
     app: torii
 spec:
-  replicas: 2
+  replicas: {{ .Values.torii.replicas }}
   strategy:
     type: RollingUpdate
   selector:
@@ -16,24 +18,26 @@ spec:
     metadata:
       labels:
         app: torii
+      annotations:
+        checksum/config: {{ include "keidai.configChecksum" . }}
+        checksum/secret: {{ include "keidai.secretChecksum" . }}
     spec:
       serviceAccountName: torii
+      {{- include "keidai.imagePullSecrets" . | nindent 6 }}
       securityContext:
         fsGroup: 1001
       initContainers:
         - name: wait-postgres
-          image: postgres:16-alpine
-          imagePullPolicy: IfNotPresent
-          command:
-            [
-              "sh",
-              "-c",
-              "until pg_isready -h postgres -U postgres; do sleep 1; done",
-            ]
+          image: {{ .Values.postgres.image | quote }}
+          imagePullPolicy: {{ .Values.postgres.pullPolicy }}
+          envFrom:
+            - secretRef:
+                name: keidai-secrets
+          command: ["sh", "-c", {{ include "keidai.appDbWaitCommand" (list . "TORII_DATABASE_URL") | quote }}]
       containers:
         - name: torii
-          image: keidai-torii:latest
-          imagePullPolicy: IfNotPresent
+          image: {{ include "keidai.image" (list "keidai-torii" .) | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 3100
               name: http
@@ -44,8 +48,8 @@ spec:
                 name: keidai-secrets
           volumeMounts:
             - name: config
-              mountPath: /app/torii.demo.yaml
-              subPath: torii.demo.yaml
+              mountPath: /app/torii.yaml
+              subPath: torii.yaml
               readOnly: true
             - name: operators
               mountPath: /app/operators
@@ -74,7 +78,10 @@ apiVersion: v1
 kind: Service
 metadata:
   name: torii
-  namespace: keidai
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "keidai.labels" . | nindent 4 }}
+    app.kubernetes.io/name: torii
 spec:
   type: ClusterIP
   sessionAffinity: None
