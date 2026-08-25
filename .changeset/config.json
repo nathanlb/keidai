@@ -1,0 +1,19 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
+  "changelog": ["@changesets/changelog-github", { "repo": "nathanlb/keidai" }],
+  "commit": false,
+  "fixed": [
+    [
+      "@keidai/fuda",
+      "@keidai/torii",
+      "@keidai/shaiden",
+      "@keidai/keidai-ui",
+      "@keidai/shared",
+      "@keidai/ui",
+      "@keidai/postgres"
+    ]
+  ],
+  "updateInternalDependencies": "patch",
+  "privatePackages": { "version": true, "tag": true },
+  "baseBranch": "main"
+}

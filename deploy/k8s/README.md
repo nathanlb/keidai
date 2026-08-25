@@ -61,8 +61,16 @@ KEIDAI_DELETE_PVC=1 pnpm k8s:down       # also wipe postgres-data (kept by defau
 
 ## Image distribution
 
+Platform semver is unified across all workspace packages (`apps/*/package.json`,
+`packages/*/package.json`) and [`Chart.yaml`](chart/Chart.yaml) `appVersion`.
+Releases use [Changesets](https://github.com/changesets/changesets): feature PRs
+add a changeset (`pnpm changeset`); merging to `main` opens a Version Packages
+PR; merging that PR bumps versions, creates git tag `v{semver}`, and triggers
+image publish.
+
 Images are published to GHCR on version tags (`v*`) by
-[`.github/workflows/publish-images.yml`](../../.github/workflows/publish-images.yml):
+[`.github/workflows/publish-images.yml`](../../.github/workflows/publish-images.yml).
+Image tags match each app's `package.json` version (validated against the git tag):
 
 | Image | Notes |
 |-------|--------|
@@ -75,6 +83,9 @@ Production values set `image.registry` and `imagePullSecrets` (create a pull
 Secret for GHCR in the install namespace). Local kind/OrbStack builds tag
 `0.0.0-local` (override with `KEIDAI_IMAGE_TAG`). k3s uses `Chart.AppVersion`
 unless `KEIDAI_IMAGE_TAG` is set. There is no `:latest`.
+
+After the initial bootstrap release, push `v0.1.0` once if the release workflow
+did not run `publish` (no pending changesets on merge).
 
 Air-gapped fallback (not the default path): `docker save` / `k3s ctr images import`.
 

@@ -51,6 +51,21 @@ Before starting, configure the operator registry, required secrets, and Fuda
 development signing key. Follow the [full getting-started guide](docs/getting-started.md)
 for Compose, native local development, and Kubernetes.
 
+## Releasing
+
+Keidai uses a single platform semver across all workspace packages and the Helm
+chart. To release:
+
+1. On a feature PR with user-facing or deployable changes, run `pnpm changeset`
+   and commit the generated file in `.changeset/`.
+2. Merge to `main`. The release workflow opens a **Version Packages** PR when
+   pending changesets exist.
+3. Merge the Version Packages PR. That bumps versions, updates changelogs,
+   creates git tag `v{semver}`, and publishes GHCR images.
+
+Verify alignment anytime with `pnpm check-versions`. See
+[deploy/k8s/README.md](deploy/k8s/README.md) for image distribution.
+
 ## Docs
 
 - [Documentation index](docs/README.md)
