@@ -23,7 +23,10 @@ export function ConfigureSidebarNav() {
         data-testid="sidebar-configure-back"
         className={cn(
           navItemClassName,
-          "mb-1.5 text-[12.5px] font-normal text-muted-foreground hover:text-sidebar-accent-foreground",
+          `
+            mb-1.5 text-[12.5px] font-normal text-muted-foreground
+            hover:text-sidebar-accent-foreground
+          `,
         )}
       >
         <ChevronLeft className="size-3.5 shrink-0" aria-hidden />

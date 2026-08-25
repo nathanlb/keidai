@@ -20,10 +20,18 @@ export function NeedsYouBand({
   return (
     <Card
       data-testid="home-needs-you"
-      className="overflow-hidden py-0 shadow-none border-[color-mix(in_srgb,var(--amber-500)_45%,var(--border))] bg-[color-mix(in_srgb,var(--amber-500)_6%,var(--card))]"
+      className="
+        overflow-hidden
+        border-[color-mix(in_srgb,var(--amber-500)_45%,var(--border))]
+        bg-[color-mix(in_srgb,var(--amber-500)_6%,var(--card))] py-0 shadow-none
+      "
     >
       <CardContent className="p-0">
-        <div className="flex items-center gap-[9px] border-b border-[color-mix(in_srgb,var(--amber-500)_28%,var(--border))] px-4 py-[13px]">
+        <div className="
+          flex items-center gap-2.25 border-b
+          border-[color-mix(in_srgb,var(--amber-500)_28%,var(--border))] px-4
+          py-3.25
+        ">
           <TriangleAlert className="size-4 shrink-0 text-amber-500" aria-hidden />
           <span className="text-[14px] font-semibold">Needs you</span>
           <span className="font-mono text-[11.5px] text-muted-foreground">
@@ -31,14 +39,20 @@ export function NeedsYouBand({
           </span>
           <Link
             to={APPROVALS_PATH}
-            className="ml-auto text-[12.5px] text-muted-foreground no-underline hover:text-foreground"
+            className="
+              ml-auto text-[12.5px] text-muted-foreground no-underline
+              hover:text-foreground
+            "
           >
             Open approvals →
           </Link>
         </div>
         {items.map((item) => (
           <div key={item.id} className={rowClassName}>
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary font-mono text-xs font-bold text-secondary-foreground">
+            <div className="
+              flex size-8 shrink-0 items-center justify-center rounded-lg
+              bg-secondary font-mono text-xs font-bold text-secondary-foreground
+            ">
               {item.mark}
             </div>
             <div className="min-w-0 flex-1">
@@ -56,21 +70,23 @@ export function NeedsYouBand({
                 {item.context}
               </div>
             </div>
-            <span className="shrink-0 font-mono text-[11.5px] text-muted-foreground">
+            <span className="
+              shrink-0 font-mono text-[11.5px] text-muted-foreground
+            ">
               {item.parkedLabel}
             </span>
             <div className="flex shrink-0 gap-1.5">
               <Button
                 variant="outline"
                 size="sm"
-                className="h-[29px] text-[12.5px]"
+                className="h-7.25 text-[12.5px]"
                 asChild
               >
                 <Link to={item.reviewHref}>Review</Link>
               </Button>
               <Button
                 size="sm"
-                className="h-[29px] text-[12.5px] font-semibold"
+                className="h-7.25 text-[12.5px] font-semibold"
                 disabled={actingId === item.id}
                 onClick={() => onAct(item)}
               >

@@ -70,7 +70,10 @@ export function RunsTableRow({
   return (
     <TableRow
       data-state={selected ? "selected" : undefined}
-      className="cursor-pointer border-border hover:bg-muted/30"
+      className="
+        cursor-pointer border-border
+        hover:bg-muted/30
+      "
       onClick={() => onOpen(run.id)}
     >
       <TableCell
@@ -85,7 +88,10 @@ export function RunsTableRow({
         </div>
         <Link
           to={taskEditHref(run.taskId)}
-          className="mt-0.5 inline truncate font-mono text-[11px] text-muted-foreground hover:underline"
+          className="
+            mt-0.5 inline truncate font-mono text-[11px] text-muted-foreground
+            hover:underline
+          "
           title={run.taskId}
           onClick={(event) => event.stopPropagation()}
         >
@@ -137,7 +143,10 @@ export function RunsTableRow({
         <div className="flex min-w-0 items-center gap-2">
           <OwnerAvatar
             initials={assigneeInitials}
-            className="size-5.5 shrink-0 bg-secondary text-[9px] text-secondary-foreground"
+            className="
+              size-5.5 shrink-0 bg-secondary text-[9px]
+              text-secondary-foreground
+            "
           />
           <span className="truncate text-xs" title={run.assignee}>
             {assigneeLabel}

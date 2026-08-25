@@ -59,7 +59,9 @@ export function AgentTasksPanel({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-4">
-        <p className="max-w-[620px] text-[12.5px] leading-normal text-muted-foreground">
+        <p className="
+          max-w-155 text-[12.5px] leading-normal text-muted-foreground
+        ">
           Every task assigned to this agent. A task is a standing goal — the
           agent is who carries it out.
         </p>
@@ -74,7 +76,11 @@ export function AgentTasksPanel({
       ) : null}
 
       <div className="overflow-hidden rounded-xl border border-border bg-card">
-        <div className="grid grid-cols-[1.5fr_.95fr_.85fr_66px_148px] gap-3.5 border-b border-border px-[18px] py-2.5 text-[10.5px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+        <div className="
+          grid grid-cols-[1.5fr_.95fr_.85fr_66px_148px] gap-3.5 border-b
+          border-border px-4.5 py-2.5 text-[10.5px] font-semibold
+          tracking-[0.06em] text-muted-foreground uppercase
+        ">
           <span>Goal</span>
           <span>Schedule</span>
           <span>Last outcome</span>
@@ -87,19 +93,28 @@ export function AgentTasksPanel({
           return (
             <div
               key={task.id}
-              className="grid grid-cols-[1.5fr_.95fr_.85fr_66px_148px] items-center gap-3.5 border-b border-border px-[18px] py-3 last:border-b-0 hover:bg-muted/45"
+              className="
+                grid grid-cols-[1.5fr_.95fr_.85fr_66px_148px] items-center
+                gap-3.5 border-b border-border px-4.5 py-3
+                last:border-b-0
+                hover:bg-muted/45
+              "
             >
               <div className="min-w-0">
                 <div className="truncate text-[13px] font-semibold">
                   {task.goal}
                 </div>
-                <div className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                <div className="
+                  mt-0.5 font-mono text-[11px] text-muted-foreground
+                ">
                   {task.id}
                 </div>
               </div>
               <div className="min-w-0">
                 <div className="text-[12.5px]">{scheduleLabel(task)}</div>
-                <div className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                <div className="
+                  mt-0.5 font-mono text-[11px] text-muted-foreground
+                ">
                   {task.trigger.type === "now" ? "no schedule" : ""}
                 </div>
               </div>
@@ -145,7 +160,7 @@ export function AgentTasksPanel({
             </div>
           );
         })}
-        <div className="px-[18px] py-2.5 text-[11.5px] text-muted-foreground">
+        <div className="px-4.5 py-2.5 text-[11.5px] text-muted-foreground">
           {tasks.length} task{tasks.length === 1 ? "" : "s"} assigned
         </div>
       </div>

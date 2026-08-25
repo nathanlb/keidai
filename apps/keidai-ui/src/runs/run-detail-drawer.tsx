@@ -255,7 +255,10 @@ export function RunDetailDrawer({
           {run.id} · {assigneeLabel} ·{" "}
           <Link
             to={taskEditHref(run.taskId)}
-            className="text-primary hover:underline"
+            className="
+              text-primary
+              hover:underline
+            "
           >
             task {run.taskId}
           </Link>
@@ -376,7 +379,10 @@ export function RunDetailDrawer({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-lg border border-border px-3.5 py-3">
-          <div className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+          <div className="
+            text-[11px] font-semibold tracking-wider text-muted-foreground
+            uppercase
+          ">
             Iterations
           </div>
           <div className="mt-1 font-mono text-[15px] font-semibold">
@@ -384,7 +390,10 @@ export function RunDetailDrawer({
           </div>
         </div>
         <div className="rounded-lg border border-border px-3.5 py-3">
-          <div className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+          <div className="
+            text-[11px] font-semibold tracking-wider text-muted-foreground
+            uppercase
+          ">
             Duration
           </div>
           <div className="mt-1 font-mono text-[15px] font-semibold">
@@ -394,7 +403,10 @@ export function RunDetailDrawer({
       </div>
 
       <div>
-        <div className="mb-2.5 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+        <div className="
+          mb-2.5 text-[11px] font-semibold tracking-wider text-muted-foreground
+          uppercase
+        ">
           Run log
         </div>
         <div className="divide-y divide-border rounded-lg border border-border">
@@ -403,7 +415,10 @@ export function RunDetailDrawer({
           ))}
           {status === "running" ? (
             <div
-              className="flex items-center gap-2.5 px-4 py-3 text-[13px] text-muted-foreground"
+              className="
+                flex items-center gap-2.5 px-4 py-3 text-[13px]
+                text-muted-foreground
+              "
               aria-live="polite"
             >
               <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
@@ -417,7 +432,10 @@ export function RunDetailDrawer({
         <div className="space-y-2 border-t border-border pt-4">
           <label
             htmlFor={followUpFieldId}
-            className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase"
+            className="
+              text-[11px] font-semibold tracking-wider text-muted-foreground
+              uppercase
+            "
           >
             Follow-up
           </label>

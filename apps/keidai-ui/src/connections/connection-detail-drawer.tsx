@@ -72,7 +72,7 @@ function CredentialDetailRow({
       <span className="text-muted-foreground">{label}</span>
       <span
         className={cn(
-          "max-w-[300px] truncate text-right font-mono",
+          "max-w-75 truncate text-right font-mono",
           warning && "text-warning",
           destructive && "text-destructive",
           !warning && !destructive && "text-foreground",
@@ -93,7 +93,10 @@ function CredentialDetailRow({
 
 function ToolsPlaceholder({ message }: { message: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-border px-3.5 py-6 text-center text-[12.5px] leading-snug text-muted-foreground">
+    <div className="
+      rounded-lg border border-dashed border-border px-3.5 py-6 text-center
+      text-[12.5px] leading-snug text-muted-foreground
+    ">
       {message}
     </div>
   );
@@ -101,7 +104,10 @@ function ToolsPlaceholder({ message }: { message: string }) {
 
 function ToolListItem({ tool }: { tool: ServerToolView }) {
   return (
-    <div className="flex items-start justify-between gap-3 rounded-lg border border-border px-3 py-2.5">
+    <div className="
+      flex items-start justify-between gap-3 rounded-lg border border-border
+      px-3 py-2.5
+    ">
       <div className="min-w-0">
         <div className="font-mono text-[13px] font-semibold">{tool.name}</div>
         {tool.description ? (
@@ -116,9 +122,9 @@ function ToolListItem({ tool }: { tool: ServerToolView }) {
         className="shrink-0 gap-1 font-normal"
       >
         {tool.allowed ? (
-          <Check className="size-[11px]" aria-hidden />
+          <Check className="size-2.75" aria-hidden />
         ) : (
-          <Ban className="size-[11px]" aria-hidden />
+          <Ban className="size-2.75" aria-hidden />
         )}
         {tool.allowed ? "Allowed" : "Blocked"}
       </Badge>
@@ -139,7 +145,10 @@ function ToolListGroup({
 
   return (
     <div>
-      <div className="mb-2 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+      <div className="
+        mb-2 text-[11px] font-semibold tracking-wider text-muted-foreground
+        uppercase
+      ">
         {label}
       </div>
       <div className="flex flex-col gap-2">
@@ -205,14 +214,19 @@ export function ConnectionDetailDrawer() {
       open={open}
       onOpenChange={onOpenChange}
       headerBadge={
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-[9px] bg-secondary text-secondary-foreground">
+        <span className="
+          flex size-9 shrink-0 items-center justify-center rounded-[9px]
+          bg-secondary text-secondary-foreground
+        ">
           <Server className="size-4" aria-hidden />
         </span>
       }
       title={<span className="font-mono font-semibold">{summary.name}</span>}
       description={
         <div className="space-y-1.5">
-          <div className="truncate font-mono text-[12.5px] text-muted-foreground">
+          <div className="
+            truncate font-mono text-[12.5px] text-muted-foreground
+          ">
             {summary.endpoint}
           </div>
           <ConnectionStatusBadge state={summary.state} />
@@ -237,7 +251,10 @@ export function ConnectionDetailDrawer() {
     >
       <div>
         <DetailDrawerSectionLabel>Credential</DetailDrawerSectionLabel>
-        <div className="flex flex-col gap-2 rounded-lg border border-border p-3.5 text-[12.5px]">
+        <div className="
+          flex flex-col gap-2 rounded-lg border border-border p-3.5
+          text-[12.5px]
+        ">
           <CredentialDetailRow
             label="strategy"
             value={summary.credentialStrategy}
@@ -252,7 +269,10 @@ export function ConnectionDetailDrawer() {
           />
         </div>
         {needsLink ? (
-          <div className="mt-2.5 flex items-center gap-3 rounded-lg border border-warning/40 bg-warning/8 p-3">
+          <div className="
+            mt-2.5 flex items-center gap-3 rounded-lg border border-warning/40
+            bg-warning/8 p-3
+          ">
             <p className="flex-1 text-[12.5px] leading-snug text-foreground">
               Link your account so Torii can resolve credentials for this
               server.

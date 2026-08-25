@@ -56,10 +56,14 @@ interface StatusPopoverProps {
 function StatusPopover({ service, kind }: StatusPopoverProps) {
   return (
     <div
-      className="pointer-events-none absolute inset-x-2.5 bottom-[calc(100%-2px)] z-[5] flex flex-col gap-[5px] rounded-[9px] border border-border bg-popover px-[11px] py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.55)]"
+      className="
+        pointer-events-none absolute inset-x-2.5 bottom-[calc(100%-2px)] z-5
+        flex flex-col gap-1.25 rounded-[9px] border border-border bg-popover
+        px-2.75 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.55)]
+      "
       data-testid="backend-health-popover"
     >
-      <div className="flex items-center gap-[7px]">
+      <div className="flex items-center gap-1.75">
         <span
           className={cn("size-1.5 shrink-0 rounded-full", statusColorClass[kind])}
           aria-hidden
@@ -76,7 +80,9 @@ function StatusPopover({ service, kind }: StatusPopoverProps) {
           {service.status.label}
         </span>
       </div>
-      <div className="font-mono text-[11px] leading-[1.45] text-muted-foreground">
+      <div className="
+        font-mono text-[11px] leading-[1.45] text-muted-foreground
+      ">
         {formatServiceMeta(service.status)}
       </div>
     </div>
@@ -109,24 +115,30 @@ function ServiceSegment({
     <button
       type="button"
       data-testid={service.testId}
-      className="flex flex-1 cursor-default flex-col justify-end gap-[7px] border-0 bg-transparent p-0 pb-0.5 text-left"
+      className="
+        flex flex-1 cursor-default flex-col justify-end gap-1.75 border-0
+        bg-transparent p-0 pb-0.5 text-left
+      "
       aria-label={formatSegmentAriaLabel(service)}
       onMouseEnter={onHover}
       onFocus={onHover}
       onBlur={onBlur}
     >
-      <span className="flex h-[5px] items-end">
+      <span className="flex h-1.25 items-end">
         <span
           className={cn(
             "w-full rounded-[3px] transition-[height] duration-150 ease-in-out",
             statusColorClass[kind],
-            isHovered ? "h-[5px]" : "h-[3px]",
+            isHovered ? "h-1.25" : "h-0.75",
           )}
         />
       </span>
       <span
         className={cn(
-          "font-mono text-[10.5px] tracking-[0.02em] transition-colors duration-150 ease-in-out",
+          `
+            font-mono text-[10.5px] tracking-[0.02em] transition-colors
+            duration-150 ease-in-out
+          `,
           labelColor,
         )}
       >
@@ -171,7 +183,9 @@ export function BackendHealthFooter() {
   return (
     <div
       ref={footerRef}
-      className="relative flex flex-col gap-2 border-t border-sidebar-border p-2.5"
+      className="
+        relative flex flex-col gap-2 border-t border-sidebar-border p-2.5
+      "
       data-testid="backend-health-footer"
       onMouseLeave={() => setHoveredIndex(-1)}
     >
@@ -188,7 +202,7 @@ export function BackendHealthFooter() {
         </span>
       </div>
 
-      <div className="flex gap-[3px]">
+      <div className="flex gap-0.75">
         {services.map((service, index) => (
           <ServiceSegment
             key={service.key}

@@ -63,7 +63,9 @@ export function ConnectionsView() {
           <ConnectionsSummaryTiles counts={counts} />
 
           <Card className="overflow-hidden shadow-none">
-            <CardHeader className="flex flex-row items-start justify-between space-y-0 px-4.5 py-4">
+            <CardHeader className="
+              flex flex-row items-start justify-between space-y-0 px-4.5 py-4
+            ">
               <div className="space-y-1">
                 <CardTitle className="text-base font-semibold">
                   Backend MCP servers
@@ -81,7 +83,10 @@ export function ConnectionsView() {
                 onClick={onReconnectAll}
               >
                 <RefreshCw
-                  className={`size-3.5 ${isReconnectingAll ? "animate-spin" : ""}`}
+                  className={`
+                    size-3.5
+                    ${isReconnectingAll ? "animate-spin" : ""}
+                  `}
                   aria-hidden
                 />
                 Reconnect all
@@ -92,7 +97,9 @@ export function ConnectionsView() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="h-auto py-2.5 pl-4.5 text-xs font-medium">
+                    <TableHead className="
+                      h-auto py-2.5 pl-4.5 text-xs font-medium
+                    ">
                       Server
                     </TableHead>
                     <TableHead className="h-auto py-2.5 text-xs font-medium">
@@ -104,13 +111,17 @@ export function ConnectionsView() {
                     <TableHead className="h-auto py-2.5 text-xs font-medium">
                       Policy
                     </TableHead>
-                    <TableHead className="h-auto py-2.5 text-xs font-medium text-right">
+                    <TableHead className="
+                      h-auto py-2.5 text-right text-xs font-medium
+                    ">
                       Tools
                     </TableHead>
                     <TableHead className="h-auto py-2.5 text-xs font-medium">
                       Status
                     </TableHead>
-                    <TableHead className="h-auto w-0 whitespace-nowrap py-2.5 pr-4.5" />
+                    <TableHead className="
+                      h-auto w-0 py-2.5 pr-4.5 whitespace-nowrap
+                    " />
                   </TableRow>
                 </TableHeader>
                 <TableBody>

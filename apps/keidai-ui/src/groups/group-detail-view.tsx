@@ -228,7 +228,11 @@ export function GroupDetailView() {
         <button
           type="button"
           onClick={() => navigate(GROUPS_PATH)}
-          className="mb-3 inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground hover:text-foreground"
+          className="
+            mb-3 inline-flex items-center gap-1.5 text-[12.5px]
+            text-muted-foreground
+            hover:text-foreground
+          "
         >
           <ArrowLeft className="size-3.5" aria-hidden />
           All groups
@@ -253,7 +257,11 @@ export function GroupDetailView() {
         <button
           type="button"
           onClick={() => navigate(GROUPS_PATH)}
-          className="mb-2.75 inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground hover:text-foreground"
+          className="
+            mb-2.75 inline-flex items-center gap-1.5 text-[12.5px]
+            text-muted-foreground
+            hover:text-foreground
+          "
         >
           <ArrowLeft className="size-3.5" aria-hidden />
           All groups
@@ -270,14 +278,21 @@ export function GroupDetailView() {
               }
               placeholder="Add a description…"
               aria-label="Group description"
-              className="mt-1 h-auto border-0 bg-transparent p-0 text-[13.5px] text-muted-foreground shadow-none focus-visible:ring-0"
+              className="
+                mt-1 h-auto border-0 bg-transparent p-0 text-[13.5px]
+                text-muted-foreground shadow-none
+                focus-visible:ring-0
+              "
             />
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <Button
               type="button"
               variant="outline"
-              className="h-8.5 text-[12.5px] text-destructive hover:text-destructive"
+              className="
+                h-8.5 text-[12.5px] text-destructive
+                hover:text-destructive
+              "
               onClick={() => setDeleteOpen(true)}
             >
               Delete group
@@ -287,7 +302,11 @@ export function GroupDetailView() {
               className={
                 dirty
                   ? "h-8.5 text-[12.5px]"
-                  : "h-8.5 bg-muted text-[12.5px] text-muted-foreground opacity-75 hover:bg-muted"
+                  : `
+                    h-8.5 bg-muted text-[12.5px] text-muted-foreground
+                    opacity-75
+                    hover:bg-muted
+                  `
               }
               disabled={!dirty || isSaving}
               onClick={() => void handleSave()}
@@ -309,7 +328,10 @@ export function GroupDetailView() {
         agents={members.length}
       />
 
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(420px,1fr)_292px]">
+      <div className="
+        grid items-start gap-4
+        xl:grid-cols-[minmax(420px,1fr)_292px]
+      ">
         <div className="flex min-w-0 flex-col gap-3">
           {draft.servers.map((policy, index) => (
             <GroupServerCard
@@ -351,7 +373,10 @@ export function GroupDetailView() {
       <GroupsToast message={message} />
 
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent className="max-w-90 sm:rounded-xl">
+        <DialogContent className="
+          max-w-90
+          sm:rounded-xl
+        ">
           <DialogHeader>
             <DialogTitle>Delete group?</DialogTitle>
             <DialogDescription>
@@ -359,7 +384,10 @@ export function GroupDetailView() {
               {formatDeleteGroupConfirm(members.length, grants.allowed)}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="
+            gap-2
+            sm:gap-0
+          ">
             <Button
               type="button"
               variant="outline"

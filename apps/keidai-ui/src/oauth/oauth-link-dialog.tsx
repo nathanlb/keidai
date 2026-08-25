@@ -52,7 +52,12 @@ function InitiatingStep({
       {hasConfiguredScopes ? (
         <Card className="mt-4 shadow-none">
           <CardContent className="flex flex-col gap-1.75 px-3.5 py-3">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <div
+              className="
+              text-[11px] font-semibold tracking-wider text-muted-foreground
+              uppercase
+            "
+            >
               Scopes requested
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -71,7 +76,12 @@ function InitiatingStep({
       ) : (
         <Card className="mt-4 shadow-none">
           <CardContent className="flex flex-col gap-1.5 px-3.5 py-3">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <div
+              className="
+              text-[11px] font-semibold tracking-wider text-muted-foreground
+              uppercase
+            "
+            >
               Authorization
             </div>
             <p className="text-[13px] leading-normal text-muted-foreground">
@@ -82,7 +92,12 @@ function InitiatingStep({
         </Card>
       )}
 
-      <DialogFooter className="mt-6 sm:justify-end">
+      <DialogFooter
+        className="
+        mt-6
+        sm:justify-end
+      "
+      >
         <Button variant="ghost" onClick={onClose}>
           Cancel
         </Button>
@@ -121,14 +136,23 @@ function WaitingStep({
         <div className="mt-4 text-base font-semibold">
           Waiting for authorization in {providerLabel}
         </div>
-        <p className="mt-1.5 max-w-82.5 text-3.25 leading-normal text-muted-foreground">
+        <p
+          className="
+          mt-1.5 max-w-82.5 text-[13px] leading-normal text-muted-foreground
+        "
+        >
           Finish authorization in the popup window. This dialog will close
           automatically when Torii receives the callback at{" "}
           <Mono>{redirectUri}</Mono>.
         </p>
       </div>
 
-      <DialogFooter className="mt-4.5 gap-0.5 sm:justify-stretch">
+      <DialogFooter
+        className="
+        mt-4.5 gap-0.5
+        sm:justify-stretch
+      "
+      >
         <Button
           variant="ghost"
           className="flex-1 text-muted-foreground"
@@ -165,20 +189,34 @@ function LinkedStep({ providerLabel, ownerId, onClose }: LinkedStepProps) {
   return (
     <>
       <div className="flex flex-col items-center px-1 pt-2 text-center">
-        <span className="flex size-10.5 items-center justify-center rounded-full bg-success/20 text-success">
+        <span
+          className="
+          flex size-10.5 items-center justify-center rounded-full bg-success/20
+          text-success
+        "
+        >
           <Check className="size-5.5" aria-hidden />
         </span>
         <div className="mt-3.5 text-base font-semibold">
           {providerLabel} linked
         </div>
-        <p className="mt-1.5 max-w-82.5 text-[13px] leading-normal text-muted-foreground">
+        <p
+          className="
+          mt-1.5 max-w-82.5 text-[13px] leading-normal text-muted-foreground
+        "
+        >
           Torii stored the grant for owner <Mono>{ownerId}</Mono> and will
           refresh it automatically. Calls needing {providerLabel} will now
           resolve.
         </p>
       </div>
 
-      <DialogFooter className="mt-3.5 justify-center sm:justify-center">
+      <DialogFooter
+        className="
+        mt-3.5 justify-center
+        sm:justify-center
+      "
+      >
         <Button className="min-w-30" onClick={onClose}>
           Done
         </Button>
@@ -197,20 +235,34 @@ function ErrorStep({ errorMessage, onClose, onRetry }: ErrorStepProps) {
   return (
     <>
       <div className="flex flex-col items-center px-1 pt-2 text-center">
-        <span className="flex size-10.5 items-center justify-center rounded-full bg-destructive/15 text-destructive">
+        <span
+          className="
+          flex size-10.5 items-center justify-center rounded-full
+          bg-destructive/15 text-destructive
+        "
+        >
           <TriangleAlert className="size-5.5" aria-hidden />
         </span>
         <div className="mt-3.5 text-base font-semibold">
           Authorization didn&apos;t complete
         </div>
-        <p className="mt-1.5 max-w-82.5 text-[13px] leading-normal text-muted-foreground">
+        <p
+          className="
+          mt-1.5 max-w-82.5 text-[13px] leading-normal text-muted-foreground
+        "
+        >
           <Mono>{errorMessage ?? "access_denied"}</Mono> — the request was
           cancelled, or the provider&apos;s <Mono>redirect_uri</Mono>{" "}
           doesn&apos;t match the gateway. No grant was stored.
         </p>
       </div>
 
-      <DialogFooter className="mt-3.5 sm:justify-end">
+      <DialogFooter
+        className="
+        mt-3.5
+        sm:justify-end
+      "
+      >
         <Button variant="ghost" onClick={onClose}>
           Close
         </Button>
@@ -261,13 +313,21 @@ export function OAuthLinkDialog({
         }
       }}
     >
-      <DialogContent className="max-w-md gap-0 p-0 sm:rounded-xl">
+      <DialogContent
+        className="
+        max-w-md gap-0 p-0
+        sm:rounded-xl
+      "
+      >
         <DialogClose asChild>
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="absolute right-4 top-4 size-8 opacity-70 hover:opacity-100"
+            className="
+              absolute top-4 right-4 size-8 opacity-70
+              hover:opacity-100
+            "
             aria-label="Close"
           >
             <X className="size-4" aria-hidden />

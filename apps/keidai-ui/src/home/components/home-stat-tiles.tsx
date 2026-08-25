@@ -17,17 +17,23 @@ function StatTile({
   return (
     <Card data-testid={testId} className="py-0 shadow-none">
       <CardContent className="px-4 py-3.5">
-        <div className="flex items-center gap-[7px] text-xs text-muted-foreground">
+        <div className="
+          flex items-center gap-1.75 text-xs text-muted-foreground
+        ">
           <span
-            className={cn("size-[7px] shrink-0 rounded-full", dotClass)}
+            className={cn("size-1.75 shrink-0 rounded-full", dotClass)}
             aria-hidden
           />
           {label}
         </div>
-        <div className="mt-[7px] text-2xl font-bold leading-none tracking-[-0.02em]">
+        <div className="
+          mt-1.75 text-2xl leading-none font-bold tracking-[-0.02em]
+        ">
           {value}
         </div>
-        <div className="mt-1 truncate font-mono text-[11.5px] text-muted-foreground">
+        <div className="
+          mt-1 truncate font-mono text-[11.5px] text-muted-foreground
+        ">
           {sub}
         </div>
       </CardContent>
@@ -55,7 +61,10 @@ export function HomeStatTiles({
   failedTaskName: string | null;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+    <div className="
+      grid grid-cols-2 gap-3
+      md:grid-cols-4
+    ">
       <StatTile
         testId="home-stat-awaiting"
         label="Awaiting you"

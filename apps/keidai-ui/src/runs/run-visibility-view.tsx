@@ -385,7 +385,9 @@ export function RunVisibilityView() {
       ) : selectedRunId ? (
         fetchRunError ? (
           <Card className="shadow-none">
-            <CardContent className="flex flex-col items-center px-6 py-12 text-center">
+            <CardContent className="
+              flex flex-col items-center px-6 py-12 text-center
+            ">
               <div className="text-sm font-semibold">Run not found</div>
               <p className="mt-1 text-[12.5px] text-muted-foreground">
                 Could not load run{" "}

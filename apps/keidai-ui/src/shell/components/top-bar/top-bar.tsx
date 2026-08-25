@@ -15,7 +15,11 @@ export function TopBar({ breadcrumb, showNavButton = false }: TopBarProps) {
   const { navOpen, toggleNav } = useShellUi();
 
   return (
-    <div className="box-border flex h-[58px] shrink-0 items-center justify-between gap-3 border-b border-border px-4 md:px-6">
+    <div className="
+      box-border flex h-14.5 shrink-0 items-center justify-between gap-3
+      border-b border-border px-4
+      md:px-6
+    ">
       <div className="flex min-w-0 items-center gap-3">
         {showNavButton ? (
           <Button

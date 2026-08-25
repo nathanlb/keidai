@@ -110,7 +110,9 @@ function TriggerChip({
       <span>{label}</span>
       {selected ? (
         <span
-          className="ml-auto size-4 shrink-0 rounded-full border-[5px] border-primary"
+          className="
+            ml-auto size-4 shrink-0 rounded-full border-[5px] border-primary
+          "
           aria-hidden
         />
       ) : (
@@ -128,7 +130,10 @@ function AssigneeTriggerContent({
   if (!option) {
     return (
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground">
+        <span className="
+          flex size-7 shrink-0 items-center justify-center rounded-full border
+          border-dashed border-border text-muted-foreground
+        ">
           <Bot className="size-3.5" aria-hidden />
         </span>
         <span className="text-[13px] text-muted-foreground">
@@ -140,7 +145,10 @@ function AssigneeTriggerContent({
 
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2.5">
-      <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-secondary text-[11px] font-medium text-secondary-foreground">
+      <span className="
+        inline-flex size-7 shrink-0 items-center justify-center rounded-md
+        bg-secondary text-[11px] font-medium text-secondary-foreground
+      ">
         {option.initials}
       </span>
       <span className="flex min-w-0 items-center gap-2">
@@ -152,7 +160,10 @@ function AssigneeTriggerContent({
         </span>
       </span>
       {option.connected ? (
-        <span className="ml-auto inline-flex shrink-0 items-center gap-1.5 text-[11.5px] text-(--green-600)">
+        <span className="
+          ml-auto inline-flex shrink-0 items-center gap-1.5 text-[11.5px]
+          text-(--green-600)
+        ">
           <span
             className="size-1.5 rounded-full bg-(--green-600)"
             aria-hidden
@@ -348,7 +359,9 @@ export function TaskAuthoringView({
     <form className="flex min-h-0 flex-1 flex-col" onSubmit={onSubmit}>
       <div className="min-h-0 flex-1 overflow-y-auto px-6">
         {isLoadingTask ? (
-          <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
+          <div className="
+            flex items-center gap-2 py-8 text-sm text-muted-foreground
+          ">
             <Loader2 className="size-4 animate-spin" aria-hidden />
             Loading task…
           </div>
@@ -359,7 +372,9 @@ export function TaskAuthoringView({
         ) : isLoadingTask ? null : (
           <>
             {isArchived ? (
-              <p className="border-b border-border py-4 text-sm text-muted-foreground">
+              <p className="
+                border-b border-border py-4 text-sm text-muted-foreground
+              ">
                 This task is archived. Past runs are preserved, but the
                 definition can no longer be edited or run.
               </p>
@@ -370,7 +385,9 @@ export function TaskAuthoringView({
                 label="Goal"
                 required
               />
-              <p className="mt-1 mb-2.5 text-[12.5px] leading-normal text-muted-foreground">
+              <p className="
+                mt-1 mb-2.5 text-[12.5px] leading-normal text-muted-foreground
+              ">
                 Natural-language definition of done. The agent self-assesses
                 completion against it.
               </p>
@@ -380,7 +397,10 @@ export function TaskAuthoringView({
                 placeholder={`Describe what "done" looks like…  e.g. "Draft and send the weekly newsletter, but pause for my approval before sending."`}
                 required
                 disabled={isArchived}
-                className="min-h-29.5 text-[13.5px] leading-relaxed focus-visible:ring-[3px] focus-visible:ring-ring/30"
+                className="
+                  min-h-29.5 text-[13.5px] leading-relaxed
+                  focus-visible:ring-[3px] focus-visible:ring-ring/30
+                "
               />
             </section>
 
@@ -389,7 +409,9 @@ export function TaskAuthoringView({
                 icon={<Zap className="size-3.5" aria-hidden />}
                 label="Trigger"
               />
-              <p className="mt-1 mb-2.5 text-[12.5px] leading-normal text-muted-foreground">
+              <p className="
+                mt-1 mb-2.5 text-[12.5px] leading-normal text-muted-foreground
+              ">
                 v0 runs immediately. Scheduled and event triggers are planned.
               </p>
               <div className="flex gap-2">
@@ -450,7 +472,10 @@ export function TaskAuthoringView({
                     >
                       <SelectTrigger
                         className={cn(
-                          "h-auto min-h-11 w-full items-center gap-2.5 border-input px-3 py-2",
+                          `
+                            h-auto min-h-11 w-full items-center gap-2.5
+                            border-input px-3 py-2
+                          `,
                         )}
                       >
                         <AssigneeTriggerContent option={selectedOption} />
@@ -463,14 +488,20 @@ export function TaskAuthoringView({
                             disabled={!option.connected}
                           >
                             <span className="flex items-center gap-2.5">
-                              <span className="inline-flex size-7 items-center justify-center rounded-md bg-secondary text-[11px] font-medium text-secondary-foreground">
+                              <span className="
+                                inline-flex size-7 items-center justify-center
+                                rounded-md bg-secondary text-[11px] font-medium
+                                text-secondary-foreground
+                              ">
                                 {option.initials}
                               </span>
                               <span className="flex flex-row items-center gap-2">
                                 <span className="text-[13px] font-semibold">
                                   {option.displayName}
                                 </span>
-                                <span className="font-mono text-[11.5px] text-muted-foreground">
+                                <span className="
+                                  font-mono text-[11.5px] text-muted-foreground
+                                ">
                                   {option.agentId}
                                 </span>
                               </span>
@@ -498,7 +529,9 @@ export function TaskAuthoringView({
                   </Badge>
                 }
               />
-              <p className="mt-1 mb-2.5 text-[12.5px] leading-normal text-muted-foreground">
+              <p className="
+                mt-1 mb-2.5 text-[12.5px] leading-normal text-muted-foreground
+              ">
                 A run terminates{" "}
                 <span className="font-mono">iteration_exhausted</span> or{" "}
                 <span className="font-mono">timeout</span> if it hits these.
@@ -508,7 +541,10 @@ export function TaskAuthoringView({
                   <div className="mb-1.5 text-xs text-muted-foreground">
                     Iteration cap
                   </div>
-                  <div className="flex items-center gap-2.5 rounded-md border border-border bg-muted px-3 py-2.5 opacity-75">
+                  <div className="
+                    flex items-center gap-2.5 rounded-md border border-border
+                    bg-muted px-3 py-2.5 opacity-75
+                  ">
                     <Repeat
                       className="size-3.5 shrink-0 text-muted-foreground"
                       aria-hidden
@@ -525,7 +561,10 @@ export function TaskAuthoringView({
                   <div className="mb-1.5 text-xs text-muted-foreground">
                     Wall-clock timeout
                   </div>
-                  <div className="flex items-center gap-2.5 rounded-md border border-border bg-muted px-3 py-2.5 opacity-75">
+                  <div className="
+                    flex items-center gap-2.5 rounded-md border border-border
+                    bg-muted px-3 py-2.5 opacity-75
+                  ">
                     <Timer
                       className="size-3.5 shrink-0 text-muted-foreground"
                       aria-hidden
@@ -548,19 +587,27 @@ export function TaskAuthoringView({
         )}
       </div>
 
-      <div className="flex shrink-0 flex-col gap-3 border-t border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="
+        flex shrink-0 flex-col gap-3 border-t border-border px-6 py-4
+        sm:flex-row sm:items-center sm:justify-between
+      ">
         {isEditMode && !isArchived ? (
           <Button
             type="button"
             variant="ghost"
-            className="text-destructive hover:text-destructive"
+            className="
+              text-destructive
+              hover:text-destructive
+            "
             onClick={onArchiveRequest}
           >
             <Archive className="size-4" aria-hidden />
             Archive
           </Button>
         ) : !isEditMode ? (
-          <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="
+            flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground
+          ">
             <Info className="size-3.5 shrink-0" aria-hidden />
             <span className="truncate">
               Executes on the assigned agent · runs as{" "}
@@ -572,7 +619,10 @@ export function TaskAuthoringView({
         ) : (
           <div />
         )}
-        <div className="flex shrink-0 gap-2.5 sm:ml-auto">
+        <div className="
+          flex shrink-0 gap-2.5
+          sm:ml-auto
+        ">
           <Button type="button" variant="ghost" onClick={handleCancel}>
             {isArchived ? "Close" : "Cancel"}
           </Button>

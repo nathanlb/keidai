@@ -26,7 +26,7 @@ export function ActivityFilterBar({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2.5">
-      <InputGroup className="h-9 min-w-[240px] flex-1">
+      <InputGroup className="h-9 min-w-60 flex-1">
         <InputGroupAddon align="inline-start">
           <InputGroupText>
             <Search aria-hidden />
@@ -40,7 +40,7 @@ export function ActivityFilterBar({
         />
       </InputGroup>
       <Select value={server} onValueChange={onServerChange}>
-        <SelectTrigger className="h-9 w-[170px]">
+        <SelectTrigger className="h-9 w-42.5">
           <SelectValue placeholder="All servers" />
         </SelectTrigger>
         <SelectContent>

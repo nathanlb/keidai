@@ -67,10 +67,13 @@ export function AgentGroupsPanel({
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
-      <div className="flex items-start justify-between gap-3.5 border-b border-border px-[18px] py-3.5">
+      <div className="
+        flex items-start justify-between gap-3.5 border-b border-border px-4.5
+        py-3.5
+      ">
         <div className="min-w-0">
           <div className="text-[13.5px] font-semibold">Groups</div>
-          <p className="mt-0.5 text-xs leading-normal text-muted-foreground">
+          <p className="mt-0.5 text-xs/normal text-muted-foreground">
             Membership is how this agent gets abilities. Policy lives under
             Configure → Groups &amp; tools.
           </p>
@@ -93,8 +96,8 @@ export function AgentGroupsPanel({
       </div>
 
       {adding ? (
-        <div className="border-b border-border px-[18px] py-3">
-          <div className="relative max-w-[380px]">
+        <div className="border-b border-border px-4.5 py-3">
+          <div className="relative max-w-95">
             <InputGroup className="h-8.5">
               <InputGroupAddon align="inline-start">
                 <InputGroupText>
@@ -117,7 +120,10 @@ export function AgentGroupsPanel({
               <InputGroupAddon align="inline-end">
                 <button
                   type="button"
-                  className="text-muted-foreground hover:text-foreground"
+                  className="
+                    text-muted-foreground
+                    hover:text-foreground
+                  "
                   aria-label="Cancel joining a group"
                   onClick={() => {
                     setAdding(false);
@@ -128,12 +134,16 @@ export function AgentGroupsPanel({
                 </button>
               </InputGroupAddon>
             </InputGroup>
-            <div className="absolute z-20 mt-1.5 w-full overflow-hidden rounded-lg border border-border bg-popover shadow-lg">
+            <div className="
+              absolute z-20 mt-1.5 w-full overflow-hidden rounded-lg border
+              border-border bg-popover shadow-lg
+            ">
               {joinable.length === 0 ? (
-                <p className="px-3 py-3 text-xs text-muted-foreground">
+                <p className="p-3 text-xs text-muted-foreground">
                   {definedGroups.length === 0
                     ? "No defined groups yet."
-                    : definedGroups.length === agent.groups.filter((name) =>
+                    : definedGroups.length ===
+                        agent.groups.filter((name) =>
                           isKnownGroup(name, knownNames),
                         ).length
                       ? "This agent is already in every defined group."
@@ -151,13 +161,20 @@ export function AgentGroupsPanel({
                         `Joined ${group.name}. Effective tools recomputed.`,
                       )
                     }
-                    className="flex w-full items-center gap-2.5 border-b border-border px-3 py-2.5 text-left last:border-b-0 hover:bg-muted/45"
+                    className="
+                      flex w-full items-center gap-2.5 border-b border-border
+                      px-3 py-2.5 text-left
+                      last:border-b-0
+                      hover:bg-muted/45
+                    "
                   >
                     <div className="min-w-0 flex-1">
                       <div className="font-mono text-[12.5px] font-medium">
                         {group.name}
                       </div>
-                      <div className="mt-px truncate text-[11px] text-muted-foreground">
+                      <div className="
+                        mt-px truncate text-[11px] text-muted-foreground
+                      ">
                         {group.description || "No description"}
                       </div>
                     </div>
@@ -174,7 +191,9 @@ export function AgentGroupsPanel({
       ) : null}
 
       {agent.groups.length === 0 ? (
-        <p className="px-[18px] py-4 text-[12.5px] leading-normal text-muted-foreground">
+        <p className="
+          px-4.5 py-4 text-[12.5px] leading-normal text-muted-foreground
+        ">
           No groups. Every tool call this agent makes will be denied at the
           gateway.
         </p>
@@ -186,14 +205,24 @@ export function AgentGroupsPanel({
           return (
             <div
               key={name}
-              className="flex items-center gap-3 border-b border-border px-[18px] py-3 last:border-b-0 hover:bg-muted/45"
+              className="
+                flex items-center gap-3 border-b border-border px-4.5 py-3
+                last:border-b-0
+                hover:bg-muted/45
+              "
             >
               <div
                 className={cn(
-                  "flex size-7.5 shrink-0 items-center justify-center rounded-lg",
+                  `
+                    flex size-7.5 shrink-0 items-center justify-center
+                    rounded-lg
+                  `,
                   known
                     ? "bg-secondary text-secondary-foreground"
-                    : "bg-[color-mix(in_srgb,var(--destructive)_16%,transparent)] text-destructive",
+                    : `
+                      bg-[color-mix(in_srgb,var(--destructive)_16%,transparent)]
+                      text-destructive
+                    `,
                 )}
               >
                 <UsersRound className="size-3.5" aria-hidden />
@@ -209,15 +238,23 @@ export function AgentGroupsPanel({
                     {name}
                   </span>
                   {known ? null : (
-                    <span className="inline-flex items-center rounded-full bg-[color-mix(in_srgb,var(--destructive)_16%,transparent)] px-2 py-px text-[11px] text-destructive">
+                    <span className="
+                      inline-flex items-center rounded-full
+                      bg-[color-mix(in_srgb,var(--destructive)_16%,transparent)]
+                      px-2 py-px text-[11px] text-destructive
+                    ">
                       not defined
                     </span>
                   )}
                 </div>
-                <p className="mt-0.5 text-[11.5px] leading-normal text-muted-foreground">
+                <p className="
+                  mt-0.5 text-[11.5px] leading-normal text-muted-foreground
+                ">
                   {known
                     ? `${defined?.description || "No description"}${
-                        servers.length > 0 ? ` · reaches ${servers.join(", ")}` : ""
+                        servers.length > 0
+                          ? ` · reaches ${servers.join(", ")}`
+                          : ""
                       }`
                     : "No policy defines this group, so it grants nothing and every call relying on it is denied at the gateway. Define it or leave it."}
                 </p>
@@ -225,7 +262,11 @@ export function AgentGroupsPanel({
               {known ? (
                 <Link
                   to={`${GROUPS_PATH}/${encodeURIComponent(name)}`}
-                  className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                  className="
+                    inline-flex shrink-0 items-center gap-1 text-xs
+                    text-muted-foreground
+                    hover:text-foreground
+                  "
                 >
                   Open policy
                   <ExternalLink className="size-3" aria-hidden />
@@ -253,7 +294,7 @@ export function AgentGroupsPanel({
       )}
 
       {error ? (
-        <p className="px-[18px] py-2.5 text-sm text-destructive">{error}</p>
+        <p className="px-4.5 py-2.5 text-sm text-destructive">{error}</p>
       ) : null}
     </div>
   );

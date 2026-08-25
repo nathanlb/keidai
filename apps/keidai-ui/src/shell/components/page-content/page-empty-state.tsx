@@ -31,7 +31,10 @@ export function PageEmptyState({
   return (
     <Empty
       className={cn(
-        "border border-dashed border-border bg-card py-[60px] md:py-[60px]",
+        `
+          border border-dashed border-border bg-card py-15
+          md:py-15
+        `,
         contentClassName,
         className,
       )}

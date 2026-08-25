@@ -28,10 +28,16 @@ export function HowThisResolves() {
         <div className="mb-2.5 text-[13px] font-semibold">
           How these rules apply
         </div>
-        <div className="flex flex-col gap-2.5 text-[11.5px] leading-relaxed text-muted-foreground">
+        <div className="
+          flex flex-col gap-2.5 text-[11.5px] leading-relaxed
+          text-muted-foreground
+        ">
           {RULES.map((rule) => (
             <div key={rule.n} className="flex gap-2">
-              <span className={`shrink-0 font-mono ${rule.nClass}`}>
+              <span className={`
+                shrink-0 font-mono
+                ${rule.nClass}
+              `}>
                 {rule.n}
               </span>
               <span>

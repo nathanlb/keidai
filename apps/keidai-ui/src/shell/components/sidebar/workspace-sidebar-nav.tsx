@@ -55,7 +55,10 @@ export function WorkspaceSidebarNav() {
                 cn(
                   navItemClassName,
                   isNavItemActive(item, pathname) &&
-                    "bg-sidebar-accent font-semibold text-sidebar-accent-foreground",
+                    `
+                      bg-sidebar-accent font-semibold
+                      text-sidebar-accent-foreground
+                    `,
                 )
               }
             >

@@ -38,10 +38,17 @@ function TabButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "-mb-px border-b-2 pb-3 pt-3.5 text-[13.5px] transition-colors duration-150 ease-out motion-reduce:transition-none",
+        `
+          -mb-px border-b-2 pt-3.5 pb-3 text-[13.5px] transition-colors
+          duration-150 ease-out
+          motion-reduce:transition-none
+        `,
         active
           ? "border-foreground font-semibold text-foreground"
-          : "border-transparent font-medium text-muted-foreground hover:text-foreground",
+          : `
+            border-transparent font-medium text-muted-foreground
+            hover:text-foreground
+          `,
       )}
     >
       {children}
@@ -85,7 +92,7 @@ function RecentRows({ rows }: { rows: readonly HomeRecentRun[] }) {
           >
             <span
               className={cn(
-                "size-[7px] shrink-0 rounded-full",
+                "size-1.75 shrink-0 rounded-full",
                 verdictDotClass(row.verdict),
               )}
               aria-hidden
@@ -99,7 +106,7 @@ function RecentRows({ rows }: { rows: readonly HomeRecentRun[] }) {
             {row.whenLabel}
           </span>
           <ChevronRight
-            className="size-[15px] text-muted-foreground"
+            className="size-3.75 text-muted-foreground"
             aria-hidden
           />
         </Link>
@@ -125,10 +132,10 @@ function ScheduledRows({ rows }: { rows: readonly HomeScheduledTask[] }) {
           to={scheduledTaskHref(row.id)}
           className={cn(gridClassName, rowClassName)}
         >
-          <div className="flex min-w-0 items-center gap-[9px]">
+          <div className="flex min-w-0 items-center gap-2.25">
             <span
               className={cn(
-                "size-[7px] shrink-0 rounded-full",
+                "size-1.75 shrink-0 rounded-full",
                 row.paused
                   ? "bg-muted-foreground"
                   : row.lastVerdict
@@ -138,7 +145,9 @@ function ScheduledRows({ rows }: { rows: readonly HomeScheduledTask[] }) {
               aria-hidden
             />
             <div className="min-w-0">
-              <div className="truncate text-[13.5px] font-medium text-foreground">
+              <div className="
+                truncate text-[13.5px] font-medium text-foreground
+              ">
                 {row.task}
               </div>
               <div className="truncate text-[11px] text-muted-foreground">
@@ -171,7 +180,7 @@ function ScheduledRows({ rows }: { rows: readonly HomeScheduledTask[] }) {
             {row.nextLabel}
           </span>
           <ChevronRight
-            className="size-[15px] text-muted-foreground"
+            className="size-3.75 text-muted-foreground"
             aria-hidden
           />
         </Link>
@@ -202,27 +211,34 @@ export function HomeRunsTable({
       data-testid="home-runs-table"
       className="gap-0 overflow-hidden py-0 shadow-none"
     >
-      <div className="flex items-center gap-4 overflow-x-auto border-b border-border px-4">
+      <div className="
+        flex items-center gap-4 overflow-x-auto border-b border-border px-4
+      ">
         <TabButton active={isRecent} onClick={() => onTabChange("recent")}>
           Recent
         </TabButton>
         <TabButton active={!isRecent} onClick={() => onTabChange("scheduled")}>
-          <span className="flex items-center gap-[7px]">
+          <span className="flex items-center gap-1.75">
             Scheduled
-            <span className="font-mono text-[11px] font-normal text-muted-foreground">
+            <span className="
+              font-mono text-[11px] font-normal text-muted-foreground
+            ">
               {scheduled.length}
             </span>
           </span>
         </TabButton>
         <Link
           to={isRecent ? RUNS_PATH : TASKS_PATH}
-          className="ml-auto shrink-0 text-[12.5px] text-muted-foreground no-underline hover:text-foreground"
+          className="
+            ml-auto shrink-0 text-[12.5px] text-muted-foreground no-underline
+            hover:text-foreground
+          "
         >
           {isRecent ? "All runs →" : "All tasks →"}
         </Link>
       </div>
       <div className="overflow-x-auto">
-        <div className="min-w-[720px]">
+        <div className="min-w-180">
           {isRecent ? (
             <RecentRows rows={recent} />
           ) : (
@@ -230,7 +246,7 @@ export function HomeRunsTable({
           )}
         </div>
       </div>
-      <div className="px-4 py-[11px] text-xs text-muted-foreground">
+      <div className="px-4 py-2.75 text-xs text-muted-foreground">
         {isRecent
           ? formatRecentFooter(recent.length, totalRunCount)
           : formatScheduledFooter(scheduled.length, pausedScheduledCount)}

@@ -43,7 +43,11 @@ export function AddToolRule({
       <Button
         type="button"
         variant="ghost"
-        className="h-8 justify-start gap-2 rounded-md border border-dashed border-border bg-transparent px-2.5 text-[12.5px] font-normal text-muted-foreground hover:bg-accent"
+        className="
+          h-8 justify-start gap-2 rounded-md border border-dashed border-border
+          bg-transparent px-2.5 text-[12.5px] font-normal text-muted-foreground
+          hover:bg-accent
+        "
         onClick={() => {
           setQuery("");
           setOpen(true);
@@ -63,7 +67,11 @@ export function AddToolRule({
 
   return (
     <div>
-      <div className="flex h-8.5 items-center gap-2.5 rounded-md border border-ring bg-background px-2.5 shadow-[0_0_0_3px_color-mix(in_srgb,var(--ring)_30%,transparent)]">
+      <div className="
+        flex h-8.5 items-center gap-2.5 rounded-md border border-ring
+        bg-background px-2.5
+        shadow-[0_0_0_3px_color-mix(in_srgb,var(--ring)_30%,transparent)]
+      ">
         <Search
           className="size-3.5 shrink-0 text-muted-foreground"
           aria-hidden
@@ -79,21 +87,30 @@ export function AddToolRule({
             }
           }}
           placeholder="Search this server's tools…"
-          className="h-auto border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
+          className="
+            h-auto border-0 bg-transparent p-0 shadow-none
+            focus-visible:ring-0
+          "
           aria-label="Search this server's tools"
         />
         <button
           type="button"
-          className="flex shrink-0 text-muted-foreground hover:text-foreground"
+          className="
+            flex shrink-0 text-muted-foreground
+            hover:text-foreground
+          "
           onClick={() => setOpen(false)}
           aria-label="Cancel adding a tool rule"
         >
           <X className="size-3.5" aria-hidden />
         </button>
       </div>
-      <div className="mt-1.5 max-h-53 overflow-y-auto rounded-lg border border-border bg-popover shadow-[0_10px_34px_rgba(0,0,0,.45)]">
+      <div className="
+        mt-1.5 max-h-53 overflow-y-auto rounded-lg border border-border
+        bg-popover shadow-[0_10px_34px_rgba(0,0,0,.45)]
+      ">
         {matches.length === 0 ? (
-          <div className="px-3 py-3 text-[12px] text-muted-foreground">
+          <div className="p-3 text-[12px] text-muted-foreground">
             {formatPickerEmpty(unruled.length)}
           </div>
         ) : (
@@ -106,7 +123,11 @@ export function AddToolRule({
                 setOpen(false);
               }}
               className={cn(
-                "flex w-full items-center gap-2.5 border-b border-border px-3 py-2.5 text-left last:border-b-0",
+                `
+                  flex w-full items-center gap-2.5 border-b border-border px-3
+                  py-2.5 text-left
+                  last:border-b-0
+                `,
                 "hover:bg-muted/45",
               )}
             >
@@ -115,7 +136,9 @@ export function AddToolRule({
                   {tool.name}
                 </div>
                 {tool.description ? (
-                  <div className="mt-px truncate text-[11px] text-muted-foreground">
+                  <div className="
+                    mt-px truncate text-[11px] text-muted-foreground
+                  ">
                     {tool.description}
                   </div>
                 ) : null}

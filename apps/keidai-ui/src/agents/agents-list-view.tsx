@@ -44,7 +44,9 @@ function AgentsPageHeader({ onNewAgent }: { onNewAgent: () => void }) {
     <div className="mb-4.5 flex items-start justify-between gap-4">
       <div>
         <div className="text-[23px] font-bold tracking-tight">Agents</div>
-        <div className="mt-0.5 text-[13.5px] leading-normal text-muted-foreground">
+        <div className="
+          mt-0.5 text-[13.5px] leading-normal text-muted-foreground
+        ">
           Who an agent is and what it may do. Shaiden runs every agent.
         </div>
       </div>
@@ -63,7 +65,10 @@ function UnknownGroupsBanner({ names }: { names: string[] }) {
       : `${names.length} groups in use are not defined in Torii: ${names.join(", ")}.`;
 
   return (
-    <div className="mb-3 flex items-start gap-2.5 rounded-md border border-amber-500/45 bg-amber-500/10 px-3.5 py-2.5 text-[13px] leading-normal">
+    <div className="
+      mb-3 flex items-start gap-2.5 rounded-md border border-amber-500/45
+      bg-amber-500/10 px-3.5 py-2.5 text-[13px] leading-normal
+    ">
       <TriangleAlert
         className="mt-0.5 size-3.5 shrink-0 text-amber-500"
         aria-hidden
@@ -174,7 +179,9 @@ export function AgentsListView() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="h-auto py-2.5 pl-4.5 text-xs font-medium">
+                    <TableHead className="
+                      h-auto py-2.5 pl-4.5 text-xs font-medium
+                    ">
                       Agent
                     </TableHead>
                     <TableHead className="h-auto py-2.5 text-xs font-medium">
@@ -206,20 +213,31 @@ export function AgentsListView() {
                       <TableRow
                         key={agent.id}
                         onClick={() => openAgent(agent.id)}
-                        className="cursor-pointer hover:bg-muted/30"
+                        className="
+                          cursor-pointer
+                          hover:bg-muted/30
+                        "
                       >
                         <TableCell className="py-3 pl-4.5">
                           <div className="flex items-center gap-2.5">
                             <Avatar size="sm" className="shrink-0">
-                              <AvatarFallback className="bg-secondary text-[10px] text-secondary-foreground">
+                              <AvatarFallback className="
+                                bg-secondary text-[10px]
+                                text-secondary-foreground
+                              ">
                                 {deriveAgentInitials(agent.name)}
                               </AvatarFallback>
                             </Avatar>
                             <div className="min-w-0">
-                              <div className="truncate text-[13px] font-semibold">
+                              <div className="
+                                truncate text-[13px] font-semibold
+                              ">
                                 {agent.name}
                               </div>
-                              <div className="truncate font-mono text-[11.5px] text-muted-foreground">
+                              <div className="
+                                truncate font-mono text-[11.5px]
+                                text-muted-foreground
+                              ">
                                 {agent.slug}
                               </div>
                             </div>
@@ -244,25 +262,33 @@ export function AgentsListView() {
                                 />
                               ))
                             ) : (
-                              <span className="text-[12.5px] text-muted-foreground">
+                              <span className="
+                                text-[12.5px] text-muted-foreground
+                              ">
                                 No groups
                               </span>
                             )}
                           </div>
                         </TableCell>
                         <TableCell className="py-3">
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <div className="
+                            flex items-center gap-1.5 text-muted-foreground
+                          ">
                             <KeyRound
                               className="size-3.5 shrink-0"
                               aria-hidden
                             />
-                            <span className="font-mono text-[12.5px] text-foreground">
+                            <span className="
+                              font-mono text-[12.5px] text-foreground
+                            ">
                               {bearerCount === 0 ? "—" : PLATFORM_BEARER_ID}
                             </span>
                           </div>
                         </TableCell>
                         {SHOW_OWNER ? (
-                          <TableCell className="py-3 font-mono text-[12.5px] text-muted-foreground">
+                          <TableCell className="
+                            py-3 font-mono text-[12.5px] text-muted-foreground
+                          ">
                             {agent.ownerId}
                           </TableCell>
                         ) : null}
@@ -277,7 +303,10 @@ export function AgentsListView() {
                   })}
                 </TableBody>
               </Table>
-              <div className="border-t border-border px-4.5 py-2.5 text-xs text-muted-foreground">
+              <div className="
+                border-t border-border px-4.5 py-2.5 text-xs
+                text-muted-foreground
+              ">
                 Showing{" "}
                 <span className="font-mono text-foreground">
                   {filteredAgents.length}

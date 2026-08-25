@@ -43,7 +43,10 @@ export function Breadcrumb({ breadcrumb }: BreadcrumbProps) {
                   <BreadcrumbLink asChild>
                     <Link
                       to={segment.href}
-                      className="truncate rounded-md px-1.5 py-0.5 hover:bg-accent hover:text-accent-foreground"
+                      className="
+                        truncate rounded-md px-1.5 py-0.5
+                        hover:bg-accent hover:text-accent-foreground
+                      "
                     >
                       {segment.label}
                     </Link>

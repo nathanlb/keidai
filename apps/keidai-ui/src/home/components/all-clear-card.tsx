@@ -7,9 +7,15 @@ export function AllClearCard() {
       data-testid="home-all-clear"
       className="py-0 shadow-none"
     >
-      <CardContent className="flex items-center justify-center gap-[13px] px-4 py-[22px]">
-        <div className="flex size-[38px] shrink-0 items-center justify-center rounded-[10px] bg-[color-mix(in_srgb,var(--green-600)_16%,transparent)] text-(--green-600)">
-          <CheckCheck className="size-[19px]" aria-hidden />
+      <CardContent className="
+        flex items-center justify-center gap-3.25 px-4 py-5.5
+      ">
+        <div className="
+          flex size-9.5 shrink-0 items-center justify-center rounded-[10px]
+          bg-[color-mix(in_srgb,var(--green-600)_16%,transparent)]
+          text-(--green-600)
+        ">
+          <CheckCheck className="size-4.75" aria-hidden />
         </div>
         <div>
           <div className="text-[14px] font-semibold">Nothing needs you</div>

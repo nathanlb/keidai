@@ -7,7 +7,9 @@ export function ApprovalsEmptyState() {
   return (
     <Empty className="px-4 py-16">
       <EmptyHeader>
-        <EmptyMedia className="mb-0 size-[60px] rounded-2xl bg-success/15 text-success">
+        <EmptyMedia className="
+          mb-0 size-15 rounded-2xl bg-success/15 text-success
+        ">
           <CheckCheck className="size-7" strokeWidth={2} />
         </EmptyMedia>
         <EmptyTitle className="text-[19px] font-bold">

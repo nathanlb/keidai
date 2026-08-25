@@ -58,7 +58,7 @@ export function ApprovalCard({
 
   return (
     <Card className="overflow-hidden rounded-[14px] py-0 shadow-none">
-      <div className="flex w-full items-start gap-3 px-[15px] py-[18px]">
+      <div className="flex w-full items-start gap-3 px-3.75 py-4.5">
         <button
           type="button"
           className="flex min-w-0 flex-1 items-start gap-3 text-left"
@@ -73,7 +73,10 @@ export function ApprovalCard({
                 {display.connectionLabel}
               </span>
             </div>
-            <div className="mt-0.5 flex min-w-0 items-center gap-1 text-[12px] text-muted-foreground">
+            <div className="
+              mt-0.5 flex min-w-0 items-center gap-1 text-[12px]
+              text-muted-foreground
+            ">
               <CornerDownRight className="size-3 shrink-0" />
               <span className="truncate">
                 {display.taskName ?? "Parked run"}
@@ -91,7 +94,10 @@ export function ApprovalCard({
         <div className="flex shrink-0 items-center gap-2">
           <Badge
             variant="outline"
-            className="gap-1 border-border bg-muted/50 text-[11px] font-normal text-muted-foreground"
+            className="
+              gap-1 border-border bg-muted/50 text-[11px] font-normal
+              text-muted-foreground
+            "
           >
             <TriangleAlert className="size-3" />
             Gated tool call
@@ -104,7 +110,7 @@ export function ApprovalCard({
               <Button
                 type="button"
                 size="icon"
-                className="size-[26px] shrink-0"
+                className="size-6.5 shrink-0"
                 disabled={busy}
                 onClick={handleQuickApprove}
                 aria-label="Approve and resume"
@@ -134,10 +140,13 @@ export function ApprovalCard({
       {expanded ? (
         <>
           <Separator />
-          <div className="flex flex-col gap-4 px-[18px] pb-[18px] pt-[15px]">
+          <div className="flex flex-col gap-4 px-4.5 pt-3.75 pb-4.5">
             {display.reasoning ? (
               <div className="rounded-lg border border-border bg-muted/30 p-3">
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <div className="
+                  flex items-center gap-1.5 text-[11px] font-semibold
+                  tracking-wide text-muted-foreground uppercase
+                ">
                   <MessageSquare className="size-3.5" />
                   Why the agent wants this
                 </div>
@@ -145,7 +154,9 @@ export function ApprovalCard({
               </div>
             ) : null}
 
-            <div className="flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
+            <div className="
+              flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-muted-foreground
+            ">
               <span>
                 Agent{" "}
                 <span className="font-mono text-foreground">{approval.agentId}</span>

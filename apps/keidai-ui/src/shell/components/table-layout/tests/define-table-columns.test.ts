@@ -26,13 +26,13 @@ describe("defineTableColumns", () => {
 
   it("maps width types to shared head and cell styles", () => {
     const layout = defineTableColumns({
-      goal: { width: { type: "grow", minWidth: 150 }, headClassName: "pl-[18px]" },
+      goal: { width: { type: "grow", minWidth: 150 }, headClassName: "pl-4.5" },
       assignee: { width: { type: "fixed", width: 200 } },
       chevron: { width: { type: "percent", width: 10 } },
       actions: { width: { type: "shrink" } },
     });
 
-    expect(layout.headClassName("goal")).toBe("pl-[18px]");
+    expect(layout.headClassName("goal")).toBe("pl-4.5");
     expect(layout.headStyle("goal")).toEqual({ width: "auto", minWidth: 150 });
     expect(layout.cellStyle("assignee")).toEqual({ width: 200 });
     expect(layout.headStyle("chevron")).toEqual({ width: "10%" });
@@ -45,7 +45,7 @@ describe("defineTableColumns", () => {
       {
         run: {
           width: { type: "percent", width: 28 },
-          headClassName: "pl-[18px]",
+          headClassName: "pl-4.5",
           cellClassName: "py-3",
         },
       },
@@ -58,7 +58,7 @@ describe("defineTableColumns", () => {
     );
 
     expect(layout.headClassName("run", "extra-head")).toBe(
-      "h-auto py-2.5 text-xs font-medium pl-[18px] extra-head",
+      "h-auto py-2.5 text-xs font-medium pl-4.5 extra-head",
     );
     expect(layout.headStyle("run")).toEqual({ width: "28%" });
     expect(layout.cellClassName("run", "extra-cell")).toBe(

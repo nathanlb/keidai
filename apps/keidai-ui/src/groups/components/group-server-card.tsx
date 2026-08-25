@@ -69,9 +69,15 @@ export function GroupServerCard({
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="flex w-full items-center gap-2.5 px-4 py-3.5 text-left hover:bg-muted/45"
+        className="
+          flex w-full items-center gap-2.5 px-4 py-3.5 text-left
+          hover:bg-muted/45
+        "
       >
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+        <span className="
+          flex size-8 shrink-0 items-center justify-center rounded-lg
+          bg-secondary text-secondary-foreground
+        ">
           <HardDrive className="size-3.75" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
@@ -103,7 +109,10 @@ export function GroupServerCard({
         </span>
         <ChevronDown
           className={cn(
-            "size-4 shrink-0 text-muted-foreground transition-transform duration-150",
+            `
+              size-4 shrink-0 text-muted-foreground transition-transform
+              duration-150
+            `,
             open && "rotate-180",
           )}
           aria-hidden
@@ -113,7 +122,10 @@ export function GroupServerCard({
       {open ? (
         <CardContent className="border-t border-border p-0">
           {rules.length === 0 ? (
-            <div className="border-b border-border px-4.5 py-3.5 text-[12.5px] leading-relaxed text-muted-foreground">
+            <div className="
+              border-b border-border px-4.5 py-3.5 text-[12.5px] leading-relaxed
+              text-muted-foreground
+            ">
               No tool-level rules. Every tool on this server follows the default
               below.
             </div>
@@ -121,7 +133,10 @@ export function GroupServerCard({
             rules.map((rule) => (
               <div
                 key={rule.name}
-                className="flex items-start gap-3 border-b border-border px-4.5 py-2.75 hover:bg-muted/45"
+                className="
+                  flex items-start gap-3 border-b border-border px-4.5 py-2.75
+                  hover:bg-muted/45
+                "
               >
                 <div className="min-w-0 flex-1">
                   <div
@@ -148,7 +163,10 @@ export function GroupServerCard({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="size-6.5 shrink-0 text-muted-foreground hover:bg-accent"
+                  className="
+                    size-6.5 shrink-0 text-muted-foreground
+                    hover:bg-accent
+                  "
                   title="Remove this rule — the tool falls back to the default"
                   onClick={() => onChange(removeToolRule(policy, rule.name))}
                 >
@@ -189,7 +207,9 @@ export function GroupServerCard({
                   </span>
                 ) : null}
               </div>
-              <div className="mt-0.5 text-[11.5px] leading-snug text-muted-foreground">
+              <div className="
+                mt-0.5 text-[11.5px] leading-snug text-muted-foreground
+              ">
                 {formatDefaultExplain(policy.default)}
               </div>
             </div>
@@ -204,7 +224,10 @@ export function GroupServerCard({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-7 text-[12px] text-muted-foreground hover:text-destructive"
+              className="
+                h-7 text-[12px] text-muted-foreground
+                hover:text-destructive
+              "
               onClick={onRemove}
             >
               Remove this server

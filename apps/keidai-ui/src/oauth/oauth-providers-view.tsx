@@ -20,7 +20,7 @@ function PrivacyBanner() {
 function OAuthProvidersEmptyState() {
   return (
     <PageEmptyState
-      icon={<KeyRound className="size-[30px]" aria-hidden />}
+      icon={<KeyRound className="size-7.5" aria-hidden />}
       title="No OAuth providers configured"
       description={
         <>

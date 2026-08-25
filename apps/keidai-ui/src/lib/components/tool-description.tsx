@@ -37,7 +37,10 @@ export function ToolDescription({
           type="button"
           variant="ghost"
           size="sm"
-          className="mt-0.5 h-auto px-0 py-0 text-[11px] font-medium text-foreground/80 hover:bg-transparent hover:text-foreground"
+          className="
+            mt-0.5 h-auto p-0 text-[11px] font-medium text-foreground/80
+            hover:bg-transparent hover:text-foreground
+          "
           aria-expanded={expanded}
           onClick={(event) => {
             event.stopPropagation();

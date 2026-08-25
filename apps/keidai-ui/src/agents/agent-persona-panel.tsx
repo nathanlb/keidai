@@ -1,4 +1,4 @@
-import { Badge, Button, Spinner, Textarea } from "@keidai/ui";
+import { Badge, Button, cn, Spinner, Textarea } from "@keidai/ui";
 import { Check, History, RotateCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ManagementAgent, PersonaVersion } from "../lib/api/agents.js";
@@ -60,16 +60,31 @@ export function AgentPersonaPanel({
   }
 
   return (
-    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_296px]">
+    <div
+      className="
+      grid items-start gap-5
+      lg:grid-cols-[minmax(0,1fr)_296px]
+    "
+    >
       <div className="overflow-hidden rounded-xl border border-border bg-card">
-        <div className="flex items-center justify-between gap-3 border-b border-border px-[18px] py-3.5">
+        <div
+          className="
+          flex items-center justify-between gap-3 border-b border-border
+          px-[18px] py-3.5
+        "
+        >
           <div>
             <div className="flex items-center gap-2 text-sm font-semibold">
               {viewing
                 ? `Persona · v${viewing.version}`
                 : `Persona · v${agent.currentPersonaVersion}`}
               {viewing ? (
-                <Badge variant="outline" className="text-[10.5px] text-muted-foreground">
+                <Badge
+                  variant="outline"
+                  className="
+                  text-[10.5px] text-muted-foreground
+                "
+                >
                   Read-only
                 </Badge>
               ) : (
@@ -115,21 +130,26 @@ export function AgentPersonaPanel({
         </div>
 
         {viewing ? (
-          <div className="whitespace-pre-wrap px-[18px] py-4 text-[13.5px] leading-relaxed text-muted-foreground">
+          <div className="px-[18px] py-4 text-[13.5px] leading-relaxed whitespace-pre-wrap text-muted-foreground">
             {viewing.content}
           </div>
         ) : (
-          <div className="px-[18px] py-4">
+          <div className="px-4.5 py-4">
             <Textarea
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
-              className="min-h-[270px] text-[13.5px] leading-relaxed"
+              className="min-h-67.5 text-[13.5px] leading-relaxed"
             />
           </div>
         )}
 
-        <div className="flex items-center justify-between gap-3 border-t border-border px-[18px] py-3">
-          <div className="text-xs leading-normal text-muted-foreground">
+        <div
+          className="
+          flex items-center justify-between gap-3 border-t border-border
+          px-[18px] py-3
+        "
+        >
+          <div className="text-xs/normal text-muted-foreground">
             {viewing
               ? "Pinned to — completed runs. Versions are append-only, so those traces stay interpretable."
               : dirty
@@ -155,7 +175,9 @@ export function AgentPersonaPanel({
                 onClick={() => void handleSave()}
               >
                 {isSaving ? <Spinner className="size-3.5" aria-hidden /> : null}
-                {dirty ? `Save as v${agent.currentPersonaVersion + 1}` : "Saved"}
+                {dirty
+                  ? `Save as v${agent.currentPersonaVersion + 1}`
+                  : "Saved"}
               </Button>
             </div>
           ) : null}
@@ -163,10 +185,18 @@ export function AgentPersonaPanel({
       </div>
 
       <div className="overflow-hidden rounded-xl border border-border bg-card">
-        <div className="flex items-center gap-2 border-b border-border px-[15px] py-3">
+        <div
+          className="
+          flex items-center gap-2 border-b border-border px-[15px] py-3
+        "
+        >
           <History className="size-3.5 text-muted-foreground" aria-hidden />
           <div className="text-[13px] font-semibold">Version history</div>
-          <span className="ml-auto font-mono text-[11.5px] text-muted-foreground">
+          <span
+            className="
+            ml-auto font-mono text-[11.5px] text-muted-foreground
+          "
+          >
             {versionsLoading ? "…" : `${versions.length} versions`}
           </span>
         </div>
@@ -183,14 +213,14 @@ export function AgentPersonaPanel({
                 onClick={() =>
                   setSelectedVersion(isCurrent ? null : version.version)
                 }
-                className={
-                  "flex items-start gap-2.5 border-b border-border px-[15px] py-2.5 text-left hover:bg-muted/30" +
-                  (isActive ? " bg-muted/45" : "")
-                }
+                className={cn(
+                  "flex items-start gap-2.5 border-b border-border px-[15px] py-2.5 text-left hover:bg-muted/30",
+                  isActive && "bg-muted/45",
+                )}
               >
                 <span
                   className={
-                    "w-[26px] shrink-0 font-mono text-xs font-semibold " +
+                    "w-6.5 shrink-0 font-mono text-xs font-semibold " +
                     (isCurrent ? "text-foreground" : "text-muted-foreground")
                   }
                 >
@@ -211,7 +241,11 @@ export function AgentPersonaPanel({
             );
           })}
         </div>
-        <div className="px-[15px] py-2.5 text-[11.5px] leading-normal text-muted-foreground">
+        <div
+          className="
+          px-[15px] py-2.5 text-[11.5px] leading-normal text-muted-foreground
+        "
+        >
           Editing never overwrites. Each save appends a version and moves the
           pointer.
         </div>

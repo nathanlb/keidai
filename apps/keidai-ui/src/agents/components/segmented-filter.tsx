@@ -33,10 +33,16 @@ export function SegmentedFilter<T extends string>({
             aria-checked={selected}
             onClick={() => onChange(option.value)}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11.5px] transition-colors",
+              `
+                inline-flex items-center gap-1.5 rounded-md px-2.5 py-1
+                text-[11.5px] transition-colors
+              `,
               selected
                 ? "bg-card font-semibold text-foreground shadow-sm"
-                : "font-medium text-muted-foreground hover:text-foreground",
+                : `
+                  font-medium text-muted-foreground
+                  hover:text-foreground
+                `,
             )}
           >
             {option.label}

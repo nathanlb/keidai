@@ -58,7 +58,10 @@ export function TablePaginationFooter({
   return (
     <>
       <Separator />
-      <div className="flex items-center justify-between px-[18px] py-2.5 text-xs text-muted-foreground">
+      <div className="
+        flex items-center justify-between px-4.5 py-2.5 text-xs
+        text-muted-foreground
+      ">
         {content}
       </div>
     </>

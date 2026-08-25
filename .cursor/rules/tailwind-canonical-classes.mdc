@@ -1,0 +1,36 @@
+---
+description: Prefer canonical Tailwind scale classes over arbitrary pixel values
+globs: "{apps/keidai-ui,packages/ui}/**/*.{tsx,css}"
+alwaysApply: false
+---
+
+# Canonical Tailwind classes
+
+Do not write arbitrary pixel utilities (`p-[18px]`, `text-[14px]`, `size-[16px]`) when a theme token exists. The Tailwind language server's `suggestCanonicalClasses` diagnostic is the source of truth — match it on the first draft.
+
+Root font size is 16px (`1 = 0.25rem = 4px`). Convert spacing/sizing as `px / 4`.
+
+```tsx
+// ❌ BAD
+<div className="px-[18px] py-[16px] gap-[8px] size-[16px] text-[14px]" />
+
+// ✅ GOOD
+<div className="px-4.5 py-4 gap-2 size-4 text-sm" />
+```
+
+| Pixels | Class |
+| --- | --- |
+| 4px | `1` |
+| 8px | `2` |
+| 12px | `3` (`text-xs`) |
+| 14px | `3.5` (`text-sm`) |
+| 16px | `4` (`text-base`) |
+| 18px | `4.5` (`text-lg`) |
+| 20px | `5` (`text-xl`) |
+| 24px | `6` (`text-2xl`) |
+
+Named type tokens (`text-xs` … `text-4xl` in `packages/ui/src/styles/tokens/typography.css`) beat `text-[Npx]` when they match.
+
+Arbitrary values are fine only when nothing on the scale fits: `min()`, `calc()`, `color-mix()`, or a one-off that is not a 4px increment (e.g. `max-h-[min(90vh,920px)]`). Do not invent off-grid sizes like `text-[11.5px]` / `h-[29px]` when a nearby token would do.
+
+Never "fix" this by switching `[18px]` to `[1.125rem]` — that is still non-canonical. Use `4.5`.

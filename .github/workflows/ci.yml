@@ -36,6 +36,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - run: pnpm turbo run build --filter=@keidai/keidai-ui...
+      - run: pnpm turbo run lint --filter=@keidai/keidai-ui
       - run: pnpm --filter @keidai/keidai-ui exec vitest run --project unit
       - run: pnpm --filter @keidai/keidai-ui run test:server
 

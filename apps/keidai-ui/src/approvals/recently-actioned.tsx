@@ -45,7 +45,7 @@ export function RecentlyActioned({
 }: RecentlyActionedProps) {
   const { pageIndex, onPageChange } = useTablePageIndex([items.length]);
   const {
-    pageItems: pageItems,
+    pageItems,
     shownCount,
     canGoNewer,
     canGoOlder,
@@ -57,7 +57,9 @@ export function RecentlyActioned({
 
   return (
     <section className="mt-8">
-      <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <h3 className="
+        text-[11px] font-semibold tracking-wide text-muted-foreground uppercase
+      ">
         Recently actioned
       </h3>
       <ul className="mt-3 divide-y divide-border">
@@ -82,7 +84,10 @@ export function RecentlyActioned({
                   {item.runId ? (
                     <Link
                       to={runDetailHref(item.runId)}
-                      className="block truncate font-mono text-[11px] text-primary hover:underline"
+                      className="
+                        block truncate font-mono text-[11px] text-primary
+                        hover:underline
+                      "
                       title={item.runId}
                       onClick={(event) => event.stopPropagation()}
                     >
@@ -92,7 +97,9 @@ export function RecentlyActioned({
                 </div>
 
                 {item.rejectionReason ? (
-                  <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
+                  <p className="
+                    mt-0.5 truncate text-[12px] text-muted-foreground
+                  ">
                     {item.rejectionReason}
                   </p>
                 ) : null}
@@ -120,7 +127,10 @@ export function RecentlyActioned({
         canGoOlder={canGoOlder}
         onPageChange={onPageChange}
         pageIndex={pageIndex}
-        className="mt-3 flex items-center justify-between rounded-lg border border-border px-4 py-2.5 text-xs text-muted-foreground"
+        className="
+          mt-3 flex items-center justify-between rounded-lg border border-border
+          px-4 py-2.5 text-xs text-muted-foreground
+        "
       />
     </section>
   );

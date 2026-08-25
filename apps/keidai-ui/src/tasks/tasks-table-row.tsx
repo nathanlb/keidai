@@ -37,7 +37,10 @@ export function TasksTableRow({
   onRun: () => void;
 }) {
   return (
-    <TableRow className="border-border hover:bg-muted/30">
+    <TableRow className="
+      border-border
+      hover:bg-muted/30
+    ">
       <TableCell
         className={tasksTableColumns.cellClassName("goal")}
         style={tasksTableColumns.cellStyle("goal")}
@@ -46,7 +49,9 @@ export function TasksTableRow({
           {task.goal}
         </div>
         <div
-          className="mt-0.5 block truncate font-mono text-[11.5px] text-muted-foreground"
+          className="
+            mt-0.5 block truncate font-mono text-[11.5px] text-muted-foreground
+          "
           title={task.id}
         >
           {task.id}
@@ -59,7 +64,10 @@ export function TasksTableRow({
         <div className="flex min-w-0 items-center gap-2">
           <OwnerAvatar
             initials={agentInitials(task.assignee)}
-            className="size-[22px] shrink-0 bg-secondary text-[9px] text-secondary-foreground"
+            className="
+              size-5.5 shrink-0 bg-secondary text-[9px]
+              text-secondary-foreground
+            "
           />
           <span className="truncate font-mono text-xs" title={task.assignee}>
             {task.assignee}

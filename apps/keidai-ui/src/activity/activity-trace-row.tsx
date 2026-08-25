@@ -50,12 +50,15 @@ export function ActivityTraceRow({
 
   return (
     <TableRow
-      className="cursor-pointer border-border hover:bg-muted/30"
+      className="
+        cursor-pointer border-border
+        hover:bg-muted/30
+      "
       onClick={() => onOpen(trace)}
     >
       <TableCell className="w-0 p-0">
         <span
-          className={cn("block min-h-[46px] w-[3px]", meta.accentClass)}
+          className={cn("block min-h-11.5 w-0.75", meta.accentClass)}
           aria-hidden
         />
       </TableCell>
@@ -87,7 +90,9 @@ export function ActivityTraceRow({
           <div className="flex items-center gap-2">
             <OwnerAvatar
               initials={deriveAgentInitials(agentLabel)}
-              className="size-[22px] bg-secondary text-[9px] text-secondary-foreground"
+              className="
+                size-5.5 bg-secondary text-[9px] text-secondary-foreground
+              "
             />
             <div className="min-w-0 leading-tight">
               <div className="font-mono text-xs">{agentLabel}</div>
@@ -108,7 +113,9 @@ export function ActivityTraceRow({
       >
         {formatTracePolicyShort(trace)}
       </TableCell>
-      <TableCell className="py-3 pr-[18px] text-right font-mono text-xs text-muted-foreground">
+      <TableCell className="
+        py-3 pr-4.5 text-right font-mono text-xs text-muted-foreground
+      ">
         {formatDurationMs(trace.durationMs)}
       </TableCell>
     </TableRow>
