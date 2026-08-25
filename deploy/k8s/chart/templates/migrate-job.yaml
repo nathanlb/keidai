@@ -1,0 +1,58 @@
+{{- if .Values.migrate.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ printf "%s-migrate" (include "keidai.fullname" .) }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "keidai.labels" . | nindent 4 }}
+    app.kubernetes.io/name: migrate
+  annotations:
+    # post-install: first schema after Postgres is created.
+    # pre-upgrade: migrate before rolling new app pods.
+    # helm rollback does NOT undo schema — back up Postgres before upgrading.
+    # Do not helm --wait on install: Helm waits for pods before post-install,
+    # and app inits wait for this Job — deadlock.
+    "helm.sh/hook": post-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: keidai-migrate
+      annotations:
+        checksum/secret: {{ include "keidai.secretChecksum" . }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: fuda
+      {{- include "keidai.imagePullSecrets" . | nindent 6 }}
+      initContainers:
+        - name: wait-postgres
+          image: {{ .Values.postgres.image | quote }}
+          imagePullPolicy: {{ .Values.postgres.pullPolicy }}
+          command: ["sh", "-c", {{ include "keidai.postgresWaitCommand" . | quote }}]
+        - name: migrate-fuda
+          image: {{ include "keidai.image" (list "keidai-fuda" .) | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["node", "dist/migrate.js"]
+          envFrom:
+            - secretRef:
+                name: keidai-secrets
+        - name: migrate-torii
+          image: {{ include "keidai.image" (list "keidai-torii" .) | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["node", "dist/migrate.js"]
+          envFrom:
+            - secretRef:
+                name: keidai-secrets
+      containers:
+        - name: migrate-shaiden
+          image: {{ include "keidai.image" (list "keidai-shaiden" .) | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["node", "dist/migrate.js"]
+          envFrom:
+            - secretRef:
+                name: keidai-secrets
+{{- end }}

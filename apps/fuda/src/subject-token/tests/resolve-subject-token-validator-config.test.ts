@@ -111,6 +111,17 @@ describe("tryResolveK8sSaOidcSubjectConfig", () => {
       true,
     );
   });
+
+  it("allows omitting issuer for in-cluster discovery", () => {
+    const config = tryResolveK8sSaOidcSubjectConfig({
+      FUDA_K8S_SA_OIDC_AUDIENCE: "fuda",
+      FUDA_K8S_SA_OIDC_JWKS_URI: "https://example.test/jwks",
+      FUDA_K8S_SA_OIDC_SUBJECTS: "agents/catalog",
+    });
+    assert.ok(config);
+    assert.equal(config.issuer, "");
+    assert.equal(config.audience, "fuda");
+  });
 });
 
 describe("resolveSubjectTokenValidatorConfig", () => {

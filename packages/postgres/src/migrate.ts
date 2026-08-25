@@ -12,6 +12,23 @@ export interface MigrationResult {
   alreadyApplied: string[];
 }
 
+/**
+ * Whether app boot should run migrations.
+ *
+ * Defaults to true (Compose / local). Helm chart Deployments set
+ * `KEIDAI_AUTO_MIGRATE=false` so schema changes run only via the
+ * pre-upgrade migrate Job — not as a silent boot side effect.
+ */
+export function shouldAutoMigrate(
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  const raw = env.KEIDAI_AUTO_MIGRATE?.trim().toLowerCase();
+  if (!raw) {
+    return true;
+  }
+  return raw !== "false" && raw !== "0" && raw !== "no";
+}
+
 async function ensureMigrationsTable(queryable: Queryable): Promise<void> {
   await queryable.query(`
     CREATE TABLE IF NOT EXISTS schema_migrations (

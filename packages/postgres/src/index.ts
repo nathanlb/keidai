@@ -12,6 +12,7 @@ export { withTransaction } from "./transaction.js";
 export { isForeignKeyViolation, isUniqueViolation } from "./errors.js";
 export {
   runMigrations,
+  shouldAutoMigrate,
   type Migration,
   type MigrationResult,
 } from "./migrate.js";

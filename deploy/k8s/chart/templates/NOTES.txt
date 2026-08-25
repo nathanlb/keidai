@@ -1,0 +1,13 @@
+Keidai {{ .Chart.AppVersion }} installed.
+
+  UI / BFF:  {{ include "keidai.publicUrl" . }}
+  Login:     {{ include "keidai.publicUrl" . }}/auth/login
+
+Before upgrading:
+
+  1. Back up the Postgres volume / database. `helm rollback` reverts manifests
+     only — it does not undo schema migrations applied by the migrate Job.
+  2. Confirm Google OAuth redirect URI {{ include "keidai.publicUrl" . }}/auth/callback
+     is registered on the Google Cloud OAuth client (chart cannot do this).
+
+Cookie Secure is {{ include "keidai.cookieSecure" . }} (derived from publicUrl).

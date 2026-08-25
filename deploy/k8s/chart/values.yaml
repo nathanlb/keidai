@@ -1,0 +1,99 @@
+# Default values for self-hosted k3s / production.
+# Local kind/OrbStack overlays: values-kind.yaml, values-orbstack.yaml.
+#
+# Secrets are NOT set here. Pass them via an uncommitted secrets-values.yaml
+# (see values-secrets.example.yaml) or --set-file. Templates never generate
+# signing keys or postgres passwords without a lookup guard.
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Public operator edge (BFF). Derives TORII_GATEWAY_BASE_URL,
+# KEIDAI_GOOGLE_REDIRECT_URI, and KEIDAI_COOKIE_SECURE.
+# Register {publicUrl}/auth/callback as the Google OAuth redirect URI —
+# that registration is the one install step this chart cannot do for you.
+publicUrl: https://keidai.example.com
+
+image:
+  # e.g. ghcr.io/nathanlb — empty means short names (kind load / local).
+  registry: ghcr.io/nathanlb
+  tag: "" # defaults to Chart.AppVersion
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: ghcr-pull
+
+postgres:
+  host: postgres
+  image: postgres:16-alpine
+  pullPolicy: IfNotPresent
+  persistence:
+    size: 2Gi
+    storageClassName: ""
+
+# Bundled Postgres is fine for single-node k3s. CloudNativePG is a later path.
+postgresEnabled: true
+
+fuda:
+  replicas: 1
+  k8sSaOidc:
+    # Empty: Fuda discovers from kubernetes.default.svc well-known at boot.
+    issuer: ""
+    audience: fuda
+    jwksUri: https://kubernetes.default.svc/openid/v1/jwks
+    # namespace/serviceAccount — chart sets Release.Namespace/shaiden by default in templates when empty
+    subjects: ""
+
+torii:
+  replicas: 2
+  # Chart file (files/torii.yaml) or inline YAML via `config`.
+  configFile: files/torii.yaml
+  config: ""
+
+shaiden:
+  replicas: 1
+
+keidaiUi:
+  replicas: 1
+  service:
+    type: ClusterIP
+    port: 3000
+  # Set to 3000 for kind (extraPortMappings); leave null otherwise.
+  hostPort: null
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: keidai.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# Operators registry YAML (Google ↔ owner_id). Required on first install unless
+# an existing keidai-operators ConfigMap is present (lookup).
+operators: ""
+
+# Application secrets — supply via secrets-values.yaml / --set-file. See
+# values-secrets.example.yaml. Empty values reuse existing Secret data via lookup.
+secrets:
+  postgresPassword: ""
+  openRouterApiKey: ""
+  linearApiKey: ""
+  githubClientId: ""
+  githubClientSecret: ""
+  googleClientId: ""
+  googleClientSecret: ""
+  keidaiGoogleClientId: ""
+  keidaiGoogleClientSecret: ""
+  keidaiSessionSecret: ""
+  bffServiceToken: ""
+  bffServiceTokenDisabled: ""
+  # PEM contents (use --set-file secrets.fudaSigningKey=/path/to/dev.pem)
+  fudaSigningKey: ""
+
+# Deployments set KEIDAI_AUTO_MIGRATE=false; schema changes run in the migrate Job.
+migrate:
+  enabled: true

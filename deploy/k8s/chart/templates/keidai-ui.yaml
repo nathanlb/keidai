@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keidai-ui
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "keidai.labels" . | nindent 4 }}
+    app.kubernetes.io/name: keidai-ui
+    app: keidai-ui
+spec:
+  replicas: {{ .Values.keidaiUi.replicas }}
+  selector:
+    matchLabels:
+      app: keidai-ui
+  template:
+    metadata:
+      labels:
+        app: keidai-ui
+      annotations:
+        checksum/config: {{ include "keidai.configChecksum" . }}
+        checksum/secret: {{ include "keidai.secretChecksum" . }}
+    spec:
+      serviceAccountName: keidai-ui
+      {{- include "keidai.imagePullSecrets" . | nindent 6 }}
+      containers:
+        - name: keidai-ui
+          image: {{ include "keidai.image" (list "keidai-ui" .) | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 3000
+              name: http
+              {{- if .Values.keidaiUi.hostPort }}
+              hostPort: {{ .Values.keidaiUi.hostPort }}
+              {{- end }}
+          envFrom:
+            - configMapRef:
+                name: keidai-ui-env
+            - secretRef:
+                name: keidai-secrets
+          volumeMounts:
+            - name: operators
+              mountPath: /app/operators
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+      volumes:
+        - name: operators
+          configMap:
+            name: keidai-operators
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keidai-ui
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "keidai.labels" . | nindent 4 }}
+    app.kubernetes.io/name: keidai-ui
+spec:
+  type: {{ .Values.keidaiUi.service.type }}
+  selector:
+    app: keidai-ui
+  ports:
+    - name: http
+      port: {{ .Values.keidaiUi.service.port }}
+      targetPort: http
+{{- if .Values.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keidai-ui
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "keidai.labels" . | nindent 4 }}
+    app.kubernetes.io/name: keidai-ui
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path | quote }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: keidai-ui
+                port:
+                  name: http
+          {{- end }}
+    {{- end }}
+{{- end }}

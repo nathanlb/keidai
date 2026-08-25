@@ -11,7 +11,7 @@ function readEnv(
 
 /**
  * Resolves `FUDA_K8S_SA_OIDC_*`: all unset → null; any subset → throw;
- * all set (issuer, audience, jwks, subjects) → config.
+ * audience + jwks + subjects set → config (issuer optional; discovered at boot).
  */
 export function tryResolveK8sSaOidcSubjectConfig(
   env: NodeJS.ProcessEnv = process.env,
@@ -31,9 +31,10 @@ export function tryResolveK8sSaOidcSubjectConfig(
     return null;
   }
 
-  if (!issuer || !audience || !jwksUri || !subjects) {
+  // Issuer may be omitted: Fuda discovers it in-cluster at boot.
+  if (!audience || !jwksUri || !subjects) {
     throw new Error(
-      "K8s SA OIDC is partially configured; set FUDA_K8S_SA_OIDC_ISSUER, FUDA_K8S_SA_OIDC_AUDIENCE, FUDA_K8S_SA_OIDC_JWKS_URI, and FUDA_K8S_SA_OIDC_SUBJECTS together",
+      "K8s SA OIDC is partially configured; set FUDA_K8S_SA_OIDC_AUDIENCE, FUDA_K8S_SA_OIDC_JWKS_URI, and FUDA_K8S_SA_OIDC_SUBJECTS together (FUDA_K8S_SA_OIDC_ISSUER is optional and discovered in-cluster when omitted)",
     );
   }
 
@@ -43,7 +44,8 @@ export function tryResolveK8sSaOidcSubjectConfig(
   );
 
   return {
-    issuer,
+    // Empty issuer → discoverClusterOidcIssuer before constructing the validator.
+    issuer: issuer ?? "",
     audience,
     jwksUri,
     subjects,

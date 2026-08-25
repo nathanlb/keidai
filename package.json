@@ -25,9 +25,11 @@
     "k8s:up": "bash deploy/k8s/up.sh kind",
     "k8s:up:kind": "bash deploy/k8s/up.sh kind",
     "k8s:up:orbstack": "bash deploy/k8s/up.sh orbstack",
+    "k8s:up:k3s": "bash deploy/k8s/up.sh k3s",
     "k8s:down": "bash deploy/k8s/down.sh kind",
     "k8s:down:kind": "bash deploy/k8s/down.sh kind",
-    "k8s:down:orbstack": "bash deploy/k8s/down.sh orbstack"
+    "k8s:down:orbstack": "bash deploy/k8s/down.sh orbstack",
+    "k8s:down:k3s": "bash deploy/k8s/down.sh k3s"
   },
   "devDependencies": {
     "turbo": "^2.10.10",

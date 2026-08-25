@@ -7,8 +7,9 @@ dist/
 .env.*
 !.env.example
 deploy/k8s/secrets.env
-torii.yaml
-!deploy/k8s/base/torii.yaml
+deploy/k8s/secrets-values.yaml
+# Local Torii config checkout (compose / `pnpm torii:dev`); chart ships its own copies.
+/torii.yaml
 data/
 apps/fuda/keys/
 .designs/

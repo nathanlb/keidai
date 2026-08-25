@@ -1,0 +1,17 @@
+# kind local overlay — images loaded via `kind load`, BFF on hostPort 3000.
+publicUrl: http://localhost:3000
+
+image:
+  registry: ""
+  tag: 0.0.0-local
+  pullPolicy: Never
+
+imagePullSecrets: []
+
+keidaiUi:
+  service:
+    type: ClusterIP
+  hostPort: 3000
+
+ingress:
+  enabled: false
