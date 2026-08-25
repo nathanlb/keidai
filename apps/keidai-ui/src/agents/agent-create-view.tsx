@@ -36,14 +36,17 @@ export function AgentCreateView() {
   const { owner } = useActingOwner();
   const { data: toriiGroupsData } = useFetchToriiGroups();
   const { data: bearersData } = useFetchBearers();
-  const toriiGroups = toriiGroupsData?.groups ?? [];
+  const toriiGroups = toriiGroupsData?.groups;
   const knownGroupNames = useMemo(
-    () => toriiGroups.map((group) => group.name),
+    () => (toriiGroups ?? []).map((group) => group.name),
     [toriiGroups],
   );
 
   const [slugTouched, setSlugTouched] = useState(false);
-  const [slugStatus, setSlugStatus] = useState<SlugStatus>("empty");
+  const [availability, setAvailability] = useState<{
+    slug: string;
+    status: Extract<SlugStatus, "available" | "taken">;
+  } | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
@@ -61,6 +64,19 @@ export function AgentCreateView() {
   const groups = watch("groups");
 
   const charsetValidity = validateAgentSlug(slugValue);
+  const trimmedSlug = slugValue.trim();
+  const slugStatus: SlugStatus = (() => {
+    if (charsetValidity !== "valid") {
+      return charsetValidity;
+    }
+    if (!trimmedSlug) {
+      return "empty";
+    }
+    if (availability?.slug === trimmedSlug) {
+      return availability.status;
+    }
+    return "checking";
+  })();
 
   useEffect(() => {
     if (!slugTouched) {
@@ -69,23 +85,24 @@ export function AgentCreateView() {
   }, [name, slugTouched, setValue]);
 
   useEffect(() => {
-    if (charsetValidity !== "valid") {
-      setSlugStatus(charsetValidity);
+    if (charsetValidity !== "valid" || !trimmedSlug) {
       return;
     }
 
-    setSlugStatus("checking");
     let cancelled = false;
     const timer = window.setTimeout(() => {
-      void checkSlugAvailability(slugValue.trim())
+      void checkSlugAvailability(trimmedSlug)
         .then(({ available }) => {
           if (!cancelled) {
-            setSlugStatus(available ? "available" : "taken");
+            setAvailability({
+              slug: trimmedSlug,
+              status: available ? "available" : "taken",
+            });
           }
         })
         .catch(() => {
           if (!cancelled) {
-            setSlugStatus("taken");
+            setAvailability({ slug: trimmedSlug, status: "taken" });
           }
         });
     }, SLUG_CHECK_DEBOUNCE_MS);
@@ -94,7 +111,7 @@ export function AgentCreateView() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [slugValue, charsetValidity]);
+  }, [trimmedSlug, charsetValidity]);
 
   function handleSlugChange(value: string) {
     setSlugTouched(true);

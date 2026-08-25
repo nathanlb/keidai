@@ -25,11 +25,8 @@ import {
 } from "lucide-react";
 import { Link } from "react-router";
 import { taskEditHref } from "./navigation.js";
-import { useCallback, useEffect, useId, useState } from "react";
-import {
-  approveApproval,
-  rejectApproval,
-} from "../lib/api/gateway.js";
+import { useCallback, useId, useState } from "react";
+import { approveApproval, rejectApproval } from "../lib/api/gateway.js";
 import { sendRunFollowUp, stopRun, resumeRun } from "../lib/api/runs.js";
 import type { RunAssigneeDisplay } from "../lib/api/runs.js";
 import { DetailDrawer } from "../shell/components/detail-drawer/detail-drawer.js";
@@ -95,6 +92,7 @@ export function RunDetailDrawer({
   onOpenChange: (open: boolean) => void;
   onRunUpdated: () => void;
 }) {
+  const [activeRunId, setActiveRunId] = useState(run?.id);
   const [isDeciding, setIsDeciding] = useState(false);
   const [followUpMessage, setFollowUpMessage] = useState("");
   const [isSendingFollowUp, setIsSendingFollowUp] = useState(false);
@@ -108,7 +106,8 @@ export function RunDetailDrawer({
   const stopErrorId = useId();
   const resumeErrorId = useId();
 
-  useEffect(() => {
+  if (run?.id !== activeRunId) {
+    setActiveRunId(run?.id);
     setFollowUpMessage("");
     setFollowUpError(null);
     setIsSendingFollowUp(false);
@@ -116,7 +115,7 @@ export function RunDetailDrawer({
     setIsStopping(false);
     setResumeError(null);
     setIsResuming(false);
-  }, [run?.id]);
+  }
 
   const handleSendFollowUp = useCallback(async () => {
     if (!run) {
@@ -379,10 +378,12 @@ export function RunDetailDrawer({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-lg border border-border px-3.5 py-3">
-          <div className="
+          <div
+            className="
             text-[11px] font-semibold tracking-wider text-muted-foreground
             uppercase
-          ">
+          "
+          >
             Iterations
           </div>
           <div className="mt-1 font-mono text-[15px] font-semibold">
@@ -390,10 +391,12 @@ export function RunDetailDrawer({
           </div>
         </div>
         <div className="rounded-lg border border-border px-3.5 py-3">
-          <div className="
+          <div
+            className="
             text-[11px] font-semibold tracking-wider text-muted-foreground
             uppercase
-          ">
+          "
+          >
             Duration
           </div>
           <div className="mt-1 font-mono text-[15px] font-semibold">
@@ -403,10 +406,12 @@ export function RunDetailDrawer({
       </div>
 
       <div>
-        <div className="
+        <div
+          className="
           mb-2.5 text-[11px] font-semibold tracking-wider text-muted-foreground
           uppercase
-        ">
+        "
+        >
           Run log
         </div>
         <div className="divide-y divide-border rounded-lg border border-border">

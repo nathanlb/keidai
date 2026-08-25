@@ -59,7 +59,7 @@ function StatusPopover({ service, kind }: StatusPopoverProps) {
       className="
         pointer-events-none absolute inset-x-2.5 bottom-[calc(100%-2px)] z-5
         flex flex-col gap-1.25 rounded-[9px] border border-border bg-popover
-        px-2.75 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.55)]
+        px-2.75 py-2.5 shadow-lg
       "
       data-testid="backend-health-popover"
     >

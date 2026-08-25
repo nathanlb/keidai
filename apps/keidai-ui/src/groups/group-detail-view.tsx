@@ -91,23 +91,21 @@ export function GroupDetailView() {
     [data, name],
   );
   const [draft, setDraft] = useState<GroupView | null>(null);
+  const [draftGroupId, setDraftGroupId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    if (!saved) {
+  if (!saved) {
+    if (draft !== null) {
       setDraft(null);
-      return;
+      setDraftGroupId(null);
     }
-    setDraft((current) => {
-      if (current?.id === saved.id) {
-        return current;
-      }
-      return cloneGroup(saved);
-    });
-  }, [saved]);
+  } else if (saved.id !== draftGroupId) {
+    setDraftGroupId(saved.id);
+    setDraft(cloneGroup(saved));
+  }
 
   const dirty = saved && draft ? isDirty(draft, saved) : false;
   const blocker = useBlocker(Boolean(dirty) && !isDeleting);

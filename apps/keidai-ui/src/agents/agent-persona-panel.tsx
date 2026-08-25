@@ -1,6 +1,6 @@
 import { Badge, Button, cn, Spinner, Textarea } from "@keidai/ui";
 import { Check, History, RotateCw } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { ManagementAgent, PersonaVersion } from "../lib/api/agents.js";
 import { formatRelativeTime } from "./utils/format-relative-time.js";
 
@@ -20,15 +20,16 @@ export function AgentPersonaPanel({
   onRestore,
 }: AgentPersonaPanelProps) {
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
+  const personaSyncKey = `${agent.currentPersonaVersion}\0${agent.persona}`;
+  const [draftSyncKey, setDraftSyncKey] = useState(personaSyncKey);
   const [draft, setDraft] = useState(agent.persona);
   const [isSaving, setIsSaving] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
 
-  // Re-seed the draft whenever the current persona content changes underneath us
-  // (e.g. after a save elsewhere), but never clobber an in-progress edit.
-  useEffect(() => {
+  if (personaSyncKey !== draftSyncKey) {
+    setDraftSyncKey(personaSyncKey);
     setDraft(agent.persona);
-  }, [agent.persona, agent.currentPersonaVersion]);
+  }
 
   const viewing =
     selectedVersion !== null

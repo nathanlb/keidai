@@ -68,7 +68,7 @@ export function AgentRunsPanel({
   onOpenRun: (runId: string) => void;
 }) {
   const [filter, setFilter] = useState<RunVerdictFilter>("all");
-  const now = Date.now();
+  const [now] = useState(() => Date.now());
   const recent = useMemo(
     () => runsSince(runs, now - SEVEN_DAYS_MS),
     [now, runs],

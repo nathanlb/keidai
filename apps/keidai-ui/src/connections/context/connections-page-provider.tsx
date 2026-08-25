@@ -76,9 +76,11 @@ export function ConnectionsPageProvider({
   const { trace: linkingRequiredTrace, refresh: refreshLinkingRequiredTrace } =
     useFetchLinkingRequiredTrace(owner?.ownerId ?? null);
 
-  const oauthConnections = owner
-    ? (connectionsByOwner?.get(owner.ownerId) ?? [])
-    : [];
+  const oauthConnections = useMemo(
+    () =>
+      owner ? (connectionsByOwner?.get(owner.ownerId) ?? []) : [],
+    [connectionsByOwner, owner],
+  );
   const linkDialog = useOAuthLink();
 
   const handleLinkCompleted = useCallback(

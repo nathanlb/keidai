@@ -1,6 +1,7 @@
 import { Button, Spinner } from "@keidai/ui";
 import type { RunListItem, SavedTask } from "@keidai/shared";
 import { ListChecks, Loader2, Pencil, Play, Plus } from "lucide-react";
+import { useState } from "react";
 import { PageEmptyState } from "../shell/components/page-content/page-empty-state.js";
 import { GoalVerdictPill } from "./components/goal-verdict-pill.js";
 import {
@@ -29,7 +30,7 @@ export function AgentTasksPanel({
   startingTaskIds: ReadonlySet<string>;
   runError: string | null;
 }) {
-  const since = Date.now() - SEVEN_DAYS_MS;
+  const [since] = useState(() => Date.now() - SEVEN_DAYS_MS);
 
   if (isLoading) {
     return (

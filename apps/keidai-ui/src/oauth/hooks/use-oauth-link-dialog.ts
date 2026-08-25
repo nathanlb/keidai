@@ -284,7 +284,9 @@ export function useOAuthLinkDialog() {
 
     window.addEventListener("message", handleMessage);
 
-    void pollConnectionStatus();
+    queueMicrotask(() => {
+      void pollConnectionStatus();
+    });
     pollTimerRef.current = setInterval(() => {
       void pollConnectionStatus();
     }, pollIntervalMs);

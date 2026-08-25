@@ -1,6 +1,6 @@
 import { Badge, Button, cn } from "@keidai/ui";
 import { Ban, Check, Copy, Link2, ShieldCheck } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   DetailDrawer,
   DetailDrawerSectionLabel,
@@ -47,11 +47,8 @@ export function TraceDetailDrawer() {
     linkingResolvedKeys,
     agentSlugById,
   } = useActivityTracesPage();
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    setCopied(false);
-  }, [trace?.traceId]);
+  const [copiedTraceId, setCopiedTraceId] = useState<string | null>(null);
+  const copied = trace?.traceId === copiedTraceId;
 
   const copyTraceId = useCallback(async () => {
     if (!trace) {
@@ -60,10 +57,10 @@ export function TraceDetailDrawer() {
 
     try {
       await navigator.clipboard.writeText(trace.traceId);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1_300);
+      setCopiedTraceId(trace.traceId);
+      window.setTimeout(() => setCopiedTraceId(null), 1_300);
     } catch {
-      setCopied(false);
+      setCopiedTraceId(null);
     }
   }, [trace]);
 

@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@keidai/ui";
 import { X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { archiveTask } from "../lib/api/tasks.js";
 import { TaskAuthoringView } from "./task-authoring-view.js";
 
@@ -36,7 +36,9 @@ export function TaskAuthoringDialog({
   const [archiveError, setArchiveError] = useState<string | null>(null);
   const ignoreParentCloseRef = useRef(false);
 
-  useEffect(() => {
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (!open) {
       setIsDirty(false);
       setDiscardConfirmOpen(false);
@@ -44,7 +46,7 @@ export function TaskAuthoringDialog({
       setIsArchiving(false);
       setArchiveError(null);
     }
-  }, [open]);
+  }
 
   const suppressParentClose = useCallback(() => {
     ignoreParentCloseRef.current = true;
@@ -141,11 +143,13 @@ export function TaskAuthoringDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="
+        <DialogContent
+          className="
           flex max-h-[min(90vh,920px)] min-h-0 max-w-180 flex-col gap-0
           overflow-hidden p-0
           sm:rounded-xl
-        ">
+        "
+        >
           <DialogClose asChild>
             <Button
               type="button"
@@ -186,20 +190,24 @@ export function TaskAuthoringDialog({
         open={discardConfirmOpen}
         onOpenChange={handleDiscardConfirmOpenChange}
       >
-        <DialogContent className="
+        <DialogContent
+          className="
           max-w-105
           sm:rounded-xl
-        ">
+        "
+        >
           <DialogHeader>
             <DialogTitle>Discard changes?</DialogTitle>
             <DialogDescription>
               Your edits to this task will not be saved.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="
+          <DialogFooter
+            className="
             gap-2
             sm:gap-0
-          ">
+          "
+          >
             <Button type="button" variant="outline" onClick={handleKeepEditing}>
               Keep editing
             </Button>
@@ -214,10 +222,12 @@ export function TaskAuthoringDialog({
         open={archiveConfirmOpen}
         onOpenChange={handleArchiveConfirmOpenChange}
       >
-        <DialogContent className="
+        <DialogContent
+          className="
           max-w-105
           sm:rounded-xl
-        ">
+        "
+        >
           <DialogHeader>
             <DialogTitle>Archive task?</DialogTitle>
             <DialogDescription>
@@ -228,10 +238,12 @@ export function TaskAuthoringDialog({
           {archiveError ? (
             <p className="text-sm text-destructive">{archiveError}</p>
           ) : null}
-          <DialogFooter className="
+          <DialogFooter
+            className="
             gap-2
             sm:gap-0
-          ">
+          "
+          >
             <Button
               type="button"
               variant="outline"

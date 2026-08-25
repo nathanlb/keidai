@@ -8,6 +8,7 @@ export function useGroupsToast(initialMessage: string | null = null) {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
+  const initialMessageRef = useRef(initialMessage);
 
   const clear = useCallback(() => {
     if (timeoutRef.current) {
@@ -27,13 +28,13 @@ export function useGroupsToast(initialMessage: string | null = null) {
   );
 
   useEffect(() => {
-    if (initialMessage) {
+    if (initialMessageRef.current) {
       timeoutRef.current = setTimeout(() => {
         setMessage(null);
       }, TOAST_DURATION_MS);
     }
     return clear;
-  }, []);
+  }, [clear]);
 
   return { message, showToast };
 }

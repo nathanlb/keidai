@@ -55,6 +55,13 @@ export function ActivityTracesProvider({
   const [isLive, setIsLive] = useState(true);
   const [filters, setFilters] = useState<TraceFilters>(EMPTY_TRACE_FILTERS);
   const [pageIndex, setPageIndex] = useState(0);
+  const filtersKey = JSON.stringify(filters);
+  const [previousFiltersKey, setPreviousFiltersKey] = useState(filtersKey);
+
+  if (filtersKey !== previousFiltersKey) {
+    setPreviousFiltersKey(filtersKey);
+    setPageIndex(0);
+  }
   const [linkingResolvedKeys, setLinkingResolvedKeys] = useState<Set<string>>(
     new Set(),
   );
@@ -86,10 +93,8 @@ export function ActivityTracesProvider({
     isLoading: tracesLoading,
   } = useActivityTraces(isLive);
 
-  const {
-    data: fetchedTrace,
-    error: deepLinkError,
-  } = useFetchTrace(requestedTraceId);
+  const { data: fetchedTrace, error: deepLinkError } =
+    useFetchTrace(requestedTraceId);
 
   const linkDialog = useOAuthLink();
 
@@ -119,9 +124,7 @@ export function ActivityTracesProvider({
     if (fetchedTrace?.traceId === requestedTraceId) {
       return fetchedTrace;
     }
-    return (
-      traces.find((trace) => trace.traceId === requestedTraceId) ?? null
-    );
+    return traces.find((trace) => trace.traceId === requestedTraceId) ?? null;
   }, [fetchedTrace, requestedTraceId, traces]);
 
   const drawerOpen = Boolean(requestedTraceId && selectedTrace);
@@ -156,10 +159,6 @@ export function ActivityTracesProvider({
     () => filterTraces(traces, filters, agentSlugById),
     [agentSlugById, filters, traces],
   );
-
-  useEffect(() => {
-    setPageIndex(0);
-  }, [filters]);
 
   useEffect(() => {
     if (!requestedTraceId || !deepLinkError) {

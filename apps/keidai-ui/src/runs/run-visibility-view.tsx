@@ -10,13 +10,7 @@ import {
   TableRow,
 } from "@keidai/ui";
 import { Search, Workflow } from "lucide-react";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { TablePaginationFooter } from "../shell/components/table-pagination/table-pagination-footer.js";
 import { paginateItems } from "../shell/components/table-pagination/paginate-items.js";
@@ -108,6 +102,13 @@ export function RunVisibilityView() {
     requestedRunId,
   );
   const [drawerOpen, setDrawerOpen] = useState(Boolean(requestedRunId));
+  const [syncedRunRequestId, setSyncedRunRequestId] = useState(requestedRunId);
+
+  if (requestedRunId && requestedRunId !== syncedRunRequestId) {
+    setSyncedRunRequestId(requestedRunId);
+    setSelectedRunId(requestedRunId);
+    setDrawerOpen(true);
+  }
   const {
     runs,
     error,
@@ -122,14 +123,6 @@ export function RunVisibilityView() {
     isLoading: isFetchingRun,
     refresh: refreshRun,
   } = useFetchRun(selectedRunId);
-
-  useEffect(() => {
-    if (!requestedRunId) {
-      return;
-    }
-    setSelectedRunId(requestedRunId);
-    setDrawerOpen(true);
-  }, [requestedRunId]);
 
   const selectedRun = useMemo(() => {
     if (!selectedRunId) {
@@ -385,9 +378,11 @@ export function RunVisibilityView() {
       ) : selectedRunId ? (
         fetchRunError ? (
           <Card className="shadow-none">
-            <CardContent className="
+            <CardContent
+              className="
               flex flex-col items-center px-6 py-12 text-center
-            ">
+            "
+            >
               <div className="text-sm font-semibold">Run not found</div>
               <p className="mt-1 text-[12.5px] text-muted-foreground">
                 Could not load run{" "}

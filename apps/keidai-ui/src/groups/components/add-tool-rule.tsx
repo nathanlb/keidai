@@ -107,7 +107,7 @@ export function AddToolRule({
       </div>
       <div className="
         mt-1.5 max-h-53 overflow-y-auto rounded-lg border border-border
-        bg-popover shadow-[0_10px_34px_rgba(0,0,0,.45)]
+        bg-popover shadow-lg
       ">
         {matches.length === 0 ? (
           <div className="p-3 text-[12px] text-muted-foreground">

@@ -14,7 +14,7 @@ import {
   TooltipTrigger,
 } from "@keidai/ui";
 import { ArrowLeft, Lock, Play, Trash2, User } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   useLocation,
   useNavigate,
@@ -86,12 +86,10 @@ export function AgentDetailView() {
   );
   const [runError, setRunError] = useState<string | null>(null);
 
-  const navigationToast =
-    (location.state as { toast?: string } | null)?.toast ?? null;
-  const initialToastRef = useRef(navigationToast);
-  const { message: toastMessage, showToast } = useAgentsToast(
-    initialToastRef.current,
+  const [initialToast] = useState(
+    () => (location.state as { toast?: string } | null)?.toast ?? null,
   );
+  const { message: toastMessage, showToast } = useAgentsToast(initialToast);
 
   const { data, error, isLoading, refresh } = useFetchAgent(agentId);
   const {
@@ -112,10 +110,10 @@ export function AgentDetailView() {
   } = useRunsVisibility(true);
   const { connections } = useLiveConnections();
 
-  const definedGroups = groupsData?.groups ?? [];
+  const groups = groupsData?.groups;
   const knownGroupNames = useMemo(
-    () => definedGroups.map((group) => group.name),
-    [definedGroups],
+    () => (groups ?? []).map((group) => group.name),
+    [groups],
   );
   const agent = data?.agent;
   const serverNames = useMemo(() => {
@@ -123,7 +121,7 @@ export function AgentDetailView() {
       return [] as string[];
     }
     const names = new Set<string>();
-    for (const group of definedGroups) {
+    for (const group of groups ?? []) {
       if (agent.groups.includes(group.name)) {
         for (const policy of group.servers) {
           names.add(policy.server);
@@ -131,18 +129,19 @@ export function AgentDetailView() {
       }
     }
     return [...names].sort();
-  }, [agent, definedGroups]);
+  }, [agent, groups]);
   const { catalogues, isLoading: cataloguesLoading } =
     useFetchServerCatalogues(serverNames);
 
   useEffect(() => {
-    if (initialToastRef.current) {
-      navigate(`${location.pathname}${location.search}`, {
-        replace: true,
-        state: null,
-      });
+    if (!initialToast) {
+      return;
     }
-  }, []);
+    navigate(`${location.pathname}${location.search}`, {
+      replace: true,
+      state: null,
+    });
+  }, [initialToast, location.pathname, location.search, navigate]);
 
   const setTab = useCallback(
     (next: DetailTab) => {
@@ -440,14 +439,14 @@ export function AgentDetailView() {
           />
           <AgentGroupsPanel
             agent={agent}
-            definedGroups={definedGroups}
+            definedGroups={groups ?? []}
             groupsLoading={groupsLoading}
             onChangeGroups={handleChangeGroups}
             onNotify={showToast}
           />
           <AgentEffectiveToolsPanel
             membership={agent.groups}
-            groups={definedGroups}
+            groups={groups ?? []}
             catalogues={catalogues}
             cataloguesLoading={cataloguesLoading}
             connections={connections}
