@@ -181,7 +181,7 @@ export function TasksListView() {
           ) : null}
 
           <Card className="overflow-hidden shadow-none">
-            <CardContent className="px-0 py-0">
+            <CardContent className="p-0">
               <Table
                 className={tasksTableColumns.tableClassName}
                 style={tasksTableColumns.tableStyle}

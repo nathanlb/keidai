@@ -3,7 +3,7 @@ import {
   type RunListItem,
   type RunReport,
 } from "@keidai/shared";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, startTransition } from "react";
 import useSWR, { mutate as globalMutate } from "swr";
 import { getRunsEventsUrl } from "../../lib/api/runs.js";
 import {
@@ -96,12 +96,14 @@ export function useRunsVisibility(isLive: boolean) {
       return;
     }
 
-    agentsByIdRef.current = data.agentsById;
-    setAgentsById(data.agentsById);
-    setRuns(data.runs);
-    setSuspendedRunIds(
-      suspendedIdsFromList(data.runs, fullRunsRef.current),
-    );
+    startTransition(() => {
+      agentsByIdRef.current = data.agentsById;
+      setAgentsById(data.agentsById);
+      setRuns(data.runs);
+      setSuspendedRunIds(
+        suspendedIdsFromList(data.runs, fullRunsRef.current),
+      );
+    });
   }, [data]);
 
   useEffect(() => {

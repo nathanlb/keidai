@@ -28,7 +28,12 @@ export function AddServerButton({
       <Button
         type="button"
         variant="ghost"
-        className="h-auto justify-center gap-2 rounded-xl border border-dashed border-border bg-transparent py-3.5 text-[13px] font-normal text-muted-foreground hover:bg-accent"
+        className="
+          h-auto justify-center gap-2 rounded-xl border border-dashed
+          border-border bg-transparent py-3.5 text-[13px] font-normal
+          text-muted-foreground
+          hover:bg-accent
+        "
         onClick={() => {
           setQuery("");
           setOpen(true);
@@ -46,7 +51,10 @@ export function AddServerButton({
 
   return (
     <div className="rounded-xl border border-dashed border-border p-3">
-      <div className="flex h-8.5 items-center gap-2.5 rounded-md border border-ring bg-background px-2.5">
+      <div className="
+        flex h-8.5 items-center gap-2.5 rounded-md border border-ring
+        bg-background px-2.5
+      ">
         <Search
           className="size-3.5 shrink-0 text-muted-foreground"
           aria-hidden
@@ -62,7 +70,10 @@ export function AddServerButton({
             }
           }}
           placeholder="Search configured servers…"
-          className="h-auto border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
+          className="
+            h-auto border-0 bg-transparent p-0 shadow-none
+            focus-visible:ring-0
+          "
           aria-label="Search configured servers"
         />
         <button
@@ -74,9 +85,11 @@ export function AddServerButton({
           <X className="size-3.5" aria-hidden />
         </button>
       </div>
-      <div className="mt-1.5 overflow-hidden rounded-lg border border-border bg-popover">
+      <div className="
+        mt-1.5 overflow-hidden rounded-lg border border-border bg-popover
+      ">
         {matches.length === 0 ? (
-          <div className="px-3 py-3 text-[12px] text-muted-foreground">
+          <div className="p-3 text-[12px] text-muted-foreground">
             No server matches that search.
           </div>
         ) : (
@@ -89,7 +102,10 @@ export function AddServerButton({
                 setOpen(false);
               }}
               className={cn(
-                "flex w-full items-center px-3 py-2.5 text-left font-mono text-[12.5px]",
+                `
+                  flex w-full items-center px-3 py-2.5 text-left font-mono
+                  text-[12.5px]
+                `,
                 "hover:bg-muted/45",
               )}
             >

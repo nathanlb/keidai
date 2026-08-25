@@ -1,6 +1,6 @@
 import { Badge, Button, cn } from "@keidai/ui";
 import { Ban, Check, Copy, Link2, ShieldCheck } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   DetailDrawer,
   DetailDrawerSectionLabel,
@@ -47,11 +47,8 @@ export function TraceDetailDrawer() {
     linkingResolvedKeys,
     agentSlugById,
   } = useActivityTracesPage();
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    setCopied(false);
-  }, [trace?.traceId]);
+  const [copiedTraceId, setCopiedTraceId] = useState<string | null>(null);
+  const copied = trace?.traceId === copiedTraceId;
 
   const copyTraceId = useCallback(async () => {
     if (!trace) {
@@ -60,10 +57,10 @@ export function TraceDetailDrawer() {
 
     try {
       await navigator.clipboard.writeText(trace.traceId);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1_300);
+      setCopiedTraceId(trace.traceId);
+      window.setTimeout(() => setCopiedTraceId(null), 1_300);
     } catch {
-      setCopied(false);
+      setCopiedTraceId(null);
     }
   }, [trace]);
 
@@ -124,8 +121,14 @@ export function TraceDetailDrawer() {
         </Button>
       }
     >
-      <div className="flex items-center gap-2.5 rounded-lg border border-border bg-muted/30 px-2.5 py-2 pl-3.5">
-        <span className="shrink-0 text-[10.5px] font-semibold tracking-wider text-muted-foreground uppercase">
+      <div className="
+        flex items-center gap-2.5 rounded-lg border border-border bg-muted/30
+        px-2.5 py-2 pl-3.5
+      ">
+        <span className="
+          shrink-0 text-[10.5px] font-semibold tracking-wider
+          text-muted-foreground uppercase
+        ">
           trace id
         </span>
         <span className="min-w-0 flex-1 truncate font-mono text-[12.5px]">
@@ -171,7 +174,7 @@ export function TraceDetailDrawer() {
               <div className="relative h-2.25 rounded-sm bg-muted/55">
                 <span
                   className={cn(
-                    "absolute top-0 bottom-0 rounded-sm",
+                    "absolute inset-y-0 rounded-sm",
                     span.barClass,
                   )}
                   style={{
@@ -180,7 +183,9 @@ export function TraceDetailDrawer() {
                   }}
                 />
               </div>
-              <span className="text-right font-mono text-[11px] text-muted-foreground">
+              <span className="
+                text-right font-mono text-[11px] text-muted-foreground
+              ">
                 {span.durLabel}
               </span>
             </div>
@@ -198,14 +203,18 @@ export function TraceDetailDrawer() {
             <div className="mt-1.5 flex items-center gap-2">
               <OwnerAvatar
                 initials={agentLabel ? deriveAgentInitials(agentLabel) : "—"}
-                className="size-5.5 bg-secondary text-[9px] text-secondary-foreground"
+                className="
+                  size-5.5 bg-secondary text-[9px] text-secondary-foreground
+                "
               />
               <div className="min-w-0 leading-tight">
                 <div className="font-mono text-[13px] font-semibold">
                   {agentSlug ?? agentId ?? "—"}
                 </div>
                 {agentSlug && agentId ? (
-                  <div className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
+                  <div className="
+                    mt-0.5 truncate font-mono text-[11px] text-muted-foreground
+                  ">
                     {agentId}
                   </div>
                 ) : null}
@@ -271,7 +280,9 @@ export function TraceDetailDrawer() {
               {policy.headline}
             </span>
           </div>
-          <p className="mt-1.5 text-[12.5px] leading-normal text-muted-foreground">
+          <p className="
+            mt-1.5 text-[12.5px] leading-normal text-muted-foreground
+          ">
             {policy.reason}
           </p>
           <div className="mt-2.5 flex flex-wrap gap-1.5">
@@ -295,7 +306,10 @@ export function TraceDetailDrawer() {
 
       <div>
         <SectionLabel>Credential resolution</SectionLabel>
-        <div className="flex flex-col gap-2 rounded-lg border border-border p-3.5 text-[12.5px]">
+        <div className="
+          flex flex-col gap-2 rounded-lg border border-border p-3.5
+          text-[12.5px]
+        ">
           <div className="flex justify-between gap-3">
             <span className="text-muted-foreground">credentialRef</span>
             <span className="max-w-75 truncate text-right font-mono">
@@ -316,7 +330,10 @@ export function TraceDetailDrawer() {
           </div>
         </div>
         {showLinkingCta ? (
-          <div className="mt-2.5 flex items-center gap-3 rounded-lg border border-warning/40 bg-warning/8 p-3">
+          <div className="
+            mt-2.5 flex items-center gap-3 rounded-lg border border-warning/40
+            bg-warning/8 p-3
+          ">
             <p className="flex-1 text-[12.5px] leading-snug text-foreground">
               {linkingReason}
             </p>
@@ -331,7 +348,10 @@ export function TraceDetailDrawer() {
             </Button>
           </div>
         ) : linkingReason && !linkingResolved ? (
-          <p className="mt-2.5 rounded-lg border border-warning/40 bg-warning/8 p-3 text-[12.5px] leading-snug text-foreground">
+          <p className="
+            mt-2.5 rounded-lg border border-warning/40 bg-warning/8 p-3
+            text-[12.5px] leading-snug text-foreground
+          ">
             {linkingReason}
           </p>
         ) : null}
@@ -340,7 +360,11 @@ export function TraceDetailDrawer() {
       {trace.error ? (
         <div>
           <SectionLabel>Backend error</SectionLabel>
-          <pre className="overflow-x-auto rounded-lg border border-destructive/35 bg-destructive/8 p-3.5 font-mono text-xs leading-normal whitespace-pre-wrap text-destructive">
+          <pre className="
+            overflow-x-auto rounded-lg border border-destructive/35
+            bg-destructive/8 p-3.5 font-mono text-xs/normal whitespace-pre-wrap
+            text-destructive
+          ">
             {trace.error}
           </pre>
         </div>
@@ -351,7 +375,10 @@ export function TraceDetailDrawer() {
           <SectionLabel hint="Gateway remints backend task ids so two servers cannot collide.">
             MCP task
           </SectionLabel>
-          <div className="flex flex-col gap-2 rounded-lg border border-border p-3.5 text-[12.5px]">
+          <div className="
+            flex flex-col gap-2 rounded-lg border border-border p-3.5
+            text-[12.5px]
+          ">
             <div className="flex justify-between gap-3">
               <span className="text-muted-foreground">taskId</span>
               <span className="max-w-75 truncate text-right font-mono">

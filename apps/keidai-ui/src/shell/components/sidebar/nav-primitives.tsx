@@ -26,7 +26,10 @@ export function NavLabel({
     <div
       data-testid={section ? `sidebar-nav-section-${section}` : undefined}
       className={cn(
-        "px-2 pb-1 text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase",
+        `
+          px-2 pb-1 text-[11px] font-semibold tracking-[0.06em]
+          text-muted-foreground uppercase
+        `,
         spaced ? "pt-3.5" : "pt-1",
       )}
     >

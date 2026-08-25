@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { TraceDetailDrawer } from "../trace-detail-drawer.js";
@@ -24,7 +24,9 @@ describe("TraceDetailDrawer", () => {
     expect(screen.getByText("delete_repo")).toBeInTheDocument();
     expect(screen.getByText("trace-denied")).toBeInTheDocument();
     expect(screen.getByText("Denied by policy")).toBeInTheDocument();
-    expect(screen.getByText("Trace timeline", { exact: true })).toBeInTheDocument();
+    expect(
+      screen.getByText("Trace timeline", { exact: true }),
+    ).toBeInTheDocument();
     expect(
       screen.getByText("Credential resolution", { exact: true }),
     ).toBeInTheDocument();

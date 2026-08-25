@@ -20,7 +20,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.server.json --noEmit",
-    "lint": "pnpm typecheck"
+    "lint": "oxlint ."
   },
   "dependencies": {
     "@fastify/http-proxy": "^11.6.0",
@@ -53,6 +53,8 @@
     "@vitest/coverage-v8": "^4.1.10",
     "@vitest/ui": "^4.1.10",
     "jsdom": "^29.1.1",
+    "oxlint": "^1.79.0",
+    "oxlint-tailwindcss": "^1.9.0",
     "playwright": "^1.62.1",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.12",

@@ -51,7 +51,10 @@ export function AgentGroupChip({
   return (
     <span
       className={cn(
-        "inline-flex h-[30px] items-center gap-1.5 rounded-full border pl-3 pr-1.5 font-mono text-xs",
+        `
+          inline-flex h-7.5 items-center gap-1.5 rounded-full border pr-1.5 pl-3
+          font-mono text-xs
+        `,
         known
           ? "border-border bg-secondary text-secondary-foreground"
           : "border-amber-500/45 bg-amber-500/10 text-amber-500",
@@ -66,7 +69,10 @@ export function AgentGroupChip({
           onClick={onRemove}
           aria-label={`Remove ${name}`}
           className={cn(
-            "inline-flex shrink-0 rounded-full p-0.5 transition-colors hover:bg-accent",
+            `
+              inline-flex shrink-0 rounded-full p-0.5 transition-colors
+              hover:bg-accent
+            `,
             known ? "text-muted-foreground" : "text-amber-500",
           )}
         >

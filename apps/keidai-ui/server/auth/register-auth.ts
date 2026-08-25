@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyInstance, FastifyReply } from "fastify";
 import type { OperatorPrincipal } from "@keidai/shared";
 import { isOperatorAllowed, resolveOperatorOwnerId } from "./allowlist.js";
 import {

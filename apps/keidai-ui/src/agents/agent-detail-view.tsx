@@ -1,6 +1,7 @@
 import {
   Badge,
   Button,
+  cn,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -13,7 +14,7 @@ import {
   TooltipTrigger,
 } from "@keidai/ui";
 import { ArrowLeft, Lock, Play, Trash2, User } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   useLocation,
   useNavigate,
@@ -85,12 +86,10 @@ export function AgentDetailView() {
   );
   const [runError, setRunError] = useState<string | null>(null);
 
-  const navigationToast =
-    (location.state as { toast?: string } | null)?.toast ?? null;
-  const initialToastRef = useRef(navigationToast);
-  const { message: toastMessage, showToast } = useAgentsToast(
-    initialToastRef.current,
+  const [initialToast] = useState(
+    () => (location.state as { toast?: string } | null)?.toast ?? null,
   );
+  const { message: toastMessage, showToast } = useAgentsToast(initialToast);
 
   const { data, error, isLoading, refresh } = useFetchAgent(agentId);
   const {
@@ -111,10 +110,10 @@ export function AgentDetailView() {
   } = useRunsVisibility(true);
   const { connections } = useLiveConnections();
 
-  const definedGroups = groupsData?.groups ?? [];
+  const groups = groupsData?.groups;
   const knownGroupNames = useMemo(
-    () => definedGroups.map((group) => group.name),
-    [definedGroups],
+    () => (groups ?? []).map((group) => group.name),
+    [groups],
   );
   const agent = data?.agent;
   const serverNames = useMemo(() => {
@@ -122,7 +121,7 @@ export function AgentDetailView() {
       return [] as string[];
     }
     const names = new Set<string>();
-    for (const group of definedGroups) {
+    for (const group of groups ?? []) {
       if (agent.groups.includes(group.name)) {
         for (const policy of group.servers) {
           names.add(policy.server);
@@ -130,18 +129,19 @@ export function AgentDetailView() {
       }
     }
     return [...names].sort();
-  }, [agent, definedGroups]);
+  }, [agent, groups]);
   const { catalogues, isLoading: cataloguesLoading } =
     useFetchServerCatalogues(serverNames);
 
   useEffect(() => {
-    if (initialToastRef.current) {
-      navigate(`${location.pathname}${location.search}`, {
-        replace: true,
-        state: null,
-      });
+    if (!initialToast) {
+      return;
     }
-  }, []);
+    navigate(`${location.pathname}${location.search}`, {
+      replace: true,
+      state: null,
+    });
+  }, [initialToast, location.pathname, location.search, navigate]);
 
   const setTab = useCallback(
     (next: DetailTab) => {
@@ -199,7 +199,7 @@ export function AgentDetailView() {
           type="button"
           variant="ghost"
           size="sm"
-          className="-ml-2 mb-3 text-muted-foreground"
+          className="mb-3 -ml-2 text-muted-foreground"
           onClick={() => navigate(AGENTS_PATH)}
         >
           <ArrowLeft className="size-3.5" aria-hidden />
@@ -302,7 +302,7 @@ export function AgentDetailView() {
         type="button"
         variant="ghost"
         size="sm"
-        className="-ml-2 mb-3 text-muted-foreground"
+        className="mb-3 -ml-2 text-muted-foreground"
         onClick={() => navigate(AGENTS_PATH)}
       >
         <ArrowLeft className="size-3.5" aria-hidden />
@@ -319,7 +319,9 @@ export function AgentDetailView() {
               <TooltipTrigger asChild>
                 <Badge
                   variant="outline"
-                  className="gap-1.5 font-mono text-[11.5px] text-muted-foreground"
+                  className="
+                    gap-1.5 font-mono text-[11.5px] text-muted-foreground
+                  "
                 >
                   <Lock className="size-3" aria-hidden />
                   {agent.slug}
@@ -330,13 +332,24 @@ export function AgentDetailView() {
               </TooltipContent>
             </Tooltip>
             {runningNow ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--green-600)_16%,transparent)] px-2.5 py-0.5 text-xs text-(--green-600)">
+              <span
+                className="
+                inline-flex items-center gap-1.5 rounded-full
+                bg-[color-mix(in_srgb,var(--green-600)_16%,transparent)] px-2.5
+                py-0.5 text-xs text-(--green-600)
+              "
+              >
                 <span className="size-1.5 rounded-full bg-(--green-600)" />
                 Running now
               </span>
             ) : null}
           </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-3.5 text-[12.5px] text-muted-foreground">
+          <div
+            className="
+            mt-1.5 flex flex-wrap items-center gap-3.5 text-[12.5px]
+            text-muted-foreground
+          "
+          >
             <span className="font-mono">{agent.id}</span>
             <span className="inline-flex items-center gap-1.5">
               <User className="size-3" aria-hidden />
@@ -365,7 +378,10 @@ export function AgentDetailView() {
             type="button"
             variant="ghost"
             size="sm"
-            className="text-destructive hover:text-destructive"
+            className="
+              text-destructive
+              hover:text-destructive
+            "
             onClick={() => setDeleteConfirmOpen(true)}
           >
             <Trash2 className="size-3.5" aria-hidden />
@@ -374,7 +390,7 @@ export function AgentDetailView() {
         </div>
       </div>
 
-      <div className="mt-5 mb-5 flex gap-1 border-b border-border">
+      <div className="my-5 flex gap-1 border-b border-border">
         {(
           [
             { key: "config" as const, label: "Config", count: null },
@@ -388,12 +404,12 @@ export function AgentDetailView() {
               key={item.key}
               type="button"
               onClick={() => setTab(item.key)}
-              className={
-                "-mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-[13.5px] " +
-                (isActive
+              className={cn(
+                "-mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-[13.5px]",
+                isActive
                   ? "border-foreground font-semibold text-foreground"
-                  : "border-transparent font-medium text-muted-foreground hover:text-foreground")
-              }
+                  : "border-transparent font-medium text-muted-foreground hover:text-foreground",
+              )}
             >
               {item.label}
               {item.count !== null ? (
@@ -423,14 +439,14 @@ export function AgentDetailView() {
           />
           <AgentGroupsPanel
             agent={agent}
-            definedGroups={definedGroups}
+            definedGroups={groups ?? []}
             groupsLoading={groupsLoading}
             onChangeGroups={handleChangeGroups}
             onNotify={showToast}
           />
           <AgentEffectiveToolsPanel
             membership={agent.groups}
-            groups={definedGroups}
+            groups={groups ?? []}
             catalogues={catalogues}
             cataloguesLoading={cataloguesLoading}
             connections={connections}
@@ -486,7 +502,12 @@ export function AgentDetailView() {
         open={deleteConfirmOpen}
         onOpenChange={handleDeleteConfirmOpenChange}
       >
-        <DialogContent className="max-w-90 sm:rounded-xl">
+        <DialogContent
+          className="
+          max-w-90
+          sm:rounded-xl
+        "
+        >
           <DialogHeader>
             <DialogTitle>Delete agent?</DialogTitle>
             <DialogDescription>
@@ -496,7 +517,12 @@ export function AgentDetailView() {
           {deleteError ? (
             <p className="text-sm text-destructive">{deleteError}</p>
           ) : null}
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter
+            className="
+            gap-2
+            sm:gap-0
+          "
+          >
             <Button
               type="button"
               variant="outline"

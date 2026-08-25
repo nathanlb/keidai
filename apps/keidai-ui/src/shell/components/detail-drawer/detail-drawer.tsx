@@ -81,7 +81,10 @@ export function DetailDrawer({
       <SheetContent
         side="right"
         style={{ width }}
-        className="flex h-full max-w-none flex-col gap-0 p-0 sm:max-w-none"
+        className="
+          flex h-full max-w-none flex-col gap-0 p-0
+          sm:max-w-none
+        "
       >
         {/*
           Sheet portals to document.body, outside AppShell's TooltipProvider.
@@ -92,11 +95,19 @@ export function DetailDrawer({
             role="separator"
             aria-orientation="vertical"
             aria-label="Resize drawer"
-            className="absolute inset-y-0 left-0 z-20 w-1.5 -translate-x-1/2 cursor-col-resize touch-none before:absolute before:inset-y-0 before:-left-1.5 before:w-4 hover:bg-border/80 active:bg-border"
+            className="
+              absolute inset-y-0 left-0 z-20 w-1.5 -translate-x-1/2
+              cursor-col-resize touch-none
+              before:absolute before:inset-y-0 before:-left-1.5 before:w-4
+              hover:bg-border/80
+              active:bg-border
+            "
             onPointerDown={startResize}
           />
 
-          <SheetHeader className="space-y-0 border-b border-border px-5 py-4.5 text-left">
+          <SheetHeader className="
+            space-y-0 border-b border-border px-5 py-4.5 text-left
+          ">
             <div className="flex items-start gap-3 pr-8">
               {headerBadge}
               <div className="min-w-0 flex-1">
@@ -107,7 +118,13 @@ export function DetailDrawer({
                   </div>
                 ) : null}
               </div>
-              <SheetClose className="absolute top-4 right-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none">
+              <SheetClose className="
+                absolute top-4 right-4 rounded-sm opacity-70
+                ring-offset-background transition-opacity
+                hover:opacity-100
+                focus:ring-2 focus:ring-ring focus:ring-offset-2
+                focus:outline-none
+              ">
                 <X className="size-4" />
                 <span className="sr-only">Close</span>
               </SheetClose>
@@ -125,8 +142,14 @@ export function DetailDrawer({
             className={cn(
               "flex-row px-5 py-3.5",
               footerLeading
-                ? "justify-between sm:justify-between"
-                : "justify-end sm:justify-end",
+                ? `
+                  justify-between
+                  sm:justify-between
+                `
+                : `
+                  justify-end
+                  sm:justify-end
+                `,
             )}
           >
             {footerLeading ?? null}
@@ -148,10 +171,15 @@ export function DetailDrawerSectionLabel({
   hint?: string;
 }) {
   return (
-    <div className="mb-2.5 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+    <div className="
+      mb-2.5 text-[11px] font-semibold tracking-wider text-muted-foreground
+      uppercase
+    ">
       {children}
       {hint ? (
-        <span className="ml-1 font-medium tracking-normal text-muted-foreground normal-case">
+        <span className="
+          ml-1 font-medium tracking-normal text-muted-foreground normal-case
+        ">
           · {hint}
         </span>
       ) : null}

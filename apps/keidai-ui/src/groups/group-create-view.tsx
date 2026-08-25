@@ -46,11 +46,15 @@ export function GroupCreateView() {
   }
 
   return (
-    <div className="mx-auto max-w-[640px]">
+    <div className="mx-auto max-w-160">
       <button
         type="button"
         onClick={() => navigate(GROUPS_PATH)}
-        className="mb-3 inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground hover:text-foreground"
+        className="
+          mb-3 inline-flex items-center gap-1.5 text-[12.5px]
+          text-muted-foreground
+          hover:text-foreground
+        "
       >
         <ArrowLeft className="size-3.5" aria-hidden />
         All groups
@@ -60,7 +64,9 @@ export function GroupCreateView() {
         Name is the identifier agents join. You&apos;ll author the policy next.
       </p>
 
-      <form onSubmit={(event) => void handleSubmit(event)} className="mt-5 space-y-4">
+      <form onSubmit={(event) => void handleSubmit(event)} className="
+        mt-5 space-y-4
+      ">
         <div>
           <label className="text-[12.5px] font-medium" htmlFor="group-name">
             Name

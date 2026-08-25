@@ -37,7 +37,10 @@ function SummaryTile({
           {label}
         </div>
         <div
-          className={`mt-0.5 text-2xl font-bold tracking-tight tabular-nums ${valueClass}`}
+          className={`
+            mt-0.5 text-2xl font-bold tracking-tight tabular-nums
+            ${valueClass}
+          `}
         >
           {value}
         </div>
@@ -58,7 +61,10 @@ export function RunsSummaryTiles({
   failed: number;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+    <div className="
+      grid grid-cols-2 gap-3
+      md:grid-cols-4
+    ">
       <SummaryTile label="Runs today" value={runsToday.toLocaleString()} />
       <SummaryTile
         label="Running"

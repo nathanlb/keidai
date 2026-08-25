@@ -17,7 +17,9 @@ export function GroupAgentsRail({
 
   return (
     <Card className="overflow-hidden shadow-none">
-      <div className="flex items-center gap-2 border-b border-border px-3.75 py-3">
+      <div className="
+        flex items-center gap-2 border-b border-border px-3.75 py-3
+      ">
         <span className="text-[13px] font-semibold">Agents in this group</span>
         <span className="ml-auto font-mono text-[11px] text-muted-foreground">
           {agents.length}
@@ -35,11 +37,18 @@ export function GroupAgentsRail({
               key={agent.id}
               onClick={() => navigate(`/agents/${agent.id}`)}
               className={cn(
-                "flex w-full items-center gap-2.5 border-b border-border px-3.75 py-2.75 text-left",
+                `
+                  flex w-full items-center gap-2.5 border-b border-border
+                  px-3.75 py-2.75 text-left
+                `,
                 "hover:bg-muted/45",
               )}
             >
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-secondary font-mono text-[10.5px] font-bold text-secondary-foreground">
+              <span className="
+                flex size-7 shrink-0 items-center justify-center rounded-lg
+                bg-secondary font-mono text-[10.5px] font-bold
+                text-secondary-foreground
+              ">
                 {deriveAgentInitials(agent.name)}
               </span>
               <div className="min-w-0 flex-1">
@@ -55,7 +64,9 @@ export function GroupAgentsRail({
             </button>
           ))
         )}
-        <p className="px-3.75 py-2.75 text-[11.5px] leading-relaxed text-muted-foreground">
+        <p className="
+          px-3.75 py-2.75 text-[11.5px] leading-relaxed text-muted-foreground
+        ">
           If you change this policy, these agents use the new permissions on the
           next tool call. The change does not wait for the next run.
         </p>

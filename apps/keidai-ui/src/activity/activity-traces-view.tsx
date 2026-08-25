@@ -33,7 +33,10 @@ function TailToggle({
       type="button"
       variant="outline"
       onClick={onToggle}
-      className="h-[30px] gap-1.5 rounded-full px-3 font-mono text-[12.5px] whitespace-nowrap"
+      className="
+        h-7.5 gap-1.5 rounded-full px-3 font-mono text-[12.5px]
+        whitespace-nowrap
+      "
     >
       <span
         className={cn(
@@ -50,7 +53,7 @@ function TailToggle({
 function ActivityIdleEmptyState() {
   return (
     <PageEmptyState
-      icon={<Activity className="size-[30px]" aria-hidden />}
+      icon={<Activity className="size-7.5" aria-hidden />}
       title="No activity yet"
       description={
         <>
@@ -59,7 +62,10 @@ function ActivityIdleEmptyState() {
         </>
       }
       footer={
-        <span className="mt-4 rounded-md border border-border px-2.5 py-1.5 font-mono text-xs text-muted-foreground">
+        <span className="
+          mt-4 rounded-md border border-border px-2.5 py-1.5 font-mono text-xs
+          text-muted-foreground
+        ">
           waiting on tools/call …
         </span>
       }
@@ -74,7 +80,7 @@ function ActivityNoMatchEmptyState({
 }) {
   return (
     <PageEmptyState
-      icon={<Search className="size-[18px]" aria-hidden />}
+      icon={<Search className="size-4.5" aria-hidden />}
       title="No traces match these filters"
       description="Try a different outcome, server, or search term."
       contentClassName="py-12"
@@ -118,7 +124,10 @@ export function ActivityTracesView() {
 
   const infoCard = useMemo(
     () => (
-      <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-4 py-3 text-sm text-muted-foreground">
+      <div className="
+        flex items-center justify-between gap-3 rounded-lg border border-border
+        px-4 py-3 text-sm text-muted-foreground
+      ">
         <p className="leading-snug">
           Live tail of <span className="font-mono">CallTrace</span> events the
           gateway emits per <span className="font-mono">tools/call</span>. v0
@@ -167,7 +176,9 @@ export function ActivityTracesView() {
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="h-auto w-0 p-0" />
-                    <TableHead className="h-auto py-2.5 pl-3.5 text-xs font-medium">
+                    <TableHead className="
+                      h-auto py-2.5 pl-3.5 text-xs font-medium
+                    ">
                       Time
                     </TableHead>
                     <TableHead className="h-auto py-2.5 text-xs font-medium">
@@ -182,7 +193,9 @@ export function ActivityTracesView() {
                     <TableHead className="h-auto py-2.5 text-xs font-medium">
                       Policy
                     </TableHead>
-                    <TableHead className="h-auto py-2.5 pr-[18px] text-right text-xs font-medium">
+                    <TableHead className="
+                      h-auto py-2.5 pr-4.5 text-right text-xs font-medium
+                    ">
                       Duration
                     </TableHead>
                   </TableRow>

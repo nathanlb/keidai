@@ -4,8 +4,8 @@ export const runsTableColumns = defineTableColumns(
   {
     run: {
       width: { type: "grow", minWidth: 240 },
-      headClassName: "pl-[18px]",
-      cellClassName: "min-w-0 overflow-hidden py-3 pl-[18px]",
+      headClassName: "pl-4.5",
+      cellClassName: "min-w-0 overflow-hidden py-3 pl-4.5",
     },
     started: {
       width: { type: "fixed", width: 100 },
@@ -32,8 +32,8 @@ export const runsTableColumns = defineTableColumns(
     },
     chevron: {
       width: { type: "fixed", width: 44 },
-      headClassName: "pr-[18px]",
-      cellClassName: "py-3 pl-2 pr-[18px] text-right",
+      headClassName: "pr-4.5",
+      cellClassName: "py-3 pl-2 pr-4.5 text-right",
     },
   },
   {

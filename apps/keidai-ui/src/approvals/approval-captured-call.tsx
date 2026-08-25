@@ -38,7 +38,10 @@ export function ApprovalCapturedCall({
 
   return (
     <div className="overflow-hidden rounded-lg border border-border">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/40 px-3 py-2">
+      <div className="
+        flex flex-wrap items-center justify-between gap-2 border-b border-border
+        bg-muted/40 px-3 py-2
+      ">
         <div>
           <div className="text-[12px] font-semibold">Captured call</div>
           <div className="text-[11px] text-muted-foreground">
@@ -59,14 +62,20 @@ export function ApprovalCapturedCall({
         >
           <ToggleGroupItem
             value="fields"
-            className="h-auto gap-1 rounded px-2 py-1 text-[11px] font-medium data-[state=on]:bg-background data-[state=on]:shadow-sm"
+            className="
+              h-auto gap-1 rounded-sm px-2 py-1 text-[11px] font-medium
+              data-[state=on]:bg-background data-[state=on]:shadow-sm
+            "
           >
             <List className="size-3" />
             Fields
           </ToggleGroupItem>
           <ToggleGroupItem
             value="raw"
-            className="h-auto gap-1 rounded px-2 py-1 text-[11px] font-medium data-[state=on]:bg-background data-[state=on]:shadow-sm"
+            className="
+              h-auto gap-1 rounded-sm px-2 py-1 text-[11px] font-medium
+              data-[state=on]:bg-background data-[state=on]:shadow-sm
+            "
           >
             <Braces className="size-3" />
             Raw
@@ -77,7 +86,7 @@ export function ApprovalCapturedCall({
       {view === "fields" ? (
         <div>
           {entries.length === 0 ? (
-            <div className="px-3 py-3 text-[13px] text-muted-foreground">
+            <div className="p-3 text-[13px] text-muted-foreground">
               No arguments captured.
             </div>
           ) : (
@@ -94,7 +103,7 @@ export function ApprovalCapturedCall({
                 </div>
                 <div
                   className={cn(
-                    "mt-0.5 whitespace-pre-wrap wrap-break-word text-[13px]",
+                    "mt-0.5 text-[13px] wrap-break-word whitespace-pre-wrap",
                     isMonoValue(value) ? "font-mono" : "",
                   )}
                 >
@@ -105,7 +114,11 @@ export function ApprovalCapturedCall({
           )}
         </div>
       ) : (
-        <pre className="max-h-64 overflow-auto whitespace-pre-wrap wrap-break-word border-t border-border bg-background p-3 font-mono text-[12px] leading-relaxed">
+        <pre className="
+          max-h-64 overflow-auto border-t border-border bg-background p-3
+          font-mono text-[12px] leading-relaxed wrap-break-word
+          whitespace-pre-wrap
+        ">
           {JSON.stringify({ server, tool, args: params }, null, 2)}
         </pre>
       )}

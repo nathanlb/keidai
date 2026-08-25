@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ConnectionDetailDrawer } from "../connection-detail-drawer.js";
@@ -23,9 +23,15 @@ const githubSummary = {
 
 const githubServer = {
   name: "github",
-  transport: { type: "http" as const, url: "https://api.githubcopilot.com/mcp/" },
+  transport: {
+    type: "http" as const,
+    url: "https://api.githubcopilot.com/mcp/",
+  },
   credential: { strategy: "user_oauth" as const, provider: "github" },
-  policy: { default: "deny" as const, allow: ["search_issues", "get_file_contents"] },
+  policy: {
+    default: "deny" as const,
+    allow: ["search_issues", "get_file_contents"],
+  },
 };
 
 vi.mock("../../lib/hooks/use-fetch-server-tools.js", () => ({
@@ -106,10 +112,13 @@ describe("ConnectionDetailDrawer", () => {
   });
 
   it("renders nothing when no server is selected", () => {
-    const { container } = renderWithConnectionsPage(<ConnectionDetailDrawer />, {
-      selectedSummary: null,
-      drawerOpen: true,
-    });
+    const { container } = renderWithConnectionsPage(
+      <ConnectionDetailDrawer />,
+      {
+        selectedSummary: null,
+        drawerOpen: true,
+      },
+    );
 
     expect(container).toBeEmptyDOMElement();
   });

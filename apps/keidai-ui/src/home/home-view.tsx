@@ -60,7 +60,7 @@ export function HomeView() {
   }
 
   return (
-    <div className="flex flex-col gap-[18px]">
+    <div className="flex flex-col gap-4.5">
       <HomeHeader subtitle={digest.subtitle} />
 
       {actionError ? (
@@ -88,7 +88,10 @@ export function HomeView() {
         failedTaskName={digest.failedTaskName}
       />
 
-      <div className="grid grid-cols-1 items-stretch gap-3.5 lg:grid-cols-[1.15fr_1fr]">
+      <div className="
+        grid grid-cols-1 items-stretch gap-3.5
+        lg:grid-cols-[1.15fr_1fr]
+      ">
         <RunningNowCard runs={digest.liveRuns} />
         <GoalCompletionCard
           rateLabel={digest.goalRateLabel}

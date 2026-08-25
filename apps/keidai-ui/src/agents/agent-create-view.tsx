@@ -1,4 +1,4 @@
-import { Button, Input, Spinner, Textarea } from "@keidai/ui";
+import { Button, cn, Input, Spinner, Textarea } from "@keidai/ui";
 import { ArrowLeft, Check, Lock, TriangleAlert, User } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
@@ -36,14 +36,17 @@ export function AgentCreateView() {
   const { owner } = useActingOwner();
   const { data: toriiGroupsData } = useFetchToriiGroups();
   const { data: bearersData } = useFetchBearers();
-  const toriiGroups = toriiGroupsData?.groups ?? [];
+  const toriiGroups = toriiGroupsData?.groups;
   const knownGroupNames = useMemo(
-    () => toriiGroups.map((group) => group.name),
+    () => (toriiGroups ?? []).map((group) => group.name),
     [toriiGroups],
   );
 
   const [slugTouched, setSlugTouched] = useState(false);
-  const [slugStatus, setSlugStatus] = useState<SlugStatus>("empty");
+  const [availability, setAvailability] = useState<{
+    slug: string;
+    status: Extract<SlugStatus, "available" | "taken">;
+  } | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
@@ -61,6 +64,19 @@ export function AgentCreateView() {
   const groups = watch("groups");
 
   const charsetValidity = validateAgentSlug(slugValue);
+  const trimmedSlug = slugValue.trim();
+  const slugStatus: SlugStatus = (() => {
+    if (charsetValidity !== "valid") {
+      return charsetValidity;
+    }
+    if (!trimmedSlug) {
+      return "empty";
+    }
+    if (availability?.slug === trimmedSlug) {
+      return availability.status;
+    }
+    return "checking";
+  })();
 
   useEffect(() => {
     if (!slugTouched) {
@@ -69,23 +85,24 @@ export function AgentCreateView() {
   }, [name, slugTouched, setValue]);
 
   useEffect(() => {
-    if (charsetValidity !== "valid") {
-      setSlugStatus(charsetValidity);
+    if (charsetValidity !== "valid" || !trimmedSlug) {
       return;
     }
 
-    setSlugStatus("checking");
     let cancelled = false;
     const timer = window.setTimeout(() => {
-      void checkSlugAvailability(slugValue.trim())
+      void checkSlugAvailability(trimmedSlug)
         .then(({ available }) => {
           if (!cancelled) {
-            setSlugStatus(available ? "available" : "taken");
+            setAvailability({
+              slug: trimmedSlug,
+              status: available ? "available" : "taken",
+            });
           }
         })
         .catch(() => {
           if (!cancelled) {
-            setSlugStatus("taken");
+            setAvailability({ slug: trimmedSlug, status: "taken" });
           }
         });
     }, SLUG_CHECK_DEBOUNCE_MS);
@@ -94,7 +111,7 @@ export function AgentCreateView() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [slugValue, charsetValidity]);
+  }, [trimmedSlug, charsetValidity]);
 
   function handleSlugChange(value: string) {
     setSlugTouched(true);
@@ -184,7 +201,7 @@ export function AgentCreateView() {
         type="button"
         variant="ghost"
         size="sm"
-        className="-ml-2 mb-3 text-muted-foreground"
+        className="mb-3 -ml-2 text-muted-foreground"
         onClick={() => navigate("/agents")}
       >
         <ArrowLeft className="size-3.5" aria-hidden />
@@ -192,13 +209,17 @@ export function AgentCreateView() {
       </Button>
 
       <div className="text-[23px] font-bold tracking-tight">New agent</div>
-      <p className="mb-5 mt-0.5 text-[13.5px] text-muted-foreground">
+      <p className="mt-0.5 mb-5 text-[13.5px] text-muted-foreground">
         The slug and owner are fixed once this is created. Everything else stays
         editable.
       </p>
 
       <form className="flex max-w-170 flex-col gap-4" onSubmit={onSubmit}>
-        <div className="flex flex-col gap-4.5 rounded-xl border border-border bg-card p-5">
+        <div
+          className="
+          flex flex-col gap-4.5 rounded-xl border border-border bg-card p-5
+        "
+        >
           <div>
             <label className="mb-1.5 block text-[13px] font-medium">Name</label>
             <Input
@@ -212,7 +233,11 @@ export function AgentCreateView() {
           </div>
 
           <div>
-            <label className="mb-1.5 flex items-center gap-1.5 text-[13px] font-medium">
+            <label
+              className="
+              mb-1.5 flex items-center gap-1.5 text-[13px] font-medium
+            "
+            >
               Slug
               <Lock className="size-3 text-muted-foreground" aria-hidden />
               <span className="text-[11.5px] font-normal text-muted-foreground">
@@ -223,24 +248,21 @@ export function AgentCreateView() {
               value={slugValue}
               onChange={(event) => handleSlugChange(event.target.value)}
               placeholder="agent-slug"
-              className={
-                "h-9.5 font-mono " +
-                (slugMessage.tone === "destructive"
-                  ? "border-destructive"
-                  : slugMessage.tone === "success"
-                    ? "border-(--green-600)"
-                    : "")
-              }
+              className={cn(
+                "h-9.5 font-mono",
+                slugMessage.tone === "destructive" && "border-destructive",
+                slugMessage.tone === "success" && "border-(--green-600)",
+              )}
             />
             <div
-              className={
-                "mt-1.5 flex items-center gap-1.5 text-[11.5px] " +
-                (slugMessage.tone === "destructive"
-                  ? "text-destructive"
-                  : slugMessage.tone === "success"
-                    ? "text-(--green-600)"
-                    : "text-muted-foreground")
-              }
+              className={cn(
+                "mt-1.5 flex items-center gap-1.5 text-[11.5px]",
+                slugMessage.tone === "destructive" && "text-destructive",
+                slugMessage.tone === "success" && "text-(--green-600)",
+                slugMessage.tone !== "destructive" &&
+                  slugMessage.tone !== "success" &&
+                  "text-muted-foreground",
+              )}
             >
               {slugMessage.tone === "destructive" ? (
                 <TriangleAlert className="size-3 shrink-0" aria-hidden />
@@ -275,7 +297,12 @@ export function AgentCreateView() {
                     type="button"
                     key={groupName}
                     onClick={() => addGroup(groupName)}
-                    className="inline-flex h-7 items-center gap-1.5 rounded-full border border-dashed border-border px-2.5 font-mono text-[11.5px] text-muted-foreground hover:bg-accent"
+                    className="
+                      inline-flex h-7 items-center gap-1.5 rounded-full border
+                      border-dashed border-border px-2.5 font-mono text-[11.5px]
+                      text-muted-foreground
+                      hover:bg-accent
+                    "
                   >
                     + {groupName}
                   </button>
@@ -297,7 +324,12 @@ export function AgentCreateView() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5 border-t border-border pt-4 text-[12.5px] text-muted-foreground">
+          <div
+            className="
+            flex items-center gap-2.5 border-t border-border pt-4 text-[12.5px]
+            text-muted-foreground
+          "
+          >
             <User className="size-3 shrink-0" aria-hidden />
             Owner will be{" "}
             <span className="font-mono text-foreground">
@@ -307,14 +339,23 @@ export function AgentCreateView() {
           </div>
 
           <div>
-            <label className="mb-1.5 flex items-center gap-1.5 text-[13px] font-medium">
+            <label
+              className="
+              mb-1.5 flex items-center gap-1.5 text-[13px] font-medium
+            "
+            >
               Runtime
               <Lock className="size-3 text-muted-foreground" aria-hidden />
               <span className="text-[11.5px] font-normal text-muted-foreground">
                 assigned automatically
               </span>
             </label>
-            <div className="flex h-9.5 items-center rounded-md border border-border px-3 font-mono text-[13px]">
+            <div
+              className="
+              flex h-9.5 items-center rounded-md border border-border px-3
+              font-mono text-[13px]
+            "
+            >
               {runner?.displayName ?? PLATFORM_BEARER_ID}
             </div>
             <p className="mt-1.5 text-[11.5px] text-muted-foreground">

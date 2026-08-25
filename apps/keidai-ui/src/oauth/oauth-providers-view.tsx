@@ -1,26 +1,12 @@
-import { Alert, AlertDescription, AlertTitle } from "@keidai/ui";
-import { KeyRound, Shield } from "lucide-react";
+import { KeyRound } from "lucide-react";
 import { PageEmptyState } from "../shell/components/page-content/page-empty-state.js";
 import type { OAuthProviderSummary } from "./utils/build-oauth-provider-summaries.js";
 import { OAuthProviderCard } from "./oauth-provider-card.js";
 
-function PrivacyBanner() {
-  return (
-    <Alert className="mb-4">
-      <Shield className="size-4" aria-hidden />
-      <AlertTitle>Secrets are masked</AlertTitle>
-      <AlertDescription>
-        Saved client secrets and access tokens are never shown. Grants are
-        stored per <span className="font-mono">(owner, provider)</span>.
-      </AlertDescription>
-    </Alert>
-  );
-}
-
 function OAuthProvidersEmptyState() {
   return (
     <PageEmptyState
-      icon={<KeyRound className="size-[30px]" aria-hidden />}
+      icon={<KeyRound className="size-7.5" aria-hidden />}
       title="No OAuth providers configured"
       description={
         <>
@@ -47,7 +33,6 @@ export function OAuthProvidersView({
 
   return (
     <>
-      <PrivacyBanner />
       {isEmpty ? (
         <OAuthProvidersEmptyState />
       ) : (

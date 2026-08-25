@@ -38,9 +38,15 @@ export function PolicyEffectControl({
           value={option.value}
           aria-label={option.label}
           className={cn(
-            "h-auto min-w-0 rounded-[6px] px-2.5 py-1 text-[11.5px] font-medium shadow-none",
+            `
+              h-auto min-w-0 rounded-[6px] px-2.5 py-1 text-[11.5px] font-medium
+              shadow-none
+            `,
             "hover:bg-transparent hover:text-foreground",
-            "data-[state=on]:bg-card data-[state=on]:font-semibold data-[state=on]:text-foreground",
+            `
+              data-[state=on]:bg-card data-[state=on]:font-semibold
+              data-[state=on]:text-foreground
+            `,
             "data-[state=off]:text-muted-foreground",
             option.value === "gated" &&
               value === "gated" &&

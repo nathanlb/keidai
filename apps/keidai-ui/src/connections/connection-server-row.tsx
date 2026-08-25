@@ -1,10 +1,4 @@
-import {
-  Badge,
-  Button,
-  cn,
-  TableCell,
-  TableRow,
-} from "@keidai/ui";
+import { Badge, Button, cn, TableCell, TableRow } from "@keidai/ui";
 import type { ConnectionState } from "@keidai/shared";
 import {
   ChevronRight,
@@ -16,7 +10,6 @@ import {
 import { useConnectionsPage } from "./context/use-connections-page.js";
 import { CredentialStrategyBadge } from "./connections-summary-tiles.js";
 import type { ServerConnectionSummary } from "./utils/build-server-summaries.js";
-import { formatPolicyTooltip } from "./utils/format-policy-tooltip.js";
 
 const connectionStateMeta: Record<
   ConnectionState,
@@ -35,8 +28,7 @@ const connectionStateMeta: Record<
   failed: {
     label: "Failed",
     dotClass: "",
-    badgeClass:
-      "border-transparent bg-destructive text-destructive-foreground",
+    badgeClass: "border-transparent bg-destructive text-destructive-foreground",
   },
 };
 
@@ -44,11 +36,23 @@ function ConnectionStatusBadge({ state }: { state: ConnectionState }) {
   const meta = connectionStateMeta[state];
 
   return (
-    <Badge variant="outline" className={`gap-1.5 ${meta.badgeClass}`}>
+    <Badge
+      variant="outline"
+      className={`
+      gap-1.5
+      ${meta.badgeClass}
+    `}
+    >
       {state === "connecting" ? (
         <Loader2 className="size-3 animate-spin" aria-hidden />
       ) : state === "connected" ? (
-        <span className={`size-1.5 rounded-full ${meta.dotClass}`} aria-hidden />
+        <span
+          className={`
+          size-1.5 rounded-full
+          ${meta.dotClass}
+        `}
+          aria-hidden
+        />
       ) : null}
       {meta.label}
     </Badge>
@@ -108,18 +112,30 @@ export function ConnectionServerRow({
 
   return (
     <TableRow
-      className="cursor-pointer border-border hover:bg-muted/30"
+      className="
+        cursor-pointer border-border
+        hover:bg-muted/30
+      "
       onClick={() => onOpenServer(summary.name)}
     >
-      <TableCell className="py-3 pl-[18px] font-semibold">
+      <TableCell className="py-3 pl-4.5 font-semibold">
         {summary.name}
       </TableCell>
-      <TableCell className="max-w-[220px] py-3">
-        <div title={summary.endpoint} className="truncate font-mono text-xs text-muted-foreground">
+      <TableCell className="max-w-55 py-3">
+        <div
+          title={summary.endpoint}
+          className="
+          truncate font-mono text-xs text-muted-foreground
+        "
+        >
           {summary.endpoint}
         </div>
         {summary.state === "failed" && summary.error ? (
-          <div className="mt-1 flex items-start gap-1.5 text-xs text-destructive">
+          <div
+            className="
+            mt-1 flex items-start gap-1.5 text-xs text-destructive
+          "
+          >
             <CircleAlert className="mt-0.5 size-3 shrink-0" aria-hidden />
             <span>{summary.error}</span>
           </div>
@@ -140,13 +156,17 @@ export function ConnectionServerRow({
       >
         {summary.policySummary}
       </TableCell>
-      <TableCell className="py-3 font-mono text-xs text-muted-foreground text-right">
+      <TableCell
+        className="
+        py-3 text-right font-mono text-xs text-muted-foreground
+      "
+      >
         {summary.toolCount === null ? "—" : summary.toolCount}
       </TableCell>
       <TableCell className="py-3">
         <ConnectionStatusBadge state={summary.state} />
       </TableCell>
-      <TableCell className="w-0 whitespace-nowrap py-3 pl-2 pr-[18px] text-right">
+      <TableCell className="w-0 py-3 pr-4.5 pl-2 text-right whitespace-nowrap">
         <div className="flex items-center justify-end gap-2">
           <RowActions summary={summary} />
           <ChevronRight

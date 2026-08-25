@@ -3,8 +3,8 @@ import { defineTableColumns } from "../shell/components/table-layout/define-tabl
 export const tasksTableColumns = defineTableColumns({
   goal: {
     width: { type: "grow", minWidth: 150 },
-    headClassName: "pl-[18px]",
-    cellClassName: "overflow-hidden py-3 pl-[18px]",
+    headClassName: "pl-4.5",
+    cellClassName: "overflow-hidden py-3 pl-4.5",
   },
   assignee: {
     width: { type: "fixed", width: 200 },

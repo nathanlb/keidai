@@ -26,10 +26,16 @@ function SummaryTile({
   return (
     <Card className="shadow-none">
       <CardContent className="px-4 py-3.5">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="
+          text-[11px] font-semibold tracking-wider text-muted-foreground
+          uppercase
+        ">
           {label}
         </div>
-        <div className={`mt-1 text-2xl font-semibold tabular-nums ${valueClass}`}>
+        <div className={`
+          mt-1 text-2xl font-semibold tabular-nums
+          ${valueClass}
+        `}>
           {value}
         </div>
       </CardContent>
@@ -43,7 +49,10 @@ export function ConnectionsSummaryTiles({
   counts: ConnectionSummaryCounts;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+    <div className="
+      grid grid-cols-2 gap-3
+      md:grid-cols-4
+    ">
       <SummaryTile label="Total servers" value={counts.total} tone="default" />
       <SummaryTile label="Connected" value={counts.connected} tone="success" />
       <SummaryTile
@@ -62,7 +71,9 @@ export function CredentialStrategyBadge({
   strategy: "user_oauth" | "service_key" | "none";
 }) {
   return (
-    <Badge variant="secondary" className="w-fit font-mono text-[11px] font-medium">
+    <Badge variant="secondary" className="
+      w-fit font-mono text-[11px] font-medium
+    ">
       {strategy}
     </Badge>
   );

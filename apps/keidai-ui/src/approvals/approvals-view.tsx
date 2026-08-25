@@ -64,7 +64,7 @@ export function ApprovalsView() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-[840px]">
+    <div className="mx-auto w-full max-w-210">
       {pendingCount > 0 ? (
         <div className="mb-4">
           <Badge variant="secondary" className="font-mono text-[11px]">
@@ -106,7 +106,10 @@ export function ApprovalsView() {
             canGoOlder={canGoOlder}
             onPageChange={onPageChange}
             pageIndex={pageIndex}
-            className="flex items-center justify-between rounded-lg border border-border px-4 py-2.5 text-xs text-muted-foreground"
+            className="
+              flex items-center justify-between rounded-lg border border-border
+              px-4 py-2.5 text-xs text-muted-foreground
+            "
           />
         </div>
       ) : null}

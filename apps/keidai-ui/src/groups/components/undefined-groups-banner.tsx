@@ -17,14 +17,19 @@ export function UndefinedGroupsBanner({
   }
 
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-destructive/45 bg-destructive/8 px-4 py-3.5">
+    <div className="
+      flex items-start gap-3 rounded-xl border border-destructive/45
+      bg-destructive/8 px-4 py-3.5
+    ">
       <TriangleAlert
         className="mt-0.5 size-4.25 shrink-0 text-destructive"
         aria-hidden
       />
       <div className="min-w-0 flex-1">
         <div className="text-[13.5px] font-semibold">{copy.title}</div>
-        <p className="mt-0.5 text-[12.5px] leading-relaxed text-muted-foreground">
+        <p className="
+          mt-0.5 text-[12.5px] leading-relaxed text-muted-foreground
+        ">
           {copy.body.split(copy.defineName).map((part, index, parts) => (
             <span key={`${part}-${index}`}>
               {part}

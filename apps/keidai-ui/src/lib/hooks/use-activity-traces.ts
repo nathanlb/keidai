@@ -58,7 +58,6 @@ export function useActivityTraces(isLive: boolean) {
       return;
     }
 
-    let cancelled = false;
     const eventSource = new EventSource("/api/traces/events");
     eventSourceRef.current = eventSource;
 
@@ -73,7 +72,6 @@ export function useActivityTraces(isLive: boolean) {
     );
 
     return () => {
-      cancelled = true;
       eventSource.removeEventListener(
         TRACE_SSE_EVENT.traceCreated,
         handleTraceCreated,

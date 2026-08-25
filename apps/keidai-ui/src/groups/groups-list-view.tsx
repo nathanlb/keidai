@@ -35,7 +35,7 @@ import {
 function GroupsPageHeader({ onNewGroup }: { onNewGroup: () => void }) {
   return (
     <div className="flex items-start justify-between gap-4">
-      <div className="max-w-[620px]">
+      <div className="max-w-155">
         <div className="text-[23px] font-bold tracking-tight">
           Groups & tools
         </div>
@@ -46,7 +46,7 @@ function GroupsPageHeader({ onNewGroup }: { onNewGroup: () => void }) {
         </p>
       </div>
       <Button type="button" className="h-9 shrink-0" onClick={onNewGroup}>
-        <Plus className="size-[15px]" aria-hidden />
+        <Plus className="size-3.75" aria-hidden />
         New group
       </Button>
     </div>
@@ -128,19 +128,31 @@ export function GroupsListView() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="h-auto py-2.5 pl-4 text-[10.5px] font-semibold uppercase tracking-wider">
+                  <TableHead className="
+                    h-auto py-2.5 pl-4 text-[10.5px] font-semibold
+                    tracking-wider uppercase
+                  ">
                     Group
                   </TableHead>
-                  <TableHead className="h-auto py-2.5 text-[10.5px] font-semibold uppercase tracking-wider">
+                  <TableHead className="
+                    h-auto py-2.5 text-[10.5px] font-semibold tracking-wider
+                    uppercase
+                  ">
                     Reaches
                   </TableHead>
-                  <TableHead className="h-auto py-2.5 text-[10.5px] font-semibold uppercase tracking-wider">
+                  <TableHead className="
+                    h-auto py-2.5 text-[10.5px] font-semibold tracking-wider
+                    uppercase
+                  ">
                     Grants
                   </TableHead>
-                  <TableHead className="h-auto py-2.5 text-[10.5px] font-semibold uppercase tracking-wider">
+                  <TableHead className="
+                    h-auto py-2.5 text-[10.5px] font-semibold tracking-wider
+                    uppercase
+                  ">
                     Agents
                   </TableHead>
-                  <TableHead className="h-auto w-[18px] py-2.5 pr-4" />
+                  <TableHead className="h-auto w-4.5 py-2.5 pr-4" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -155,14 +167,19 @@ export function GroupsListView() {
                   return (
                     <TableRow
                       key={group.id}
-                      className="cursor-pointer hover:bg-muted/45"
+                      className="
+                        cursor-pointer
+                        hover:bg-muted/45
+                      "
                       onClick={() => navigate(`${GROUPS_PATH}/${group.name}`)}
                     >
                       <TableCell className="max-w-0 py-3 pl-4">
                         <div className="font-mono text-[13.5px] font-semibold">
                           {group.name}
                         </div>
-                        <div className="mt-0.5 truncate text-[12px] text-muted-foreground">
+                        <div className="
+                          mt-0.5 truncate text-[12px] text-muted-foreground
+                        ">
                           {group.description || "No description"}
                         </div>
                       </TableCell>
@@ -172,7 +189,9 @@ export function GroupsListView() {
                             <Badge
                               key={policy.server}
                               variant="secondary"
-                              className="rounded-full font-mono text-[11px] font-normal"
+                              className="
+                                rounded-full font-mono text-[11px] font-normal
+                              "
                             >
                               {policy.server}
                             </Badge>
@@ -193,31 +212,41 @@ export function GroupsListView() {
                         ) : null}
                       </TableCell>
                       <TableCell className="overflow-hidden py-3">
-                        <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
+                        <div className="
+                          flex min-w-0 items-center gap-1.5 overflow-hidden
+                        ">
                           {members.slice(0, 2).map((agent) => (
                             <Avatar
                               key={agent.id}
                               size="sm"
-                              className="size-[22px] shrink-0"
+                              className="size-5.5 shrink-0"
                             >
-                              <AvatarFallback className="bg-secondary font-mono text-[9.5px] font-bold text-secondary-foreground">
+                              <AvatarFallback className="
+                                bg-secondary font-mono text-[9.5px] font-bold
+                                text-secondary-foreground
+                              ">
                                 {deriveAgentInitials(agent.name)}
                               </AvatarFallback>
                             </Avatar>
                           ))}
                           {overflow > 0 ? (
-                            <span className="shrink-0 font-mono text-[9.5px] text-muted-foreground">
+                            <span className="
+                              shrink-0 font-mono text-[9.5px]
+                              text-muted-foreground
+                            ">
                               +{overflow}
                             </span>
                           ) : null}
-                          <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[12px] text-muted-foreground">
+                          <span className="
+                            min-w-0 truncate text-[12px] text-muted-foreground
+                          ">
                             {formatAgentCountLabel(members.length)}
                           </span>
                         </div>
                       </TableCell>
                       <TableCell className="py-3 pr-4">
                         <ChevronRight
-                          className="size-[15px] text-muted-foreground"
+                          className="size-3.75 text-muted-foreground"
                           aria-hidden
                         />
                       </TableCell>
@@ -226,7 +255,10 @@ export function GroupsListView() {
                 })}
               </TableBody>
             </Table>
-            <div className="border-t border-border px-4 py-[11px] text-[12px] text-muted-foreground">
+            <div className="
+              border-t border-border px-4 py-2.75 text-[12px]
+              text-muted-foreground
+            ">
               {formatListFooter(groups.length, undefinedRefs.length)}
             </div>
           </CardContent>

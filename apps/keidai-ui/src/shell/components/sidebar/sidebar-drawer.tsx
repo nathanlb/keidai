@@ -17,7 +17,11 @@ export function SidebarDrawer({
       <SheetContent
         id="shell-nav-drawer"
         side="left"
-        className="flex h-full w-[248px] max-w-[85vw] flex-col gap-0 border-sidebar-border bg-sidebar p-0 text-sidebar-foreground sm:max-w-[248px]"
+        className="
+          flex h-full w-62 max-w-[85vw] flex-col gap-0 border-sidebar-border
+          bg-sidebar p-0 text-sidebar-foreground
+          sm:max-w-62
+        "
       >
         <SheetTitle className="sr-only">Navigation</SheetTitle>
         <SidebarPanel

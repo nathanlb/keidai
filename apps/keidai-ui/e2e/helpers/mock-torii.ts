@@ -12,7 +12,6 @@ import type {
   RunsResponse,
   SavedTask,
   TasksResponse,
-  TraceListItem,
   TraceStatsResponse,
   TracesResponse,
 } from "@keidai/shared";
