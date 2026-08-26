@@ -54,12 +54,13 @@ for Compose, native local development, and Kubernetes.
 ## Releasing
 
 Keidai uses a single platform semver across all workspace packages and the Helm
-chart. To release:
+chart. Releases are maintainer-driven from GitHub Actions:
 
-1. On a feature PR with user-facing or deployable changes, run `pnpm changeset`
-   and commit the generated file in `.changeset/`.
-2. Merge to `main`. The release workflow opens a **Version Packages** PR when
-   pending changesets exist.
+1. Actions → **Prepare release** → choose bump type (and optional notes for the
+   changelog). This gathers commit messages since the last `v*` tag, generates a
+   changeset via OpenRouter, and pushes it to `main`.
+2. The release workflow opens a **Version Packages** PR. Review the generated
+   changelog there.
 3. Merge the Version Packages PR. That bumps versions, updates changelogs,
    creates git tag `v{semver}`, and publishes GHCR images.
 

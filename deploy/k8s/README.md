@@ -63,10 +63,10 @@ KEIDAI_DELETE_PVC=1 pnpm k8s:down       # also wipe postgres-data (kept by defau
 
 Platform semver is unified across all workspace packages (`apps/*/package.json`,
 `packages/*/package.json`) and [`Chart.yaml`](chart/Chart.yaml) `appVersion`.
-Releases use [Changesets](https://github.com/changesets/changesets): feature PRs
-add a changeset (`pnpm changeset`); merging to `main` opens a Version Packages
-PR; merging that PR bumps versions, creates git tag `v{semver}`, and triggers
-image publish.
+Releases are maintainer-driven from GitHub Actions (**Prepare release**): commit
+messages since the last `v*` tag are summarized into a changeset via OpenRouter;
+merging the resulting **Version Packages** PR bumps versions, creates git tag
+`v{semver}`, and triggers image publish.
 
 Images are published to GHCR on version tags (`v*`) by
 [`.github/workflows/publish-images.yml`](../../.github/workflows/publish-images.yml).

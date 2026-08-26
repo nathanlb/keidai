@@ -16,8 +16,6 @@ jobs:
           fetch-depth: 0
       - run: git fetch origin main
       - run: node scripts/check-versions.mjs
-      - uses: ./.github/actions/setup
-      - run: node scripts/changeset-check.mjs
 
   packages:
     uses: ./.github/workflows/with-postgres.yml
