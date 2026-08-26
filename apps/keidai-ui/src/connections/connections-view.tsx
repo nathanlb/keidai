@@ -71,8 +71,8 @@ export function ConnectionsView() {
                   Backend MCP servers
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Only connected backends join tools/list fan-out. Credentials
-                  resolve per call.
+                  Live backends as Torii sees them. Only connected backends join
+                  tools/list fan-out.
                 </CardDescription>
               </div>
               <Button
@@ -108,9 +108,6 @@ export function ConnectionsView() {
                     <TableHead className="h-auto py-2.5 text-xs font-medium">
                       Credential
                     </TableHead>
-                    <TableHead className="h-auto py-2.5 text-xs font-medium">
-                      Policy
-                    </TableHead>
                     <TableHead className="
                       h-auto py-2.5 text-right text-xs font-medium
                     ">
@@ -129,7 +126,6 @@ export function ConnectionsView() {
                     <ConnectionServerRow
                       key={summary.name}
                       summary={summary}
-                      policyTooltip={summary.policyAllowTooltip}
                     />
                   ))}
                 </TableBody>

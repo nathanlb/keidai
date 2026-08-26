@@ -50,13 +50,9 @@ export class ConnectionReadService {
       return projected;
     }
 
-    const toolCount = this.toolCatalog
-      .getCatalog()
-      .filter((entry) => entry.server === connection.config.name).length;
-
     return {
       ...projected,
-      toolCount,
+      toolCount: this.toolCatalog.getServerTools(connection.config.name).length,
     };
   }
 }

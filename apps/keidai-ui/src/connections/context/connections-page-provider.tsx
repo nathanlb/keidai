@@ -1,5 +1,12 @@
 import type { OAuthConnectionStatus } from "@keidai/shared";
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { mutate } from "swr";
 import {
   reconnectAllConnections,
@@ -45,10 +52,7 @@ export function ConnectionsPageProvider({
   } = useFetchOAuthProviders();
 
   const { owner } = useActingOwner();
-  const ownerIds = useMemo(
-    () => (owner ? [owner.ownerId] : []),
-    [owner],
-  );
+  const ownerIds = useMemo(() => (owner ? [owner.ownerId] : []), [owner]);
 
   const {
     data: connectionsByOwner,
@@ -77,8 +81,7 @@ export function ConnectionsPageProvider({
     useFetchLinkingRequiredTrace(owner?.ownerId ?? null);
 
   const oauthConnections = useMemo(
-    () =>
-      owner ? (connectionsByOwner?.get(owner.ownerId) ?? []) : [],
+    () => (owner ? (connectionsByOwner?.get(owner.ownerId) ?? []) : []),
     [connectionsByOwner, owner],
   );
   const linkDialog = useOAuthLink();
@@ -203,6 +206,28 @@ export function ConnectionsPageProvider({
       setIsReconnectingAll(false);
     }
   }, [owner]);
+
+  const onReconnectAllRef = useRef(onReconnectAll);
+  const ownerId = owner?.ownerId;
+
+  useEffect(() => {
+    onReconnectAllRef.current = onReconnectAll;
+  });
+
+  useEffect(() => {
+    if (!ownerId) {
+      return;
+    }
+
+    // Visiting Connections is the operator's refresh signal — backends often
+    // sit idle until the next agent tools/list. Reconnect so the table matches
+    // what Torii currently sees. The timeout collapses React Strict Mode's
+    // double-invoke into a single request.
+    const handle = window.setTimeout(() => {
+      void onReconnectAllRef.current();
+    }, 0);
+    return () => window.clearTimeout(handle);
+  }, [ownerId]);
 
   const openLinkDialog = useCallback(
     (providerId: string, ownerId: string) => {

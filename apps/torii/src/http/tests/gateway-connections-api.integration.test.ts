@@ -18,6 +18,7 @@ import { createStubToolCatalog, createTestGatewayHttpServer } from "./test-helpe
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
 import {
+  bootBackends,
   createCredentialServices,
   withTestAgentPrincipal,
 } from "../../credentials/tests/test-helpers.js";
@@ -242,6 +243,71 @@ describe("Gateway /api/connections endpoints", () => {
           connectionsBody.connections.find((c) => c.name === "gmail")
             ?.toolCount,
           2,
+        );
+      } finally {
+        await gateway.close();
+      }
+    } finally {
+      await closeManagerConnections(connectionManager);
+      await mockServer.close();
+    }
+  });
+
+  it("reports backend tool counts without group-policy filtering", async () => {
+    const mockServer = await startMockMcpServer({
+      tools: [
+        { name: "search_issues", description: "Search GitHub issues" },
+        { name: "merge_pull_request", description: "Merge a pull request" },
+      ],
+    });
+    const groups = [
+      testAgentsGroup([{ server: "github", tools: ["search_issues"] }]),
+    ];
+    const configService = new ToriiConfigService({
+      oauth_providers: {},
+      servers: [serverConfig("github", mockServer.url)],
+    });
+    const { credentialResolver } = createCredentialServices();
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
+    const toolCatalog = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+      createPolicyEnforcement(groups),
+      createNoopLogger(),
+    );
+    const gatewayHttpServer = await createConnectionsGateway(
+      configService,
+      connectionManager,
+      toolCatalog,
+      groups,
+    );
+
+    try {
+      await bootBackends(connectionManager, toolCatalog);
+      const gateway = await gatewayHttpServer.start();
+      try {
+        const connectionsResponse = await fetch(
+          `${gateway.baseUrl}/api/connections`,
+        );
+        const connectionsBody =
+          (await connectionsResponse.json()) as ConnectionsResponse;
+        assert.equal(
+          connectionsBody.connections.find((c) => c.name === "github")
+            ?.toolCount,
+          2,
+        );
+
+        const toolsResponse = await fetch(
+          `${gateway.baseUrl}/api/connections/github/tools`,
+        );
+        const toolsBody = (await toolsResponse.json()) as ServerToolsResponse;
+        assert.deepEqual(
+          toolsBody.tools.map((tool) => tool.name).sort(),
+          ["merge_pull_request", "search_issues"],
         );
       } finally {
         await gateway.close();

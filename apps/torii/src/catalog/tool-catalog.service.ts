@@ -83,7 +83,8 @@ export class ToolCatalogService {
             toolsForServer.push({
               name: tool.name,
               description: tool.description,
-              // Connections UI: configured grant surface across all groups.
+              // Grant surface across all groups. Connections UI lists every
+              // backend tool; agent tools/list still filters by principal.
               allowed: configured,
             });
 

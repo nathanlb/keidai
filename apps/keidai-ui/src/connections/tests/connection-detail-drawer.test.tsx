@@ -13,8 +13,6 @@ const githubSummary = {
   endpoint: "https://api.githubcopilot.com/mcp/",
   credentialStrategy: "user_oauth" as const,
   credentialSubStatus: { label: "not linked", warning: true },
-  policySummary: "deny · 2 allowed",
-  policyAllowTooltip: "search_issues, get_file_contents",
   toolCount: 2,
   state: "connected" as const,
   rowAction: "link" as const,
@@ -64,17 +62,17 @@ describe("ConnectionDetailDrawer", () => {
 
     expect(screen.getByText("github")).toBeInTheDocument();
     expect(screen.getByText("Credential", { exact: true })).toBeInTheDocument();
-    expect(screen.getByText("Policy", { exact: true })).toBeInTheDocument();
+    expect(screen.queryByText("Policy", { exact: true })).not.toBeInTheDocument();
     expect(screen.getByText("Tools", { exact: true })).toBeInTheDocument();
-    expect(screen.getAllByText("Allowed", { exact: true })).toHaveLength(2);
-    expect(screen.getAllByText("Blocked", { exact: true })).toHaveLength(2);
+    expect(screen.queryByText("Allowed")).not.toBeInTheDocument();
+    expect(screen.queryByText("Blocked")).not.toBeInTheDocument();
     expect(screen.getByText("Search GitHub issues")).toBeInTheDocument();
     expect(screen.getByText("Merge a pull request")).toBeInTheDocument();
 
-    const allowedDescription = screen.getByText("Search GitHub issues");
-    const blockedDescription = screen.getByText("Merge a pull request");
+    const mergeDescription = screen.getByText("Merge a pull request");
+    const searchDescription = screen.getByText("Search GitHub issues");
     expect(
-      allowedDescription.compareDocumentPosition(blockedDescription) &
+      mergeDescription.compareDocumentPosition(searchDescription) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
