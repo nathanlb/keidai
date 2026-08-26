@@ -50,7 +50,7 @@ jobs:
           fi
           node scripts/prepare-release-changeset.mjs "${ARGS[@]}"
         env:
-          OPEN_ROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
+          OPEN_ROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_RELEASE_API_KEY }}
 
       - name: Apply version bump
         run: pnpm run version-packages
