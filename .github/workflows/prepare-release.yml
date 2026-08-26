@@ -1,0 +1,55 @@
+name: Prepare release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Semver bump for the next release
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: minor
+      notes:
+        description: Optional context for the changelog LLM
+        required: false
+        type: string
+      model:
+        description: OpenRouter model id
+        required: false
+        default: ~deepseek/deepseek-v4-flash-latest
+        type: string
+
+concurrency:
+  group: prepare-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Generate changeset
+        run: |
+          ARGS=(--bump "${{ inputs.bump }}" --model "${{ inputs.model }}")
+          if [ -n "${{ inputs.notes }}" ]; then
+            ARGS+=(--notes "${{ inputs.notes }}")
+          fi
+          node scripts/prepare-release-changeset.mjs "${ARGS[@]}"
+        env:
+          OPEN_ROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
+
+      - name: Commit and push changeset
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .changeset/
+          git commit -m "chore: prepare release (${{ inputs.bump }})"
+          git push origin HEAD:main

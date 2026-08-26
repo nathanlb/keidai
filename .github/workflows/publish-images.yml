@@ -18,19 +18,28 @@ jobs:
         include:
           - image: keidai-fuda
             dockerfile: apps/fuda/Dockerfile
+            package: apps/fuda/package.json
           - image: keidai-torii
             dockerfile: apps/torii/Dockerfile
+            package: apps/torii/package.json
           - image: keidai-shaiden
             dockerfile: apps/shaiden/Dockerfile
+            package: apps/shaiden/package.json
           - image: keidai-ui
             dockerfile: apps/keidai-ui/Dockerfile
+            package: apps/keidai-ui/package.json
     steps:
       - uses: actions/checkout@v7
 
       - name: Resolve image coordinates
         id: version
         run: |
-          TAG="${GITHUB_REF_NAME#v}"
+          TAG="$(node -p "require('./${{ matrix.package }}').version")"
+          REF_TAG="${GITHUB_REF_NAME#v}"
+          if [ "${REF_TAG}" != "${TAG}" ]; then
+            echo "Git tag v${REF_TAG} does not match package.json version ${TAG}" >&2
+            exit 1
+          fi
           OWNER="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "owner=${OWNER}" >> "$GITHUB_OUTPUT"
