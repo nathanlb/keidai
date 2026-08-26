@@ -3,7 +3,7 @@
  * Gather main-branch commit messages since the last v* tag, generate a changeset
  * changelog via OpenRouter, and write .changeset/prepare-release-*.md
  */
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -39,8 +39,11 @@ if (!apiKey) {
   process.exit(1);
 }
 
-function git(cmd) {
-  return execSync(cmd, { encoding: "utf8", cwd: root }).trim();
+const LOG_FORMAT =
+  "----%ncommit %H%nauthor %an%n date %ad%n subject %s%n body %b";
+
+function git(args) {
+  return execFileSync("git", args, { encoding: "utf8", cwd: root }).trim();
 }
 
 const pending = readdirSync(join(root, ".changeset"))
@@ -59,16 +62,19 @@ const currentVersion = JSON.parse(
 let sinceRef = values.since?.trim();
 if (!sinceRef) {
   try {
-    sinceRef = git("git describe --tags --abbrev=0 --match 'v*'");
+    sinceRef = git(["describe", "--tags", "--abbrev=0", "--match", "v*"]);
   } catch {
     console.error("No v* tag found; pass --since explicitly");
     process.exit(1);
   }
 }
 
-const rawLog = git(
-  `git log ${sinceRef}..HEAD --reverse --format=----%ncommit %H%nauthor %an%n date %ad%n subject %s%n body %b`,
-);
+const rawLog = git([
+  "log",
+  `${sinceRef}..HEAD`,
+  "--reverse",
+  `--format=${LOG_FORMAT}`,
+]);
 
 if (!rawLog) {
   console.error(`No commits between ${sinceRef} and HEAD; nothing to release`);
@@ -179,7 +185,7 @@ if (!changelog) {
 
 changelog = changelog.replace(/^```(?:markdown)?\s*/i, "").replace(/\s*```$/i, "");
 
-const shortSha = git("git rev-parse --short HEAD");
+const shortSha = git(["rev-parse", "--short", "HEAD"]);
 const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
 const filename = `prepare-release-${date}-${shortSha}.md`;
 const changesetPath = join(root, ".changeset", filename);
