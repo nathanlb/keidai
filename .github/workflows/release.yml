@@ -1,3 +1,5 @@
+# After a Release PR merges (versions already bumped, no pending changesets),
+# tag v{semver}. That tag push triggers publish-images.yml.
 name: Release
 
 on:
