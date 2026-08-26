@@ -84,9 +84,6 @@ Secret for GHCR in the install namespace). Local kind/OrbStack builds tag
 `0.0.0-local` (override with `KEIDAI_IMAGE_TAG`). k3s uses `Chart.AppVersion`
 unless `KEIDAI_IMAGE_TAG` is set. There is no `:latest`.
 
-After the initial bootstrap release, push `v0.1.0` once if the release workflow
-did not run `publish` (no pending changesets on merge).
-
 Air-gapped fallback (not the default path): `docker save` / `k3s ctr images import`.
 
 ## Values axes

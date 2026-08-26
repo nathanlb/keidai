@@ -18,7 +18,7 @@ on:
       model:
         description: OpenRouter model id
         required: false
-        default: google/gemini-2.5-flash
+        default: ~deepseek/deepseek-v4-flash-latest
         type: string
 
 concurrency:

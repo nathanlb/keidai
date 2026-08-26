@@ -11,7 +11,7 @@ import { parseArgs } from "node:util";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const DEFAULT_MODEL = "google/gemma-4-26b-a4b-it:free";
+const DEFAULT_MODEL = "~deepseek/deepseek-v4-flash-latest";
 const LOG_CHAR_CAP = 50_000;
 
 const NOISE_SUBJECT =
