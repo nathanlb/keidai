@@ -15,7 +15,7 @@ const DEFAULT_MODEL = "~deepseek/deepseek-v4-flash-latest";
 const LOG_CHAR_CAP = 50_000;
 
 const NOISE_SUBJECT =
-  /^(chore: prepare release|chore\(release\)|version packages|chore: version packages)/i;
+  /^(chore: prepare release|chore: release |chore\(release\)|version packages|chore: version packages)/i;
 
 const { values, positionals } = parseArgs({
   options: {

@@ -57,12 +57,8 @@ Keidai uses a single platform semver across all workspace packages and the Helm
 chart. Releases are maintainer-driven from GitHub Actions:
 
 1. Actions → **Prepare release** → choose bump type (and optional notes for the
-   changelog). This gathers commit messages since the last `v*` tag, generates a
-   changeset via OpenRouter, and pushes it to `main`.
-2. The release workflow opens a **Version Packages** PR. Review the generated
-   changelog there.
-3. Merge the Version Packages PR. That bumps versions, updates changelogs,
-   creates git tag `v{semver}`, and publishes GHCR images.
+   changelog). This opens one **Release** PR with the version bump and changelog.
+2. Review and merge that PR. Merging tags `v{semver}` and publishes GHCR images.
 
 Verify alignment anytime with `pnpm check-versions`. See
 [deploy/k8s/README.md](deploy/k8s/README.md) for image distribution.

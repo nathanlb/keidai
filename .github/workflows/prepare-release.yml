@@ -27,6 +27,7 @@ concurrency:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   prepare:
@@ -35,6 +36,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+
+      - uses: ./.github/actions/setup
 
       - name: Generate changeset
         run: |
@@ -46,10 +49,25 @@ jobs:
         env:
           OPEN_ROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
 
-      - name: Commit and push changeset
+      - name: Apply version bump
+        run: pnpm run version-packages
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Open release pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .changeset/
-          git commit -m "chore: prepare release (${{ inputs.bump }})"
-          git push origin HEAD:main
+          VERSION="$(node -p "require('./apps/fuda/package.json').version")"
+          BRANCH="chore/release-v${VERSION}-${{ github.run_id }}"
+          git checkout -b "${BRANCH}"
+          git add -- apps packages deploy/k8s/chart/Chart.yaml .changeset
+          git commit -m "chore: release ${VERSION}"
+          git push origin "HEAD:${BRANCH}"
+          gh pr create \
+            --base main \
+            --head "${BRANCH}" \
+            --title "Release ${VERSION}" \
+            --body "Platform release ${VERSION} (${{ inputs.bump }}). Review the changelog, then merge to tag \`v${VERSION}\` and publish GHCR images."
