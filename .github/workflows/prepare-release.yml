@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       bump:
-        description: Semver bump for the next release
+        description: Semver bump. patch includes chore commits (dependency upgrades); minor/major skip those.
         type: choice
         options:
           - patch

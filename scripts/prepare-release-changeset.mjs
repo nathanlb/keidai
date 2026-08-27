@@ -14,8 +14,10 @@ const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const DEFAULT_MODEL = "~deepseek/deepseek-v4-flash-latest";
 const LOG_CHAR_CAP = 50_000;
 
-const NOISE_SUBJECT =
-  /^(chore: prepare release|chore: release |chore\(release\)|version packages|chore: version packages)/i;
+// Conventional chore subjects (deps, release PRs, tooling). minor/major drop
+// these so a release needs feat/fix/etc.; --bump patch keeps them so a
+// vulnerability bump can ship without a conventional "fix:" subject.
+const NOISE_SUBJECT = /^(chore(\([^)]*\))?:|version packages)/i;
 
 const { values, positionals } = parseArgs({
   options: {
@@ -94,14 +96,16 @@ for (const block of rawLog.split(/^----$/m)) {
   const body = trimmed.match(/^ body ([\s\S]*)$/m)?.[1]?.trim() ?? "";
 
   if (!hash || !subject) continue;
-  if (NOISE_SUBJECT.test(subject)) continue;
+  if (bump !== "patch" && NOISE_SUBJECT.test(subject)) continue;
 
   commits.push({ hash, author, date, subject, body });
 }
 
 if (commits.length === 0) {
   console.error(
-    `No releasable commits between ${sinceRef} and HEAD after filtering noise`,
+    bump === "patch"
+      ? `No commits between ${sinceRef} and HEAD; nothing to release`
+      : `No releasable commits between ${sinceRef} and HEAD after filtering noise (use --bump patch to include chore commits)`,
   );
   process.exit(1);
 }
