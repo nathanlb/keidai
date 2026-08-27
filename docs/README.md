@@ -20,4 +20,5 @@ Service-specific setup and API details live with their source:
 - [Fuda](../apps/fuda/README.md)
 - [Shaiden](../apps/shaiden/README.md)
 - [keidai-ui](../apps/keidai-ui/README.md)
-- [Kubernetes deployment](../deploy/k8s/README.md)
+- [Kubernetes deployment](../deploy/k8s/README.md) — Helm chart, kind/OrbStack
+- [Install on k3s](../deploy/k8s/install-k3s.md) — host install from GHCR (no git clone)

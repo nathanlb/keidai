@@ -73,4 +73,4 @@ jobs:
             --base main \
             --head "${BRANCH}" \
             --title "Release ${VERSION}" \
-            --body "Platform release ${VERSION} (${{ inputs.bump }}). Review the changelog, then merge to tag \`v${VERSION}\` and publish GHCR images."
+            --body "Platform release ${VERSION} (${{ inputs.bump }}). Review the changelog, then merge to tag \`v${VERSION}\` and publish GHCR images plus the Helm chart."

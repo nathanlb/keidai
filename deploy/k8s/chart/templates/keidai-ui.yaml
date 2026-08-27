@@ -75,6 +75,9 @@ spec:
       port: {{ .Values.keidaiUi.service.port }}
       targetPort: http
 {{- if .Values.ingress.enabled }}
+{{- if not .Values.ingress.hosts }}
+{{- fail "ingress.enabled requires ingress.hosts (at least one host). There is no default hostname." }}
+{{- end }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress

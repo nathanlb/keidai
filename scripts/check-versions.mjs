@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Assert all workspace package versions and Chart.yaml appVersion match.
+ * Assert all workspace package versions and Chart.yaml version + appVersion match.
+ * Chart.version is the GHCR OCI tag; appVersion is the default image tag.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -36,11 +37,15 @@ if (mismatches.length > 0) {
 
 const chartPath = join(root, "deploy/k8s/chart/Chart.yaml");
 const chart = readFileSync(chartPath, "utf8");
-const appVersionMatch = chart.match(/^appVersion: "(.+)"$/m);
+const strip = (value) => value.trim().replaceAll('"', "");
+const chartVersionMatch = chart.match(/^version:\s*(.+)$/m);
+const appVersionMatch = chart.match(/^appVersion:\s*(.+)$/m);
+const chartVersion = chartVersionMatch ? strip(chartVersionMatch[1]) : undefined;
+const appVersion = appVersionMatch ? strip(appVersionMatch[1]) : undefined;
 
-if (!appVersionMatch || appVersionMatch[1] !== expected) {
+if (chartVersion !== expected || appVersion !== expected) {
   console.error(
-    `Chart.yaml appVersion (${appVersionMatch?.[1] ?? "missing"}) does not match package version (${expected})`,
+    `Chart.yaml version (${chartVersion ?? "missing"}) / appVersion (${appVersion ?? "missing"}) does not match package version (${expected})`,
   );
   process.exit(1);
 }

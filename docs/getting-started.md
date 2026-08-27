@@ -1,7 +1,9 @@
 # Getting started
 
-Choose the path that matches the work you are doing. All paths require Node.js
-24, pnpm, Docker, and a clone of this repository.
+Choose the path that matches the work you are doing. Compose and local
+Kubernetes development need Node.js 24, pnpm, Docker, and a clone of this
+repository. A k3s host install does not — see
+[Install on k3s](../deploy/k8s/install-k3s.md).
 
 ## Run the full stack with Docker Compose
 
@@ -65,5 +67,6 @@ and publishes only the BFF. Copy `deploy/k8s/secrets.example.env` to
 pnpm k8s:up
 ```
 
-The complete runbook, Helm values, image tags, and teardown instructions are in
-[deploy/k8s/README.md](../deploy/k8s/README.md).
+On a host that should not clone this repo, follow
+[Install on k3s](../deploy/k8s/install-k3s.md) (published Helm chart + images).
+kind/OrbStack from this tree: [deploy/k8s/README.md](../deploy/k8s/README.md).

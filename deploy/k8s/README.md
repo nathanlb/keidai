@@ -22,6 +22,7 @@ Browser → keidai-ui:3000 (SPA, /auth/*, /api/*, /oauth/callback/*)
 | [`chart/values-secrets.example.yaml`](chart/values-secrets.example.yaml) | Shape of the uncommitted secrets values file |
 | [`kind/kind-config.yaml`](kind/kind-config.yaml) | kind cluster (port map + SA issuer) |
 | [`up.sh`](up.sh) / [`down.sh`](down.sh) | Local bring-up / teardown (`helm upgrade --install`) |
+| [`install-k3s.md`](install-k3s.md) | Host install: OCI chart, no git clone, nginx Ingress |
 
 ## Prerequisites
 
@@ -29,7 +30,9 @@ Browser → keidai-ui:3000 (SPA, /auth/*, /api/*, /oauth/callback/*)
 - `kubectl`, `helm`, `openssl`
 - **kind** profile: [kind](https://kind.sigs.k8s.io/)
 - **orbstack** profile: [OrbStack](https://orbstack.dev/) with Kubernetes enabled
-- **k3s** profile: a reachable cluster, `KEIDAI_PUBLIC_URL`, images in a registry (see [Image distribution](#image-distribution)), and the GHCR pull Secret named in `imagePullSecrets`
+- **k3s:** follow **[Install on k3s](install-k3s.md)** (OCI chart, no git clone).
+  `up.sh k3s` from a checkout is a fallback and still requires `KEIDAI_PUBLIC_URL`
+  plus the GHCR pull Secret named in `imagePullSecrets`.
 - Google OAuth client for **operator login** — register redirect URI
   `{publicUrl}/auth/callback` (for local profiles:
   `http://localhost:3000/auth/callback`). **This is the one install step the
@@ -59,30 +62,38 @@ KEIDAI_DELETE_CLUSTER=1 pnpm k8s:down   # also delete the kind cluster
 KEIDAI_DELETE_PVC=1 pnpm k8s:down       # also wipe postgres-data (kept by default)
 ```
 
-## Image distribution
+## Image and chart distribution
 
 Platform semver is unified across all workspace packages (`apps/*/package.json`,
-`packages/*/package.json`) and [`Chart.yaml`](chart/Chart.yaml) `appVersion`.
-Releases are maintainer-driven from GitHub Actions (**Prepare release**): commit
-messages since the last `v*` tag are summarized via OpenRouter into one **Release**
-PR (version bump + changelog). Merge that PR to create git tag `v{semver}` and
-publish images.
+`packages/*/package.json`) and [`Chart.yaml`](chart/Chart.yaml) `version` +
+`appVersion`. Releases are maintainer-driven from GitHub Actions (**Prepare
+release**): commit messages since the last `v*` tag are summarized via OpenRouter
+into one **Release** PR (version bump + changelog). Merge that PR to create git
+tag `v{semver}` and publish images **and** the Helm chart.
 
-Images are published to GHCR on version tags (`v*`) by
+Artifacts are published to GHCR on version tags (`v*`) by
 [`.github/workflows/publish-images.yml`](../../.github/workflows/publish-images.yml).
-Image tags match each app's `package.json` version (validated against the git tag):
+Chart `version`, `appVersion`, and every image tag are the same `{semver}`
+(validated against the git tag). Production `image.tag` defaults to
+`Chart.AppVersion`, so installing chart `0.2.0` pulls `keidai-*:0.2.0`. There is
+no `:latest`.
 
-| Image | Notes |
-|-------|--------|
-| `ghcr.io/<owner>/keidai-fuda:<semver>` | |
+| Artifact | Notes |
+|----------|--------|
+| `oci://ghcr.io/<owner>/keidai:<semver>` | Helm chart (OCI). Hosts install this; they do not need the git repo. |
+| `ghcr.io/<owner>/keidai-fuda:<semver>` | Also tagged with the git SHA |
 | `ghcr.io/<owner>/keidai-torii:<semver>` | |
 | `ghcr.io/<owner>/keidai-shaiden:<semver>` | |
 | `ghcr.io/<owner>/keidai-ui:<semver>` | Renamed from the old Compose artifact `keidai-keidai-ui` |
 
-Production values set `image.registry` and `imagePullSecrets` (create a pull
-Secret for GHCR in the install namespace). Local kind/OrbStack builds tag
-`0.0.0-local` (override with `KEIDAI_IMAGE_TAG`). k3s uses `Chart.AppVersion`
-unless `KEIDAI_IMAGE_TAG` is set. There is no `:latest`.
+Remote k3s install (no git clone): **[install-k3s.md](install-k3s.md)**.
+
+Create the GHCR pull Secret named in `imagePullSecrets` (`ghcr-pull`) before
+install. If the chart package is private, `helm registry login ghcr.io` first.
+
+Local kind/OrbStack still uses this tree: `up.sh` builds `0.0.0-local`
+(override with `KEIDAI_IMAGE_TAG`). k3s via `up.sh` uses `Chart.AppVersion`
+unless `KEIDAI_IMAGE_TAG` is set.
 
 Air-gapped fallback (not the default path): `docker save` / `k3s ctr images import`.
 
@@ -92,7 +103,7 @@ Air-gapped fallback (not the default path): `docker save` / `k3s ctr images impo
 |------|------|
 | Image sourcing | `image.registry`, `image.tag`, `image.pullPolicy`, `imagePullSecrets` |
 | Service exposure | `keidaiUi.service.type`, `keidaiUi.hostPort`, `ingress.*` |
-| Public URL | `publicUrl` → `TORII_GATEWAY_BASE_URL`, `KEIDAI_GOOGLE_REDIRECT_URI`, `KEIDAI_COOKIE_SECURE` (`true` iff `https://`) |
+| Public URL | `publicUrl` (required, no default) → `TORII_GATEWAY_BASE_URL`, `KEIDAI_GOOGLE_REDIRECT_URI`, `KEIDAI_COOKIE_SECURE` (`true` iff `https://`) |
 
 ## Secrets
 
@@ -217,6 +228,6 @@ Operators ConfigMap `keidai-operators` is mounted into Fuda, Torii, and the BFF.
   `BFF_SERVICE_TOKEN_DISABLED=true`.
 - OrbStack: if your kubectl context name does not contain `orbstack`, set
   `KEIDAI_ALLOW_ANY_CONTEXT=1`.
-- k3s: `up.sh` requires `KEIDAI_PUBLIC_URL`. Set `KEIDAI_IMAGE_REGISTRY` /
-  `KEIDAI_IMAGE_TAG` as needed; create the GHCR pull Secret named in
+- k3s: follow [install-k3s.md](install-k3s.md). `up.sh k3s` from a checkout still
+  works and requires `KEIDAI_PUBLIC_URL`. Create the GHCR pull Secret named in
   `imagePullSecrets` before install.
