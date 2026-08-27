@@ -58,16 +58,18 @@ chart. Releases are maintainer-driven from GitHub Actions:
 
 1. Actions → **Prepare release** → choose bump type (and optional notes for the
    changelog). This opens one **Release** PR with the version bump and changelog.
-2. Review and merge that PR. Merging tags `v{semver}` and publishes GHCR images.
+2. Review and merge that PR. Merging tags `v{semver}` and publishes GHCR images
+   plus the Helm chart (`oci://ghcr.io/<owner>/keidai`).
 
 Verify alignment anytime with `pnpm check-versions`. See
-[deploy/k8s/README.md](deploy/k8s/README.md) for image distribution.
+[deploy/k8s/README.md](deploy/k8s/README.md) for image and chart distribution.
 
 ## Docs
 
 - [Documentation index](docs/README.md)
 - [Architecture](docs/architecture.md)
 - [Operations](docs/operations.md)
+- [Install on k3s](deploy/k8s/install-k3s.md)
 - [Deployment reference](docs/reference.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)

@@ -8,11 +8,11 @@
 nameOverride: ""
 fullnameOverride: ""
 
-# Public operator edge (BFF). Derives TORII_GATEWAY_BASE_URL,
-# KEIDAI_GOOGLE_REDIRECT_URI, and KEIDAI_COOKIE_SECURE.
+# Public operator edge (BFF). Required — no default. Derives
+# TORII_GATEWAY_BASE_URL, KEIDAI_GOOGLE_REDIRECT_URI, and KEIDAI_COOKIE_SECURE.
 # Register {publicUrl}/auth/callback as the Google OAuth redirect URI —
 # that registration is the one install step this chart cannot do for you.
-publicUrl: https://keidai.example.com
+publicUrl: ""
 
 image:
   # e.g. ghcr.io/nathanlb — empty means short names (kind load / local).
@@ -65,11 +65,13 @@ ingress:
   enabled: false
   className: ""
   annotations: {}
-  hosts:
-    - host: keidai.example.com
-      paths:
-        - path: /
-          pathType: Prefix
+  # Required when enabled. Example:
+  # hosts:
+  #   - host: keidai.example.com
+  #     paths:
+  #       - path: /
+  #         pathType: Prefix
+  hosts: []
   tls: []
 
 # Operators registry YAML (Google ↔ owner_id). Required on first install unless

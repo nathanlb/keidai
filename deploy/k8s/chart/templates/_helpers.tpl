@@ -29,7 +29,11 @@ app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 
 {{- define "keidai.publicUrl" -}}
-{{- .Values.publicUrl | trimSuffix "/" -}}
+{{- $url := .Values.publicUrl | default "" | trimSuffix "/" -}}
+{{- if eq $url "" -}}
+{{- fail "publicUrl is required (browser origin for the BFF, e.g. https://keidai.example.com). Pass --set publicUrl=... — a placeholder would break Google OAuth, cookies, and Torii callbacks." -}}
+{{- end -}}
+{{- $url -}}
 {{- end }}
 
 {{- define "keidai.cookieSecure" -}}

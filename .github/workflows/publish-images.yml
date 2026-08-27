@@ -1,4 +1,4 @@
-name: Publish images
+name: Publish images and chart
 
 on:
   push:
@@ -73,17 +73,17 @@ jobs:
           echo "Publishing ${{ matrix.image }}:${TAG}"
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ${{ matrix.dockerfile }}
@@ -93,3 +93,66 @@ jobs:
             ghcr.io/${{ steps.version.outputs.owner }}/${{ matrix.image }}:${{ steps.version.outputs.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Recipe for a host that should not clone the monorepo. Chart.yaml version and
+  # appVersion are the same platform semver as the image tags; Helm defaults
+  # image.tag to AppVersion. Publish after images so `helm install` cannot race
+  # an incomplete release.
+  chart:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve git tag
+        id: ref
+        env:
+          DISPATCH_TAG: ${{ inputs.tag }}
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            RAW="${DISPATCH_TAG}"
+          else
+            RAW="${GITHUB_REF_NAME}"
+          fi
+          case "${RAW}" in
+            v*) REF="${RAW}" ;;
+            *) REF="v${RAW}" ;;
+          esac
+          echo "ref=${REF}" >> "$GITHUB_OUTPUT"
+          echo "version=${REF#v}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.ref.outputs.ref }}
+
+      - name: Assert chart semver matches images
+        env:
+          EXPECTED: ${{ steps.ref.outputs.version }}
+        run: |
+          CHART_VERSION="$(sed -n 's/^version:[[:space:]]*//p' deploy/k8s/chart/Chart.yaml | tr -d '"')"
+          APP_VERSION="$(sed -n 's/^appVersion:[[:space:]]*//p' deploy/k8s/chart/Chart.yaml | tr -d '"')"
+          PKG="$(node -p "require('./apps/fuda/package.json').version")"
+          if [ "$CHART_VERSION" != "$EXPECTED" ] || [ "$APP_VERSION" != "$EXPECTED" ] || [ "$PKG" != "$EXPECTED" ]; then
+            echo "Chart/image semver mismatch: chart.version=$CHART_VERSION appVersion=$APP_VERSION package.json=$PKG git=$EXPECTED" >&2
+            exit 1
+          fi
+          OWNER="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
+          echo "Publishing oci://ghcr.io/${OWNER}/keidai:${EXPECTED}"
+
+      - uses: azure/setup-helm@v5
+
+      - name: Package chart
+        run: |
+          helm lint deploy/k8s/chart \
+            -f deploy/k8s/chart/values.yaml \
+            -f deploy/k8s/chart/values-secrets.example.yaml \
+            --set publicUrl=https://keidai.example.com
+          helm package deploy/k8s/chart --destination "${RUNNER_TEMP}"
+
+      - name: Push chart to GHCR
+        env:
+          EXPECTED: ${{ steps.ref.outputs.version }}
+          HELM_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          OWNER="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
+          echo "${HELM_REGISTRY_PASSWORD}" | helm registry login ghcr.io \
+            --username "${{ github.actor }}" --password-stdin
+          helm push "${RUNNER_TEMP}/keidai-${EXPECTED}.tgz" "oci://ghcr.io/${OWNER}"

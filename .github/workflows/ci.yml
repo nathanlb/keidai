@@ -79,4 +79,14 @@ jobs:
           helm template keidai deploy/k8s/chart -n keidai \
             -f deploy/k8s/chart/values.yaml \
             -f deploy/k8s/chart/values-secrets.example.yaml \
+            --set publicUrl=https://keidai.example.com \
             >/dev/null
+          if helm template keidai deploy/k8s/chart -n keidai \
+            -f deploy/k8s/chart/values.yaml \
+            -f deploy/k8s/chart/values-secrets.example.yaml \
+            >/dev/null 2>/tmp/keidai-helm-empty-publicurl.err; then
+            echo "helm template with empty publicUrl should fail" >&2
+            exit 1
+          fi
+          grep -q publicUrl /tmp/keidai-helm-empty-publicurl.err
+          helm package deploy/k8s/chart --destination "${RUNNER_TEMP}"
