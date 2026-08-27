@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - "v*"
+  # Re-publish an existing tag (e.g. after a GITHUB_TOKEN tag push that
+  # GitHub suppressed). Run against the tag ref, not a branch.
+  workflow_dispatch:
 
 permissions:
   contents: read

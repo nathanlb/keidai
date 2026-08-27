@@ -50,6 +50,15 @@ function stubFuda(definition: AgentDefinition): FudaClient & {
   return client;
 }
 
+/** Attach before any await — drive rejects as soon as token exchange runs. */
+function expectTokenExchangeRejected(done: Promise<unknown>): Promise<void> {
+  return assert.rejects(done, (error: unknown) => {
+    assert.ok(error instanceof Error);
+    assert.match(error.message, /token exchange/i);
+    return true;
+  });
+}
+
 describe("launchHarnessRun persona fetch", () => {
   it("stamps persona version onto the run before driving", async () => {
     const persistence = await createTestPersistence();
@@ -70,6 +79,7 @@ describe("launchHarnessRun persona fetch", () => {
       runStore: persistence.runStore,
       options: { fudaClient: fuda },
     });
+    const driveFailed = expectTokenExchangeRejected(launched.done);
 
     const saved = await persistence.runStore.getRun(launched.runId);
     assert.equal(fuda.definitionCalls, 1);
@@ -83,14 +93,7 @@ describe("launchHarnessRun persona fetch", () => {
       true,
     );
 
-    await assert.rejects(
-      () => launched.done,
-      (error: unknown) => {
-        assert.ok(error instanceof Error);
-        assert.match(error.message, /token exchange/i);
-        return true;
-      },
-    );
+    await driveFailed;
     await persistence.close();
   });
 
@@ -115,6 +118,7 @@ describe("launchHarnessRun persona fetch", () => {
       runStore: persistence.runStore,
       options: { fudaClient: fuda },
     });
+    const driveFailed = expectTokenExchangeRejected(launched.done);
 
     assert.deepEqual(fuda.requestedAgentIds, ["other-agent-02"]);
     assert.equal(
@@ -122,7 +126,7 @@ describe("launchHarnessRun persona fetch", () => {
       "You are another agent.",
     );
 
-    await assert.rejects(() => launched.done);
+    await driveFailed;
     await persistence.close();
   });
 
@@ -212,7 +216,7 @@ describe("launchHarnessRun persona fetch", () => {
       runStore: persistence.runStore,
       options: { fudaClient: fuda },
     });
-    await assert.rejects(() => launched.done);
+    await assert.rejects(launched.done);
     assert.equal((await persistence.runStore.getRun(launched.runId))?.personaVersion, 4);
 
     fuda.currentDefinition = {
@@ -239,7 +243,7 @@ describe("launchHarnessRun persona fetch", () => {
       runStore: persistence.runStore,
       options: { fudaClient: fuda },
     });
-    const resumeDone = assert.rejects(() => resumed.done);
+    const resumeDone = assert.rejects(resumed.done);
 
     // Resume must not re-fetch; stamp on the run is still v4.
     assert.equal(fuda.definitionCalls, 1);
