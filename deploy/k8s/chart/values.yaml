@@ -20,8 +20,9 @@ image:
   tag: "" # defaults to Chart.AppVersion
   pullPolicy: IfNotPresent
 
-imagePullSecrets:
-  - name: ghcr-pull
+# GHCR chart and images are public. Set e.g. [{ name: ghcr-pull }] only if you
+# pull from a private registry or mirror.
+imagePullSecrets: []
 
 postgres:
   host: postgres
