@@ -29,8 +29,11 @@ On the node:
 - [Helm](https://helm.sh/docs/intro/install/) 3.8+ (OCI charts)
 - `openssl`
 - A DNS name (or `/etc/hosts` on clients) pointing at this node
-- A GitHub PAT with `read:packages` if GHCR packages are private
 - Google OAuth client (operator login) and an OpenRouter API key (Shaiden)
+
+The Helm chart (`oci://ghcr.io/nathanlb/keidai`) and app images
+(`ghcr.io/nathanlb/keidai-*`) are **public**. You do not need a GitHub PAT,
+`helm registry login`, or an `imagePullSecrets` entry.
 
 Do not use `up.sh` here. That script exists for kind/OrbStack from a git
 checkout.
@@ -64,33 +67,13 @@ Install Helm if needed:
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 ```
 
-## 2. GHCR pull Secret
-
-Production values expect a Secret named `ghcr-pull` in namespace `keidai`.
-
-```bash
-kubectl create namespace keidai
-
-kubectl -n keidai create secret docker-registry ghcr-pull \
-  --docker-server=ghcr.io \
-  --docker-username=YOUR_GITHUB_USERNAME \
-  --docker-password=YOUR_GHCR_PAT
-```
-
-If the Helm chart package is also private:
-
-```bash
-echo "$GHCR_PAT" | helm registry login ghcr.io \
-  -u YOUR_GITHUB_USERNAME --password-stdin
-```
-
-Confirm the chart exists:
+Confirm the published chart is reachable (anonymous):
 
 ```bash
 helm show chart "${CHART}" --version "${VERSION}"
 ```
 
-## 3. Secrets, operators, signing key
+## 2. Secrets, operators, signing key
 
 Create a directory you will keep (not world-readable):
 
@@ -143,7 +126,7 @@ helm show values "${CHART}" --version "${VERSION}"
 
 Do not set `bffServiceTokenDisabled` on a real host.
 
-## 4. Host values (`publicUrl` + Ingress)
+## 3. Host values (`publicUrl` + Ingress)
 
 `values.yaml` in `~/keidai`:
 
@@ -172,7 +155,7 @@ If you enable TLS later, put `tls` here and keep `publicUrl` on `https://`. Unti
 certificates work, either use `http://` in `publicUrl` or login will drop the
 session cookie.
 
-## 5. nginx Ingress
+## 4. nginx Ingress
 
 k3s ships Traefik on :80/:443. Run **one** controller. This guide uses
 ingress-nginx in front of Service `keidai-ui` only.
@@ -213,7 +196,7 @@ kubectl -n ingress-nginx get svc ingress-nginx-controller
 `EXTERNAL-IP` should be this node. Point DNS `HOST` at that address. If 80/443
 are already taken, free them before this Service can bind.
 
-## 6. Install the chart
+## 5. Install the chart
 
 Do **not** pass `helm --wait`. Helm would wait for Deployments before the
 post-install migrate Job; app pods wait for that Job — deadlock. Hook Jobs still
@@ -246,7 +229,7 @@ Expect postgres, fuda, shaiden, keidai-ui at 1 replica, torii at 2, Ingress
 
 Open `{publicUrl}/auth/login`.
 
-## 7. TLS (optional)
+## 6. TLS (optional)
 
 If `publicUrl` is `https://`, terminate TLS on this Ingress.
 
@@ -316,7 +299,8 @@ helm uninstall ingress-nginx -n ingress-nginx
 ## Notes that bite on a home k3s box
 
 - Do not NodePort or Ingress Fuda, Torii, or Shaiden.
-- `ImagePullBackOff` → `ghcr-pull` missing, wrong PAT, or package visibility.
+- `ImagePullBackOff` → wrong `{semver}` / tag, or the node cannot reach GHCR.
+  Do not add `ghcr-pull`; packages are public.
 - Install error mentioning `publicUrl` → it was omitted; the chart refuses a
   placeholder origin.
 - Ingress error mentioning `ingress.hosts` → `ingress.enabled` is true but no

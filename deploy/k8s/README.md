@@ -31,8 +31,7 @@ Browser → keidai-ui:3000 (SPA, /auth/*, /api/*, /oauth/callback/*)
 - **kind** profile: [kind](https://kind.sigs.k8s.io/)
 - **orbstack** profile: [OrbStack](https://orbstack.dev/) with Kubernetes enabled
 - **k3s:** follow **[Install on k3s](install-k3s.md)** (OCI chart, no git clone).
-  `up.sh k3s` from a checkout is a fallback and still requires `KEIDAI_PUBLIC_URL`
-  plus the GHCR pull Secret named in `imagePullSecrets`.
+  `up.sh k3s` from a checkout is a fallback and still requires `KEIDAI_PUBLIC_URL`.
 - Google OAuth client for **operator login** — register redirect URI
   `{publicUrl}/auth/callback` (for local profiles:
   `http://localhost:3000/auth/callback`). **This is the one install step the
@@ -88,8 +87,8 @@ no `:latest`.
 
 Remote k3s install (no git clone): **[install-k3s.md](install-k3s.md)**.
 
-Create the GHCR pull Secret named in `imagePullSecrets` (`ghcr-pull`) before
-install. If the chart package is private, `helm registry login ghcr.io` first.
+Chart and images on GHCR are public: no pull Secret and no `helm registry login`.
+Set `imagePullSecrets` only if you override `image.registry` to a private mirror.
 
 Local kind/OrbStack still uses this tree: `up.sh` builds `0.0.0-local`
 (override with `KEIDAI_IMAGE_TAG`). k3s via `up.sh` uses `Chart.AppVersion`
@@ -229,5 +228,4 @@ Operators ConfigMap `keidai-operators` is mounted into Fuda, Torii, and the BFF.
 - OrbStack: if your kubectl context name does not contain `orbstack`, set
   `KEIDAI_ALLOW_ANY_CONTEXT=1`.
 - k3s: follow [install-k3s.md](install-k3s.md). `up.sh k3s` from a checkout still
-  works and requires `KEIDAI_PUBLIC_URL`. Create the GHCR pull Secret named in
-  `imagePullSecrets` before install.
+  works and requires `KEIDAI_PUBLIC_URL`. GHCR packages are public.
