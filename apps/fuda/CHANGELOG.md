@@ -1,5 +1,18 @@
 # @keidai/fuda
 
+## 0.3.0
+
+### Minor Changes
+
+- - Connector configuration is now persisted in the database, replacing file-based storage for connector settings.
+  - Updated k3s installation guide: Helm chart and container images are publicly accessible, so GitHub PAT and pull secret are no longer required.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @keidai/shared@0.3.0
+  - @keidai/postgres@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes
