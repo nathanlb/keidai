@@ -39,7 +39,6 @@ test.describe("App shell navigation", () => {
     await expect(sidebarNavSection(page, "configure")).toBeVisible();
     await expect(sidebarNavSection(page, "operate")).toHaveCount(0);
     await expect(sidebarNavSection(page, "observe")).toHaveCount(0);
-    await expect(sidebarNavLink(page, "/configure/providers")).toBeVisible();
     await expect(sidebarNavLink(page, "/configure/groups")).toBeVisible();
     await expect(page.getByTestId("backend-health-footer")).toBeVisible();
     await expect(page.getByTestId("sidebar-configure-door")).toHaveCount(0);
@@ -51,14 +50,14 @@ test.describe("App shell navigation", () => {
   });
 
   test("keeps Configure mode on a hard refresh", async ({ page }) => {
-    await page.goto("/configure/providers");
+    await page.goto("/configure/groups");
     await expect(sidebarNavSection(page, "configure")).toBeVisible();
 
     await page.reload();
 
-    await expect(page).toHaveURL(/\/configure\/providers$/);
+    await expect(page).toHaveURL(/\/configure\/groups$/);
     await expect(sidebarNavSection(page, "configure")).toBeVisible();
-    await expect(sidebarNavLink(page, "/configure/providers")).toBeVisible();
+    await expect(sidebarNavLink(page, "/configure/groups")).toBeVisible();
   });
 
   test("navigates between workspace pages", async ({ page }) => {

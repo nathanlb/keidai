@@ -62,10 +62,12 @@ function ActivityIdleEmptyState() {
         </>
       }
       footer={
-        <span className="
+        <span
+          className="
           mt-4 rounded-md border border-border px-2.5 py-1.5 font-mono text-xs
           text-muted-foreground
-        ">
+        "
+        >
           waiting on tools/call …
         </span>
       }
@@ -85,7 +87,12 @@ function ActivityNoMatchEmptyState({
       description="Try a different outcome, server, or search term."
       contentClassName="py-12"
       action={
-        <Button type="button" variant="outline" size="sm" onClick={onClearFilters}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onClearFilters}
+        >
           Clear filters
         </Button>
       }
@@ -124,14 +131,16 @@ export function ActivityTracesView() {
 
   const infoCard = useMemo(
     () => (
-      <div className="
+      <div
+        className="
         flex items-center justify-between gap-3 rounded-lg border border-border
         px-4 py-3 text-sm text-muted-foreground
-      ">
+      "
+      >
         <p className="leading-snug">
           Live tail of <span className="font-mono">CallTrace</span> events the
-          gateway emits per <span className="font-mono">tools/call</span>. v0
-          keeps the recent <span className="font-mono">~200</span> in a buffer.
+          gateway emits per <span className="font-mono">tools/call</span>. Keeps
+          the recent <span className="font-mono">~200</span> in a buffer.
         </p>
         <TailToggle isLive={isLive} onToggle={onToggleLive} />
       </div>
@@ -176,9 +185,11 @@ export function ActivityTracesView() {
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="h-auto w-0 p-0" />
-                    <TableHead className="
+                    <TableHead
+                      className="
                       h-auto py-2.5 pl-3.5 text-xs font-medium
-                    ">
+                    "
+                    >
                       Time
                     </TableHead>
                     <TableHead className="h-auto py-2.5 text-xs font-medium">
@@ -193,9 +204,11 @@ export function ActivityTracesView() {
                     <TableHead className="h-auto py-2.5 text-xs font-medium">
                       Policy
                     </TableHead>
-                    <TableHead className="
+                    <TableHead
+                      className="
                       h-auto py-2.5 pr-4.5 text-right text-xs font-medium
-                    ">
+                    "
+                    >
                       Duration
                     </TableHead>
                   </TableRow>

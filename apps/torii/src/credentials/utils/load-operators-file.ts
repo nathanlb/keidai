@@ -5,7 +5,14 @@ import {
   parseOperatorsDocument,
   type OperatorsFile,
 } from "@keidai/shared";
-import { ConfigValidationError } from "../../config/utils/loader.js";
+
+/** Raised when the operators registry file is unreadable or malformed. */
+export class ConfigValidationError extends Error {
+  constructor(public readonly errors: string[]) {
+    super(errors.join("\n"));
+    this.name = "ConfigValidationError";
+  }
+}
 
 export async function loadOperatorsFile(filePath: string): Promise<OperatorsFile> {
   let raw: string;

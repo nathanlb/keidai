@@ -47,9 +47,6 @@ fuda:
 
 torii:
   replicas: 2
-  # Chart file (files/torii.yaml) or inline YAML via `config`.
-  configFile: files/torii.yaml
-  config: ""
 
 shaiden:
   replicas: 1
@@ -84,14 +81,10 @@ operators: ""
 secrets:
   postgresPassword: ""
   openRouterApiKey: ""
-  linearApiKey: ""
-  githubClientId: ""
-  githubClientSecret: ""
-  googleClientId: ""
-  googleClientSecret: ""
   keidaiGoogleClientId: ""
   keidaiGoogleClientSecret: ""
   keidaiSessionSecret: ""
+  toriiSecretKey: ""
   bffServiceToken: ""
   bffServiceTokenDisabled: ""
   # PEM contents (use --set-file secrets.fudaSigningKey=/path/to/dev.pem)

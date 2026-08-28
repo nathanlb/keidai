@@ -7,14 +7,13 @@ import type {
 export interface GroupPolicyRepository {
   list(): Promise<GroupPolicy[]>;
   get(id: string): Promise<GroupPolicy | null>;
-  isEmpty(): Promise<boolean>;
-  insertAll(groups: readonly GroupPolicy[]): Promise<void>;
   create(input: CreateGroupPolicyInput): Promise<GroupPolicy>;
   update(
     id: string,
     input: UpdateGroupPolicyInput,
   ): Promise<GroupPolicy | null>;
   delete(id: string): Promise<boolean>;
+  referencesServer(server: string): Promise<boolean>;
 }
 
 /** tsyringe injection token for {@link GroupPolicyRepository}. */

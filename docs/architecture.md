@@ -38,10 +38,6 @@ MCP servers. It resolves backend credentials without exposing them to the
 agent, evaluates persisted group policy, owns approval gates and their ledger,
 and records call traces.
 
-Torii requires Postgres for policy, OAuth state, approval records, and traces.
-Its boot-time `torii.yaml` config describes backend connections; it is not the
-complete source of runtime policy.
-
 ### Shaiden — agent runtime
 
 Shaiden runs saved tasks through a model and Torii's discovered tools. It

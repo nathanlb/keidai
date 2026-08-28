@@ -1,22 +1,29 @@
 import type {
   ApprovalRecordStatus,
   ApprovalRecordView,
+  CatalogConnectorsResponse,
   ConfigGroupsResponse,
   ConfigOAuthProvidersResponse,
   ConfigServersResponse,
   ConnectionsResponse,
+  ConnectorResponse,
+  ConnectorsResponse,
+  CreateConnectorRequest,
   CreateGroupRequest,
   GroupResponse,
   GroupsResponse,
   GroupView,
+  InstallCatalogConnectorRequest,
   OAuthConnectionsResponse,
   OAuthInitiateResponse,
+  PublicConnector,
   PublicGroupDefinition,
   ServerToolsResponse,
   TraceListItem,
   TraceListQuery,
   TraceStatsResponse,
   TracesResponse,
+  UpdateConnectorRequest,
   UpdateGroupRequest,
 } from "@keidai/shared";
 
@@ -26,6 +33,7 @@ import {
   fetchJson,
   fetchJsonWithBody,
   readErrorMessage,
+  sendNoContent,
 } from "./fetch-json.js";
 
 interface GatewayHealthResponse {
@@ -168,6 +176,63 @@ export async function deleteGroup(id: string): Promise<void> {
 
 export async function fetchServers(): Promise<ConfigServersResponse> {
   return fetchJson<ConfigServersResponse>("/api/config/servers");
+}
+
+export async function fetchConnectors(): Promise<ConnectorsResponse> {
+  return fetchJson<ConnectorsResponse>("/api/connectors");
+}
+
+export async function fetchConnectorCatalog(): Promise<CatalogConnectorsResponse> {
+  return fetchJson<CatalogConnectorsResponse>("/api/catalog/connectors");
+}
+
+export async function createConnector(
+  body: CreateConnectorRequest,
+): Promise<PublicConnector> {
+  const response = await fetchJsonWithBody<ConnectorResponse>(
+    "/api/connectors",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
+  return response.connector;
+}
+
+export async function installCatalogConnector(
+  body: InstallCatalogConnectorRequest,
+): Promise<PublicConnector> {
+  const response = await fetchJsonWithBody<ConnectorResponse>(
+    "/api/connectors/from-catalog",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
+  return response.connector;
+}
+
+export async function updateConnector(
+  slug: string,
+  body: UpdateConnectorRequest,
+): Promise<PublicConnector> {
+  const response = await fetchJsonWithBody<ConnectorResponse>(
+    `/api/connectors/${encodeURIComponent(slug)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
+  return response.connector;
+}
+
+export async function deleteConnector(slug: string): Promise<void> {
+  await sendNoContent(`/api/connectors/${encodeURIComponent(slug)}`, {
+    method: "DELETE",
+  });
 }
 
 export async function fetchConnections(): Promise<ConnectionsResponse> {
@@ -336,4 +401,15 @@ export async function initiateOAuthLink(
   }
 
   return (await response.json()) as OAuthInitiateResponse;
+}
+
+export async function unlinkOAuthConnection(
+  provider: string,
+  ownerId: string,
+): Promise<void> {
+  const query = `?owner=${encodeURIComponent(ownerId)}`;
+  await sendNoContent(
+    `/api/oauth/connections/${encodeURIComponent(provider)}${query}`,
+    { method: "DELETE" },
+  );
 }

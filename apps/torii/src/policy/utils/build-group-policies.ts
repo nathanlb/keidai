@@ -74,7 +74,7 @@ export interface BuildGroupPoliciesInput {
   gatedTools?: Record<string, string[]>;
 }
 
-/** Builds in-memory group policy snapshots for tests and demo seeding. */
+/** Builds in-memory group policy snapshots for tests. */
 export function buildGroupPolicies(input: BuildGroupPoliciesInput = {}): GroupPolicy[] {
   const now = new Date();
   const groups = new Map<string, GroupPolicy>();
@@ -98,37 +98,4 @@ export function buildGroupPolicies(input: BuildGroupPoliciesInput = {}): GroupPo
   }
 
   return [...groups.values()];
-}
-
-/** Compose/kind demo policy — agents group plus gmail draft gating. */
-export function createDemoGroupPolicies(): GroupPolicy[] {
-  return buildGroupPolicies({
-    groups: [
-      {
-        name: AGENTS_GROUP_NAME,
-        description: "Demo agent access for the open-torii digest scenario",
-        permissions: [
-          {
-            server: "linear",
-            tools: ["list_issues", "get_issue", "list_projects", "list_initiatives"],
-          },
-          {
-            server: "github",
-            tools: ["search_issues", "get_file_contents"],
-          },
-          {
-            server: "notion",
-            tools: ["notion-search", "notion-fetch"],
-          },
-          {
-            server: "gmail",
-            tools: ["create_draft", "list_drafts"],
-          },
-        ],
-      },
-    ],
-    gatedTools: {
-      "shaiden-newsletter-01": ["gmail.create_draft"],
-    },
-  });
 }

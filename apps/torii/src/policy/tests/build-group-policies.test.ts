@@ -3,7 +3,6 @@ import { describe, it } from "node:test";
 import {
   AGENTS_GROUP_NAME,
   buildGroupPolicies,
-  createDemoGroupPolicies,
 } from "../utils/build-group-policies.js";
 
 describe("buildGroupPolicies", () => {
@@ -12,7 +11,7 @@ describe("buildGroupPolicies", () => {
       groups: [
         {
           name: "agents",
-          description: "Demo agent access for the open-torii digest scenario",
+          description: "Agent access",
           permissions: [
             {
               server: "gmail",
@@ -26,7 +25,7 @@ describe("buildGroupPolicies", () => {
         },
       ],
       gatedTools: {
-        "shaiden-newsletter-01": ["gmail.create_draft"],
+        "agent-01": ["gmail.create_draft"],
       },
     });
     const agents = groups.find((group) => group.name === AGENTS_GROUP_NAME);
@@ -48,17 +47,6 @@ describe("buildGroupPolicies", () => {
     const agents = groups.find((group) => group.name === AGENTS_GROUP_NAME);
     assert.ok(agents);
     const gmail = agents.servers.find((policy) => policy.server === "gmail");
-    assert.deepEqual(gmail?.gated, ["create_draft"]);
-  });
-});
-
-describe("createDemoGroupPolicies", () => {
-  it("includes the agents group and gmail draft gating", () => {
-    const groups = createDemoGroupPolicies();
-    assert.equal(groups.length, 1);
-    assert.equal(groups[0]?.name, AGENTS_GROUP_NAME);
-    const gmail = groups[0]?.servers.find((policy) => policy.server === "gmail");
-    assert.deepEqual(gmail?.allow, ["create_draft", "list_drafts"]);
     assert.deepEqual(gmail?.gated, ["create_draft"]);
   });
 });

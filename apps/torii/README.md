@@ -1,9 +1,9 @@
 # ⛩️ Torii — MCP Gateway
 
 Torii is Keidai's MCP gateway and control plane. It offers one endpoint for
-agents and fans out to many backends. Its boot-time config declares backend
-connections; Postgres stores OAuth state, group policy, approval records, and
-call traces.
+agents and fans out to many backends. Postgres is the only source of truth:
+backend connectors, OAuth state, group policy, approval records, and call
+traces all live there, authored through keidai-ui.
 
 **Keidai** (境内) is the umbrella; **Torii** (鳥居, the gate) is this service. Torii owns access control and credential lifecycle at the MCP boundary. Agent identity (Fuda/AIdP) and execution (Shaiden/Runtime) live elsewhere in Keidai.
 
@@ -14,14 +14,15 @@ For public component boundaries and credential flow, see
 
 - **Runtime:** Node.js 24 (LTS)
 - **Framework:** TypeScript, Fastify, tsyringe, official MCP SDK
-- **Config:** `torii.yaml` at boot plus required Postgres persistence
+- **Config:** connectors and group policy in Postgres (authored in keidai-ui)
 - **Shared types:** `@keidai/shared` (`packages/shared`)
 
 ## Layout
 
 ```
 src/
-  config/       # boot-time load, env resolution, ToriiConfigService
+  config/       # ToriiConfigService: read-only runtime view over ConnectorRegistry
+  connectors/   # connector records in Postgres, registry, and the write API
   connections/  # backend registry, connection state, MCP client connector
   catalog/      # fan-out tools/list, namespacing (server.tool)
   credentials/  # user_oauth / service_key / none credential resolvers + OAuth linking
@@ -46,7 +47,6 @@ pnpm install
 pnpm build
 docker compose up postgres -d
 cp apps/torii/.env.example apps/torii/.env   # set TORII_DATABASE_URL
-cp torii.example.yaml torii.yaml                 # or use torii.demo.yaml for the demo
 pnpm --filter @keidai/torii dev
 ```
 
@@ -74,24 +74,24 @@ pnpm --filter @keidai/torii start
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `TORII_CONFIG_PATH` | `./torii.yaml` | Gateway config file |
 | `TORII_PORT` | `3100` (falls back to `PORT`) | HTTP listen port |
 | `TORII_HOST` | `127.0.0.1` | HTTP bind address |
-| `TORII_DATABASE_URL` | — | Required. Postgres connection string (OAuth tokens, provider clients, call traces, approval ledger) |
+| `TORII_DATABASE_URL` | — | Required. Postgres connection string (connectors, OAuth tokens, call traces, approval ledger) |
+| `TORII_SECRET_KEY` | — | Required outside tests. Seals connector secrets at rest |
 | `TORII_OPERATORS_PATH` | — | Optional `operators.yaml`. When set, boot wipes OAuth tokens and pending links for `owner_id`s absent from the registry. Unset is a no-op (never wipe without a registry). Compose/k8s pin this to the mounted operators file |
 | `TORII_GATEWAY_BASE_URL` | — | Stable **public** base URL for OAuth callbacks (overrides per-request Host derivation). With the BFF edge, set this to the BFF origin (e.g. `http://localhost:3000`), not Torii's ClusterIP/`localhost:3100` |
 | `TORII_FUDA_ISSUER` | — | Expected `iss` on Fuda-minted agent JWTs (required) |
 | `TORII_FUDA_JWKS_URI` | — | Fuda JWKS URL, e.g. `http://127.0.0.1:3300/.well-known/jwks.json` (required) |
 
-See `torii.example.yaml` at the repo root for server list and OAuth providers. Demo config: [`torii.demo.yaml`](torii.demo.yaml) in this package. Group policy is authored in keidai-ui and stored in Postgres (`TORII_DATABASE_URL`).
+Connectors are stored in Postgres and authored in keidai-ui Connections (or over `/api/connectors`); group policy likewise. Fresh installs boot with zero connectors. There is no config file and no `TORII_CONFIG_PATH` — the only YAML Torii reads is the operators registry.
 
-Optional `gateway_base_url` in torii.yaml (or `TORII_GATEWAY_BASE_URL`) sets the stable public URL used to derive OAuth callback URIs: `{base}/oauth/callback/{provider}`. Compose and kind both publish only keidai-ui (`:3000`); backends stay internal and the BFF reverse-proxies `/oauth/callback/*` to Torii.
+`TORII_GATEWAY_BASE_URL` sets the stable public URL used to derive OAuth callback URIs: `{base}/oauth/callback/{provider}`. Compose and kind both publish only keidai-ui (`:3000`); backends stay internal and the BFF reverse-proxies `/oauth/callback/*` to Torii.
 
 ## Agent identity
 
 Inbound requests present a Fuda-minted agent identity JWT (`Authorization: Bearer …`). Torii validates it offline against Fuda's JWKS (`TORII_FUDA_*`): issuer, `aud=torii`, expiry, and signature. The principal (`agentId`, `ownerId`, `groups`, `bearerId`) is taken from token claims only — no registry lookup.
 
-Tool allow/deny is keyed on the principal's `groups` against group definitions persisted in Torii Postgres. Unknown groups fail closed (deny + log `policy.unknown_group`). Compose/kind seed a demo `agents` group when the table is empty.
+Tool allow/deny is keyed on the principal's `groups` against group definitions persisted in Torii Postgres. Unknown groups fail closed (deny + log `policy.unknown_group`).
 
 Agent registration / subject validation lives in Fuda (token exchange). Torii calls Fuda for JWKS and nothing else.
 
@@ -180,7 +180,7 @@ a grant for the subject's bearer (agents created through keidai-ui receive the
 
 The Inspector UI opens automatically at `http://localhost:6274` (or prints the URL with a session token). Torii's MCP endpoint defaults to `http://127.0.0.1:3100/mcp`; override with `TORII_HOST` / `TORII_PORT` if needed.
 
-## Demo harness
+## Compose stack
 
 Torii runs alongside Fuda, Shaiden, and keidai-ui under Docker Compose from the repo root (only `:3000` is published):
 
@@ -188,9 +188,10 @@ Torii runs alongside Fuda, Shaiden, and keidai-ui under Docker Compose from the 
 docker compose up --build
 ```
 
-Torii reads [`torii.demo.yaml`](torii.demo.yaml) and takes JWKS from Fuda. Create
-agents/bearers/grants via keidai-ui (or Fuda's management API) before submitting
-a task — Fuda boots with an empty agent registry.
+Torii boots with connectors from Postgres and takes JWKS from Fuda. A fresh
+database has no connectors: add them in keidai-ui Connections, then create
+agents/bearers/grants via keidai-ui (or Fuda's management API) before
+submitting a task — Fuda boots with an empty agent registry.
 
 For kind / OrbStack (projected SA tokens + ClusterIP backends), see [`deploy/k8s/README.md`](../../deploy/k8s/README.md).
 
@@ -201,13 +202,13 @@ Prefer `docker compose up` from the monorepo root so the BFF is the public edge.
 ```bash
 docker build -f apps/torii/Dockerfile -t torii .
 docker run --rm -p 3100:3100 \
-  -e GITHUB_CLIENT_ID=... -e GITHUB_CLIENT_SECRET=... \
   -e TORII_GATEWAY_BASE_URL=http://localhost:3000 \
+  -e TORII_SECRET_KEY=change-me-to-a-long-random-string \
   -e TORII_DATABASE_URL=postgres://torii:keidai-local@host.docker.internal:5432/torii \
   torii
 ```
 
-Mount a custom config with `-v ./torii.yaml:/app/torii.yaml:ro`. Set `TORII_GATEWAY_BASE_URL` to the URL browsers and IdPs use for OAuth (the BFF when that is the only published surface).
+Set `TORII_GATEWAY_BASE_URL` to the URL browsers and IdPs use for OAuth (the BFF when that is the only published surface). A connector whose secret is an env reference resolves it from this container's environment at call time, so pass that variable with `-e` as well.
 
 ## License
 

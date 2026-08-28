@@ -4,6 +4,7 @@ import { AGENTS_KEY } from "./use-fetch-agents.js";
 import { isOAuthConnectionsKey } from "./use-fetch-oauth-connections.js";
 import { OAUTH_PROVIDERS_KEY } from "./use-fetch-oauth-providers.js";
 import { SERVERS_KEY } from "./use-fetch-servers.js";
+import { CONNECTORS_KEY } from "./use-fetch-connectors.js";
 import { TORII_STATUS_KEY, SHAIDEN_STATUS_KEY } from "./backend-health.js";
 import { TORII_GROUPS_KEY } from "../../agents/hooks/use-fetch-torii-groups.js";
 import { GROUPS_KEY } from "../../groups/hooks/use-fetch-groups.js";
@@ -19,6 +20,7 @@ export function refreshToriiConfig(mutate: SwrMutate): void {
   void mutate(SHAIDEN_STATUS_KEY, undefined, revalidate);
   void mutate(AGENTS_KEY, undefined, revalidate);
   void mutate(SERVERS_KEY, undefined, revalidate);
+  void mutate(CONNECTORS_KEY, undefined, revalidate);
   void mutate(GROUPS_KEY, undefined, revalidate);
   void mutate(TORII_GROUPS_KEY, undefined, revalidate);
   void mutate(OAUTH_PROVIDERS_KEY, undefined, revalidate);

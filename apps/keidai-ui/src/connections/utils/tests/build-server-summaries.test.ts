@@ -56,6 +56,46 @@ describe("formatCredentialSubStatus", () => {
       warning: true,
     });
   });
+
+  it("treats Class A DCR connectors without a static client_id as not linked", () => {
+    expect(
+      formatCredentialSubStatus(
+        { strategy: "user_oauth", provider: "notion" },
+        {
+          oauthProviderConfig: {
+            token_url: "https://mcp.notion.com/mcp",
+            scopes: [],
+          },
+        },
+      ),
+    ).toEqual({
+      label: "not linked",
+      warning: true,
+    });
+  });
+
+  it("shows the linked provider even when no static client_id is published", () => {
+    expect(
+      formatCredentialSubStatus(
+        { strategy: "user_oauth", provider: "notion" },
+        {
+          oauthProviderConfig: {
+            token_url: "https://mcp.notion.com/mcp",
+            scopes: [],
+          },
+          oauthConnection: {
+            provider: "notion",
+            ownerId: "demo-owner",
+            status: "linked",
+            scopes: [],
+          },
+        },
+      ),
+    ).toEqual({
+      label: "→ Notion",
+      warning: false,
+    });
+  });
 });
 
 describe("buildServerSummaries", () => {

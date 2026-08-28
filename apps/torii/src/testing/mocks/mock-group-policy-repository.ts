@@ -19,14 +19,6 @@ export class MockGroupPolicyRepository implements GroupPolicyRepository {
     return this.groups.find((group) => group.id === id) ?? null;
   }
 
-  async isEmpty(): Promise<boolean> {
-    return this.groups.length === 0;
-  }
-
-  async insertAll(groups: readonly GroupPolicy[]): Promise<void> {
-    this.groups.push(...groups);
-  }
-
   async create(input: CreateGroupPolicyInput): Promise<GroupPolicy> {
     if (this.groups.some((group) => group.name === input.name)) {
       const error = new Error(
@@ -76,5 +68,11 @@ export class MockGroupPolicyRepository implements GroupPolicyRepository {
     }
     this.groups.splice(index, 1);
     return true;
+  }
+
+  async referencesServer(server: string): Promise<boolean> {
+    return this.groups.some((group) =>
+      group.servers.some((policy) => policy.server === server),
+    );
   }
 }

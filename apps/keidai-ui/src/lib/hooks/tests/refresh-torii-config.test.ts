@@ -4,6 +4,7 @@ import { AGENTS_KEY } from "../use-fetch-agents.js";
 import { OAUTH_CONNECTIONS_KEY_PREFIX } from "../use-fetch-oauth-connections.js";
 import { OAUTH_PROVIDERS_KEY } from "../use-fetch-oauth-providers.js";
 import { SERVERS_KEY } from "../use-fetch-servers.js";
+import { CONNECTORS_KEY } from "../use-fetch-connectors.js";
 import { TASKS_KEY } from "../../../tasks/hooks/use-fetch-tasks.js";
 import { RUNS_VISIBILITY_KEY } from "../../../runs/hooks/use-runs-visibility.js";
 import { TORII_STATUS_KEY, SHAIDEN_STATUS_KEY } from "../backend-health.js";
@@ -30,6 +31,9 @@ describe("refreshToriiConfig", () => {
       revalidate: true,
     });
     expect(mutate).toHaveBeenCalledWith(SERVERS_KEY, undefined, {
+      revalidate: true,
+    });
+    expect(mutate).toHaveBeenCalledWith(CONNECTORS_KEY, undefined, {
       revalidate: true,
     });
     expect(mutate).toHaveBeenCalledWith(GROUPS_KEY, undefined, {

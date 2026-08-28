@@ -27,11 +27,7 @@ export function formatProviderLabel(providerId: string): string {
 export function isProviderMisconfigured(
   config: PublicOAuthProviderConfig,
 ): boolean {
-  if (config.registration_endpoint) {
-    return !config.token_url;
-  }
-
-  return !config.client_id || !config.token_url;
+  return !config.token_url;
 }
 
 export function formatClientIdDisplay(

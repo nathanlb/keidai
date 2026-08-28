@@ -28,6 +28,7 @@ import { GatewayMcpServer } from "../../mcp/gateway-mcp-server.service.js";
 import {
   createOAuthApiController,
   createGroupsApiController,
+  createStubConnectorsApi,
   createStubToolCatalog,
   createTestGatewayHttpServer,
   createTracesApiController,
@@ -167,6 +168,7 @@ describe("Gateway /api/config endpoints", () => {
         connectionManager,
         toolCatalog,
       ),
+      createStubConnectorsApi(),
       createOAuthApiController(configService),
       createTracesApiController({ traceEmitter: new CapturingTraceEmitter() }),
       approvalsApi,

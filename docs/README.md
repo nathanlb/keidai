@@ -11,7 +11,7 @@ Start here:
 - [Operations](operations.md) — operator registry, OAuth, secrets, and
   observability.
 - [Reference](reference.md) — ports, public URLs, environment ownership, and
-  the demo setup.
+  first-run setup.
 - [Testing](testing.md) — keidai-ui's layered test strategy.
 
 Service-specific setup and API details live with their source:

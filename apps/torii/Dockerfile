@@ -6,7 +6,7 @@ RUN corepack enable
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json turbo.json torii.example.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json turbo.json ./
 COPY packages/shared packages/shared
 COPY packages/postgres packages/postgres
 COPY apps/torii apps/torii
@@ -33,13 +33,11 @@ RUN addgroup -g 1001 torii \
 
 ENV NODE_ENV=production \
   TORII_HOST=0.0.0.0 \
-  TORII_PORT=3100 \
-  TORII_CONFIG_PATH=/app/torii.yaml
+  TORII_PORT=3100
 
 COPY --from=build --chown=torii:torii /out/dist ./dist
 COPY --from=build --chown=torii:torii /out/node_modules ./node_modules
 COPY --from=build --chown=torii:torii /out/package.json ./package.json
-COPY --from=build --chown=torii:torii /app/torii.example.yaml /app/torii.yaml
 
 USER torii
 

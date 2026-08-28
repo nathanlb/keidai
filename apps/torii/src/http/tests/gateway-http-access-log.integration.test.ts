@@ -14,6 +14,7 @@ import { createCapturingLogger } from "../../logging/tests/test-helpers.js";
 import {
   createOAuthApiController,
   createGroupsApiController,
+  createStubConnectorsApi,
   createStubToolCatalog,
   createTracesApiController,
 } from "./test-helpers.js";
@@ -48,6 +49,7 @@ describe("Gateway HTTP access logging", () => {
         connectionManager,
         createStubToolCatalog(),
       ),
+      createStubConnectorsApi(),
       createOAuthApiController(configService),
       createTracesApiController(),
       approvalsApi,

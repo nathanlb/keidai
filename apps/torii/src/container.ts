@@ -44,13 +44,20 @@ import { ApprovalGateService } from "./policy/approval-gate.service.js";
 import { GroupPolicyCache } from "./policy/group-policy-cache.service.js";
 import { PgGroupPolicyRepository } from "./policy/pg-group-policy-repository.service.js";
 import { GROUP_POLICY_REPOSITORY } from "./policy/types/group-policy-repository.js";
-import { seedDemoGroupPoliciesIfEmpty } from "./policy/utils/seed-demo-group-policies.js";
 import { ApprovalReadService } from "./policy/approval-read.service.js";
 import { ApprovalStoreService } from "./policy/approval-store.service.js";
 import { TaskStoreService } from "./tasks/task-store.service.js";
 import { ApprovalsApiController } from "./policy/approvals-api.controller.js";
 import { GroupPolicyManagementService } from "./policy/group-policy-management.service.js";
 import { GroupsApiController } from "./policy/groups-api.controller.js";
+import { ConnectorRegistry } from "./connectors/connector-registry.service.js";
+import { PgConnectorRepository } from "./connectors/pg-connector-repository.service.js";
+import { ConnectorManagementService } from "./connectors/connector-management.service.js";
+import { ConnectorsApiController } from "./connectors/connectors-api.controller.js";
+import { PgSecretRepository } from "./secrets/pg-secret-repository.service.js";
+import { SECRET_REPOSITORY } from "./secrets/secret-store.js";
+import { PgOAuthRegistrationRepository } from "./credentials/pg-oauth-registration-repository.service.js";
+import { PgOAuthDiscoveryCache } from "./credentials/pg-oauth-discovery-cache.service.js";
 import { StructuredLoggerService } from "./logging/structured-logger.service.js";
 import { TraceEmitterService } from "./trace/trace-emitter.service.js";
 import { TraceReadService } from "./trace/trace-read.service.js";
@@ -72,7 +79,7 @@ export interface CreateContainerOptions {
 }
 
 export async function createContainer(
-  config: ToriiConfig,
+  config: ToriiConfig = { oauth_providers: {}, servers: [] },
   options: CreateContainerOptions = {},
 ): Promise<ToriiContainerResult> {
   const appContainer = container.createChildContainer();
@@ -88,10 +95,20 @@ export async function createContainer(
   let groupPolicyRepository: PgGroupPolicyRepository | undefined;
   let approvalStore: ApprovalStoreService | undefined;
   let taskStore: TaskStoreService | undefined;
+  let secretRepository: PgSecretRepository | undefined;
+  let connectorRepository: PgConnectorRepository | undefined;
+  let registrationRepository: PgOAuthRegistrationRepository | undefined;
+  let discoveryCache: PgOAuthDiscoveryCache | undefined;
+
+  const seededFromConfig =
+    config.servers.length > 0 ||
+    Object.keys(config.oauth_providers).length > 0;
+  const connectorRegistry = seededFromConfig
+    ? ConnectorRegistry.fromConfig(config)
+    : new ConnectorRegistry();
 
   appContainer.register(TORII_DATABASE, { useValue: pool });
   groupPolicyRepository = new PgGroupPolicyRepository(pool);
-  await seedDemoGroupPoliciesIfEmpty(groupPolicyRepository);
   const groupPolicyCache = new GroupPolicyCache(
     await groupPolicyRepository.list(),
   );
@@ -99,8 +116,44 @@ export async function createContainer(
     useValue: groupPolicyRepository,
   });
   appContainer.register(GroupPolicyCache, { useValue: groupPolicyCache });
+  appContainer.register(ConnectorRegistry, { useValue: connectorRegistry });
   appContainer.register(ToriiConfigService, {
-    useValue: new ToriiConfigService(config),
+    useValue: new ToriiConfigService(
+      connectorRegistry,
+      config.gateway_base_url,
+    ),
+  });
+  appContainer.register(SECRET_REPOSITORY, {
+    useFactory: () => {
+      secretRepository ??= new PgSecretRepository(
+        appContainer.resolve<Pool>(TORII_DATABASE),
+      );
+      return secretRepository;
+    },
+  });
+  appContainer.register(PgConnectorRepository, {
+    useFactory: () => {
+      connectorRepository ??= new PgConnectorRepository(
+        appContainer.resolve<Pool>(TORII_DATABASE),
+      );
+      return connectorRepository;
+    },
+  });
+  appContainer.register(PgOAuthRegistrationRepository, {
+    useFactory: () => {
+      registrationRepository ??= new PgOAuthRegistrationRepository(
+        appContainer.resolve<Pool>(TORII_DATABASE),
+      );
+      return registrationRepository;
+    },
+  });
+  appContainer.register(PgOAuthDiscoveryCache, {
+    useFactory: () => {
+      discoveryCache ??= new PgOAuthDiscoveryCache(
+        appContainer.resolve<Pool>(TORII_DATABASE),
+      );
+      return discoveryCache;
+    },
   });
   appContainer.register(
     ConfigReadService,
@@ -270,6 +323,16 @@ export async function createContainer(
     SINGLETON,
   );
   appContainer.register(
+    ConnectorManagementService,
+    { useClass: ConnectorManagementService },
+    SINGLETON,
+  );
+  appContainer.register(
+    ConnectorsApiController,
+    { useClass: ConnectorsApiController },
+    SINGLETON,
+  );
+  appContainer.register(
     ToolCatalogService,
     { useClass: ToolCatalogService },
     SINGLETON,
@@ -307,6 +370,10 @@ export async function createContainer(
     ConnectionManager,
     appContainer.resolve(ConnectionManager),
   );
+
+  if (!seededFromConfig) {
+    await appContainer.resolve(ConnectorManagementService).loadIntoRegistry();
+  }
 
   return { container: appContainer, migrations };
 }

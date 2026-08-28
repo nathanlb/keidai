@@ -75,7 +75,8 @@ export default defineConfig({
             },
             {
               name: "icons",
-              test: (id) => id.includes("/lucide-react/"),
+              test: (id) =>
+                id.includes("/lucide-react/") || id.includes("/simple-icons/"),
             },
             {
               name: "ui-vendor",

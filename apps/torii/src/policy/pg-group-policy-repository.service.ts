@@ -123,38 +123,6 @@ export class PgGroupPolicyRepository implements GroupPolicyRepository {
     return rowToGroup(row, serversByGroup.get(row.id) ?? []);
   }
 
-  async isEmpty(): Promise<boolean> {
-    const result = await this.pool.query<{ is_empty: boolean }>(
-      `SELECT NOT EXISTS (SELECT 1 FROM groups LIMIT 1) AS is_empty`,
-    );
-    return result.rows[0]?.is_empty ?? true;
-  }
-
-  async insertAll(groups: readonly GroupPolicy[]): Promise<void> {
-    if (groups.length === 0) {
-      return;
-    }
-
-    await withTransaction(this.pool, async (client) => {
-      for (const group of groups) {
-        await client.query(
-          `
-            INSERT INTO groups (id, name, description, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5)
-          `,
-          [
-            group.id,
-            group.name,
-            group.description,
-            toIso(group.createdAt),
-            toIso(group.updatedAt),
-          ],
-        );
-        await insertServerPolicies(client, group.id, group.servers);
-      }
-    });
-  }
-
   async create(input: CreateGroupPolicyInput): Promise<GroupPolicy> {
     const now = new Date();
     const group: GroupPolicy = {
@@ -243,6 +211,18 @@ export class PgGroupPolicyRepository implements GroupPolicyRepository {
       [id],
     );
     return (result.rowCount ?? 0) > 0;
+  }
+
+  async referencesServer(server: string): Promise<boolean> {
+    const result = await this.pool.query<{ present: boolean }>(
+      `
+        SELECT EXISTS (
+          SELECT 1 FROM group_server_policies WHERE server = $1
+        ) AS present
+      `,
+      [server],
+    );
+    return result.rows[0]?.present ?? false;
   }
 
   private async loadServersByGroupId(

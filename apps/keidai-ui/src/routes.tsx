@@ -5,7 +5,6 @@ import {
   AGENTS_PATH,
   CONNECTIONS_PATH,
   HOME_PATH,
-  PROVIDERS_PATH,
   RUNS_PATH,
   TASKS_PATH,
 } from "./shell/navigation.js";
@@ -28,7 +27,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "oauth-providers",
-        element: <PreserveSearchRedirect to={PROVIDERS_PATH} />,
+        element: <PreserveSearchRedirect to={CONNECTIONS_PATH} />,
       },
       {
         path: "shaiden/tasks",
@@ -52,11 +51,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "configure/providers",
-        lazy: async () => {
-          const { OAuthProvidersPage } =
-            await import("./oauth/pages/oauth-providers-page.js");
-          return { Component: OAuthProvidersPage };
-        },
+        element: <PreserveSearchRedirect to={CONNECTIONS_PATH} />,
       },
       {
         path: "configure/groups",

@@ -47,10 +47,6 @@ spec:
             - secretRef:
                 name: keidai-secrets
           volumeMounts:
-            - name: config
-              mountPath: /app/torii.yaml
-              subPath: torii.yaml
-              readOnly: true
             - name: operators
               mountPath: /app/operators
               readOnly: true
@@ -67,9 +63,6 @@ spec:
             initialDelaySeconds: 15
             periodSeconds: 15
       volumes:
-        - name: config
-          configMap:
-            name: torii-config
         - name: operators
           configMap:
             name: keidai-operators

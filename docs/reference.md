@@ -37,16 +37,19 @@ locally reachable JWKS URL. Compose uses internal service URLs. The issuer
 claim and Torii's expected issuer must always match; do not copy an issuer
 value between environments without updating both services.
 
-## Demo prerequisites
+## First-run prerequisites
 
-The stack starts with an empty Fuda agent registry. Before submitting a task:
+The stack starts with an empty Fuda agent registry and no Torii connectors.
+Before submitting a task:
 
 1. Sign in as an allowlisted operator.
-2. Create an agent in keidai-ui.
-3. Assign its groups according to the Torii policy you intend to test.
-4. Link a backend OAuth account if a `user_oauth` server requires one.
+2. Add the backend connectors you need in keidai-ui Connections.
+3. Create a group that dictates tool-use policy for your first agent. Torii
+   fails closed on groups it does not know, so this policy is what the agent
+   will be allowed to call.
+4. Create the agent and select that group.
+5. Create and run a task assigned to that agent.
 
-Replica/approval smoke tests also require an agent and group policy whose
-gated tool matches the test. The current Kubernetes example uses
-`shaiden-newsletter-01` with `gmail.create_draft`; create that agent and link
-the required OAuth credential before running the test.
+Approval smoke tests additionally need that group to mark the tool under test
+as gated; pick the agent, connector, and tool to match whichever approval path
+you are exercising.

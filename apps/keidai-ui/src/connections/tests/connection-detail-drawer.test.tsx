@@ -60,10 +60,13 @@ describe("ConnectionDetailDrawer", () => {
       drawerOpen: true,
     });
 
-    expect(screen.getByText("github")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "github" })).toBeInTheDocument();
     expect(screen.getByText("Credential", { exact: true })).toBeInTheDocument();
-    expect(screen.queryByText("Policy", { exact: true })).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Policy", { exact: true }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("Tools", { exact: true })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Remove" })).toBeInTheDocument();
     expect(screen.queryByText("Allowed")).not.toBeInTheDocument();
     expect(screen.queryByText("Blocked")).not.toBeInTheDocument();
     expect(screen.getByText("Search GitHub issues")).toBeInTheDocument();
@@ -107,6 +110,64 @@ describe("ConnectionDetailDrawer", () => {
     await user.click(screen.getByRole("button", { name: "Reconnect" }));
 
     expect(onReconnect).toHaveBeenCalledWith("github");
+  });
+
+  it("does not prompt for BYO client credentials on a discovered catalog connector", () => {
+    renderWithConnectionsPage(<ConnectionDetailDrawer />, {
+      selectedSummary: {
+        ...githubSummary,
+        name: "notion",
+        endpoint: "https://mcp.notion.com/mcp",
+        linkProviderId: "notion",
+      },
+      selectedServer: {
+        ...githubServer,
+        name: "notion",
+        transport: { type: "http", url: "https://mcp.notion.com/mcp" },
+        credential: { strategy: "user_oauth", provider: "notion" },
+      },
+      selectedConnector: {
+        slug: "notion",
+        displayName: "Notion",
+        url: "https://mcp.notion.com/mcp",
+        transportType: "http",
+        authMode: "user_oauth",
+        enabled: true,
+        catalogId: "notion",
+        catalogVersion: "1",
+        createdAt: new Date(0).toISOString(),
+        updatedAt: new Date(0).toISOString(),
+      },
+      drawerOpen: true,
+    });
+
+    expect(
+      screen.queryByText(/Paste BYO OAuth client credentials/),
+    ).not.toBeInTheDocument();
+  });
+
+  it("prompts for BYO client credentials on a Class B connector without a stored client", () => {
+    renderWithConnectionsPage(<ConnectionDetailDrawer />, {
+      selectedSummary: githubSummary,
+      selectedServer: githubServer,
+      selectedConnector: {
+        slug: "github",
+        displayName: "GitHub",
+        url: "https://api.githubcopilot.com/mcp/",
+        transportType: "http",
+        authMode: "user_oauth",
+        enabled: true,
+        catalogId: "github",
+        catalogVersion: "1",
+        createdAt: new Date(0).toISOString(),
+        updatedAt: new Date(0).toISOString(),
+      },
+      drawerOpen: true,
+    });
+
+    expect(
+      screen.getByText(/Paste BYO OAuth client credentials/),
+    ).toBeInTheDocument();
   });
 
   it("renders nothing when no server is selected", () => {

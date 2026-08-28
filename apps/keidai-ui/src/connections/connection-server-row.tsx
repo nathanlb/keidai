@@ -7,6 +7,7 @@ import {
   Loader2,
   TriangleAlert,
 } from "lucide-react";
+import { ConnectorIcon } from "../lib/components/connector-icon.js";
 import { useConnectionsPage } from "./context/use-connections-page.js";
 import { CredentialStrategyBadge } from "./connections-summary-tiles.js";
 import type { ServerConnectionSummary } from "./utils/build-server-summaries.js";
@@ -117,7 +118,14 @@ export function ConnectionServerRow({
       onClick={() => onOpenServer(summary.name)}
     >
       <TableCell className="py-3 pl-4.5 font-semibold">
-        {summary.name}
+        <span className="flex items-center gap-2.5">
+          <ConnectorIcon
+            slug={summary.icon ?? summary.name}
+            label={summary.name}
+            size="sm"
+          />
+          {summary.name}
+        </span>
       </TableCell>
       <TableCell className="max-w-55 py-3">
         <div

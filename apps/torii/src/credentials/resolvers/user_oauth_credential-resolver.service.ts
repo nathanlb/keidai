@@ -67,25 +67,28 @@ export class UserOAuthCredentialResolver implements CredentialStrategyResolver {
   ): LinkingRequiredError {
     const config = this.configService.get();
     const providerConfig = config.oauth_providers[provider];
-    if (!providerConfig) {
-      throw new Error(
-        `user_oauth provider "${provider}" is not defined in oauth_providers`,
-      );
-    }
-
     const redirectUri = buildOAuthCallbackRedirectUri(
       resolveGatewayBaseUrl(config),
       provider,
     );
+
+    let linkUrl = redirectUri;
+    if (providerConfig?.client_id) {
+      try {
+        linkUrl = buildOAuthLinkUrl(providerConfig, provider, ownerId, {
+          redirectUri,
+        });
+      } catch {
+        linkUrl = redirectUri;
+      }
+    }
 
     return new LinkingRequiredError({
       code: LINKING_REQUIRED_CODE,
       provider,
       ownerId,
       backend,
-      linkUrl: buildOAuthLinkUrl(providerConfig, provider, ownerId, {
-        redirectUri,
-      }),
+      linkUrl,
     });
   }
 }

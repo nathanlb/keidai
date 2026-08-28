@@ -85,8 +85,8 @@ function InitiatingStep({
               Authorization
             </div>
             <p className="text-[13px] leading-normal text-muted-foreground">
-              {providerLabel} does not declare scopes in <Mono>torii.yaml</Mono>
-              . Torii requests provider-default access during authorization.
+              {providerLabel} does not declare scopes. Torii requests
+              provider-default access during authorization.
             </p>
           </CardContent>
         </Card>
