@@ -4,7 +4,6 @@ import { loadEnvForPackage } from "@keidai/shared/load-env";
 loadEnvForPackage(import.meta.url);
 
 import "reflect-metadata";
-import { loadConfig, reportConfigError } from "./config/utils/loader.js";
 import { createContainer } from "./container.js";
 import { ConnectionManager } from "./connections/connection-manager.service.js";
 import { ToolCatalogService } from "./catalog/tool-catalog.service.js";
@@ -26,8 +25,7 @@ function resolvePort(): number {
 }
 
 export async function startServer(): Promise<void> {
-  const config = await loadConfig();
-  const { container: app, migrations } = await createContainer(config);
+  const { container: app, migrations } = await createContainer();
   const configService = app.resolve(ToriiConfigService);
   const connectionManager = app.resolve(ConnectionManager);
   const toolCatalog = app.resolve(ToolCatalogService);
@@ -81,8 +79,7 @@ export async function startServer(): Promise<void> {
   logger.info("boot.listening", { url: gateway.url });
 }
 
-async function main(): Promise<void> {
-  await startServer();
-}
-
-main().catch(reportConfigError);
+startServer().catch((error: unknown) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(1);
+});

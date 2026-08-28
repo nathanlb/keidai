@@ -39,23 +39,14 @@ describe("createContainer", () => {
     }
   });
 
-  it("seeds demo group policy into the cache when the groups table is empty", async () => {
+  it("loads an empty group policy cache when the groups table is empty", async () => {
     const isolated = await createIsolatedSchema();
     try {
       const { container: app } = await createContainer(MINIMAL_CONFIG, {
         pool: isolated.pool,
       });
       const cache = app.resolve(GroupPolicyCache);
-      const agents = cache.get().find((group) => group.name === "agents");
-      assert.ok(agents);
-      const gmail = agents.servers.find((policy) => policy.server === "gmail");
-      assert.deepEqual(gmail, {
-        server: "gmail",
-        default: "deny",
-        allow: ["create_draft", "list_drafts"],
-        deny: [],
-        gated: ["create_draft"],
-      });
+      assert.deepEqual(cache.get(), []);
     } finally {
       await isolated.close();
     }

@@ -9,6 +9,8 @@ const { reconnectAllConnections } = vi.hoisted(() => ({
 vi.mock("../../lib/api/gateway.js", () => ({
   reconnectAllConnections,
   reconnectConnection: vi.fn(async () => undefined),
+  deleteConnector: vi.fn(async () => undefined),
+  unlinkOAuthConnection: vi.fn(async () => undefined),
 }));
 
 vi.mock("../../lib/hooks/use-fetch-servers.js", () => ({
@@ -24,6 +26,16 @@ vi.mock("../../lib/hooks/use-fetch-oauth-providers.js", () => ({
     data: { providers: {} },
     error: undefined,
     isLoading: false,
+  }),
+}));
+
+vi.mock("../../lib/hooks/use-fetch-connectors.js", () => ({
+  CONNECTORS_KEY: "torii-connectors",
+  useFetchConnectors: () => ({
+    data: { connectors: [] },
+    error: undefined,
+    isLoading: false,
+    refresh: vi.fn(),
   }),
 }));
 

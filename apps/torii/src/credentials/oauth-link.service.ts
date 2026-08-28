@@ -1,13 +1,21 @@
 import { randomUUID } from "node:crypto";
-import type { OAuthInitiateResponse } from "@keidai/shared";
+import type { ConnectorRecord, OAuthInitiateResponse } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
 import { ToriiConfigService } from "../config/torii-config.service.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
 import type { Logger } from "@keidai/shared";
 import {
+  createSealedSecret,
+  resolveSecretPayload,
+  SECRET_REPOSITORY,
+  type SecretRepository,
+} from "../secrets/secret-store.js";
+import {
   OAUTH_CLIENT_REPOSITORY,
   type OAuthClientRepository,
 } from "./types/oauth-client-repository.js";
+import { PgOAuthDiscoveryCache } from "./pg-oauth-discovery-cache.service.js";
+import { PgOAuthRegistrationRepository } from "./pg-oauth-registration-repository.service.js";
 import type { PendingOAuthLink } from "./types/pending-oauth-link.js";
 import {
   PENDING_OAUTH_LINK_STORE,
@@ -17,13 +25,17 @@ import {
   TOKEN_REPOSITORY,
   type TokenRepository,
 } from "./types/token-repository.js";
-import { exchangeAuthorizationCode } from "./utils/oauth-code-exchange.js";
-import { buildOAuthLinkUrl } from "./utils/oauth-link-url.js";
-import { decodeOAuthLinkState, type OAuthLinkState } from "./utils/oauth-link-state.js";
-import { createPkceChallenge } from "./utils/pkce.js";
+import { decodeOAuthLinkState, encodeOAuthLinkState, type OAuthLinkState } from "./utils/oauth-link-state.js";
 import { buildOAuthCallbackRedirectUri } from "./utils/oauth-callback-redirect-uri.js";
-import { ensureRegisteredOAuthClient } from "./utils/resolve-oauth-provider-config.js";
 import { resolveOAuthOwnerId } from "./utils/resolve-oauth-owner.js";
+import {
+  clientInformationFrom,
+  exchangeSdkAuthorization,
+  registerSdkClient,
+  resolveOAuthServer,
+  startSdkAuthorization,
+  type ResolvedOAuthServer,
+} from "./utils/sdk-oauth.js";
 
 export interface OAuthCallbackQuery {
   code?: string;
@@ -76,6 +88,12 @@ export class OAuthLinkService {
     private readonly pendingLinkStore: PendingOAuthLinkStore,
     @inject(StructuredLoggerService)
     private readonly logger: Logger,
+    @inject(PgOAuthRegistrationRepository)
+    private readonly registrations?: PgOAuthRegistrationRepository,
+    @inject(SECRET_REPOSITORY)
+    private readonly secrets?: SecretRepository,
+    @inject(PgOAuthDiscoveryCache)
+    private readonly discoveryCache?: PgOAuthDiscoveryCache,
   ) {}
 
   async initiate(
@@ -84,49 +102,53 @@ export class OAuthLinkService {
     ownerId?: string,
     uiOrigin?: string,
   ): Promise<OAuthInitiateResponse> {
-    const config = this.configService.get();
-    const providerConfig = config.oauth_providers[provider];
-    if (!providerConfig) {
+    const connector = this.findConnector(provider);
+    if (!connector) {
       throw new Error(
-        `Unknown OAuth provider "${provider}". Defined providers: ${Object.keys(config.oauth_providers).join(", ") || "(none)"}`,
+        `Unknown OAuth provider "${provider}". Defined providers: ${this.knownProviderNames().join(", ") || "(none)"}`,
       );
     }
 
     const resolvedOwnerId = resolveOAuthOwnerId(ownerId);
     const redirectUri = buildOAuthCallbackRedirectUri(baseUrl, provider);
-    const effectiveProviderConfig = await ensureRegisteredOAuthClient(
+    const server = await resolveOAuthServer(connector, this.discoveryCache);
+    const client = await this.ensureClient(
       provider,
-      providerConfig,
+      connector,
+      server,
       redirectUri,
-      this.clientRepository,
     );
-    const usePkce = effectiveProviderConfig.pkce !== false;
-    const { codeVerifier, codeChallenge } = usePkce
-      ? createPkceChallenge()
-      : { codeVerifier: undefined, codeChallenge: undefined };
     const linkId = randomUUID();
+    const state = encodeOAuthLinkState({
+      ownerId: resolvedOwnerId,
+      provider,
+      linkId,
+    });
+    const scopes = connector.oauth?.scopes ?? [];
+    const started = await startSdkAuthorization({
+      authorizationServerUrl: server.authorizationServerUrl,
+      metadata: server.metadata,
+      client,
+      redirectUri,
+      state,
+      scope: scopes.length > 0 ? scopes.join(" ") : undefined,
+      resource: server.resource,
+    });
+    const authorizationUrl = appendAuthorizeParams(
+      started.authorizationUrl,
+      connector.oauth?.authorizeParams,
+    );
 
     await this.pendingLinkStore.create({
       linkId,
       ownerId: resolvedOwnerId,
       provider,
-      codeVerifier,
+      codeVerifier: started.codeVerifier,
       redirectUri,
       ...(uiOrigin ? { uiOrigin } : {}),
       status: "pending",
       createdAt: new Date(),
     });
-
-    const authorizationUrl = buildOAuthLinkUrl(
-      effectiveProviderConfig,
-      provider,
-      resolvedOwnerId,
-      {
-        redirectUri,
-        ...(codeChallenge ? { codeChallenge } : {}),
-        linkId,
-      },
-    );
 
     this.logger.info("oauth.initiated", {
       provider,
@@ -173,8 +195,7 @@ export class OAuthLinkService {
   }
 
   async unlink(provider: string, ownerId?: string): Promise<boolean> {
-    const config = this.configService.get();
-    if (!config.oauth_providers[provider]) {
+    if (!this.findConnector(provider)) {
       throw new Error(`Unknown OAuth provider "${provider}"`);
     }
 
@@ -258,8 +279,8 @@ export class OAuthLinkService {
     provider: string,
     { code, pendingLink }: ResolvedCallbackContext,
   ): Promise<OAuthCallbackResult> {
-    const providerConfig = this.configService.get().oauth_providers[provider];
-    if (!providerConfig) {
+    const connector = this.findConnector(provider);
+    if (!connector) {
       return this.callbackFailure(
         `Unknown OAuth provider "${provider}"`,
         pendingLink.linkId,
@@ -267,18 +288,22 @@ export class OAuthLinkService {
     }
 
     try {
-      const effectiveProviderConfig = await ensureRegisteredOAuthClient(
+      const server = await resolveOAuthServer(connector, this.discoveryCache);
+      const client = await this.ensureClient(
         provider,
-        providerConfig,
+        connector,
+        server,
         pendingLink.redirectUri,
-        this.clientRepository,
       );
-      const token = await exchangeAuthorizationCode(
-        effectiveProviderConfig,
+      const token = await exchangeSdkAuthorization({
+        authorizationServerUrl: server.authorizationServerUrl,
+        metadata: server.metadata,
+        client,
         code,
-        pendingLink.redirectUri,
-        pendingLink.codeVerifier,
-      );
+        codeVerifier: pendingLink.codeVerifier ?? "",
+        redirectUri: pendingLink.redirectUri,
+        resource: server.resource,
+      });
       await this.tokenRepository.set(pendingLink.ownerId, provider, token);
       await this.pendingLinkStore.update({
         ...pendingLink,
@@ -413,4 +438,146 @@ export class OAuthLinkService {
       error: message,
     });
   }
+
+  private findConnector(provider: string): ConnectorRecord | undefined {
+    const registry = this.configService.getRegistry();
+    const bySlug = registry.find(provider);
+    if (bySlug) {
+      return bySlug;
+    }
+    return registry
+      .get()
+      .find((connector) => connector.oauth?.providerKey === provider);
+  }
+
+  private knownProviderNames(): string[] {
+    const names = new Set<string>();
+    for (const connector of this.configService.getRegistry().get()) {
+      if (connector.authMode === "user_oauth") {
+        names.add(connector.oauth?.providerKey ?? connector.slug);
+      }
+    }
+    return [...names];
+  }
+
+  private async ensureClient(
+    provider: string,
+    connector: ConnectorRecord,
+    server: ResolvedOAuthServer,
+    redirectUri: string,
+  ): Promise<ReturnType<typeof clientInformationFrom>> {
+    if (connector.oauth?.clientId && connector.oauth.clientSecret) {
+      return clientInformationFrom(
+        connector.oauth.clientId,
+        connector.oauth.clientSecret,
+      );
+    }
+
+    const fromIssuer = await this.loadIssuerClient(server.issuer, redirectUri);
+    if (fromIssuer) {
+      return fromIssuer;
+    }
+
+    const existing = await this.clientRepository.get(provider);
+    if (existing && existing.redirectUri === redirectUri) {
+      return clientInformationFrom(existing.clientId, existing.clientSecret);
+    }
+
+    if (!server.metadata.registration_endpoint) {
+      throw new Error(
+        `OAuth provider "${provider}" needs client credentials. Paste a client ID and secret, or use a server that supports dynamic client registration.`,
+      );
+    }
+
+    const registered = await registerSdkClient({
+      authorizationServerUrl: server.authorizationServerUrl,
+      metadata: server.metadata,
+      redirectUri,
+      clientName: `Torii (${provider})`,
+      scope: connector.oauth?.scopes?.join(" "),
+    });
+    await this.persistRegisteredClient(
+      provider,
+      server.issuer,
+      registered,
+      redirectUri,
+      connector.oauth?.scopes ?? [],
+    );
+    return clientInformationFrom(registered.clientId, registered.clientSecret);
+  }
+
+  private async loadIssuerClient(
+    issuer: string,
+    redirectUri: string,
+  ): Promise<ReturnType<typeof clientInformationFrom> | undefined> {
+    if (!this.registrations) {
+      return undefined;
+    }
+    const row = await this.registrations.get(issuer);
+    if (!row) {
+      return undefined;
+    }
+    if (row.redirectUri && row.redirectUri !== redirectUri) {
+      return undefined;
+    }
+    let clientSecret: string | undefined;
+    if (row.clientSecretRef && this.secrets) {
+      const stored = await this.secrets.get(row.clientSecretRef);
+      if (stored) {
+        clientSecret = await resolveSecretPayload(stored);
+      }
+    }
+    return clientInformationFrom(row.clientId, clientSecret);
+  }
+
+  private async persistRegisteredClient(
+    provider: string,
+    issuer: string,
+    registered: { clientId: string; clientSecret?: string },
+    redirectUri: string,
+    scopes: string[],
+  ): Promise<void> {
+    await this.clientRepository.set(provider, {
+      clientId: registered.clientId,
+      ...(registered.clientSecret
+        ? { clientSecret: registered.clientSecret }
+        : {}),
+      redirectUri,
+    });
+    if (!this.registrations) {
+      return;
+    }
+    let clientSecretRef: string | undefined;
+    if (registered.clientSecret && this.secrets) {
+      const existing = await this.registrations.get(issuer);
+      const secret = await createSealedSecret(registered.clientSecret);
+      await this.secrets.insert(secret);
+      clientSecretRef = secret.id;
+      if (existing?.clientSecretRef) {
+        await this.secrets.delete(existing.clientSecretRef);
+      }
+    }
+    await this.registrations.upsert({
+      issuer,
+      clientId: registered.clientId,
+      clientSecretRef,
+      redirectUri,
+      origin: "dcr",
+      scopes,
+    });
+  }
+}
+
+function appendAuthorizeParams(
+  authorizationUrl: string,
+  params?: Record<string, string>,
+): string {
+  if (!params || Object.keys(params).length === 0) {
+    return authorizationUrl;
+  }
+  const url = new URL(authorizationUrl);
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
+  return url.toString();
 }

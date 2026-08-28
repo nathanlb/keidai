@@ -155,14 +155,10 @@ write_secrets_values() {
     printf 'secrets:\n'
     printf '  postgresPassword: %s\n' "$(yaml_quote "${postgres_password}")"
     printf '  openRouterApiKey: %s\n' "$(yaml_quote "${OPEN_ROUTER_API_KEY}")"
-    printf '  linearApiKey: %s\n' "$(yaml_quote "${LINEAR_API_KEY:-}")"
-    printf '  githubClientId: %s\n' "$(yaml_quote "${GITHUB_CLIENT_ID:-}")"
-    printf '  githubClientSecret: %s\n' "$(yaml_quote "${GITHUB_CLIENT_SECRET:-}")"
-    printf '  googleClientId: %s\n' "$(yaml_quote "${GOOGLE_CLIENT_ID:-}")"
-    printf '  googleClientSecret: %s\n' "$(yaml_quote "${GOOGLE_CLIENT_SECRET:-}")"
     printf '  keidaiGoogleClientId: %s\n' "$(yaml_quote "${KEIDAI_GOOGLE_CLIENT_ID}")"
     printf '  keidaiGoogleClientSecret: %s\n' "$(yaml_quote "${KEIDAI_GOOGLE_CLIENT_SECRET}")"
     printf '  keidaiSessionSecret: %s\n' "$(yaml_quote "${KEIDAI_SESSION_SECRET}")"
+    printf '  toriiSecretKey: %s\n' "$(yaml_quote "${TORII_SECRET_KEY:-${KEIDAI_SESSION_SECRET}}")"
     printf '  bffServiceToken: %s\n' "$(yaml_quote "${BFF_SERVICE_TOKEN:-}")"
     printf '  bffServiceTokenDisabled: %s\n' "$(yaml_quote "${BFF_SERVICE_TOKEN_DISABLED:-}")"
     printf '  fudaSigningKey: |\n'

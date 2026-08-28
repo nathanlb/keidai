@@ -4,7 +4,7 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
-import { ConfigValidationError } from "../../config/utils/loader.js";
+import { ConfigValidationError } from "../utils/load-operators-file.js";
 import { createTestGatewayPersistence } from "../../testing/gateway-persistence.js";
 import { applyOperatorsFile } from "../apply-operators-file.js";
 

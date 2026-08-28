@@ -72,6 +72,7 @@ function mockTokenExchange(response: Record<string, unknown> = {}): () => void {
           access_token: "new-access-token",
           refresh_token: "new-refresh-token",
           expires_in: 3600,
+          token_type: "bearer",
           ...response,
         }),
         {
@@ -327,7 +328,7 @@ describe("OAuthLinkService", () => {
       });
 
       assert.equal(result.success, false);
-      assert.match(result.error ?? "", /OAuth code exchange failed/);
+      assert.match(result.error ?? "", /invalid_grant|failed/i);
       assert.equal((await pendingLinkStore.get(linkId))?.status, "failed");
     } finally {
       restoreFetch();

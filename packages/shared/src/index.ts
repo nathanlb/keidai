@@ -2,6 +2,8 @@ export * from "./agent-identity.js";
 export * from "./approval.js";
 export * from "./call-trace.js";
 export * from "./config.js";
+export * from "./connector.js";
+export * from "./connector-catalog.js";
 export * from "./dto/index.js";
 export * from "./logging/logger.js";
 export * from "./mcp-tasks.js";

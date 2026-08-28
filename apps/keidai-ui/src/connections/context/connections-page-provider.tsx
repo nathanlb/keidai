@@ -11,13 +11,23 @@ import { mutate } from "swr";
 import {
   reconnectAllConnections,
   reconnectConnection,
+  deleteConnector,
+  unlinkOAuthConnection,
 } from "../../lib/api/gateway.js";
 import { useActingOwner } from "../../shell/hooks/use-acting-owner.js";
 import { useFetchLinkingRequiredTrace } from "../../lib/hooks/use-fetch-linking-required-trace.js";
 import { useFetchOAuthConnections } from "../../lib/hooks/use-fetch-oauth-connections.js";
 import { useFetchOAuthProviders } from "../../lib/hooks/use-fetch-oauth-providers.js";
+import { OAUTH_PROVIDERS_KEY } from "../../lib/hooks/use-fetch-oauth-providers.js";
 import { SERVER_TOOLS_KEY } from "../../lib/hooks/use-fetch-server-tools.js";
-import { useFetchServers } from "../../lib/hooks/use-fetch-servers.js";
+import {
+  SERVERS_KEY,
+  useFetchServers,
+} from "../../lib/hooks/use-fetch-servers.js";
+import {
+  CONNECTORS_KEY,
+  useFetchConnectors,
+} from "../../lib/hooks/use-fetch-connectors.js";
 import { useLiveConnections } from "../../lib/hooks/use-live-connections.js";
 import { isLinkingStillRequired } from "../linking/format-linking-required-prompt.js";
 import { useOAuthLink } from "../../oauth/context/use-oauth-link.js";
@@ -50,6 +60,10 @@ export function ConnectionsPageProvider({
     error: providersError,
     isLoading: providersLoading,
   } = useFetchOAuthProviders();
+
+  const {
+    data: connectorsData,
+  } = useFetchConnectors();
 
   const { owner } = useActingOwner();
   const ownerIds = useMemo(() => (owner ? [owner.ownerId] : []), [owner]);
@@ -232,16 +246,12 @@ export function ConnectionsPageProvider({
   const openLinkDialog = useCallback(
     (providerId: string, ownerId: string) => {
       const providerConfig = providersData?.providers[providerId];
-      if (!providerConfig) {
-        return;
-      }
-
       linkDialog.openLink(
         {
           providerId,
           providerLabel: formatProviderLabel(providerId),
           ownerId,
-          scopes: providerConfig.scopes,
+          scopes: providerConfig?.scopes ?? [],
           redirectUri: buildToriiOAuthCallbackUrl(providerId),
         },
         { onLinked: handleLinkCompleted },
@@ -267,6 +277,32 @@ export function ConnectionsPageProvider({
     [openLinkDialog],
   );
 
+  const onUnlink = useCallback(
+    (providerId: string) => {
+      if (!owner) {
+        return;
+      }
+      void (async () => {
+        await unlinkOAuthConnection(providerId, owner.ownerId);
+        await refreshConnections();
+        await refreshLinkingRequiredTrace();
+      })();
+    },
+    [owner, refreshConnections, refreshLinkingRequiredTrace],
+  );
+
+  const onDeleteConnector = useCallback(
+    async (slug: string) => {
+      await deleteConnector(slug);
+      await mutate(CONNECTORS_KEY);
+      await mutate(SERVERS_KEY);
+      await mutate(OAUTH_PROVIDERS_KEY);
+      setDrawerOpen(false);
+      setSelectedServerName(null);
+    },
+    [],
+  );
+
   const isServerReconnecting = useCallback(
     (serverName: string) =>
       reconnectingServers.has(serverName) || isReconnectingAll,
@@ -282,6 +318,17 @@ export function ConnectionsPageProvider({
   const selectedServer = selectedServerName
     ? serversByName.get(selectedServerName)
     : undefined;
+
+  const selectedConnector = useMemo(() => {
+    if (!selectedServerName) {
+      return null;
+    }
+    return (
+      (connectorsData?.connectors ?? []).find(
+        (connector) => connector.slug === selectedServerName,
+      ) ?? null
+    );
+  }, [connectorsData?.connectors, selectedServerName]);
 
   const onOpenServer = useCallback((serverName: string) => {
     setSelectedServerName(serverName);
@@ -317,10 +364,13 @@ export function ConnectionsPageProvider({
       linkingRequiredServer,
       selectedSummary,
       selectedServer,
+      selectedConnector,
       drawerOpen,
       onReconnect,
       onReconnectAll,
       onLink,
+      onUnlink,
+      onDeleteConnector,
       onLinkFromBanner,
       isServerReconnecting,
       onOpenServer,
@@ -335,10 +385,13 @@ export function ConnectionsPageProvider({
     linkingRequiredServer,
     selectedSummary,
     selectedServer,
+    selectedConnector,
     drawerOpen,
     onReconnect,
     onReconnectAll,
     onLink,
+    onUnlink,
+    onDeleteConnector,
     onLinkFromBanner,
     isServerReconnecting,
     onOpenServer,

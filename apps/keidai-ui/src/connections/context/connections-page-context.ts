@@ -1,6 +1,6 @@
 import { createContext } from "react";
 import type { PublicServerConfig } from "@keidai/shared/dto";
-import type { TraceListItem } from "@keidai/shared";
+import type { PublicConnector, TraceListItem } from "@keidai/shared";
 import type {
   ConnectionSummaryCounts,
   ServerConnectionSummary,
@@ -15,10 +15,13 @@ export interface ConnectionsPageContextValue {
   linkingRequiredServer?: PublicServerConfig;
   selectedSummary: ServerConnectionSummary | null;
   selectedServer?: PublicServerConfig;
+  selectedConnector: PublicConnector | null;
   drawerOpen: boolean;
   onReconnect: (serverName: string) => void;
   onReconnectAll: () => void;
   onLink: (providerId: string) => void;
+  onUnlink: (providerId: string) => void;
+  onDeleteConnector: (slug: string) => Promise<void>;
   onLinkFromBanner: (providerId: string, ownerId: string) => void;
   isServerReconnecting: (serverName: string) => boolean;
   onOpenServer: (serverName: string) => void;

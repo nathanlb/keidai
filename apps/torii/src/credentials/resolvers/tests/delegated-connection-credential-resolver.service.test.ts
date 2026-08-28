@@ -161,6 +161,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
         response: {
           access_token: "gho_refreshed",
           expires_in: 3600,
+          token_type: "bearer",
         },
       }),
       () =>
@@ -192,6 +193,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
           access_token: "gho_refreshed",
           refresh_token: "ghr_rotated",
           expires_in: 3600,
+          token_type: "bearer",
         },
       }),
       () => withTestAgentPrincipal(() => resolver.resolve(userOAuthServer())),
@@ -222,6 +224,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
           access_token: "gho_refreshed",
           refresh_token: "ghr_rotated",
           expires_in: 3600,
+          token_type: "bearer",
         },
       }),
       () =>

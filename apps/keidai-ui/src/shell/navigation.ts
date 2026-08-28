@@ -4,7 +4,6 @@ import {
   Bot,
   Cable,
   House,
-  KeyRound,
   ListChecks,
   Play,
   ShieldCheck,
@@ -115,9 +114,8 @@ export const observeNavItems: AppNavItem[] = [
     path: CONNECTIONS_PATH,
     label: "Connections",
     title: "Connections",
-    description: "Backend MCP servers wired into the gateway.",
+    description: "MCP backends wired into the gateway.",
     icon: Cable,
-    configChip: "torii.yaml",
     isActive: exact(CONNECTIONS_PATH),
   },
   {
@@ -143,16 +141,6 @@ export const configureNavItems: AppNavItem[] = [
     suppressPageHeader: true,
     isActive: prefix(GROUPS_PATH),
   },
-  {
-    path: PROVIDERS_PATH,
-    label: "OAuth providers",
-    title: "OAuth providers",
-    description:
-      "Standing grants the owner links once. Torii stores, refreshes, and injects per call.",
-    icon: KeyRound,
-    configChip: "torii.yaml",
-    isActive: exact(PROVIDERS_PATH),
-  }
 ];
 
 export const workspaceNavSections: AppNavSection[] = [

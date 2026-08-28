@@ -16,6 +16,10 @@ function oauthSubStatus(
   providerConfig: PublicOAuthProviderConfig | undefined,
   connection: OAuthConnectionStatus | undefined,
 ): CredentialSubStatus {
+  if (connection?.status === "linked") {
+    return { label: `→ ${formatProviderLabel(providerId)}`, warning: false };
+  }
+
   if (!providerConfig || isProviderMisconfigured(providerConfig)) {
     return { label: "provider misconfigured", warning: true };
   }
@@ -25,8 +29,6 @@ function oauthSubStatus(
   }
 
   switch (connection.status) {
-    case "linked":
-      return { label: `→ ${formatProviderLabel(providerId)}`, warning: false };
     case "expired":
       return { label: "token expired", warning: true };
     case "failed":

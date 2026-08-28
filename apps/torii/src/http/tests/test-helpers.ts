@@ -34,6 +34,7 @@ import {
 import { GroupPolicyCache } from "../../policy/group-policy-cache.service.js";
 import { GroupPolicyManagementService } from "../../policy/group-policy-management.service.js";
 import { GroupsApiController } from "../../policy/groups-api.controller.js";
+import { ConnectorsApiController } from "../../connectors/connectors-api.controller.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 import {
   createInboundIdentityService,
@@ -82,6 +83,10 @@ function memoryPersistence(): TestGatewayPersistence {
     groupPolicyRepository: new MockGroupPolicyRepository(),
     close: async () => {},
   };
+}
+
+export function createStubConnectorsApi(): ConnectorsApiController {
+  return { registerRoutes() {} } as unknown as ConnectorsApiController;
 }
 
 export function createOAuthApiController(
@@ -235,6 +240,7 @@ export async function createTestGatewayHttpServer(
       connectionManager,
       toolCatalog,
     ),
+    createStubConnectorsApi(),
     options.oauthApi ??
       createOAuthApiController(configService, { persistence }),
     new TracesApiController(traceRead),

@@ -38,7 +38,6 @@ metadata:
 data:
   TORII_HOST: "0.0.0.0"
   TORII_PORT: "3100"
-  TORII_CONFIG_PATH: /app/torii.yaml
   TORII_FUDA_ISSUER: http://fuda:3300
   TORII_FUDA_JWKS_URI: http://fuda:3300/.well-known/jwks.json
   TORII_GATEWAY_BASE_URL: {{ include "keidai.publicUrl" . | quote }}

@@ -13,7 +13,7 @@ Keidai (境内) is a self-hostable ecosystem for securely configuring, running, 
 - **Monorepo:** pnpm workspaces + Turborepo
 - **Gateway (Torii):** TypeScript, Fastify, tsyringe, official MCP SDK — see [`apps/torii/README.md`](apps/torii/README.md)
 - **AIdP (Fuda):** TypeScript, Fastify, tsyringe, Postgres — see [`apps/fuda/README.md`](apps/fuda/README.md)
-- **Config:** `torii.yaml` at boot for Torii; Fuda uses env + Postgres migrations; operators live in `deploy/operators.example.yaml`
+- **Config:** connectors and group policy are authored in keidai-ui and stored in Postgres; Fuda uses env + Postgres migrations; operators live in `deploy/operators.example.yaml`
 
 ## Layout
 
@@ -33,7 +33,6 @@ deploy/
   k8s/              # In-cluster bring-up (kind / OrbStack; single Postgres)
 docs/
   README.md         # public documentation index
-torii.example.yaml  # example server list + groups
 docker-compose.yml  # Fuda + Torii + Shaiden + keidai-ui (publishes :3000 only)
 ```
 

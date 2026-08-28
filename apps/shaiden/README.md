@@ -37,7 +37,7 @@ CI gate: `.github/workflows/shaiden-termination-eval.yml` runs `eval` on PRs tha
 
 ## Domain boundaries
 
-- **Torii** owns tool catalog/dispatch, group-based policy, and the **approval ledger** — see `apps/torii/torii.demo.yaml`
+- **Torii** owns tool catalog/dispatch, group-based policy, and the **approval ledger**
 - **Fuda** owns agent identity/registration — create agents via keidai-ui / management API
 - **Shaiden** owns task execution, harness runtime, and **run visibility** (`POST /api/tasks/run`, `GET /api/runs`, SSE `/api/runs/events`)
 - **Shared** (`@keidai/shared`) owns cross-app Task/Run types, schemas, and structured logging
@@ -95,13 +95,13 @@ A sample Task shape still lives in [`src/config/boot-task.ts`](src/config/boot-t
 ## Docker Compose
 
 ```bash
-# Requires SHAIDEN_BEARER, FUDA_ISSUER, apps/fuda/keys/dev.pem, and demo Torii
-# secrets in the repo root .env. Fuda seeds shaiden-runner and grants it to
-# every agent at boot / on create.
+# Requires SHAIDEN_BEARER, FUDA_ISSUER, and apps/fuda/keys/dev.pem in the repo
+# root .env. Fuda seeds shaiden-runner and grants it to every agent at boot /
+# on create.
 docker compose up --build
 ```
 
-Starts **Postgres**, **Fuda** (identity / token exchange on `:3300`), **Torii** (`torii.demo.yaml`, JWKS from Fuda), and the **Shaiden** HTTP server (awaiting task submissions from keidai-ui).
+Starts **Postgres**, **Fuda** (identity / token exchange on `:3300`), **Torii** (JWKS from Fuda), and the **Shaiden** HTTP server (awaiting task submissions from keidai-ui).
 
 ## Environment
 

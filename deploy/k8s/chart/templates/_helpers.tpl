@@ -79,8 +79,7 @@ Checksum of ConfigMaps that feed envFrom / mounts so pods restart on change.
 {{- define "keidai.configChecksum" -}}
 {{- $cfg := include (print $.Template.BasePath "/configmaps.yaml") . | sha256sum -}}
 {{- $ops := include (print $.Template.BasePath "/operators-configmap.yaml") . | sha256sum -}}
-{{- $torii := include (print $.Template.BasePath "/torii-configmap.yaml") . | sha256sum -}}
-{{- printf "%s-%s-%s" $cfg $ops $torii | sha256sum -}}
+{{- printf "%s-%s" $cfg $ops | sha256sum -}}
 {{- end }}
 
 {{- define "keidai.secretChecksum" -}}

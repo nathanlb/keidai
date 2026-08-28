@@ -57,7 +57,10 @@ export interface ServerConfig {
   credential: CredentialConfig;
 }
 
-/** Root torii.yaml shape — env refs are resolved before this type is populated. */
+/**
+ * Runtime gateway snapshot projected from Postgres connectors. Tests may build
+ * the same shape as a literal and seed a registry from it.
+ */
 export interface ToriiConfig {
   /**
    * Public gateway base URL used for OAuth callback derivation

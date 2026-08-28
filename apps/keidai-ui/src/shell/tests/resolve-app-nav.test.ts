@@ -65,7 +65,7 @@ describe("resolveAppNav", () => {
   });
 
   it("resolves configure routes from the URL", () => {
-    expect(resolveAppNav("/configure/providers")?.label).toBe("OAuth providers");
+    expect(resolveAppNav("/configure/providers")).toBeUndefined();
     expect(resolveAppNav("/configure/groups")?.label).toBe("Groups & tools");
     expect(resolveAppNav("/configure/groups/ops-write")?.label).toBe(
       "Groups & tools",

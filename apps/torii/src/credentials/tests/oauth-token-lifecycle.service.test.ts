@@ -140,6 +140,7 @@ describe("OAuthTokenLifecycleService", () => {
         response: {
           access_token: "gho_refreshed",
           expires_in: 3600,
+          token_type: "bearer",
         },
       }),
       () => lifecycle.getValidToken("user-1", "github"),
@@ -166,6 +167,7 @@ describe("OAuthTokenLifecycleService", () => {
           access_token: "gho_refreshed",
           refresh_token: "ghr_rotated",
           expires_in: 3600,
+          token_type: "bearer",
         },
       }),
       () => lifecycle.getValidToken("user-1", "github"),
@@ -175,7 +177,7 @@ describe("OAuthTokenLifecycleService", () => {
     assert.equal(stored?.refreshToken, "ghr_rotated");
   });
 
-  it("accepts form-encoded provider refresh responses", async () => {
+  it("asks the token endpoint for JSON via Accept: application/json", async () => {
     const repository = new MockTokenRepository();
     await repository.set("user-1", "github", {
       accessToken: "gho_stale",
@@ -184,17 +186,24 @@ describe("OAuthTokenLifecycleService", () => {
     });
     const lifecycle = createLifecycle(repository);
 
-    const token = await withMockFetch(
-      mockRefreshFetch({
-        contentType: "application/x-www-form-urlencoded",
-        response:
-          "access_token=gho_form&refresh_token=ghr_form&expires_in=3600&token_type=bearer",
-      }),
-      () => lifecycle.getValidToken("user-1", "github"),
-    );
+    let accept: string | null = null;
+    const token = await withMockFetch(async (_input, init) => {
+      accept = new Headers(init?.headers).get("Accept");
+      return new Response(
+        JSON.stringify({
+          access_token: "gho_json",
+          expires_in: 3600,
+          token_type: "bearer",
+        }),
+        {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        },
+      );
+    }, () => lifecycle.getValidToken("user-1", "github"));
 
-    assert.equal(token?.accessToken, "gho_form");
-    assert.equal((await repository.get("user-1", "github"))?.refreshToken, "ghr_form");
+    assert.equal(accept, "application/json");
+    assert.equal(token?.accessToken, "gho_json");
   });
 
   it("single-flights concurrent refresh for the same owner and provider", async () => {
@@ -215,6 +224,7 @@ describe("OAuthTokenLifecycleService", () => {
         response: {
           access_token: "gho_refreshed",
           expires_in: 3600,
+          token_type: "bearer",
         },
       }),
       () =>
@@ -248,6 +258,7 @@ describe("OAuthTokenLifecycleService", () => {
         response: {
           access_token: "gho_refreshed",
           expires_in: 3600,
+          token_type: "bearer",
         },
       }),
       () =>
@@ -277,6 +288,7 @@ describe("OAuthTokenLifecycleService", () => {
         response: {
           access_token: "gho_refreshed",
           expires_in: -120,
+          token_type: "bearer",
         },
       }),
       async () => {
@@ -351,7 +363,7 @@ describe("OAuthTokenLifecycleService", () => {
 
     await assert.rejects(
       () => lifecycle.getValidToken("user-1", "unknown"),
-      /not defined in oauth_providers/,
+      /is not defined/,
     );
   });
 });

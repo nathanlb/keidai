@@ -158,11 +158,17 @@ Fuda discovers `FUDA_K8S_SA_OIDC_ISSUER` from
 var is omitted (`KUBERNETES_SERVICE_HOST` is only the in-cluster probe). Set
 `fuda.k8sSaOidc.issuer` if discovery cannot reach the apiserver.
 
-## Torii gateway config
+## Torii connectors
 
-Default file: [`chart/files/torii.yaml`](chart/files/torii.yaml) (not named
-`demo`). Override with `torii.config` (inline YAML) or replace the chart file.
-Keep it in sync with `apps/torii/torii.demo.yaml` when changing demo backends.
+Connectors are stored in Postgres and authored in keidai-ui Connections, with
+their service keys and OAuth client secrets sealed under `TORII_SECRET_KEY`.
+Fresh installs boot with zero backends, and the chart carries no backend
+credentials — there is no connector config file to mount.
+
+A connector can reference an environment variable instead of a sealed value.
+Torii reads that variable from the torii pod at call time, so you have to add
+it to the Deployment yourself; pasting the secret in keidai-ui is the path
+that needs no manifest change.
 
 ## Persistence
 

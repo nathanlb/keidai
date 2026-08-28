@@ -76,7 +76,7 @@ export class GroupPolicyManagementService {
     servers: CreateGroupBody["servers"],
   ): void {
     const knownServers = new Set(
-      this.configService.get().servers.map((server) => server.name),
+      this.configService.getRegistry().listEnabled().map((connector) => connector.slug),
     );
     assertValidGroupServers(servers, knownServers);
   }

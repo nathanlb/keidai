@@ -60,6 +60,8 @@ export interface MockToriiConfig {
   toriiGroups?: ToriiGroupDefinition[];
   /** NAT-179 group policy records. When omitted, derived from `toriiGroups`. */
   toriiGroupPolicies?: GroupView[];
+  connectors?: { connectors: unknown[] };
+  catalogConnectors?: { catalog: unknown[]; version: string };
   fudaHealthy?: boolean;
 }
 
@@ -97,6 +99,8 @@ export async function mockToriiConfig(
     fudaPersonaVersions = {},
     toriiGroups = [],
     toriiGroupPolicies,
+    connectors = { connectors: [] },
+    catalogConnectors = { catalog: [], version: "1" },
     fudaHealthy = healthy,
   }: MockToriiConfig = {},
 ): Promise<void> {
@@ -188,6 +192,22 @@ export async function mockToriiConfig(
     }
 
     await route.fulfill({ json: servers });
+  });
+
+  await page.route("**/api/connectors", async (route) => {
+    if (!healthy) {
+      await route.fulfill({ status: 503, body: "Gateway unavailable" });
+      return;
+    }
+    await route.fulfill({ json: connectors });
+  });
+
+  await page.route("**/api/catalog/connectors", async (route) => {
+    if (!healthy) {
+      await route.fulfill({ status: 503, body: "Gateway unavailable" });
+      return;
+    }
+    await route.fulfill({ json: catalogConnectors });
   });
 
   await page.route("**/api/connections", async (route) => {

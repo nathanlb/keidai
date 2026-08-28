@@ -16,13 +16,22 @@ const githubConfig: PublicOAuthProviderConfig = {
 };
 
 describe("isProviderMisconfigured", () => {
-  it("flags static providers missing client_id", () => {
+  it("flags providers missing token_url", () => {
     expect(
       isProviderMisconfigured({
-        token_url: "https://example.com/token",
+        token_url: "",
         scopes: [],
       }),
     ).toBe(true);
+  });
+
+  it("does not flag Class A / DCR providers that have no static client_id", () => {
+    expect(
+      isProviderMisconfigured({
+        token_url: "https://mcp.notion.com/mcp",
+        scopes: [],
+      }),
+    ).toBe(false);
   });
 
   it("accepts dynamic registration providers with registration_endpoint", () => {

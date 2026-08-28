@@ -73,7 +73,6 @@ services:
       - .env
       - apps/torii/.env
     environment:
-      TORII_CONFIG_PATH: /app/torii.demo.yaml
       TORII_DATABASE_URL: postgres://torii:${POSTGRES_PASSWORD:-keidai-local}@postgres:5432/torii
       TORII_FUDA_ISSUER: ${FUDA_ISSUER:-http://fuda:3300}
       TORII_FUDA_JWKS_URI: http://fuda:3300/.well-known/jwks.json
@@ -82,8 +81,8 @@ services:
       # Pin container path so a host-relative TORII_OPERATORS_PATH from
       # apps/torii/.env cannot break in-container boot (mirrors k8s ConfigMap mount).
       TORII_OPERATORS_PATH: /app/operators/operators.yaml
+      TORII_SECRET_KEY: ${TORII_SECRET_KEY:-torii-local-dev-secret-key-do-not-use}
     volumes:
-      - ./apps/torii/torii.demo.yaml:/app/torii.demo.yaml:ro
       - ./deploy/operators.example.yaml:/app/operators/operators.yaml:ro
     healthcheck:
       test:

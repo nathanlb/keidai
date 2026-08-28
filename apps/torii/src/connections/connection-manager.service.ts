@@ -63,6 +63,46 @@ export class ConnectionManager {
   }
 
   /**
+   * Diff the live connection map against the current connector registry.
+   * Adds new backends, closes removed ones, and reconnects changed URLs.
+   */
+  async reconcile(): Promise<void> {
+    const desired = this.configService.get().servers;
+    const desiredNames = new Set(desired.map((server) => server.name));
+
+    for (const existing of this.list()) {
+      if (desiredNames.has(existing.config.name)) {
+        continue;
+      }
+      if (existing.client) {
+        await existing.client.close();
+      }
+      this.connections.delete(existing.config.name);
+    }
+
+    for (const server of desired) {
+      const current = this.connections.get(server.name);
+      if (!current) {
+        this.setConnection(server.name, {
+          config: server,
+          state: "connecting",
+          client: null,
+        });
+        await this.connectServer(server);
+        continue;
+      }
+
+      const urlChanged = current.config.transport.url !== server.transport.url;
+      const authChanged =
+        JSON.stringify(current.config.credential) !==
+        JSON.stringify(server.credential);
+      if (urlChanged || authChanged) {
+        await this.reconnect(server.name);
+      }
+    }
+  }
+
+  /**
    * Ensures a backend has a live MCP client. Used when an agent principal is
    * available so user_oauth handshakes can attach Authorization (boot connect
    * often fails open without a principal against auth-required MCP servers).
