@@ -1,5 +1,13 @@
 # @keidai/keidai-ui
 
+## 0.3.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @keidai/shared@0.3.0
+  - @keidai/ui@0.3.0
+
 ## 0.2.0
 
 ### Patch Changes

@@ -4,8 +4,8 @@ description: Keidai agent ecosystem (Fuda, Torii, Shaiden, keidai-ui) for self-h
 type: application
 # Chart version == appVersion == image tags (platform semver). Published to
 # oci://ghcr.io/<owner>/keidai on the matching v* git tag.
-version: 0.2.0
-appVersion: "0.2.0"
+version: 0.3.0
+appVersion: "0.3.0"
 kubeVersion: ">=1.25.0-0"
 home: https://github.com/nathanlb/keidai
 sources:
