@@ -8,11 +8,11 @@ import {
   Link2,
   Loader2,
   RefreshCw,
-  Server,
   TriangleAlert,
   Unlink,
   Trash2,
 } from "lucide-react";
+import { ConnectorIcon } from "../lib/components/connector-icon.js";
 import {
   DetailDrawer,
   DetailDrawerSectionLabel,
@@ -195,14 +195,11 @@ export function ConnectionDetailDrawer() {
       open={open}
       onOpenChange={onOpenChange}
       headerBadge={
-        <span
-          className="
-          flex size-9 shrink-0 items-center justify-center rounded-[9px]
-          bg-secondary text-secondary-foreground
-        "
-        >
-          <Server className="size-4" aria-hidden />
-        </span>
+        <ConnectorIcon
+          slug={connector?.icon ?? connector?.catalogId ?? summary.name}
+          label={connector?.displayName ?? summary.name}
+          size="lg"
+        />
       }
       title={
         <span className="font-semibold">

@@ -44,20 +44,50 @@ describe("ConnectorManagementService", () => {
       );
 
       const created = await management.installFromCatalog({
-        catalogId: "linear",
-        serviceKey: "lin_api_secret_value",
+        catalogId: "github",
+        oauthClient: {
+          clientId: "gh_oauth_client",
+          clientSecret: "gh_oauth_secret_value",
+        },
       });
-      assert.equal(created.slug, "linear");
-      assert.equal(created.catalogId, "linear");
-      assert.equal(created.serviceKey?.set, true);
+      assert.equal(created.slug, "github");
+      assert.equal(created.catalogId, "github");
+      assert.equal(created.oauthClient?.set, true);
       assert.equal(
-        JSON.stringify(created).includes("lin_api_secret_value"),
+        JSON.stringify(created).includes("gh_oauth_secret_value"),
         false,
       );
 
       const listed = await management.list();
       assert.equal(listed.length, 1);
-      assert.equal(listed[0]?.slug, "linear");
+      assert.equal(listed[0]?.slug, "github");
+    } finally {
+      await persistence.close();
+    }
+  });
+
+  it("installs a Class A catalog connector without client credentials", async () => {
+    const persistence = await createTestGatewayPersistence("postgres");
+    try {
+      const pool = persistence.pool!;
+      const registry = new ConnectorRegistry();
+      const runtime = stubRuntime();
+      const management = new ConnectorManagementService(
+        new PgConnectorRepository(pool),
+        registry,
+        new PgSecretRepository(pool),
+        new PgOAuthRegistrationRepository(pool),
+        persistence.groupPolicyRepository,
+        runtime.connections,
+        runtime.catalog,
+      );
+
+      const created = await management.installFromCatalog({
+        catalogId: "linear",
+      });
+      assert.equal(created.slug, "linear");
+      assert.equal(created.authMode, "user_oauth");
+      assert.equal(created.oauthClient?.set, false);
     } finally {
       await persistence.close();
     }

@@ -1,6 +1,7 @@
 import { Button, Card, CardContent, cn } from "@keidai/ui";
 import type { ConnectionState, GroupServerPolicyView } from "@keidai/shared";
-import { ChevronDown, HardDrive, X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
+import { ConnectorIcon } from "../../lib/components/connector-icon.js";
 import { useState } from "react";
 import type { ServerCatalogue, ToolEffect } from "../types/group-editor.js";
 import {
@@ -74,12 +75,7 @@ export function GroupServerCard({
           hover:bg-muted/45
         "
       >
-        <span className="
-          flex size-8 shrink-0 items-center justify-center rounded-lg
-          bg-secondary text-secondary-foreground
-        ">
-          <HardDrive className="size-3.75" aria-hidden />
-        </span>
+        <ConnectorIcon slug={policy.server} label={policy.server} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className="font-mono text-[14.5px] font-semibold">
@@ -122,10 +118,12 @@ export function GroupServerCard({
       {open ? (
         <CardContent className="border-t border-border p-0">
           {rules.length === 0 ? (
-            <div className="
+            <div
+              className="
               border-b border-border px-4.5 py-3.5 text-[12.5px] leading-relaxed
               text-muted-foreground
-            ">
+            "
+            >
               No tool-level rules. Every tool on this server follows the default
               below.
             </div>
@@ -207,9 +205,11 @@ export function GroupServerCard({
                   </span>
                 ) : null}
               </div>
-              <div className="
+              <div
+                className="
                 mt-0.5 text-[11.5px] leading-snug text-muted-foreground
-              ">
+              "
+              >
                 {formatDefaultExplain(policy.default)}
               </div>
             </div>

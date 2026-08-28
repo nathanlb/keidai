@@ -18,6 +18,7 @@ export interface ConnectionSummaryCounts {
 
 export interface ServerConnectionSummary {
   name: string;
+  icon?: string;
   endpoint: string;
   credentialStrategy: PublicServerConfig["credential"]["strategy"];
   credentialSubStatus: { label: string; warning: boolean };

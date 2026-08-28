@@ -23,26 +23,12 @@ import {
   getOperatorEdgeOrigin,
   installCatalogConnector,
 } from "../lib/api/gateway.js";
+import { ConnectorIcon } from "../lib/components/connector-icon.js";
 import { useFetchConnectorCatalog } from "../lib/hooks/use-fetch-connector-catalog.js";
 import { CONNECTORS_KEY } from "../lib/hooks/use-fetch-connectors.js";
 import { OAUTH_PROVIDERS_KEY } from "../lib/hooks/use-fetch-oauth-providers.js";
 import { SERVERS_KEY } from "../lib/hooks/use-fetch-servers.js";
 import { buildToriiOAuthCallbackUrl } from "../oauth/utils/build-torii-oauth-callback-url.js";
-
-function CatalogIcon({ name }: { name: string }) {
-  return (
-    <span
-      className="
-        flex size-9 shrink-0 items-center justify-center rounded-[9px]
-        bg-secondary text-[13px] font-semibold text-secondary-foreground
-        uppercase
-      "
-      aria-hidden
-    >
-      {name.slice(0, 1)}
-    </span>
-  );
-}
 
 function setupCopy(entry: CatalogEntry, slug: string): string {
   if (entry.setup.kind === "discovered") {
@@ -254,7 +240,11 @@ export function AddConnectorDialog({
                       }
                     `}
                   >
-                    <CatalogIcon name={entry.displayName} />
+                    <ConnectorIcon
+                      slug={entry.icon}
+                      label={entry.displayName}
+                      size="lg"
+                    />
                     <span className="min-w-0 flex-1">
                       <span className="block text-[13.5px] font-medium">
                         {entry.displayName}

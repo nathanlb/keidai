@@ -61,9 +61,7 @@ export function ConnectionsPageProvider({
     isLoading: providersLoading,
   } = useFetchOAuthProviders();
 
-  const {
-    data: connectorsData,
-  } = useFetchConnectors();
+  const { data: connectorsData } = useFetchConnectors();
 
   const { owner } = useActingOwner();
   const ownerIds = useMemo(() => (owner ? [owner.ownerId] : []), [owner]);
@@ -163,14 +161,32 @@ export function ConnectionsPageProvider({
       : null;
   }, [linkingRequiredServer, linkingRequiredTrace, oauthConnections]);
 
+  const connectorBySlug = useMemo(
+    () =>
+      new Map(
+        (connectorsData?.connectors ?? []).map((connector) => [
+          connector.slug,
+          connector,
+        ]),
+      ),
+    [connectorsData?.connectors],
+  );
+
   const summaries = useMemo(
     () =>
       buildServerSummaries(serversData?.servers ?? [], liveConnections, {
         ownerId: owner?.ownerId ?? "",
         oauthProviders: providersData?.providers ?? {},
         oauthConnections,
+      }).map((summary) => {
+        const connector = connectorBySlug.get(summary.name);
+        return {
+          ...summary,
+          icon: connector?.icon ?? connector?.catalogId ?? summary.name,
+        };
       }),
     [
+      connectorBySlug,
       liveConnections,
       oauthConnections,
       owner?.ownerId,
@@ -291,17 +307,14 @@ export function ConnectionsPageProvider({
     [owner, refreshConnections, refreshLinkingRequiredTrace],
   );
 
-  const onDeleteConnector = useCallback(
-    async (slug: string) => {
-      await deleteConnector(slug);
-      await mutate(CONNECTORS_KEY);
-      await mutate(SERVERS_KEY);
-      await mutate(OAUTH_PROVIDERS_KEY);
-      setDrawerOpen(false);
-      setSelectedServerName(null);
-    },
-    [],
-  );
+  const onDeleteConnector = useCallback(async (slug: string) => {
+    await deleteConnector(slug);
+    await mutate(CONNECTORS_KEY);
+    await mutate(SERVERS_KEY);
+    await mutate(OAUTH_PROVIDERS_KEY);
+    setDrawerOpen(false);
+    setSelectedServerName(null);
+  }, []);
 
   const isServerReconnecting = useCallback(
     (serverName: string) =>
