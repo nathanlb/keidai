@@ -15,13 +15,13 @@ test.describe("App shell navigation", () => {
     await expect(page.getByTestId("home-all-clear")).toBeVisible();
   });
 
-  test("swaps the full sidebar when entering and leaving Configure", async ({
+  test("shows one Work then Gateway sidebar on every route", async ({
     page,
   }) => {
     await page.goto("/home");
 
-    await expect(sidebarNavSection(page, "operate")).toBeVisible();
-    await expect(sidebarNavSection(page, "observe")).toBeVisible();
+    await expect(sidebarNavSection(page, "work")).toBeVisible();
+    await expect(sidebarNavSection(page, "gateway")).toBeVisible();
     await expect(sidebarNavLink(page, "/home")).toBeVisible();
     await expect(sidebarNavLink(page, "/agents")).toBeVisible();
     await expect(sidebarNavLink(page, "/tasks")).toBeVisible();
@@ -29,35 +29,30 @@ test.describe("App shell navigation", () => {
     await expect(sidebarNavLink(page, "/approvals")).toBeVisible();
     await expect(sidebarNavLink(page, "/activity")).toBeVisible();
     await expect(sidebarNavLink(page, "/connections")).toBeVisible();
-    await expect(page.getByTestId("sidebar-configure-door")).toBeVisible();
-    await expect(page.getByTestId("backend-health-footer")).toHaveCount(0);
-    await expect(sidebarNavLink(page, "/bearers")).toHaveCount(0);
-
-    await page.getByTestId("sidebar-configure-door").click();
-
-    await expect(page).toHaveURL(/\/configure\/groups/);
-    await expect(sidebarNavSection(page, "configure")).toBeVisible();
-    await expect(sidebarNavSection(page, "operate")).toHaveCount(0);
-    await expect(sidebarNavSection(page, "observe")).toHaveCount(0);
-    await expect(sidebarNavLink(page, "/configure/groups")).toBeVisible();
+    await expect(sidebarNavLink(page, "/groups")).toBeVisible();
     await expect(page.getByTestId("backend-health-footer")).toBeVisible();
     await expect(page.getByTestId("sidebar-configure-door")).toHaveCount(0);
+    await expect(sidebarNavLink(page, "/bearers")).toHaveCount(0);
 
-    await page.getByTestId("sidebar-configure-back").click();
-    await expect(page).toHaveURL(/\/home$/);
-    await expect(sidebarNavSection(page, "operate")).toBeVisible();
-    await expect(sidebarNavSection(page, "observe")).toBeVisible();
+    await page.goto("/groups");
+
+    await expect(page).toHaveURL(/\/groups$/);
+    await expect(sidebarNavSection(page, "work")).toBeVisible();
+    await expect(sidebarNavSection(page, "gateway")).toBeVisible();
+    await expect(sidebarNavLink(page, "/groups")).toBeVisible();
+    await expect(page.getByTestId("backend-health-footer")).toBeVisible();
   });
 
-  test("keeps Configure mode on a hard refresh", async ({ page }) => {
+  test("redirects /configure/groups onto /groups without swapping the sidebar", async ({
+    page,
+  }) => {
     await page.goto("/configure/groups");
-    await expect(sidebarNavSection(page, "configure")).toBeVisible();
 
-    await page.reload();
-
-    await expect(page).toHaveURL(/\/configure\/groups$/);
-    await expect(sidebarNavSection(page, "configure")).toBeVisible();
-    await expect(sidebarNavLink(page, "/configure/groups")).toBeVisible();
+    await expect(page).toHaveURL(/\/groups$/);
+    await expect(sidebarNavSection(page, "work")).toBeVisible();
+    await expect(sidebarNavSection(page, "gateway")).toBeVisible();
+    await expect(sidebarNavLink(page, "/groups")).toBeVisible();
+    await expect(page.getByTestId("backend-health-footer")).toBeVisible();
   });
 
   test("navigates between workspace pages", async ({ page }) => {

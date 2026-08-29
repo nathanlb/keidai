@@ -3,48 +3,26 @@ import {
   resolveAppNav,
   resolveAppNavSection,
   resolveAppSection,
-  resolveNavMode,
 } from "../navigation.js";
 
-describe("resolveNavMode", () => {
-  it("treats /configure and its children as configure mode", () => {
-    expect(resolveNavMode("/configure")).toBe("configure");
-    expect(resolveNavMode("/configure/connections")).toBe("configure");
-    expect(resolveNavMode("/configure/providers")).toBe("configure");
-    expect(resolveNavMode("/configure/groups")).toBe("configure");
-  });
-
-  it("treats every other path as workspace mode", () => {
-    expect(resolveNavMode("/home")).toBe("workspace");
-    expect(resolveNavMode("/agents")).toBe("workspace");
-    expect(resolveNavMode("/runs/4821")).toBe("workspace");
-    expect(resolveNavMode("/approvals")).toBe("workspace");
-    expect(resolveNavMode("/activity")).toBe("workspace");
-  });
-});
-
 describe("resolveAppNavSection", () => {
-  it("maps workspace routes to Operate and Observe sections", () => {
-    expect(resolveAppNavSection("/agents")?.id).toBe("operate");
-    expect(resolveAppNavSection("/agents/agt-1")?.id).toBe("operate");
-    expect(resolveAppNavSection("/tasks")?.id).toBe("operate");
-    expect(resolveAppNavSection("/runs/4821")?.id).toBe("operate");
-    expect(resolveAppNavSection("/approvals")?.id).toBe("operate");
-    expect(resolveAppNavSection("/activity")?.id).toBe("observe");
+  it("maps work and gateway routes to their sections", () => {
+    expect(resolveAppNavSection("/agents")?.id).toBe("work");
+    expect(resolveAppNavSection("/agents/agt-1")?.id).toBe("work");
+    expect(resolveAppNavSection("/tasks")?.id).toBe("work");
+    expect(resolveAppNavSection("/runs/4821")?.id).toBe("work");
+    expect(resolveAppNavSection("/approvals")?.id).toBe("work");
+    expect(resolveAppNavSection("/activity")?.id).toBe("gateway");
+    expect(resolveAppNavSection("/connections")?.id).toBe("gateway");
+    expect(resolveAppNavSection("/groups")?.id).toBe("gateway");
+    expect(resolveAppNavSection("/groups/ops-write")?.id).toBe("gateway");
   });
 
-  it("maps configure routes to the Configure section", () => {
-    expect(resolveAppNavSection("/configure")?.id).toBe("configure");
-    expect(resolveAppNavSection("/configure/connections")?.id).toBe(
-      "configure",
-    );
-    expect(resolveAppNavSection("/configure/groups/ops-write")?.id).toBe(
-      "configure",
-    );
-  });
-
-  it("returns undefined for Home and unknown routes", () => {
+  it("returns undefined for Home, retired configure paths, and unknown routes", () => {
     expect(resolveAppNavSection("/home")).toBeUndefined();
+    expect(resolveAppNavSection("/configure")).toBeUndefined();
+    expect(resolveAppNavSection("/configure/groups")).toBeUndefined();
+    expect(resolveAppNavSection("/configure/groups/ops-write")).toBeUndefined();
     expect(resolveAppNavSection("/bearers")).toBeUndefined();
   });
 });
@@ -61,27 +39,29 @@ describe("resolveAppNav", () => {
     expect(resolveAppNav("/runs/4821")?.label).toBe("Runs");
     expect(resolveAppNav("/approvals")?.label).toBe("Approvals");
     expect(resolveAppNav("/connections")?.label).toBe("Connections");
-    expect(resolveAppNav("/activity")?.label).toBe("Gateway activity");
+    expect(resolveAppNav("/activity")?.label).toBe("Activity");
+    expect(resolveAppNav("/groups")?.label).toBe("Policy Groups");
+    expect(resolveAppNav("/groups/ops-write")?.label).toBe("Policy Groups");
   });
 
-  it("resolves configure routes from the URL", () => {
+  it("resolves section labels from the URL", () => {
+    expect(resolveAppSection("/activity")).toBe("Gateway");
+    expect(resolveAppSection("/connections")).toBe("Gateway");
+    expect(resolveAppSection("/groups")).toBe("Gateway");
+    expect(resolveAppSection("/agents")).toBe("Work");
+    expect(resolveAppSection("/runs/4821")).toBe("Work");
+    expect(resolveAppSection("/home")).toBe("");
+  });
+
+  it("does not treat bearers, retired configure paths, or old service paths as nav items", () => {
     expect(resolveAppNav("/configure/providers")).toBeUndefined();
-    expect(resolveAppNav("/configure/groups")?.label).toBe("Groups & tools");
-    expect(resolveAppNav("/configure/groups/ops-write")?.label).toBe(
-      "Groups & tools",
-    );
-    expect(resolveAppSection("/configure/connections")).toBe("Configure");
-    expect(resolveAppSection("/activity")).toBe("Observe");
-    expect(resolveAppSection("/agents")).toBe("Operate");
-    expect(resolveAppSection("/runs/4821")).toBe("Operate");
-  });
-
-  it("does not treat bearers or retired service paths as nav items", () => {
+    expect(resolveAppNav("/configure/groups")).toBeUndefined();
+    expect(resolveAppNav("/configure/groups/ops-write")).toBeUndefined();
     expect(resolveAppNav("/bearers")).toBeUndefined();
     expect(resolveAppNav("/bearers/br_1")).toBeUndefined();
     expect(resolveAppNav("/oauth-providers")).toBeUndefined();
     expect(resolveAppNav("/shaiden/tasks")).toBeUndefined();
     expect(resolveAppNav("/shaiden/runs")).toBeUndefined();
-    expect(resolveAppSection("/home")).toBe("");
+    expect(resolveAppSection("/configure/connections")).toBe("");
   });
 });

@@ -1,9 +1,13 @@
 import { createBrowserRouter, Navigate } from "react-router";
 import { KeidaiLayout } from "./shell/keidai-layout.js";
-import { PreserveSearchRedirect } from "./shell/components/preserve-search-redirect.js";
+import {
+  PrefixRedirect,
+  PreserveSearchRedirect,
+} from "./shell/components/preserve-search-redirect.js";
 import {
   AGENTS_PATH,
   CONNECTIONS_PATH,
+  GROUPS_PATH,
   HOME_PATH,
   RUNS_PATH,
   TASKS_PATH,
@@ -38,6 +42,14 @@ export const router = createBrowserRouter([
         element: <PreserveSearchRedirect to={RUNS_PATH} />,
       },
       {
+        path: "configure/groups",
+        element: <PrefixRedirect from="/configure/groups" to={GROUPS_PATH} />,
+      },
+      {
+        path: "configure/groups/*",
+        element: <PrefixRedirect from="/configure/groups" to={GROUPS_PATH} />,
+      },
+      {
         path: "configure",
         element: <PreserveSearchRedirect to={CONNECTIONS_PATH} />,
       },
@@ -54,14 +66,14 @@ export const router = createBrowserRouter([
         element: <PreserveSearchRedirect to={CONNECTIONS_PATH} />,
       },
       {
-        path: "configure/groups",
+        path: "groups",
         lazy: async () => {
           const { GroupsPage } = await import("./groups/pages/groups-page.js");
           return { Component: GroupsPage };
         },
       },
       {
-        path: "configure/groups/new",
+        path: "groups/new",
         lazy: async () => {
           const { GroupCreatePage } =
             await import("./groups/pages/group-create-page.js");
@@ -69,7 +81,7 @@ export const router = createBrowserRouter([
         },
       },
       {
-        path: "configure/groups/:name",
+        path: "groups/:name",
         lazy: async () => {
           const { GroupDetailPage } =
             await import("./groups/pages/group-detail-page.js");

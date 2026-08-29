@@ -32,12 +32,15 @@ const opsBot: ManagementAgent = {
   updatedAt: "2026-08-01T00:00:00.000Z",
 };
 
-test.describe("Groups & tools", () => {
-  test("shows the empty state when no groups are defined", async ({ page }) => {
+test.describe("Policy Groups", () => {
+  test("redirects /configure/groups and shows the empty state", async ({
+    page,
+  }) => {
     await mockToriiConfig(page);
 
     await page.goto("/configure/groups");
 
+    await expect(page).toHaveURL(/\/groups$/);
     await expect(page.getByText("No groups yet")).toBeVisible();
     await expect(
       page.getByRole("button", { name: "New group" }).first(),
@@ -74,7 +77,7 @@ test.describe("Groups & tools", () => {
       },
     });
 
-    await page.goto("/configure/groups");
+    await page.goto("/groups");
 
     await expect(page.getByText("ops-write")).toBeVisible();
     await expect(page.getByText("gmail")).toBeVisible();
@@ -112,7 +115,7 @@ test.describe("Groups & tools", () => {
       },
     });
 
-    await page.goto("/configure/groups");
+    await page.goto("/groups");
     await page.getByText("ops-write").click();
 
     await expect(page.getByText("messages.send")).toBeVisible();
@@ -141,13 +144,13 @@ test.describe("Groups & tools", () => {
       },
     });
 
-    await page.goto("/configure/groups");
+    await page.goto("/groups");
     await page.getByRole("button", { name: "New group" }).first().click();
     await page.getByLabel("Name").fill("ops-write");
     await page.getByLabel("Description").fill("Day-to-day write access");
     await page.getByRole("button", { name: "Create group" }).click();
 
-    await expect(page).toHaveURL(/\/configure\/groups\/ops-write$/);
+    await expect(page).toHaveURL(/\/groups\/ops-write$/);
     await expect(
       page.getByRole("heading", { name: "ops-write" }).or(page.getByText("ops-write").first()),
     ).toBeVisible();

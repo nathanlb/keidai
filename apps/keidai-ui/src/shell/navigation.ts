@@ -20,9 +20,7 @@ export const ACTIVITY_PATH = "/activity";
 export const CONFIGURE_PATH = "/configure";
 export const CONNECTIONS_PATH = "/connections";
 export const PROVIDERS_PATH = "/configure/providers";
-export const GROUPS_PATH = "/configure/groups";
-
-export type NavMode = "workspace" | "configure";
+export const GROUPS_PATH = "/groups";
 
 export interface AppNavItem {
   path: string;
@@ -39,7 +37,6 @@ export interface AppNavItem {
 export interface AppNavSection {
   id: string;
   label: string;
-  mode: NavMode;
   items: AppNavItem[];
 }
 
@@ -49,12 +46,6 @@ function exact(path: string): (pathname: string) => boolean {
 
 function prefix(path: string): (pathname: string) => boolean {
   return (pathname) => pathname === path || pathname.startsWith(`${path}/`);
-}
-
-function isConfigurePath(pathname: string): boolean {
-  return (
-    pathname === CONFIGURE_PATH || pathname.startsWith(`${CONFIGURE_PATH}/`)
-  );
 }
 
 export const homeNavItem: AppNavItem = {
@@ -68,7 +59,7 @@ export const homeNavItem: AppNavItem = {
   isActive: exact(HOME_PATH),
 };
 
-export const operateNavItems: AppNavItem[] = [
+export const workNavItems: AppNavItem[] = [
   {
     path: AGENTS_PATH,
     label: "Agents",
@@ -109,7 +100,16 @@ export const operateNavItems: AppNavItem[] = [
   },
 ];
 
-export const observeNavItems: AppNavItem[] = [
+export const gatewayNavItems: AppNavItem[] = [
+  {
+    path: ACTIVITY_PATH,
+    label: "Activity",
+    title: "Activity",
+    description:
+      "Chronological CallTrace stream — what each agent invoked, under which owner, and how policy and credentials resolved.",
+    icon: Activity,
+    isActive: exact(ACTIVITY_PATH),
+  },
   {
     path: CONNECTIONS_PATH,
     label: "Connections",
@@ -119,21 +119,9 @@ export const observeNavItems: AppNavItem[] = [
     isActive: exact(CONNECTIONS_PATH),
   },
   {
-    path: ACTIVITY_PATH,
-    label: "Gateway activity",
-    title: "Gateway activity",
-    description:
-      "Chronological CallTrace stream — what each agent invoked, under which owner, and how policy and credentials resolved.",
-    icon: Activity,
-    isActive: exact(ACTIVITY_PATH),
-  },
-];
-
-export const configureNavItems: AppNavItem[] = [
-  {
     path: GROUPS_PATH,
-    label: "Groups & tools",
-    title: "Groups & tools",
+    label: "Policy Groups",
+    title: "Policy Groups",
     description:
       "Which tools each group may use, and which agents inherit that policy.",
     icon: UsersRound,
@@ -145,34 +133,20 @@ export const configureNavItems: AppNavItem[] = [
 
 export const workspaceNavSections: AppNavSection[] = [
   {
-    id: "operate",
-    label: "Operate",
-    mode: "workspace",
-    items: operateNavItems,
+    id: "work",
+    label: "Work",
+    items: workNavItems,
   },
   {
-    id: "observe",
-    label: "Observe",
-    mode: "workspace",
-    items: observeNavItems,
+    id: "gateway",
+    label: "Gateway",
+    items: gatewayNavItems,
   },
-];
-
-export const configureNavSection: AppNavSection = {
-  id: "configure",
-  label: "Configure",
-  mode: "configure",
-  items: configureNavItems,
-};
-
-const allNavSections: AppNavSection[] = [
-  ...workspaceNavSections,
-  configureNavSection,
 ];
 
 const allNavItems: AppNavItem[] = [
   homeNavItem,
-  ...allNavSections.flatMap((section) => section.items),
+  ...workspaceNavSections.flatMap((section) => section.items),
 ];
 
 export function resolveAppNav(pathname: string): AppNavItem | undefined {
@@ -183,19 +157,12 @@ export function resolveAppNavSection(
   pathname: string,
 ): AppNavSection | undefined {
   const item = resolveAppNav(pathname);
-  if (item) {
-    return allNavSections.find((section) =>
-      section.items.some((candidate) => candidate.path === item.path),
-    );
+  if (!item) {
+    return undefined;
   }
-  if (isConfigurePath(pathname)) {
-    return configureNavSection;
-  }
-  return undefined;
-}
-
-export function resolveNavMode(pathname: string): NavMode {
-  return resolveAppNavSection(pathname)?.mode ?? "workspace";
+  return workspaceNavSections.find((section) =>
+    section.items.some((candidate) => candidate.path === item.path),
+  );
 }
 
 export function resolveAppSection(pathname: string): string {

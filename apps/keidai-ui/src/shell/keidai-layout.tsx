@@ -2,7 +2,7 @@ import { useLocation } from "react-router";
 import { AppShell } from "./app-shell.js";
 import { AppProvider } from "./context/app-provider.js";
 import { OperatorAuthGate } from "./components/operator-auth-gate.js";
-import { PlatformSidebarNav } from "./components/sidebar/platform-sidebar-nav.js";
+import { WorkspaceSidebarNav } from "./components/sidebar/workspace-sidebar-nav.js";
 import {
   resolveAppNav,
   resolveAppNavSection,
@@ -54,8 +54,8 @@ export function KeidaiLayout() {
                     showRefresh: current.showRefresh,
                   }
             }
-            sidebarNav={<PlatformSidebarNav />}
-            sidebarSubtitle="ecosystem console"
+            sidebarNav={<WorkspaceSidebarNav />}
+            sidebarSubtitle="Agent Ecosystem"
           />
         </OAuthLinkProvider>
       </OperatorAuthGate>

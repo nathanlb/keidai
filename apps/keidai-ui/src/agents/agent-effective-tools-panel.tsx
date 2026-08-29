@@ -65,10 +65,12 @@ export function AgentEffectiveToolsPanel({
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
-      <div className="
+      <div
+        className="
         flex flex-wrap items-start justify-between gap-3.5 border-b
         border-border px-4.5 py-3.5
-      ">
+      "
+      >
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-[13.5px] font-semibold">Effective tools</span>
@@ -106,14 +108,18 @@ export function AgentEffectiveToolsPanel({
       </div>
 
       {result.conflicts.length > 0 ? (
-        <Alert className="
+        <Alert
+          className="
           rounded-none border-0 border-b border-border
           bg-[color-mix(in_srgb,var(--amber-500)_8%,transparent)] px-4.5 py-3
-        ">
+        "
+        >
           <TriangleAlert className="text-amber-500" aria-hidden />
-          <AlertDescription className="
+          <AlertDescription
+            className="
             text-[12.5px] leading-normal text-foreground
-          ">
+          "
+          >
             {result.conflicts.length === 1
               ? `1 tool this agent would otherwise reach is blocked by a deny in another of its groups — ${result.conflicts[0]?.tool}. Deny always wins, so joining more groups can never unblock it.`
               : `${result.conflicts.length} tools this agent would otherwise reach are blocked by a deny in another of its groups — ${result.conflicts.map((conflict) => conflict.tool).join(", ")}. Deny always wins, so joining more groups can never unblock them.`}
@@ -122,25 +128,31 @@ export function AgentEffectiveToolsPanel({
       ) : null}
 
       {cataloguesLoading && result.servers.length === 0 ? (
-        <div className="
+        <div
+          className="
           flex items-center gap-2 px-4.5 py-4 text-sm text-muted-foreground
-        ">
+        "
+        >
           <Spinner className="size-4" aria-hidden />
           Resolving tools…
         </div>
       ) : result.servers.length === 0 ? (
-        <p className="
+        <p
+          className="
           px-4.5 py-4 text-[12.5px] leading-normal text-muted-foreground
-        ">
+        "
+        >
           Join a defined group to see what this agent can reach.
         </p>
       ) : (
         visible.map((server) => (
           <div key={server.name}>
-            <div className="
+            <div
+              className="
               flex items-center gap-2.5 border-b border-border bg-muted/40
               px-4.5 py-2.5
-            ">
+            "
+            >
               <span
                 className={cn(
                   "size-1.5 shrink-0 rounded-full",
@@ -155,16 +167,20 @@ export function AgentEffectiveToolsPanel({
                 {server.tools.filter((tool) => tool.state !== "deny").length} of{" "}
                 {server.tools.length} reachable
               </span>
-              <span className="
+              <span
+                className="
                 ml-auto font-mono text-[11.5px] text-muted-foreground
-              ">
+              "
+              >
                 via {server.via.join(" + ")}
               </span>
             </div>
             {server.catalogueAvailable ? null : (
-              <p className="
+              <p
+                className="
                 border-b border-border px-4.5 py-2.5 text-[12px] text-amber-500
-              ">
+              "
+              >
                 {server.unavailableReason ??
                   "Tool catalogue unavailable — showing named policy rules only."}
               </p>
@@ -172,9 +188,11 @@ export function AgentEffectiveToolsPanel({
             {filter !== "all" &&
             server.tools.filter((tool) => tool.state === filter).length ===
               0 ? (
-              <p className="
+              <p
+                className="
                 border-b border-border px-4.5 py-3 text-xs text-muted-foreground
-              ">
+              "
+              >
                 No tools in this filter.
               </p>
             ) : (
@@ -237,16 +255,21 @@ export function AgentEffectiveToolsPanel({
         ))
       )}
 
-      <p className="
+      <p
+        className="
         px-4.5 py-3 text-[11.5px] leading-normal text-muted-foreground
-      ">
+      "
+      >
         This is the decision the gateway will make. To change it, edit the group
         under{" "}
-        <Link to={GROUPS_PATH} className="
+        <Link
+          to={GROUPS_PATH}
+          className="
           text-foreground
           hover:underline
-        ">
-          Configure → Groups &amp; tools
+        "
+        >
+          Policy Groups
         </Link>
         .
       </p>
