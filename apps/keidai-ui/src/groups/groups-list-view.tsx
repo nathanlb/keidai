@@ -37,7 +37,7 @@ function GroupsPageHeader({ onNewGroup }: { onNewGroup: () => void }) {
     <div className="flex items-start justify-between gap-4">
       <div className="max-w-155">
         <div className="text-[23px] font-bold tracking-tight">
-          Groups & tools
+          Policy Groups
         </div>
         <p className="mt-1 text-[13.5px] leading-relaxed text-muted-foreground">
           A group is a named policy over one or more servers. Agents get their
@@ -128,28 +128,36 @@ export function GroupsListView() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="
+                  <TableHead
+                    className="
                     h-auto py-2.5 pl-4 text-[10.5px] font-semibold
                     tracking-wider uppercase
-                  ">
+                  "
+                  >
                     Group
                   </TableHead>
-                  <TableHead className="
+                  <TableHead
+                    className="
                     h-auto py-2.5 text-[10.5px] font-semibold tracking-wider
                     uppercase
-                  ">
+                  "
+                  >
                     Reaches
                   </TableHead>
-                  <TableHead className="
+                  <TableHead
+                    className="
                     h-auto py-2.5 text-[10.5px] font-semibold tracking-wider
                     uppercase
-                  ">
+                  "
+                  >
                     Grants
                   </TableHead>
-                  <TableHead className="
+                  <TableHead
+                    className="
                     h-auto py-2.5 text-[10.5px] font-semibold tracking-wider
                     uppercase
-                  ">
+                  "
+                  >
                     Agents
                   </TableHead>
                   <TableHead className="h-auto w-4.5 py-2.5 pr-4" />
@@ -177,9 +185,11 @@ export function GroupsListView() {
                         <div className="font-mono text-[13.5px] font-semibold">
                           {group.name}
                         </div>
-                        <div className="
+                        <div
+                          className="
                           mt-0.5 truncate text-[12px] text-muted-foreground
-                        ">
+                        "
+                        >
                           {group.description || "No description"}
                         </div>
                       </TableCell>
@@ -212,34 +222,42 @@ export function GroupsListView() {
                         ) : null}
                       </TableCell>
                       <TableCell className="overflow-hidden py-3">
-                        <div className="
+                        <div
+                          className="
                           flex min-w-0 items-center gap-1.5 overflow-hidden
-                        ">
+                        "
+                        >
                           {members.slice(0, 2).map((agent) => (
                             <Avatar
                               key={agent.id}
                               size="sm"
                               className="size-5.5 shrink-0"
                             >
-                              <AvatarFallback className="
+                              <AvatarFallback
+                                className="
                                 bg-secondary font-mono text-[9.5px] font-bold
                                 text-secondary-foreground
-                              ">
+                              "
+                              >
                                 {deriveAgentInitials(agent.name)}
                               </AvatarFallback>
                             </Avatar>
                           ))}
                           {overflow > 0 ? (
-                            <span className="
+                            <span
+                              className="
                               shrink-0 font-mono text-[9.5px]
                               text-muted-foreground
-                            ">
+                            "
+                            >
                               +{overflow}
                             </span>
                           ) : null}
-                          <span className="
+                          <span
+                            className="
                             min-w-0 truncate text-[12px] text-muted-foreground
-                          ">
+                          "
+                          >
                             {formatAgentCountLabel(members.length)}
                           </span>
                         </div>
@@ -255,10 +273,12 @@ export function GroupsListView() {
                 })}
               </TableBody>
             </Table>
-            <div className="
+            <div
+              className="
               border-t border-border px-4 py-2.75 text-[12px]
               text-muted-foreground
-            ">
+            "
+            >
               {formatListFooter(groups.length, undefinedRefs.length)}
             </div>
           </CardContent>

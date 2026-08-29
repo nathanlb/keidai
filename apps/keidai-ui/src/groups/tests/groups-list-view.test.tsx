@@ -111,6 +111,6 @@ describe("GroupsListView", () => {
     expect(screen.getByText(/finance-write/)).toBeInTheDocument();
 
     await user.click(screen.getByText("ops-write"));
-    expect(navigate).toHaveBeenCalledWith("/configure/groups/ops-write");
+    expect(navigate).toHaveBeenCalledWith("/groups/ops-write");
   });
 });

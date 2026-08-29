@@ -1,9 +1,6 @@
 import type { MouseEvent, ReactNode } from "react";
-import { useLocation } from "react-router";
 import { KeidaiLogo } from "../logo/keidai-logo.js";
-import { resolveNavMode } from "../../navigation.js";
 import { BackendHealthFooter } from "./backend-health-footer.js";
-import { ConfigureDoor } from "./configure-door.js";
 
 export interface SidebarPanelProps {
   subtitle?: string;
@@ -12,13 +9,10 @@ export interface SidebarPanelProps {
 }
 
 export function SidebarPanel({
-  subtitle = "ecosystem console",
+  subtitle,
   children,
   onNavInteract,
 }: SidebarPanelProps) {
-  const { pathname } = useLocation();
-  const mode = resolveNavMode(pathname);
-
   return (
     <>
       <div
@@ -45,7 +39,7 @@ export function SidebarPanel({
       </div>
 
       <div onClick={onNavInteract}>
-        {mode === "configure" ? <BackendHealthFooter /> : <ConfigureDoor />}
+        <BackendHealthFooter />
       </div>
     </>
   );
