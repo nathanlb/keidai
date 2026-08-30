@@ -10,8 +10,7 @@ import {
 import { HomeStatTiles } from "./components/home-stat-tiles.js";
 import { HomeToast } from "./components/home-toast.js";
 import { NeedsYouBand } from "./components/needs-you-band.js";
-import { RunningNowCard } from "./components/running-now-card.js";
-import { YourAgentsStrip } from "./components/your-agents-strip.js";
+import { SystemMapCard } from "./components/system-map-card.js";
 import { useHomeDigest } from "./hooks/use-home-digest.js";
 import { useHomeToast } from "./hooks/use-home-toast.js";
 import type { HomeAttentionItem } from "./types/home-digest.js";
@@ -77,6 +76,8 @@ export function HomeView() {
         <AllClearCard />
       )}
 
+      <SystemMapCard map={digest.systemMap} />
+
       <HomeStatTiles
         awaitingYou={digest.awaitingYou}
         oldestParkedLabel={digest.oldestParkedLabel}
@@ -88,16 +89,7 @@ export function HomeView() {
         failedTaskName={digest.failedTaskName}
       />
 
-      <div className="
-        grid grid-cols-1 items-stretch gap-3.5
-        lg:grid-cols-[1.15fr_1fr]
-      ">
-        <RunningNowCard runs={digest.liveRuns} />
-        <GoalCompletionCard
-          rateLabel={digest.goalRateLabel}
-          week={digest.week}
-        />
-      </div>
+      <GoalCompletionCard rateLabel={digest.goalRateLabel} week={digest.week} />
 
       <HomeRunsTable
         tab={tab}
@@ -108,7 +100,6 @@ export function HomeView() {
         pausedScheduledCount={digest.pausedScheduledCount}
       />
 
-      <YourAgentsStrip agents={digest.agents} />
       <HomeToast message={message} />
     </div>
   );

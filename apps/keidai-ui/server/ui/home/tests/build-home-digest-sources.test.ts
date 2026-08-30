@@ -81,6 +81,8 @@ describe("buildHomeDigestSourcesResponse", () => {
       tasks: [],
       agents: [],
       groups: [],
+      servers: [],
+      connections: [],
     });
 
     assert.equal(response.approvals.length, 1);

@@ -28,6 +28,25 @@
   }
 }
 
+@keyframes system-map-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes system-map-creep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
 .run-log-shimmer {
   background-image: linear-gradient(
     90deg,
@@ -47,14 +66,25 @@
   animation: run-log-result-fade 150ms ease-out;
 }
 
+[data-system-map-pulse] {
+  animation: system-map-breathe 2s ease-in-out infinite;
+}
+
+[data-system-map-creep] {
+  animation: system-map-creep 2.6s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .run-log-shimmer,
   .run-log-breathe,
-  .run-log-result-enter {
+  .run-log-result-enter,
+  [data-system-map-pulse],
+  [data-system-map-creep] {
     animation: none;
   }
 
-  .run-log-breathe {
+  .run-log-breathe,
+  [data-system-map-pulse] {
     opacity: 1;
   }
 }

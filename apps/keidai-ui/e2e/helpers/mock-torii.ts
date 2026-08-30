@@ -50,6 +50,7 @@ export interface MockToriiConfig {
   shaidenHealthy?: boolean;
   toriiVersion?: string;
   shaidenVersion?: string;
+  fudaVersion?: string;
   /** Fuda's agent registry — the UI's only source of agent data. */
   fudaAgents?: ManagementAgent[];
   fudaBearers?: Bearer[];
@@ -93,6 +94,7 @@ export async function mockToriiConfig(
     shaidenHealthy = healthy,
     toriiVersion = "0.0.0",
     shaidenVersion = "0.0.0",
+    fudaVersion = "0.0.0",
     fudaAgents = [],
     fudaBearers = [],
     fudaGrants = [],
@@ -418,6 +420,8 @@ export async function mockToriiConfig(
         tasks: activeTasks,
         agents: agentState,
         groups: groupState,
+        servers: servers.servers,
+        connections: connections.connections,
       }),
     });
   });
@@ -680,7 +684,7 @@ export async function mockToriiConfig(
       return;
     }
 
-    await route.fulfill({ json: { ok: true } });
+    await route.fulfill({ json: { ok: true, version: fudaVersion } });
   });
 
   await page.route("**/api/config/groups", async (route) => {

@@ -1,6 +1,8 @@
 import type {
   ApprovalRecordView,
+  ConnectionStatus,
   GroupView,
+  PublicServerConfig,
   RunReport,
   SavedTask,
 } from "@keidai/shared";
@@ -28,4 +30,6 @@ export interface HomeDigestSourcesResponse {
   tasks: SavedTask[];
   agents: HomeDigestAgent[];
   groups: GroupView[];
+  servers: PublicServerConfig[];
+  connections: ConnectionStatus[];
 }

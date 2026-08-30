@@ -8,6 +8,7 @@ import { CONNECTORS_KEY } from "../use-fetch-connectors.js";
 import { TASKS_KEY } from "../../../tasks/hooks/use-fetch-tasks.js";
 import { RUNS_VISIBILITY_KEY } from "../../../runs/hooks/use-runs-visibility.js";
 import { TORII_STATUS_KEY, SHAIDEN_STATUS_KEY } from "../backend-health.js";
+import { FUDA_STATUS_KEY } from "../use-fuda-status.js";
 import { GROUPS_KEY } from "../../../groups/hooks/use-fetch-groups.js";
 import { TORII_GROUPS_KEY } from "../../../agents/hooks/use-fetch-torii-groups.js";
 
@@ -24,6 +25,11 @@ describe("refreshToriiConfig", () => {
     );
     expect(mutate).toHaveBeenCalledWith(
       SHAIDEN_STATUS_KEY,
+      undefined,
+      { revalidate: true },
+    );
+    expect(mutate).toHaveBeenCalledWith(
+      FUDA_STATUS_KEY,
       undefined,
       { revalidate: true },
     );

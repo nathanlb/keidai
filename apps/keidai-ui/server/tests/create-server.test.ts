@@ -369,6 +369,33 @@ describe("createServer", () => {
         res.end(JSON.stringify({ groups: [] }));
         return;
       }
+      if (req.url === "/api/config/servers") {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(
+          JSON.stringify({
+            servers: [
+              {
+                name: "gmail",
+                transport: { type: "http", url: "http://gmail.example/mcp" },
+                credential: { strategy: "user_oauth", provider: "gmail" },
+                policy: { default: "deny" },
+              },
+            ],
+          }),
+        );
+        return;
+      }
+      if (req.url === "/api/connections") {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(
+          JSON.stringify({
+            connections: [
+              { name: "gmail", state: "connected", toolCount: 11 },
+            ],
+          }),
+        );
+        return;
+      }
       res.writeHead(404).end();
     });
 
@@ -505,6 +532,8 @@ describe("createServer", () => {
         }>;
         runReports: Record<string, { id: string }>;
         agents: Array<{ slug: string }>;
+        servers: Array<{ name: string }>;
+        connections: Array<{ name: string; state: string; toolCount?: number }>;
       };
       assert.equal(body.approvals.length, 1);
       assert.equal(body.runs.length, 2);
@@ -512,6 +541,10 @@ describe("createServer", () => {
       assert.equal(body.runReports["run-live"]?.id, "run-live");
       assert.equal(body.runReports["run-parked"], undefined);
       assert.equal(body.agents[0]?.slug, "demo-agent");
+      assert.equal(body.servers[0]?.name, "gmail");
+      assert.equal(body.connections[0]?.name, "gmail");
+      assert.equal(body.connections[0]?.state, "connected");
+      assert.equal(body.connections[0]?.toolCount, 11);
     } finally {
       await uiApp.close();
       await Promise.all([

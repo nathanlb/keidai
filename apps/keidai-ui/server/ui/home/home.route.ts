@@ -1,7 +1,11 @@
 import type {
   ApprovalRecordView,
+  ConfigServersResponse,
+  ConnectionsResponse,
+  ConnectionStatus,
   GroupView,
   GroupsResponse,
+  PublicServerConfig,
   RunReport,
   RunsResponse,
   TasksResponse,
@@ -75,6 +79,38 @@ async function fetchGroupsOrEmpty(
   }
 }
 
+async function fetchServersOrEmpty(
+  backends: OperatorApiBackends,
+  bffServiceToken: string | null,
+): Promise<PublicServerConfig[]> {
+  try {
+    const response = await fetchManagementApiJson<ConfigServersResponse>(
+      backends.torii,
+      "/api/config/servers",
+      { bffServiceToken },
+    );
+    return response.servers;
+  } catch {
+    return [];
+  }
+}
+
+async function fetchConnectionsOrEmpty(
+  backends: OperatorApiBackends,
+  bffServiceToken: string | null,
+): Promise<ConnectionStatus[]> {
+  try {
+    const response = await fetchManagementApiJson<ConnectionsResponse>(
+      backends.torii,
+      "/api/connections",
+      { bffServiceToken },
+    );
+    return response.connections;
+  } catch {
+    return [];
+  }
+}
+
 export async function registerHomeDigestRoute(
   app: FastifyInstance,
   options: RegisterHomeDigestRouteOptions,
@@ -91,26 +127,35 @@ export async function registerHomeDigestRoute(
     const approvalsPath = listQueryPath("/api/approvals", limit);
 
     try {
-      const [approvals, rawRuns, tasksResponse, agentsResponse, groups] =
-        await Promise.all([
-          fetchManagementApiJson<ApprovalRecordView[]>(
-            backends.torii,
-            approvalsPath,
-            { bffServiceToken },
-          ),
-          fetchManagementApiJson<RunsResponse>(backends.shaiden, runsPath, {
-            bffServiceToken,
-          }),
-          fetchManagementApiJson<TasksResponse>(backends.shaiden, tasksPath, {
-            bffServiceToken,
-          }),
-          fetchManagementApiJson<{ agents: HomeDigestAgent[] }>(
-            backends.fuda,
-            "/api/agents",
-            { bffServiceToken },
-          ),
-          fetchGroupsOrEmpty(backends, bffServiceToken),
-        ]);
+      const [
+        approvals,
+        rawRuns,
+        tasksResponse,
+        agentsResponse,
+        groups,
+        servers,
+        connections,
+      ] = await Promise.all([
+        fetchManagementApiJson<ApprovalRecordView[]>(
+          backends.torii,
+          approvalsPath,
+          { bffServiceToken },
+        ),
+        fetchManagementApiJson<RunsResponse>(backends.shaiden, runsPath, {
+          bffServiceToken,
+        }),
+        fetchManagementApiJson<TasksResponse>(backends.shaiden, tasksPath, {
+          bffServiceToken,
+        }),
+        fetchManagementApiJson<{ agents: HomeDigestAgent[] }>(
+          backends.fuda,
+          "/api/agents",
+          { bffServiceToken },
+        ),
+        fetchGroupsOrEmpty(backends, bffServiceToken),
+        fetchServersOrEmpty(backends, bffServiceToken),
+        fetchConnectionsOrEmpty(backends, bffServiceToken),
+      ]);
 
       const runsResponse = buildRunsVisibilityResponse(
         rawRuns,
@@ -142,6 +187,8 @@ export async function registerHomeDigestRoute(
         tasks: tasksResponse.tasks,
         agents: agentsResponse.agents,
         groups,
+        servers,
+        connections,
       });
     } catch (error) {
       if (error instanceof UpstreamRequestError) {

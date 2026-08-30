@@ -1,6 +1,6 @@
 import type { MouseEvent, ReactNode } from "react";
 import { KeidaiLogo } from "../logo/keidai-logo.js";
-import { BackendHealthFooter } from "./backend-health-footer.js";
+import { useEcosystemHealth } from "../../../lib/hooks/use-ecosystem-health.js";
 
 export interface SidebarPanelProps {
   subtitle?: string;
@@ -9,10 +9,12 @@ export interface SidebarPanelProps {
 }
 
 export function SidebarPanel({
-  subtitle,
+  subtitle = "Agent Ecosystem",
   children,
   onNavInteract,
 }: SidebarPanelProps) {
+  const { version } = useEcosystemHealth();
+
   return (
     <>
       <div
@@ -26,7 +28,12 @@ export function SidebarPanel({
           <div className="text-[13.5px] font-semibold text-sidebar-foreground">
             Keidai
           </div>
-          <div className="text-[11px] text-muted-foreground">{subtitle}</div>
+          <div
+            className="truncate font-mono text-[11px] text-muted-foreground"
+            data-testid="sidebar-ecosystem-version"
+          >
+            {version || subtitle}
+          </div>
         </div>
       </div>
 
@@ -36,10 +43,6 @@ export function SidebarPanel({
         onClick={onNavInteract}
       >
         {children}
-      </div>
-
-      <div onClick={onNavInteract}>
-        <BackendHealthFooter />
       </div>
     </>
   );
