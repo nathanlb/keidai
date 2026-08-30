@@ -69,6 +69,40 @@ export interface HomeAgentCard {
   health: HomeAgentHealth;
 }
 
+export type SystemMapAuth = "oauth" | "pat" | "none";
+
+export type SystemMapAgentState = "working" | "waiting" | "idle";
+
+export interface SystemMapServer {
+  id: string;
+  label: string;
+  sub: string;
+  groupId: string | null;
+}
+
+export interface SystemMapGroup {
+  id: string;
+  name: string;
+  scope: string;
+  allGated: boolean;
+}
+
+export interface SystemMapAgent {
+  id: string;
+  label: string;
+  groupId: string | null;
+  state: SystemMapAgentState;
+  task: string;
+  meta: string;
+}
+
+export interface HomeSystemMap {
+  servers: SystemMapServer[];
+  groups: SystemMapGroup[];
+  agents: SystemMapAgent[];
+  workingCount: number;
+}
+
 export interface HomeDigest {
   subtitle: string;
   attention: HomeAttentionItem[];
@@ -88,4 +122,5 @@ export interface HomeDigest {
   scheduled: HomeScheduledTask[];
   pausedScheduledCount: number;
   agents: HomeAgentCard[];
+  systemMap: HomeSystemMap;
 }

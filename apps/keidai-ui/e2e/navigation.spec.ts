@@ -30,7 +30,9 @@ test.describe("App shell navigation", () => {
     await expect(sidebarNavLink(page, "/activity")).toBeVisible();
     await expect(sidebarNavLink(page, "/connections")).toBeVisible();
     await expect(sidebarNavLink(page, "/groups")).toBeVisible();
-    await expect(page.getByTestId("backend-health-footer")).toBeVisible();
+    await expect(page.getByTestId("sidebar-ecosystem-version")).toHaveText(
+      "v0.0.0",
+    );
     await expect(page.getByTestId("sidebar-configure-door")).toHaveCount(0);
     await expect(sidebarNavLink(page, "/bearers")).toHaveCount(0);
 
@@ -40,7 +42,9 @@ test.describe("App shell navigation", () => {
     await expect(sidebarNavSection(page, "work")).toBeVisible();
     await expect(sidebarNavSection(page, "gateway")).toBeVisible();
     await expect(sidebarNavLink(page, "/groups")).toBeVisible();
-    await expect(page.getByTestId("backend-health-footer")).toBeVisible();
+    await expect(page.getByTestId("sidebar-ecosystem-version")).toHaveText(
+      "v0.0.0",
+    );
   });
 
   test("redirects /configure/groups onto /groups without swapping the sidebar", async ({
@@ -52,7 +56,9 @@ test.describe("App shell navigation", () => {
     await expect(sidebarNavSection(page, "work")).toBeVisible();
     await expect(sidebarNavSection(page, "gateway")).toBeVisible();
     await expect(sidebarNavLink(page, "/groups")).toBeVisible();
-    await expect(page.getByTestId("backend-health-footer")).toBeVisible();
+    await expect(page.getByTestId("sidebar-ecosystem-version")).toHaveText(
+      "v0.0.0",
+    );
   });
 
   test("navigates between workspace pages", async ({ page }) => {

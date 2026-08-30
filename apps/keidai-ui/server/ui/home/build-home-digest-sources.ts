@@ -31,5 +31,7 @@ export function buildHomeDigestSourcesResponse(
     tasks: [...input.tasks],
     agents: [...input.agents],
     groups: [...input.groups],
+    servers: [...input.servers],
+    connections: [...input.connections],
   };
 }

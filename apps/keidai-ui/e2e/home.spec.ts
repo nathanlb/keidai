@@ -66,7 +66,7 @@ const liveRunReport: RunReport = {
 };
 
 test.describe("Home dashboard", () => {
-  test("shows the all-clear band on an empty workspace", async ({ page }) => {
+  test("shows the all-clear band and an empty system map", async ({ page }) => {
     await mockToriiConfig(page);
     await page.goto("/home");
 
@@ -74,6 +74,16 @@ test.describe("Home dashboard", () => {
     await expect(page.getByTestId("home-all-clear")).toBeVisible();
     await expect(page.getByText("Nothing is blocked. 0 runs in flight.")).toBeVisible();
     await expect(page.getByTestId("home-stat-awaiting")).toContainText("0");
+    await expect(page.getByTestId("home-system-map")).toBeVisible();
+    await expect(page.getByText("nothing running")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Connect a server" })).toBeVisible();
+    await expect(page.getByTestId("system-map-fuda")).toBeVisible();
+    await expect(page.getByTestId("system-map-health-torii")).toBeVisible();
+    await expect(page.getByTestId("system-map-health-shaiden")).toBeVisible();
+    await expect(page.getByTestId("system-map-health-fuda")).toBeVisible();
+    await expect(page.getByTestId("sidebar-ecosystem-version")).toHaveText(
+      "v0.0.0",
+    );
   });
 
   test("lists a pending approval and approves it inline", async ({ page }) => {
@@ -93,7 +103,7 @@ test.describe("Home dashboard", () => {
     await expect(page.getByTestId("home-all-clear")).toBeVisible();
   });
 
-  test("shows a live run and deep-links Review into Approvals", async ({
+  test("shows a live run on the system map and deep-links Review into Approvals", async ({
     page,
   }) => {
     await mockToriiConfig(page, {
@@ -101,16 +111,90 @@ test.describe("Home dashboard", () => {
       approvals: [pendingApproval],
       runs: { runs: [parkedRun, liveRun] },
       runDetails: { "run-live-home": liveRunReport },
+      toriiGroupPolicies: [
+        {
+          id: "grp-ops",
+          name: "ops-write",
+          description: "",
+          createdAt: "2026-08-01T00:00:00.000Z",
+          updatedAt: "2026-08-01T00:00:00.000Z",
+          servers: [
+            {
+              server: "gmail",
+              default: "deny",
+              allow: ["messages.list"],
+              deny: [],
+              gated: ["send_email"],
+            },
+          ],
+        },
+      ],
+      servers: {
+        servers: [
+          {
+            name: "gmail",
+            transport: { type: "http", url: "http://gmail.example/mcp" },
+            credential: { strategy: "user_oauth", provider: "gmail" },
+            policy: { default: "deny" },
+          },
+        ],
+      },
+      connections: {
+        connections: [{ name: "gmail", state: "connected", toolCount: 11 }],
+      },
     });
     await page.goto("/home");
 
-    await expect(
-      page.getByText("Reading 18 unread threads, drafting labels"),
-    ).toBeVisible();
+    await expect(page.getByTestId("home-system-map")).toBeVisible();
+    await expect(page.getByText("1 agent working")).toBeVisible();
+    await expect(page.getByText(/triage-inbox · step 1 of 12/)).toBeVisible();
     await expect(page.getByTestId("home-stat-running")).toContainText("1");
+    await expect(page.getByText("Running now")).toHaveCount(0);
 
     await page.getByRole("link", { name: "Review" }).click();
     await expect(page).toHaveURL(/\/approvals\?approval=approval-home-1/);
+  });
+
+  test("opens a connection from a system map server tile", async ({ page }) => {
+    await mockToriiConfig(page, {
+      fudaAgents: [opsBot],
+      toriiGroupPolicies: [
+        {
+          id: "grp-ops",
+          name: "ops-write",
+          description: "",
+          createdAt: "2026-08-01T00:00:00.000Z",
+          updatedAt: "2026-08-01T00:00:00.000Z",
+          servers: [
+            {
+              server: "gmail",
+              default: "deny",
+              allow: ["messages.list"],
+              deny: [],
+              gated: ["send_email"],
+            },
+          ],
+        },
+      ],
+      servers: {
+        servers: [
+          {
+            name: "gmail",
+            transport: { type: "http", url: "http://gmail.example/mcp" },
+            credential: { strategy: "user_oauth", provider: "gmail" },
+            policy: { default: "deny" },
+          },
+        ],
+      },
+      connections: {
+        connections: [{ name: "gmail", state: "connected", toolCount: 11 }],
+      },
+    });
+    await page.goto("/home");
+
+    await page.getByTestId("system-map-server-gmail").click();
+    await expect(page).toHaveURL(/\/connections\?server=gmail/);
+    await expect(page.getByRole("heading", { name: "gmail" })).toBeVisible();
   });
 
   test("opens New agent and New task from the header", async ({ page }) => {

@@ -1,6 +1,8 @@
 import type {
   ApprovalRecordView,
+  ConnectionStatus,
   GroupView,
+  PublicServerConfig,
   RunListItem,
   RunReport,
   RunStep,
@@ -27,6 +29,7 @@ import type {
 } from "../types/home-digest.js";
 import { deriveApprovalImpact } from "./derive-approval-impact.js";
 import { deriveGoalVerdict } from "./derive-goal-verdict.js";
+import { buildSystemMap } from "./build-system-map.js";
 import {
   formatCompactDuration,
   formatCompactDurationSince,
@@ -54,6 +57,8 @@ export interface HomeDigestSources {
   tasks: readonly SavedTask[];
   agents: readonly ManagementAgent[];
   groups: readonly GroupView[];
+  servers?: readonly PublicServerConfig[];
+  connections?: readonly ConnectionStatus[];
   now?: number;
 }
 
@@ -416,6 +421,7 @@ export function buildHomeDigest(sources: HomeDigestSources): HomeDigest {
     scheduled: [],
     pausedScheduledCount: 0,
     agents,
+    systemMap: buildSystemMap(sources),
   };
 }
 

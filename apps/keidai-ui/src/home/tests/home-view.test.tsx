@@ -73,6 +73,35 @@ const digest: HomeDigest = {
       health: "healthy",
     },
   ],
+  systemMap: {
+    workingCount: 1,
+    servers: [
+      {
+        id: "gmail",
+        label: "gmail",
+        sub: "11 tools · oauth",
+        groupId: "grp-inbox",
+      },
+    ],
+    groups: [
+      {
+        id: "grp-inbox",
+        name: "inbox-ops",
+        scope: "17 tools",
+        allGated: false,
+      },
+    ],
+    agents: [
+      {
+        id: "agt-ops",
+        label: "ops-bot",
+        groupId: "grp-inbox",
+        state: "working",
+        task: "triage-inbox · step 5 of 12",
+        meta: "2m 14s",
+      },
+    ],
+  },
 };
 
 vi.mock("../hooks/use-home-digest.js", () => ({
@@ -85,10 +114,34 @@ vi.mock("../hooks/use-home-digest.js", () => ({
   }),
 }));
 
+vi.mock("../../lib/hooks/use-ecosystem-health.js", () => ({
+  useEcosystemHealth: () => ({
+    torii: {
+      healthy: true,
+      label: "Healthy",
+      displayAddress: "",
+      version: "0.3.0",
+    },
+    fuda: {
+      healthy: true,
+      label: "Healthy",
+      displayAddress: "",
+      version: "0.3.0",
+    },
+    shaiden: {
+      healthy: true,
+      label: "Healthy",
+      displayAddress: "",
+      version: "0.3.0",
+    },
+    version: "v0.3.0",
+  }),
+}));
+
 import { HomeView } from "../home-view.js";
 
 describe("HomeView", () => {
-  it("renders the digest: attention, stats, live run, recent, agents", () => {
+  it("renders the digest: attention, stats, system map, recent", () => {
     render(
       <MemoryRouter>
         <HomeView />
@@ -103,11 +156,24 @@ describe("HomeView", () => {
     expect(screen.getByTestId("home-needs-you")).toBeInTheDocument();
     expect(screen.getByText("send_email")).toBeInTheDocument();
     expect(screen.getByTestId("home-stat-awaiting")).toHaveTextContent("1");
-    expect(screen.getByText("Reading 18 unread threads")).toBeInTheDocument();
+    expect(screen.getByTestId("home-system-map")).toBeInTheDocument();
+    expect(screen.getByText("1 agent working")).toBeInTheDocument();
+    expect(screen.getByText("triage-inbox · step 5 of 12")).toBeInTheDocument();
+    expect(screen.queryByText("Running now")).not.toBeInTheDocument();
+    expect(screen.queryByText("Your agents")).not.toBeInTheDocument();
     expect(screen.getByText("nightly-digest")).toBeInTheDocument();
-    expect(
-      screen.getByText("Keeps the ops sheet in order."),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("system-map-server-gmail")).toHaveAttribute(
+      "href",
+      "/connections?server=gmail",
+    );
+    expect(screen.getByTestId("system-map-agent-agt-ops")).toHaveAttribute(
+      "href",
+      "/agents/agt-ops",
+    );
+    expect(screen.getByTestId("system-map-group-grp-inbox")).toHaveAttribute(
+      "href",
+      "/groups/inbox-ops",
+    );
     expect(screen.getByRole("link", { name: /new agent/i })).toHaveAttribute(
       "href",
       "/agents/new",

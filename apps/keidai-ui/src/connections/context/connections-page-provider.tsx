@@ -7,7 +7,9 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useSearchParams } from "react-router";
 import { mutate } from "swr";
+import { CONNECTION_SERVER_PARAM } from "../navigation.js";
 import {
   reconnectAllConnections,
   reconnectConnection,
@@ -80,14 +82,13 @@ export function ConnectionsPageProvider({
     isLoading: liveConnectionsLoading,
   } = useLiveConnections();
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedServerName = searchParams.get(CONNECTION_SERVER_PARAM);
+  const drawerOpen = Boolean(selectedServerName);
   const [reconnectingServers, setReconnectingServers] = useState<Set<string>>(
     new Set(),
   );
   const [isReconnectingAll, setIsReconnectingAll] = useState(false);
-  const [selectedServerName, setSelectedServerName] = useState<string | null>(
-    null,
-  );
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const { trace: linkingRequiredTrace, refresh: refreshLinkingRequiredTrace } =
     useFetchLinkingRequiredTrace(owner?.ownerId ?? null);
@@ -307,14 +308,25 @@ export function ConnectionsPageProvider({
     [owner, refreshConnections, refreshLinkingRequiredTrace],
   );
 
-  const onDeleteConnector = useCallback(async (slug: string) => {
-    await deleteConnector(slug);
-    await mutate(CONNECTORS_KEY);
-    await mutate(SERVERS_KEY);
-    await mutate(OAUTH_PROVIDERS_KEY);
-    setDrawerOpen(false);
-    setSelectedServerName(null);
-  }, []);
+  const clearSelectedServer = useCallback(() => {
+    if (!searchParams.has(CONNECTION_SERVER_PARAM)) {
+      return;
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete(CONNECTION_SERVER_PARAM);
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  const onDeleteConnector = useCallback(
+    async (slug: string) => {
+      await deleteConnector(slug);
+      await mutate(CONNECTORS_KEY);
+      await mutate(SERVERS_KEY);
+      await mutate(OAUTH_PROVIDERS_KEY);
+      clearSelectedServer();
+    },
+    [clearSelectedServer],
+  );
 
   const isServerReconnecting = useCallback(
     (serverName: string) =>
@@ -343,17 +355,23 @@ export function ConnectionsPageProvider({
     );
   }, [connectorsData?.connectors, selectedServerName]);
 
-  const onOpenServer = useCallback((serverName: string) => {
-    setSelectedServerName(serverName);
-    setDrawerOpen(true);
-  }, []);
+  const onOpenServer = useCallback(
+    (serverName: string) => {
+      const next = new URLSearchParams(searchParams);
+      next.set(CONNECTION_SERVER_PARAM, serverName);
+      setSearchParams(next, { replace: true });
+    },
+    [searchParams, setSearchParams],
+  );
 
-  const onDrawerOpenChange = useCallback((open: boolean) => {
-    setDrawerOpen(open);
-    if (!open) {
-      setSelectedServerName(null);
-    }
-  }, []);
+  const onDrawerOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) {
+        clearSelectedServer();
+      }
+    },
+    [clearSelectedServer],
+  );
 
   const isLoading =
     serversLoading ||

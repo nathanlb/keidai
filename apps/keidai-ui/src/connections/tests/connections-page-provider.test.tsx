@@ -1,4 +1,5 @@
 import { render, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConnectionsPageProvider } from "../context/connections-page-provider.js";
 
@@ -88,9 +89,11 @@ describe("ConnectionsPageProvider", () => {
 
   it("reconnects all backends when the page is visited", async () => {
     render(
-      <ConnectionsPageProvider>
-        <div />
-      </ConnectionsPageProvider>,
+      <MemoryRouter>
+        <ConnectionsPageProvider>
+          <div />
+        </ConnectionsPageProvider>
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
