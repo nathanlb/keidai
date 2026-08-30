@@ -1,5 +1,13 @@
 # @keidai/shaiden
 
+## 0.4.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @keidai/shared@0.4.0
+  - @keidai/postgres@0.4.0
+
 ## 0.3.0
 
 ### Patch Changes

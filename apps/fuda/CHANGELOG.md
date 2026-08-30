@@ -1,5 +1,18 @@
 # @keidai/fuda
 
+## 0.4.0
+
+### Minor Changes
+
+- - Enhanced system map functionality and updated UI components.
+  - Refactored navigation and routing for groups, replacing the configure path with direct access to policy groups.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @keidai/shared@0.4.0
+  - @keidai/postgres@0.4.0
+
 ## 0.3.0
 
 ### Minor Changes
