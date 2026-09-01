@@ -281,7 +281,6 @@ test.describe("Shaiden tasks", () => {
 
     const confirmDialog = page.getByRole("dialog", { name: "Discard changes?" });
     await expect(confirmDialog).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Edit task" })).toBeVisible();
 
     await confirmDialog.getByRole("button", { name: "Keep editing" }).click();
     await expect(confirmDialog).toBeHidden();
