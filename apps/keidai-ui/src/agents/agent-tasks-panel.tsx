@@ -1,9 +1,14 @@
 import { Button, Spinner } from "@keidai/ui";
-import type { RunListItem, SavedTask } from "@keidai/shared";
+import {
+  isScheduleTrigger,
+  type RunListItem,
+  type SavedTask,
+} from "@keidai/shared";
 import { ListChecks, Loader2, Pencil, Play, Plus } from "lucide-react";
 import { useState } from "react";
 import { PageEmptyState } from "../shell/components/page-content/page-empty-state.js";
 import { GoalVerdictPill } from "./components/goal-verdict-pill.js";
+import { formatNextRunLabel } from "../tasks/utils/format-schedule.js";
 import {
   SEVEN_DAYS_MS,
   countRunsForTask,
@@ -60,9 +65,11 @@ export function AgentTasksPanel({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-4">
-        <p className="
+        <p
+          className="
           max-w-155 text-[12.5px] leading-normal text-muted-foreground
-        ">
+        "
+        >
           Every task assigned to this agent. A task is a standing goal — the
           agent is who carries it out.
         </p>
@@ -72,16 +79,16 @@ export function AgentTasksPanel({
         </Button>
       </div>
 
-      {runError ? (
-        <p className="text-sm text-destructive">{runError}</p>
-      ) : null}
+      {runError ? <p className="text-sm text-destructive">{runError}</p> : null}
 
       <div className="overflow-hidden rounded-xl border border-border bg-card">
-        <div className="
+        <div
+          className="
           grid grid-cols-[1.5fr_.95fr_.85fr_66px_148px] gap-3.5 border-b
           border-border px-4.5 py-2.5 text-[10.5px] font-semibold
           tracking-[0.06em] text-muted-foreground uppercase
-        ">
+        "
+        >
           <span>Goal</span>
           <span>Schedule</span>
           <span>Last outcome</span>
@@ -105,18 +112,32 @@ export function AgentTasksPanel({
                 <div className="truncate text-[13px] font-semibold">
                   {task.goal}
                 </div>
-                <div className="
+                <div
+                  className="
                   mt-0.5 font-mono text-[11px] text-muted-foreground
-                ">
+                "
+                >
                   {task.id}
                 </div>
               </div>
               <div className="min-w-0">
                 <div className="text-[12.5px]">{scheduleLabel(task)}</div>
-                <div className="
+                <div
+                  className="
                   mt-0.5 font-mono text-[11px] text-muted-foreground
-                ">
-                  {task.trigger.type === "now" ? "no schedule" : ""}
+                "
+                >
+                  {task.trigger.type === "now"
+                    ? "no schedule"
+                    : formatNextRunLabel(
+                        task.nextRunAt,
+                        Boolean(
+                          isScheduleTrigger(task.trigger) &&
+                          task.trigger.paused,
+                        ),
+                        Date.now(),
+                        Boolean(task.scheduleFailedAt),
+                      )}
                 </div>
               </div>
               <div className="min-w-0">

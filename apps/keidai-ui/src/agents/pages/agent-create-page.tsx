@@ -1,5 +1,5 @@
-import { AgentCreateView } from "../agent-create-view.js";
+import { AgentAuthoringView } from "../agent-authoring-view.js";
 
 export function AgentCreatePage() {
-  return <AgentCreateView />;
+  return <AgentAuthoringView />;
 }

@@ -239,4 +239,89 @@ describe("buildHomeDigest", () => {
     expect(digest.agents[0]?.health).toBe("failing");
     expect(digest.scheduled).toEqual([]);
   });
+
+  it("projects scheduled tasks onto the home scheduled tab", () => {
+    const digest = buildHomeDigest({
+      approvals: [],
+      runs: [
+        run({
+          id: "run-sched",
+          taskId: "task-sched",
+          status: "completed",
+          outcome: { status: "goal_met" },
+          startedAt: new Date(NOW - 86_400_000).toISOString(),
+        }),
+      ],
+      runReports: {},
+      tasks: [
+        task(),
+        task({
+          id: "task-sched",
+          goal: "Nightly digest",
+          trigger: {
+            type: "schedule",
+            timezone: "UTC",
+            at: "2026-08-25T00:00",
+            recurrence: { freq: "daily" },
+          },
+          nextRunAt: "2026-08-25T00:00:00.000Z",
+        }),
+        task({
+          id: "task-paused",
+          goal: "Paused weekly",
+          trigger: {
+            type: "schedule",
+            timezone: "America/New_York",
+            at: "2026-09-01T09:00",
+            recurrence: { freq: "weekly", days: ["mon"] },
+            paused: true,
+          },
+          nextRunAt: null,
+        }),
+      ],
+      agents: [agent()],
+      groups: [opsWrite],
+      now: NOW,
+    });
+
+    expect(digest.scheduled).toHaveLength(2);
+    expect(digest.pausedScheduledCount).toBe(1);
+    expect(digest.scheduled[0]?.id).toBe("task-paused");
+    expect(digest.scheduled[0]?.paused).toBe(true);
+    expect(digest.scheduled[0]?.failed).toBe(false);
+    expect(digest.scheduled[0]?.nextLabel).toBe("Paused");
+    expect(digest.scheduled[1]?.trigger).toBe("Daily 00:00");
+    expect(digest.scheduled[1]?.lastVerdict).toBe("met");
+    expect(digest.scheduled[1]?.failed).toBe(false);
+    expect(digest.scheduled[1]?.nextLabel).toBe("in 9h");
+  });
+
+  it("labels a schedule that exhausted start retries as failed", () => {
+    const digest = buildHomeDigest({
+      approvals: [],
+      runs: [],
+      runReports: {},
+      tasks: [
+        task({
+          id: "task-failed",
+          goal: "Broken nightly",
+          trigger: {
+            type: "schedule",
+            timezone: "UTC",
+            at: "2026-08-25T00:00",
+            recurrence: { freq: "daily" },
+          },
+          nextRunAt: null,
+          scheduleFailedAt: "2026-08-24T12:00:00.000Z",
+          scheduleError: "boom",
+        }),
+      ],
+      agents: [agent()],
+      groups: [opsWrite],
+      now: NOW,
+    });
+
+    expect(digest.scheduled[0]?.failed).toBe(true);
+    expect(digest.scheduled[0]?.nextLabel).toBe("Failed");
+  });
 });

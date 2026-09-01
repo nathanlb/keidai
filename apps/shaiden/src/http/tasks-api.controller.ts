@@ -1,5 +1,8 @@
 import {
+  isScheduleTrigger,
+  oneShotMustBeFutureError,
   taskSchema,
+  taskTriggersEqual,
   type Logger,
   type StartTaskRunResponse,
   type Task,
@@ -68,6 +71,8 @@ export interface TasksApiControllerOptions {
    * via `GET /agents/{id}` before persisting. Optional so evals/tests can omit.
    */
   fudaClient?: FudaClient;
+  /** Wake the in-process schedule dispatcher after task writes. */
+  onScheduleChanged?: () => void;
 }
 
 export class TasksApiController {
@@ -76,6 +81,7 @@ export class TasksApiController {
   private readonly startTaskRun: StartTaskRun;
   private readonly logger: Logger;
   private readonly fudaClient: FudaClient | undefined;
+  private readonly onScheduleChanged: (() => void) | undefined;
 
   constructor(options: TasksApiControllerOptions) {
     this.runStore = options.runStore;
@@ -83,6 +89,7 @@ export class TasksApiController {
     this.startTaskRun = options.startTaskRun;
     this.logger = options.logger;
     this.fudaClient = options.fudaClient;
+    this.onScheduleChanged = options.onScheduleChanged;
   }
 
   registerRoutes(app: FastifyInstance): void {
@@ -110,7 +117,14 @@ export class TasksApiController {
         return;
       }
 
+      const scheduleError = oneShotMustBeFutureError(parsed.data.trigger, new Date());
+      if (scheduleError) {
+        reply.code(400).send({ error: scheduleError });
+        return;
+      }
+
       const task = await this.taskRepository.create({ task: parsed.data });
+      this.onScheduleChanged?.();
       reply.code(201).send({ task });
     });
 
@@ -154,11 +168,27 @@ export class TasksApiController {
         }
       }
 
+      const mergedTrigger = parsed.data.trigger ?? existing.trigger;
+      if (
+        parsed.data.trigger !== undefined &&
+        !taskTriggersEqual(parsed.data.trigger, existing.trigger)
+      ) {
+        const scheduleError = oneShotMustBeFutureError(
+          mergedTrigger,
+          new Date(),
+        );
+        if (scheduleError) {
+          reply.code(400).send({ error: scheduleError });
+          return;
+        }
+      }
+
       const task = await this.taskRepository.update(taskId, parsed.data);
       if (!task) {
         reply.code(404).send({ error: "task not found" });
         return;
       }
+      this.onScheduleChanged?.();
       reply.send({ task });
     });
 
@@ -175,6 +205,7 @@ export class TasksApiController {
         return;
       }
 
+      this.onScheduleChanged?.();
       reply.code(204).send();
     });
 
@@ -205,6 +236,13 @@ export class TasksApiController {
         reply.code(400).send({
           error: "invalid task",
           details: parsed.error.flatten(),
+        });
+        return;
+      }
+
+      if (isScheduleTrigger(parsed.data.trigger)) {
+        reply.code(400).send({
+          error: "scheduled tasks are started by the scheduler",
         });
         return;
       }

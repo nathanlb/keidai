@@ -36,5 +36,8 @@ describe("formatScheduledFooter", () => {
   it("omits the paused clause at zero", () => {
     expect(formatScheduledFooter(0, 0)).toBe("0 tasks on a trigger");
     expect(formatScheduledFooter(4, 1)).toBe("4 tasks on a trigger · 1 paused.");
+    expect(formatScheduledFooter(4, 1, 1)).toBe(
+      "4 tasks on a trigger · 1 paused · 1 failed.",
+    );
   });
 });

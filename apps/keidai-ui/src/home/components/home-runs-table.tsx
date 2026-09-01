@@ -138,9 +138,11 @@ function ScheduledRows({ rows }: { rows: readonly HomeScheduledTask[] }) {
                 "size-1.75 shrink-0 rounded-full",
                 row.paused
                   ? "bg-muted-foreground"
-                  : row.lastVerdict
-                    ? verdictDotClass(row.lastVerdict)
-                    : "bg-(--green-600)",
+                  : row.failed
+                    ? "bg-destructive"
+                    : row.lastVerdict
+                      ? verdictDotClass(row.lastVerdict)
+                      : "bg-(--green-600)",
               )}
               aria-hidden
             />
@@ -174,7 +176,9 @@ function ScheduledRows({ rows }: { rows: readonly HomeScheduledTask[] }) {
           <span
             className={cn(
               "text-right font-mono text-xs",
-              row.paused ? "text-muted-foreground" : "text-foreground",
+              row.paused || row.failed
+                ? "text-muted-foreground"
+                : "text-foreground",
             )}
           >
             {row.nextLabel}
@@ -249,7 +253,11 @@ export function HomeRunsTable({
       <div className="px-4 py-2.75 text-xs text-muted-foreground">
         {isRecent
           ? formatRecentFooter(recent.length, totalRunCount)
-          : formatScheduledFooter(scheduled.length, pausedScheduledCount)}
+          : formatScheduledFooter(
+              scheduled.length,
+              pausedScheduledCount,
+              scheduled.filter((row) => row.failed).length,
+            )}
       </div>
     </Card>
   );

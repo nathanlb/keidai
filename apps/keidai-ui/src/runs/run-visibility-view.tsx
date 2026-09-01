@@ -11,19 +11,23 @@ import {
 } from "@keidai/ui";
 import { Search, Workflow } from "lucide-react";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router";
+import {
+  Link,
+  Navigate,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router";
 import { TablePaginationFooter } from "../shell/components/table-pagination/table-pagination-footer.js";
 import { paginateItems } from "../shell/components/table-pagination/paginate-items.js";
 import { useTablePageIndex } from "../shell/components/table-pagination/use-table-page-index.js";
 import { useFetchRun } from "../lib/hooks/use-fetch-run.js";
 import { useRunsVisibility } from "./hooks/use-runs-visibility.js";
+import { RUN_ID_PARAM, RUNS_PATH } from "./navigation.js";
 import {
-  NEW_TASK_HREF,
-  NEW_TASK_PARAM,
-  RUN_ID_PARAM,
-  RUNS_PATH,
-} from "./navigation.js";
-import { TaskAuthoringDialog } from "../tasks/task-authoring-dialog.js";
+  LEGACY_NEW_TASK_PARAM,
+  TASKS_NEW_PATH,
+} from "../tasks/navigation.js";
 import { RunDetailDrawer } from "./run-detail-drawer.js";
 import { RunsSearchBar } from "./runs-search-bar.js";
 import { runsTableColumns } from "./runs-table-columns.js";
@@ -46,7 +50,7 @@ function RunsEmptyState() {
       description="Author a Task and run it to observe step sequence, tool calls, and termination outcome here."
       action={
         <Button asChild type="button">
-          <Link to={NEW_TASK_HREF}>Configure a task</Link>
+          <Link to={TASKS_NEW_PATH}>Configure a task</Link>
         </Button>
       }
     />
@@ -80,12 +84,11 @@ function RunsNoMatchEmptyState({
 
 function withRunsOverlays(
   content: ReactNode,
-  overlays: { taskDialog: ReactNode; runDrawer: ReactNode },
+  overlays: { runDrawer: ReactNode },
 ) {
   return (
     <>
       {content}
-      {overlays.taskDialog}
       {overlays.runDrawer}
     </>
   );
@@ -96,7 +99,6 @@ export function RunVisibilityView() {
   const { runId: runIdFromPath } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedRunId = runIdFromPath ?? searchParams.get(RUN_ID_PARAM);
-  const newTaskOpen = searchParams.has(NEW_TASK_PARAM);
   const [filters, setFilters] = useState<RunFilters>(EMPTY_RUN_FILTERS);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(
     requestedRunId,
@@ -152,7 +154,7 @@ export function RunVisibilityView() {
   } = paginateItems(filteredRuns, pageIndex);
 
   const syncSearchParams = useCallback(
-    (patch: { runId?: string | null; newTask?: boolean }) => {
+    (patch: { runId?: string | null }) => {
       setSearchParams(
         (current) => {
           const next = new URLSearchParams(current);
@@ -161,13 +163,6 @@ export function RunVisibilityView() {
               next.set(RUN_ID_PARAM, patch.runId);
             } else {
               next.delete(RUN_ID_PARAM);
-            }
-          }
-          if (patch.newTask !== undefined) {
-            if (patch.newTask) {
-              next.set(NEW_TASK_PARAM, "1");
-            } else {
-              next.delete(NEW_TASK_PARAM);
             }
           }
           return next;
@@ -182,7 +177,7 @@ export function RunVisibilityView() {
     (runId: string) => {
       setSelectedRunId(runId);
       setDrawerOpen(true);
-      syncSearchParams({ runId, newTask: false });
+      syncSearchParams({ runId });
     },
     [syncSearchParams],
   );
@@ -202,19 +197,6 @@ export function RunVisibilityView() {
     [navigate, runIdFromPath, syncSearchParams],
   );
 
-  const onNewTaskOpenChange = useCallback(
-    (open: boolean) => {
-      if (open) {
-        setSelectedRunId(null);
-        setDrawerOpen(false);
-        syncSearchParams({ runId: null, newTask: true });
-        return;
-      }
-      syncSearchParams({ newTask: false });
-    },
-    [syncSearchParams],
-  );
-
   const onClearFilters = useCallback(() => {
     setFilters(EMPTY_RUN_FILTERS);
   }, []);
@@ -231,13 +213,11 @@ export function RunVisibilityView() {
     void refresh();
   }, [refresh, refreshRun, selectedRunId]);
 
+  if (searchParams.has(LEGACY_NEW_TASK_PARAM)) {
+    return <Navigate to={TASKS_NEW_PATH} replace />;
+  }
+
   const overlays = {
-    taskDialog: (
-      <TaskAuthoringDialog
-        open={newTaskOpen}
-        onOpenChange={onNewTaskOpenChange}
-      />
-    ),
     runDrawer: (
       <RunDetailDrawer
         run={selectedRun}

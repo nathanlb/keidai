@@ -13,5 +13,6 @@ export * from "./operator-principal.js";
 export * from "./operators.js";
 export * from "./policy-decision.js";
 export * from "./run.js";
+export * from "./next-run-at.js";
 export * from "./task.js";
 export * from "./torii-mcp-meta.js";

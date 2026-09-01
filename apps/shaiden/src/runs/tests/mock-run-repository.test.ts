@@ -43,8 +43,8 @@ describe("MockRunRepository", () => {
       startedAt: "2026-07-08T12:00:02.000Z",
     });
     assert.deepEqual(await repository.listRunningRuns(), [
-      { id: "run-1", taskId: "task-1" },
-      { id: "run-2", taskId: "task-2" },
+      { id: "run-1", taskId: "task-1", startedAt: "2026-07-08T12:00:00.000Z" },
+      { id: "run-2", taskId: "task-2", startedAt: "2026-07-08T12:00:02.000Z" },
     ]);
 
     await repository.complete("run-1", { outcome: { status: "goal_met" } });
@@ -57,8 +57,8 @@ describe("MockRunRepository", () => {
       startedAt: "2026-07-08T12:02:00.000Z",
     });
     assert.deepEqual(await repository.listRunningRuns(), [
-      { id: "run-2", taskId: "task-2" },
-      { id: "run-1c", taskId: "task-1" },
+      { id: "run-2", taskId: "task-2", startedAt: "2026-07-08T12:00:02.000Z" },
+      { id: "run-1c", taskId: "task-1", startedAt: "2026-07-08T12:02:00.000Z" },
     ]);
   });
 });

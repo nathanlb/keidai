@@ -1,6 +1,7 @@
 import type { RunListItem, SavedTask } from "@keidai/shared";
 import { deriveGoalVerdict } from "../../home/utils/derive-goal-verdict.js";
 import type { GoalVerdict } from "../../home/types/home-digest.js";
+import { formatScheduleTrigger } from "../../tasks/utils/format-schedule.js";
 
 export const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -83,7 +84,10 @@ export function countVerdicts(runs: readonly RunListItem[]): VerdictCounts {
 }
 
 export function scheduleLabel(task: SavedTask): string {
-  return task.trigger.type === "now" ? "On demand" : "Scheduled";
+  if (task.trigger.type === "now") {
+    return "On demand";
+  }
+  return formatScheduleTrigger(task.trigger);
 }
 
 export function lastOutcomeForTask(

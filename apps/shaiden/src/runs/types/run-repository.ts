@@ -29,6 +29,7 @@ export interface RunUpdateWatermark {
 export interface RunningRunRef {
   id: string;
   taskId: string;
+  startedAt: string;
 }
 
 /**

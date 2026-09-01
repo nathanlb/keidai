@@ -50,11 +50,16 @@ export function formatRecentFooter(shown: number, total: number): string {
 export function formatScheduledFooter(
   total: number,
   paused: number,
+  failed = 0,
 ): string {
   const taskPart =
     total === 1 ? "1 task on a trigger" : `${total} tasks on a trigger`;
-  if (paused === 0) {
+  const extras = [
+    paused > 0 ? `${paused} paused` : null,
+    failed > 0 ? `${failed} failed` : null,
+  ].filter((part): part is string => part !== null);
+  if (extras.length === 0) {
     return taskPart;
   }
-  return `${taskPart} · ${paused} paused.`;
+  return `${taskPart} · ${extras.join(" · ")}.`;
 }

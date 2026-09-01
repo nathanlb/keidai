@@ -15,6 +15,7 @@ import {
   resolveReplicaId,
 } from "./run/run-lease.js";
 import { resumeParkedHarnessRuns } from "./run/resume-parked-runs.js";
+import { startScheduleDispatcher } from "./schedule/schedule-dispatcher.js";
 
 function waitForShutdown(): Promise<void> {
   return new Promise((resolve) => {
@@ -62,6 +63,20 @@ async function main(): Promise<void> {
   }, DEFAULT_PARKED_RECLAIM_INTERVAL_MS);
   reclaim.unref();
 
+  const schedule = startScheduleDispatcher({
+    taskRepository,
+    runStore,
+    startTaskRun: ({ task, taskId }) =>
+      launchHarnessRun({
+        task,
+        taskId,
+        config,
+        runStore,
+        options: harnessOptions,
+      }),
+    logger: defaultLogger,
+  });
+
   const httpServer = new ShaidenHttpServer({
     runStore,
     taskRepository,
@@ -87,6 +102,7 @@ async function main(): Promise<void> {
           ...input.options,
         },
       }),
+    onScheduleChanged: () => schedule.notify(),
   });
 
   const http = await httpServer.start({
@@ -103,6 +119,7 @@ async function main(): Promise<void> {
   } finally {
     clearInterval(eventPoll);
     clearInterval(reclaim);
+    schedule.stop();
     await http.close();
   }
 }

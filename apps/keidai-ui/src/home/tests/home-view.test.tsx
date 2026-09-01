@@ -180,7 +180,7 @@ describe("HomeView", () => {
     );
     expect(screen.getByRole("link", { name: /new task/i })).toHaveAttribute(
       "href",
-      "/tasks?new_task=1",
+      "/tasks/new",
     );
   });
 

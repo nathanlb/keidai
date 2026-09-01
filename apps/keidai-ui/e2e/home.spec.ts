@@ -206,8 +206,8 @@ test.describe("Home dashboard", () => {
 
     await page.goto("/home");
     await page.getByRole("link", { name: "New task" }).click();
-    await expect(page).toHaveURL(/\/tasks\?new_task=1/);
-    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page).toHaveURL(/\/tasks\/new$/);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(
       page.getByRole("heading", { name: "New task" }),
     ).toBeVisible();
