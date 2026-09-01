@@ -276,15 +276,23 @@ export class PgRunRepository implements RunRepository {
   }
 
   async listRunningRuns(): Promise<RunningRunRef[]> {
-    const result = await this.pool.query<{ id: string; task_id: string }>(
+    const result = await this.pool.query<{
+      id: string;
+      task_id: string;
+      started_at: Date | string;
+    }>(
       `
-        SELECT id, task_id
+        SELECT id, task_id, started_at
         FROM runs
         WHERE status = 'running'
         ORDER BY started_at ASC, id ASC
       `,
     );
-    return result.rows.map((row) => ({ id: row.id, taskId: row.task_id }));
+    return result.rows.map((row) => ({
+      id: row.id,
+      taskId: row.task_id,
+      startedAt: toIso(row.started_at),
+    }));
   }
 
   async setConversationHistory(

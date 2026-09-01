@@ -143,10 +143,19 @@ export const router = createBrowserRouter([
         },
       },
       {
+        path: "tasks/new",
+        lazy: async () => {
+          const { TaskAuthoringPage } =
+            await import("./tasks/pages/task-authoring-page.js");
+          return { Component: TaskAuthoringPage };
+        },
+      },
+      {
         path: "tasks/:taskId",
         lazy: async () => {
-          const { TasksPage } = await import("./tasks/pages/tasks-page.js");
-          return { Component: TasksPage };
+          const { TaskAuthoringPage } =
+            await import("./tasks/pages/task-authoring-page.js");
+          return { Component: TaskAuthoringPage };
         },
       },
       {

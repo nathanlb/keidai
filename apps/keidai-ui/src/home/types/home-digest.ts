@@ -54,6 +54,7 @@ export interface HomeScheduledTask {
   lastVerdict: GoalVerdict | null;
   nextLabel: string;
   paused: boolean;
+  failed: boolean;
 }
 
 export type HomeAgentHealth = "healthy" | "failing" | "idle";

@@ -371,9 +371,11 @@ describe("tasks API", () => {
       const body = (await response.json()) as { error: string };
       assert.equal(body.error, "this task already has a running run");
       assert.equal(launched.length, 0);
-      assert.deepEqual(await persistence.runStore.listRunningRuns(), [
-        { id: "existing", taskId },
-      ]);
+      const running = await persistence.runStore.listRunningRuns();
+      assert.equal(running.length, 1);
+      assert.equal(running[0]?.id, "existing");
+      assert.equal(running[0]?.taskId, taskId);
+      assert.ok(running[0]?.startedAt);
     } finally {
       await handle.close();
       await persistence.close();
@@ -617,6 +619,140 @@ describe("tasks API", () => {
       assert.match(body.error, /Fuda unreachable/i);
       assert.equal((await persistence.runStore.listRuns()).runs.length, 0);
       assert.equal((await persistence.taskRepository.list()).tasks.length, 0);
+    } finally {
+      await handle.close();
+      await persistence.close();
+    }
+  });
+
+  it("creates a scheduled task without starting a run", async () => {
+    const { server, launched, persistence } = await createTestServer({
+      startTaskRun: () => {
+        throw new Error("should not start");
+      },
+    });
+    const handle = await server.start({ host: "127.0.0.1", port: 0 });
+    try {
+      const response = await fetch(`${handle.baseUrl}/api/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...sampleTask,
+          trigger: {
+            type: "schedule",
+            timezone: "UTC",
+            at: "2099-01-01T09:00",
+            recurrence: { freq: "daily" },
+          },
+        }),
+      });
+      assert.equal(response.status, 201);
+      const body = (await response.json()) as {
+        task: { id: string; nextRunAt: string | null; trigger: { type: string } };
+      };
+      assert.equal(body.task.trigger.type, "schedule");
+      assert.ok(body.task.nextRunAt);
+      assert.equal(launched.length, 0);
+
+      const patchResponse = await fetch(
+        `${handle.baseUrl}/api/tasks/${body.task.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ goal: "Updated nightly digest" }),
+        },
+      );
+      assert.equal(patchResponse.status, 200);
+      const patched = (await patchResponse.json()) as {
+        task: { nextRunAt: string | null; goal: string };
+      };
+      assert.equal(patched.task.goal, "Updated nightly digest");
+      assert.equal(patched.task.nextRunAt, body.task.nextRunAt);
+    } finally {
+      await handle.close();
+      await persistence.close();
+    }
+  });
+
+  it("allows patching a due one-shot without resending a future at", async () => {
+    const { server, persistence } = await createTestServer({
+      startTaskRun: () => {
+        throw new Error("should not start");
+      },
+    });
+    const saved = await persistence.taskRepository.create({
+      task: {
+        ...sampleTask,
+        trigger: {
+          type: "schedule",
+          timezone: "UTC",
+          at: "2020-01-01T09:00",
+        },
+      },
+    });
+    const handle = await server.start({ host: "127.0.0.1", port: 0 });
+    try {
+      const response = await fetch(`${handle.baseUrl}/api/tasks/${saved.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ goal: "Still waiting to fire" }),
+      });
+      assert.equal(response.status, 200);
+      const body = (await response.json()) as { task: { goal: string } };
+      assert.equal(body.task.goal, "Still waiting to fire");
+    } finally {
+      await handle.close();
+      await persistence.close();
+    }
+  });
+
+  it("rejects create-and-run for a scheduled task", async () => {
+    const { server, persistence } = await createTestServer();
+    const handle = await server.start({ host: "127.0.0.1", port: 0 });
+    try {
+      const response = await fetch(`${handle.baseUrl}/api/tasks/run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...sampleTask,
+          trigger: {
+            type: "schedule",
+            timezone: "UTC",
+            at: "2099-01-01T09:00",
+          },
+        }),
+      });
+      assert.equal(response.status, 400);
+      const body = (await response.json()) as { error: string };
+      assert.match(body.error, /scheduler/i);
+      assert.equal((await persistence.taskRepository.list()).tasks.length, 0);
+    } finally {
+      await handle.close();
+      await persistence.close();
+    }
+  });
+
+  it("still starts a saved scheduled task on Play", async () => {
+    const { server, taskRepository, launched, persistence } =
+      await createTestServer();
+    const saved = await taskRepository.create({
+      task: {
+        ...sampleTask,
+        trigger: {
+          type: "schedule",
+          timezone: "UTC",
+          at: "2099-01-01T09:00",
+        },
+      },
+    });
+    const handle = await server.start({ host: "127.0.0.1", port: 0 });
+    try {
+      const response = await fetch(
+        `${handle.baseUrl}/api/tasks/${saved.id}/run`,
+        { method: "POST" },
+      );
+      assert.equal(response.status, 202);
+      assert.equal(launched[0]?.taskId, saved.id);
     } finally {
       await handle.close();
       await persistence.close();

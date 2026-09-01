@@ -4,7 +4,7 @@ import type { SavedTask } from "@keidai/shared";
 import type { ManagementAgent } from "../../lib/api/agents.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as shaidenClient from "../../lib/api/tasks.js";
-import { TaskAuthoringDialog } from "../task-authoring-dialog.js";
+import { TaskAuthoringView } from "../task-authoring-view.js";
 
 const shaidenAgent: ManagementAgent = {
   id: "shaiden-newsletter-01",
@@ -27,11 +27,16 @@ const savedTask: SavedTask = {
   updatedAt: "2026-07-13T12:00:00.000Z",
 };
 
+const { navigate } = vi.hoisted(() => ({
+  navigate: vi.fn(),
+}));
+
 vi.mock("../../lib/api/tasks.js", () => ({
   fetchTask: vi.fn(),
   updateTask: vi.fn(),
   archiveTask: vi.fn(),
   startTaskRun: vi.fn(),
+  createTask: vi.fn(),
 }));
 
 vi.mock("../hooks/use-fetch-task-runtime.js", () => ({
@@ -50,7 +55,7 @@ vi.mock("../../lib/hooks/use-fetch-agents.js", () => ({
   }),
 }));
 
-vi.mock("../../../shell/hooks/use-acting-owner.js", () => ({
+vi.mock("../../shell/hooks/use-acting-owner.js", () => ({
   useActingOwner: () => ({
     owner: {
       ownerId: "nathanlb",
@@ -62,32 +67,20 @@ vi.mock("../../../shell/hooks/use-acting-owner.js", () => ({
 }));
 
 vi.mock("react-router", async () => {
-  const actual = await vi.importActual<typeof import("react-router")>(
-    "react-router",
-  );
+  const actual =
+    await vi.importActual<typeof import("react-router")>("react-router");
   return {
     ...actual,
-    useNavigate: () => vi.fn(),
+    useNavigate: () => navigate,
   };
 });
 
-function renderEditDialog({
-  onOpenChange = vi.fn(),
-  onTaskSaved = vi.fn(),
-}: {
-  onOpenChange?: (open: boolean) => void;
-  onTaskSaved?: () => void;
-} = {}) {
-  render(
-    <TaskAuthoringDialog
-      open
-      onOpenChange={onOpenChange}
-      taskId={savedTask.id}
-      onTaskSaved={onTaskSaved}
-    />,
-  );
+function renderEditView() {
+  render(<TaskAuthoringView taskId={savedTask.id} />);
+}
 
-  return { onOpenChange, onTaskSaved };
+function renderCreateView() {
+  render(<TaskAuthoringView />);
 }
 
 async function waitForGoalInput() {
@@ -100,8 +93,9 @@ async function waitForGoalInput() {
   return input;
 }
 
-describe("TaskAuthoringDialog edit mode", () => {
+describe("TaskAuthoringView edit mode", () => {
   beforeEach(() => {
+    navigate.mockReset();
     vi.mocked(shaidenClient.fetchTask).mockResolvedValue({ task: savedTask });
     vi.mocked(shaidenClient.updateTask).mockResolvedValue({
       task: {
@@ -117,7 +111,7 @@ describe("TaskAuthoringDialog edit mode", () => {
   });
 
   it("disables save when the loaded task has not changed", async () => {
-    renderEditDialog();
+    renderEditView();
     await waitForGoalInput();
 
     expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
@@ -125,7 +119,7 @@ describe("TaskAuthoringDialog edit mode", () => {
 
   it("enables save after the goal changes", async () => {
     const user = userEvent.setup();
-    renderEditDialog();
+    renderEditView();
     const goalInput = await waitForGoalInput();
 
     await user.clear(goalInput);
@@ -134,10 +128,9 @@ describe("TaskAuthoringDialog edit mode", () => {
     expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
   });
 
-  it("closes without confirmation when canceling a clean form", async () => {
+  it("leaves without confirmation when canceling a clean form", async () => {
     const user = userEvent.setup();
-    const onOpenChange = vi.fn();
-    renderEditDialog({ onOpenChange });
+    renderEditView();
     await waitForGoalInput();
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));
@@ -145,13 +138,12 @@ describe("TaskAuthoringDialog edit mode", () => {
     expect(
       screen.queryByRole("dialog", { name: "Discard changes?" }),
     ).not.toBeInTheDocument();
-    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(navigate).toHaveBeenCalledWith("/tasks");
   });
 
   it("prompts before discarding dirty edits", async () => {
     const user = userEvent.setup();
-    const onOpenChange = vi.fn();
-    renderEditDialog({ onOpenChange });
+    renderEditView();
     const goalInput = await waitForGoalInput();
 
     await user.type(goalInput, " with edits");
@@ -161,13 +153,12 @@ describe("TaskAuthoringDialog edit mode", () => {
       screen.getByRole("dialog", { name: "Discard changes?" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Edit task")).toBeInTheDocument();
-    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it("returns to the edit form when keep editing is chosen", async () => {
     const user = userEvent.setup();
-    const onOpenChange = vi.fn();
-    renderEditDialog({ onOpenChange });
+    renderEditView();
     const goalInput = await waitForGoalInput();
 
     await user.type(goalInput, " with edits");
@@ -179,29 +170,26 @@ describe("TaskAuthoringDialog edit mode", () => {
         screen.queryByRole("dialog", { name: "Discard changes?" }),
       ).not.toBeInTheDocument();
     });
-    expect(screen.getByRole("dialog", { name: "Edit task" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Edit task" })).toBeVisible();
     expect(goalInput).toHaveValue(`${savedTask.goal} with edits`);
-    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
   });
 
-  it("closes when discard changes is confirmed", async () => {
+  it("leaves when discard changes is confirmed", async () => {
     const user = userEvent.setup();
-    const onOpenChange = vi.fn();
-    renderEditDialog({ onOpenChange });
+    renderEditView();
     const goalInput = await waitForGoalInput();
 
     await user.type(goalInput, " with edits");
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     await user.click(screen.getByRole("button", { name: "Discard changes" }));
 
-    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(navigate).toHaveBeenCalledWith("/tasks");
   });
 
-  it("persists edits through updateTask and closes on save", async () => {
+  it("persists edits through updateTask and stays on the page", async () => {
     const user = userEvent.setup();
-    const onOpenChange = vi.fn();
-    const onTaskSaved = vi.fn();
-    renderEditDialog({ onOpenChange, onTaskSaved });
+    renderEditView();
     const goalInput = await waitForGoalInput();
 
     await user.clear(goalInput);
@@ -216,16 +204,18 @@ describe("TaskAuthoringDialog edit mode", () => {
         limits: { max_iterations: 25, timeout_seconds: 600 },
       });
     });
-    expect(onTaskSaved).toHaveBeenCalled();
-    expect(onOpenChange).toHaveBeenCalledWith(false);
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Save changes" }),
+      ).toBeDisabled();
+    });
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it("archives a task after confirmation", async () => {
     const user = userEvent.setup();
-    const onOpenChange = vi.fn();
-    const onTaskSaved = vi.fn();
     vi.mocked(shaidenClient.archiveTask).mockResolvedValue();
-    renderEditDialog({ onOpenChange, onTaskSaved });
+    renderEditView();
     await waitForGoalInput();
 
     await user.click(screen.getByRole("button", { name: "Archive" }));
@@ -238,8 +228,7 @@ describe("TaskAuthoringDialog edit mode", () => {
     await waitFor(() => {
       expect(shaidenClient.archiveTask).toHaveBeenCalledWith(savedTask.id);
     });
-    expect(onTaskSaved).toHaveBeenCalled();
-    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(navigate).toHaveBeenCalledWith("/tasks");
   });
 
   it("shows archived tasks as read-only", async () => {
@@ -249,13 +238,54 @@ describe("TaskAuthoringDialog edit mode", () => {
         archivedAt: "2026-07-14T12:00:00.000Z",
       },
     });
-    renderEditDialog();
+    renderEditView();
     const goalInput = await waitForGoalInput();
 
     expect(goalInput).toBeDisabled();
-    expect(screen.queryByRole("button", { name: "Archive" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Save changes" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Archive" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Save changes" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Cancel" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText(/this task is archived/i)).toBeInTheDocument();
+  });
+});
+
+describe("TaskAuthoringView new task", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("creates a scheduled task without starting a run", async () => {
+    const user = userEvent.setup();
+    vi.mocked(shaidenClient.createTask).mockResolvedValue({
+      task: {
+        ...savedTask,
+        trigger: {
+          type: "schedule",
+          timezone: "UTC",
+          at: "2099-01-01T09:00",
+        },
+      },
+    });
+
+    renderCreateView();
+
+    await user.type(
+      await screen.findByPlaceholderText(/describe what "done" looks like/i),
+      "Nightly digest",
+    );
+    await user.click(screen.getByRole("button", { name: "Scheduled" }));
+    await user.click(screen.getByRole("button", { name: "Create" }));
+
+    await waitFor(() => {
+      expect(shaidenClient.createTask).toHaveBeenCalled();
+    });
+    expect(shaidenClient.startTaskRun).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith("/tasks");
   });
 });

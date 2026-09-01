@@ -145,7 +145,11 @@ export class MockRunRepository implements RunRepository {
         const byTime = left.startedAt.localeCompare(right.startedAt);
         return byTime !== 0 ? byTime : left.id.localeCompare(right.id);
       })
-      .map((run) => ({ id: run.id, taskId: run.taskId }));
+      .map((run) => ({
+        id: run.id,
+        taskId: run.taskId,
+        startedAt: run.startedAt,
+      }));
   }
 
   async setConversationHistory(

@@ -9,6 +9,7 @@ import {
   type AppNavSection,
 } from "./navigation.js";
 import { isFudaAgentsRoute } from "../agents/navigation.js";
+import { isTaskAuthoringRoute } from "../tasks/navigation.js";
 import { OAuthLinkProvider } from "../oauth/context/oauth-link-provider.js";
 import type { AppShellBreadcrumb } from "./types/index.js";
 
@@ -36,7 +37,10 @@ export function KeidaiLayout() {
   const navSection = resolveAppNavSection(pathname);
   const onFudaAgentsRoute = isFudaAgentsRoute(pathname);
   const suppressHeader =
-    onFudaAgentsRoute || !current || current.suppressPageHeader;
+    onFudaAgentsRoute ||
+    isTaskAuthoringRoute(pathname) ||
+    !current ||
+    current.suppressPageHeader;
 
   return (
     <AppProvider>

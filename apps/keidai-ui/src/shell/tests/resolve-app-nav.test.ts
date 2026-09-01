@@ -34,6 +34,7 @@ describe("resolveAppNav", () => {
     expect(resolveAppNav("/agents/new")?.label).toBe("Agents");
     expect(resolveAppNav("/agents/agt-1")?.label).toBe("Agents");
     expect(resolveAppNav("/tasks")?.label).toBe("Tasks");
+    expect(resolveAppNav("/tasks/new")?.label).toBe("Tasks");
     expect(resolveAppNav("/tasks/task-1")?.label).toBe("Tasks");
     expect(resolveAppNav("/runs")?.label).toBe("Runs");
     expect(resolveAppNav("/runs/4821")?.label).toBe("Runs");

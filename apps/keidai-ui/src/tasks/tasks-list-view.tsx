@@ -12,20 +12,20 @@ import {
 } from "@keidai/ui";
 import { ListChecks, Plus } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router";
+import { Navigate, useNavigate, useSearchParams } from "react-router";
 import { TablePaginationFooter } from "../shell/components/table-pagination/table-pagination-footer.js";
 import { paginateItems } from "../shell/components/table-pagination/paginate-items.js";
 import { useTablePageIndex } from "../shell/components/table-pagination/use-table-page-index.js";
 import { runSavedTask } from "../lib/api/tasks.js";
 import { useFetchTasks } from "./hooks/use-fetch-tasks.js";
 import { useRunsVisibility } from "../runs/hooks/use-runs-visibility.js";
+import { runDetailHref } from "../runs/navigation.js";
 import {
-  NEW_TASK_PARAM,
-  runDetailHref,
-  TASK_PARAM,
-  TASKS_PATH,
+  LEGACY_NEW_TASK_PARAM,
+  LEGACY_TASK_PARAM,
+  taskEditHref,
+  TASKS_NEW_PATH,
 } from "./navigation.js";
-import { TaskAuthoringDialog } from "./task-authoring-dialog.js";
 import { TasksTableRow } from "./tasks-table-row.js";
 import { tasksTableColumns } from "./tasks-table-columns.js";
 import { collectRunningTaskIds } from "./utils/collect-running-task-ids.js";
@@ -48,13 +48,9 @@ function TasksEmptyState({ onNewTask }: { onNewTask: () => void }) {
 
 export function TasksListView() {
   const navigate = useNavigate();
-  const { taskId: taskIdFromPath } = useParams();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const editTaskId = taskIdFromPath ?? searchParams.get(TASK_PARAM);
-  const newTaskFromQuery = searchParams.has(NEW_TASK_PARAM);
-  const { data, error, isLoading, refresh } = useFetchTasks();
+  const [searchParams] = useSearchParams();
+  const { data, error, isLoading } = useFetchTasks();
   const { runs } = useRunsVisibility(true);
-  const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [startingTaskIds, setStartingTaskIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -62,7 +58,6 @@ export function TasksListView() {
 
   const tasks = data?.tasks ?? [];
   const runningTaskIds = useMemo(() => collectRunningTaskIds(runs), [runs]);
-  const authoringOpen = newTaskOpen || newTaskFromQuery || Boolean(editTaskId);
   const { pageIndex, onPageChange } = useTablePageIndex([tasks.length]);
   const {
     pageItems: pageTasks,
@@ -71,51 +66,9 @@ export function TasksListView() {
     canGoOlder,
   } = paginateItems(tasks, pageIndex);
 
-  const syncTaskParam = useCallback(
-    (taskId: string | null) => {
-      setSearchParams(
-        (current) => {
-          const next = new URLSearchParams(current);
-          if (taskId) {
-            next.set(TASK_PARAM, taskId);
-          } else {
-            next.delete(TASK_PARAM);
-          }
-          return next;
-        },
-        { replace: true },
-      );
-    },
-    [setSearchParams],
-  );
-
   const openNewTask = useCallback(() => {
-    syncTaskParam(null);
-    setNewTaskOpen(true);
-  }, [syncTaskParam]);
-
-  const onAuthoringOpenChange = useCallback(
-    (open: boolean) => {
-      if (open) {
-        return;
-      }
-      setNewTaskOpen(false);
-      if (taskIdFromPath) {
-        navigate(TASKS_PATH, { replace: true });
-        return;
-      }
-      setSearchParams(
-        (current) => {
-          const next = new URLSearchParams(current);
-          next.delete(TASK_PARAM);
-          next.delete(NEW_TASK_PARAM);
-          return next;
-        },
-        { replace: true },
-      );
-    },
-    [navigate, setSearchParams, taskIdFromPath],
-  );
+    void navigate(TASKS_NEW_PATH);
+  }, [navigate]);
 
   const handleRunTask = useCallback(
     async (taskId: string) => {
@@ -142,6 +95,14 @@ export function TasksListView() {
     },
     [navigate],
   );
+
+  if (searchParams.has(LEGACY_NEW_TASK_PARAM)) {
+    return <Navigate to={TASKS_NEW_PATH} replace />;
+  }
+  const legacyTaskId = searchParams.get(LEGACY_TASK_PARAM);
+  if (legacyTaskId) {
+    return <Navigate to={taskEditHref(legacyTaskId)} replace />;
+  }
 
   if (isLoading) {
     return (
@@ -223,7 +184,7 @@ export function TasksListView() {
                         runningTaskIds.has(task.id) ||
                         startingTaskIds.has(task.id)
                       }
-                      onEdit={() => syncTaskParam(task.id)}
+                      onEdit={() => void navigate(taskEditHref(task.id))}
                       onRun={() => void handleRunTask(task.id)}
                     />
                   ))}
@@ -242,17 +203,6 @@ export function TasksListView() {
           </Card>
         </div>
       )}
-
-      <TaskAuthoringDialog
-        open={authoringOpen}
-        onOpenChange={onAuthoringOpenChange}
-        taskId={
-          newTaskOpen || newTaskFromQuery
-            ? undefined
-            : (editTaskId ?? undefined)
-        }
-        onTaskSaved={() => void refresh()}
-      />
     </>
   );
 }

@@ -78,10 +78,6 @@ vi.mock("../../runs/hooks/use-runs-visibility.js", () => ({
   }),
 }));
 
-vi.mock("../task-authoring-dialog.js", () => ({
-  TaskAuthoringDialog: () => null,
-}));
-
 vi.mock("react-router", async () => {
   const actual =
     await vi.importActual<typeof import("react-router")>("react-router");

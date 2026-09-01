@@ -34,8 +34,8 @@ import {
   useRunsVisibility,
 } from "../runs/hooks/use-runs-visibility.js";
 import { AGENTS_PATH } from "../shell/navigation.js";
-import { TASKS_KEY, useFetchTasks } from "../tasks/hooks/use-fetch-tasks.js";
-import { TaskAuthoringDialog } from "../tasks/task-authoring-dialog.js";
+import { useFetchTasks } from "../tasks/hooks/use-fetch-tasks.js";
+import { taskCreateHref, taskEditHref } from "../tasks/navigation.js";
 import { useSWRConfig } from "swr";
 import { AgentEffectiveToolsPanel } from "./agent-effective-tools-panel.js";
 import { AgentGroupsPanel } from "./agent-groups-panel.js";
@@ -79,8 +79,6 @@ export function AgentDetailView() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
-  const [editingTaskId, setEditingTaskId] = useState<string | undefined>();
   const [startingTaskIds, setStartingTaskIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -98,11 +96,7 @@ export function AgentDetailView() {
     refresh: refreshPersonas,
   } = useFetchPersonaVersions(agentId);
   const { data: groupsData, isLoading: groupsLoading } = useFetchGroups();
-  const {
-    data: tasksData,
-    isLoading: tasksLoading,
-    refresh: refreshTasks,
-  } = useFetchTasks();
+  const { data: tasksData, isLoading: tasksLoading } = useFetchTasks();
   const {
     runs: visibilityRuns,
     isLoading: runsLoading,
@@ -287,13 +281,11 @@ export function AgentDetailView() {
   }
 
   function openNewTask() {
-    setEditingTaskId(undefined);
-    setTaskDialogOpen(true);
+    void navigate(taskCreateHref({ assignee: loaded.id }));
   }
 
   function openEditTask(taskId: string) {
-    setEditingTaskId(taskId);
-    setTaskDialogOpen(true);
+    void navigate(taskEditHref(taskId));
   }
 
   return (
@@ -475,26 +467,6 @@ export function AgentDetailView() {
           onOpenRun={(runId) => navigate(runDetailHref(runId))}
         />
       ) : null}
-
-      <TaskAuthoringDialog
-        open={taskDialogOpen}
-        onOpenChange={(open) => {
-          setTaskDialogOpen(open);
-          if (!open) {
-            setEditingTaskId(undefined);
-          }
-        }}
-        taskId={editingTaskId}
-        defaultAssignee={editingTaskId ? undefined : agent.id}
-        onTaskSaved={() => {
-          void refreshTasks();
-          void mutate(TASKS_KEY);
-          void mutate(RUNS_VISIBILITY_KEY);
-          showToast(
-            editingTaskId ? "Task saved." : "Task created and run started.",
-          );
-        }}
-      />
 
       <AgentsToast message={toastMessage} />
 

@@ -72,7 +72,7 @@ const runFromTask: RunReport = {
 };
 
 test.describe("Shaiden tasks", () => {
-  test("authors a task from runs and navigates to the new run", async ({
+  test("authors a task from the new-task page and navigates to the new run", async ({
     page,
   }) => {
     await mockToriiConfig(page, {
@@ -80,15 +80,12 @@ test.describe("Shaiden tasks", () => {
       runDetails: { "run-from-task": runFromTask },
     });
 
-    await page.goto("/runs?new_task=1");
+    await page.goto("/tasks/new");
 
-    const dialog = page.getByRole("dialog", { name: "New task" });
-    await expect(dialog).toBeVisible();
-
-    await createAndRunTask(dialog, "Compose weekly status report");
+    await expect(page.getByRole("heading", { name: "New task" })).toBeVisible();
+    await createAndRunTask(page, "Compose weekly status report");
 
     await expect(page).toHaveURL(/\/runs\/run-from-task$/);
-    await expect(dialog).toBeHidden();
     await expect(
       page.getByText("run-from-task · shaiden-newsletter-01"),
     ).toBeVisible();
@@ -153,7 +150,7 @@ test.describe("Shaiden tasks", () => {
     ).toBeVisible();
   });
 
-  test("opens the authoring dialog from the runs deep link", async ({
+  test("redirects the retired runs query deep link to the new-task page", async ({
     page,
   }) => {
     await mockToriiConfig(page, {
@@ -162,10 +159,9 @@ test.describe("Shaiden tasks", () => {
 
     await page.goto("/runs?new_task=1");
 
-    await expect(page.getByRole("dialog")).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: "New task" }),
-    ).toBeVisible();
+    await expect(page).toHaveURL(/\/tasks\/new$/);
+    await expect(page.getByRole("heading", { name: "New task" })).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
   });
 
   test("edits a saved task from the tasks deep link", async ({ page }) => {
@@ -176,18 +172,21 @@ test.describe("Shaiden tasks", () => {
 
     await page.goto("/tasks?task=task-saved-1");
 
-    const dialog = page.getByRole("dialog", { name: "Edit task" });
-    await expect(dialog).toBeVisible();
+    await expect(page).toHaveURL(/\/tasks\/task-saved-1$/);
+    await expect(page.getByRole("heading", { name: "Edit task" })).toBeVisible();
 
-    await saveEditedTaskGoal(dialog, {
+    await saveEditedTaskGoal(page, {
       expectedGoal: savedTask.goal,
       nextGoal: "Compose monthly status report",
     });
 
-    await expect(dialog).toBeHidden();
+    await expect(page).toHaveURL(/\/tasks\/task-saved-1$/);
+    await expect(editTaskGoalInput(page)).toHaveValue(
+      "Compose monthly status report",
+    );
     await expect(
-      page.getByRole("cell", { name: "Compose monthly status report" }),
-    ).toBeVisible();
+      page.getByRole("button", { name: "Save changes" }),
+    ).toBeDisabled();
   });
 
   test("edits a saved task from the list edit action", async ({ page }) => {
@@ -200,19 +199,17 @@ test.describe("Shaiden tasks", () => {
 
     await page.getByRole("button", { name: "Edit" }).click();
 
-    const dialog = page.getByRole("dialog", { name: "Edit task" });
-    await expect(dialog).toBeVisible();
-    await expect(page).toHaveURL(/task=task-saved-1/);
+    await expect(page).toHaveURL(/\/tasks\/task-saved-1$/);
+    await expect(page.getByRole("heading", { name: "Edit task" })).toBeVisible();
 
-    await saveEditedTaskGoal(dialog, {
+    await saveEditedTaskGoal(page, {
       expectedGoal: savedTask.goal,
       nextGoal: "Compose quarterly status report",
     });
 
-    await expect(dialog).toBeHidden();
     await expect(
-      page.getByRole("cell", { name: "Compose quarterly status report" }),
-    ).toBeVisible();
+      page.getByRole("button", { name: "Save changes" }),
+    ).toBeDisabled();
   });
 
   test("disables save when the edit form is unchanged", async ({ page }) => {
@@ -221,48 +218,49 @@ test.describe("Shaiden tasks", () => {
       tasks: { tasks: [savedTask] },
     });
 
-    await page.goto("/tasks?task=task-saved-1");
+    await page.goto("/tasks/task-saved-1");
 
-    const dialog = page.getByRole("dialog", { name: "Edit task" });
-    await expect(dialog).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Edit task" })).toBeVisible();
 
-    await waitForEditTaskFormReady(dialog, {
+    await waitForEditTaskFormReady(page, {
       expectedGoal: savedTask.goal,
     });
 
-    await expect(dialog.getByRole("button", { name: "Save changes" })).toBeDisabled();
+    await expect(
+      page.getByRole("button", { name: "Save changes" }),
+    ).toBeDisabled();
 
-    const goalInput = editTaskGoalInput(dialog);
+    const goalInput = editTaskGoalInput(page);
     await goalInput.fill("Compose monthly status report");
 
-    await expect(dialog.getByRole("button", { name: "Save changes" })).toBeEnabled({
+    await expect(
+      page.getByRole("button", { name: "Save changes" }),
+    ).toBeEnabled({
       timeout: 10_000,
     });
   });
 
-  test("closes edit dialog without confirmation when unchanged", async ({
-    page,
-  }) => {
+  test("leaves edit without confirmation when unchanged", async ({ page }) => {
     await mockToriiConfig(page, {
       fudaAgents: [shaidenAgent],
       tasks: { tasks: [savedTask] },
     });
 
-    await page.goto("/tasks?task=task-saved-1");
+    await page.goto("/tasks/task-saved-1");
 
-    const dialog = page.getByRole("dialog", { name: "Edit task" });
-    await expect(dialog).toBeVisible();
-
-    await waitForEditTaskFormReady(dialog, {
+    await waitForEditTaskFormReady(page, {
       expectedGoal: savedTask.goal,
     });
 
-    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await page.getByRole("button", { name: "Cancel" }).click();
 
-    await expect(dialog).toBeHidden();
+    await expect(page).toHaveURL(/\/tasks$/);
     await expect(
       page.getByRole("dialog", { name: "Discard changes?" }),
     ).toHaveCount(0);
+    await expect(
+      page.getByRole("cell", { name: "Compose weekly status report" }),
+    ).toBeVisible();
   });
 
   test("confirms before discarding dirty edits", async ({ page }) => {
@@ -271,61 +269,54 @@ test.describe("Shaiden tasks", () => {
       tasks: { tasks: [savedTask] },
     });
 
-    await page.goto("/tasks?task=task-saved-1");
+    await page.goto("/tasks/task-saved-1");
 
-    const dialog = page.getByRole("dialog", { name: "Edit task" });
-    await expect(dialog).toBeVisible();
-
-    const goalInput = await waitForEditTaskFormReady(dialog, {
+    const goalInput = await waitForEditTaskFormReady(page, {
       expectedGoal: savedTask.goal,
     });
 
     await goalInput.fill("Unsaved edit");
 
-    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await page.getByRole("button", { name: "Cancel" }).click();
 
     const confirmDialog = page.getByRole("dialog", { name: "Discard changes?" });
     await expect(confirmDialog).toBeVisible();
-    await expect(dialog).toBeDefined();
 
     await confirmDialog.getByRole("button", { name: "Keep editing" }).click();
     await expect(confirmDialog).toBeHidden();
-    await expect(dialog).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Edit task" })).toBeVisible();
     await expect(goalInput).toHaveValue("Unsaved edit");
 
-    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await page.getByRole("button", { name: "Cancel" }).click();
     await expect(confirmDialog).toBeVisible();
 
     await confirmDialog.getByRole("button", { name: "Discard changes" }).click();
     await expect(confirmDialog).toBeHidden();
-    await expect(dialog).toBeHidden();
+    await expect(page).toHaveURL(/\/tasks$/);
     await expect(
       page.getByRole("cell", { name: "Compose weekly status report" }),
     ).toBeVisible();
   });
 
-  test("archives a saved task from the edit dialog", async ({ page }) => {
+  test("archives a saved task from the edit page", async ({ page }) => {
     await mockToriiConfig(page, {
       fudaAgents: [shaidenAgent],
       tasks: { tasks: [savedTask] },
     });
 
-    await page.goto("/tasks?task=task-saved-1");
+    await page.goto("/tasks/task-saved-1");
 
-    const dialog = page.getByRole("dialog", { name: "Edit task" });
-    await expect(dialog).toBeVisible();
-
-    await waitForEditTaskFormReady(dialog, {
+    await waitForEditTaskFormReady(page, {
       expectedGoal: savedTask.goal,
     });
 
-    await dialog.getByRole("button", { name: "Archive" }).click();
+    await page.getByRole("button", { name: "Archive" }).click();
 
     const confirmDialog = page.getByRole("dialog", { name: "Archive task?" });
     await expect(confirmDialog).toBeVisible();
     await confirmDialog.getByRole("button", { name: "Archive task" }).click();
 
-    await expect(dialog).toBeHidden();
+    await expect(page).toHaveURL(/\/tasks$/);
     await expect(
       page.getByRole("cell", { name: "Compose weekly status report" }),
     ).toHaveCount(0);

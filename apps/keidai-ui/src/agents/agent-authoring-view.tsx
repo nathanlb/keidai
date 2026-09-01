@@ -30,7 +30,7 @@ const EMPTY_FORM_VALUES: CreateAgentFormValues = {
 
 type SlugStatus = "empty" | "invalid" | "checking" | "available" | "taken";
 
-export function AgentCreateView() {
+export function AgentAuthoringView() {
   const navigate = useNavigate();
   const { mutate } = useSWRConfig();
   const { owner } = useActingOwner();

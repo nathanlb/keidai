@@ -38,6 +38,7 @@ export interface ShaidenHttpServerDeps {
   /** When set, task create/patch validate assignee against Fuda. */
   fudaClient?: FudaClient;
   runStopController?: RunStopController;
+  onScheduleChanged?: () => void;
 }
 
 export class ShaidenHttpServer {
@@ -59,6 +60,7 @@ export class ShaidenHttpServer {
       startTaskRun: deps.startTaskRun,
       logger: deps.logger,
       fudaClient: deps.fudaClient,
+      onScheduleChanged: deps.onScheduleChanged,
     });
   }
 

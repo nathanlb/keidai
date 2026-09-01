@@ -6,6 +6,11 @@ export interface SavedTask extends Task {
   createdAt: string;
   updatedAt: string;
   archivedAt?: string;
+  /** UTC instant of the next scheduler fire; null when none. */
+  nextRunAt?: string | null;
+  /** Set when the scheduler stopped after exhausting start retries. */
+  scheduleFailedAt?: string | null;
+  scheduleError?: string | null;
 }
 
 export interface TasksResponse {

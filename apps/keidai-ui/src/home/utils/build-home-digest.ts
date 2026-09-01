@@ -8,7 +8,11 @@ import type {
   RunStep,
   SavedTask,
 } from "@keidai/shared";
-import { DEFAULT_TASK_LIMITS, resolveTaskLimits } from "@keidai/shared";
+import {
+  DEFAULT_TASK_LIMITS,
+  isScheduleTrigger,
+  resolveTaskLimits,
+} from "@keidai/shared";
 import type { ManagementAgent } from "../../lib/api/agents.js";
 import type { RunVisibilityListItem } from "../../lib/api/runs.js";
 import { deriveAgentInitials } from "../../lib/utils/derive-agent-initials.js";
@@ -26,7 +30,13 @@ import type {
   HomeGoalDay,
   HomeLiveRun,
   HomeRecentRun,
+  HomeScheduledTask,
 } from "../types/home-digest.js";
+import { lastOutcomeForTask } from "../../agents/utils/agent-activity.js";
+import {
+  formatNextRunLabel,
+  formatScheduleTrigger,
+} from "../../tasks/utils/format-schedule.js";
 import { deriveApprovalImpact } from "./derive-approval-impact.js";
 import { deriveGoalVerdict } from "./derive-goal-verdict.js";
 import { buildSystemMap } from "./build-system-map.js";
@@ -371,6 +381,38 @@ export function buildHomeDigest(sources: HomeDigestSources): HomeDigest {
       };
     });
 
+  const scheduled: HomeScheduledTask[] = sources.tasks
+    .filter((task) => !task.archivedAt && isScheduleTrigger(task.trigger))
+    .sort((left, right) => {
+      const leftNext = left.nextRunAt ?? "";
+      const rightNext = right.nextRunAt ?? "";
+      if (leftNext !== rightNext) {
+        return leftNext.localeCompare(rightNext);
+      }
+      return left.id.localeCompare(right.id);
+    })
+    .map((task) => {
+      const paused = Boolean(
+        isScheduleTrigger(task.trigger) && task.trigger.paused,
+      );
+      const failed = Boolean(task.scheduleFailedAt);
+      const agent = agentsById[task.assignee];
+      return {
+        id: task.id,
+        task: taskTitle(task.goal),
+        description: isScheduleTrigger(task.trigger)
+          ? task.trigger.timezone
+          : "",
+        agent: agent?.name || agent?.slug || task.assignee,
+        trigger: formatScheduleTrigger(task.trigger),
+        lastVerdict: lastOutcomeForTask(sources.runs, task.id),
+        nextLabel: formatNextRunLabel(task.nextRunAt, paused, now, failed),
+        paused,
+        failed,
+      };
+    });
+  const pausedScheduledCount = scheduled.filter((row) => row.paused).length;
+
   const taskCountByAgent = new Map<string, number>();
   for (const task of sources.tasks) {
     taskCountByAgent.set(
@@ -418,8 +460,8 @@ export function buildHomeDigest(sources: HomeDigestSources): HomeDigest {
     week: buildWeek(weekCompleted, now),
     recentRuns,
     totalRunCount: sources.runs.length,
-    scheduled: [],
-    pausedScheduledCount: 0,
+    scheduled,
+    pausedScheduledCount,
     agents,
     systemMap: buildSystemMap(sources),
   };
