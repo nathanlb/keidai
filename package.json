@@ -33,10 +33,10 @@
     "changeset": "changeset",
     "version-packages": "changeset version && node scripts/sync-chart-version.mjs",
     "check-versions": "node scripts/check-versions.mjs",
-    "prepare-release": "node scripts/prepare-release-changeset.mjs"
+    "prepare-release": "node scripts/prepare-release-changeset.mjs",
+    "test:scripts": "node --test scripts/lib/release-changelog.test.mjs"
   },
   "devDependencies": {
-    "@changesets/changelog-github": "^0.5.1",
     "@changesets/cli": "^2.29.7",
     "turbo": "^2.10.10",
     "typescript": "^5.9.3"

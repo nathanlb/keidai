@@ -16,6 +16,7 @@ jobs:
           fetch-depth: 0
       - run: git fetch origin main
       - run: node scripts/check-versions.mjs
+      - run: node --test scripts/lib/release-changelog.test.mjs
 
   packages:
     uses: ./.github/workflows/with-postgres.yml

@@ -1,30 +1,29 @@
 #!/usr/bin/env node
 /**
- * Gather main-branch commit messages since the last v* tag, generate a changeset
- * changelog via OpenRouter, and write .changeset/prepare-release-*.md
+ * Gather main-branch commits since the last v* tag, write a changeset whose
+ * summary is a deterministic conventional-commit changelog, and optionally
+ * dump that markdown for the Release PR body.
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { parseArgs } from "node:util";
+import {
+  DEFAULT_REPO,
+  changesetFrontmatter,
+  formatChangelog,
+} from "./lib/release-changelog.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const DEFAULT_MODEL = "~deepseek/deepseek-v4-flash-latest";
-const LOG_CHAR_CAP = 50_000;
-
-// Conventional chore subjects (deps, release PRs, tooling). minor/major drop
-// these so a release needs feat/fix/etc.; --bump patch keeps them so a
-// vulnerability bump can ship without a conventional "fix:" subject.
-const NOISE_SUBJECT = /^(chore(\([^)]*\))?:|version packages)/i;
 
 const { values, positionals } = parseArgs({
   options: {
     bump: { type: "string" },
     notes: { type: "string", default: "" },
     since: { type: "string" },
-    model: { type: "string", default: DEFAULT_MODEL },
+    repo: { type: "string" },
+    "pr-body-out": { type: "string" },
   },
   allowPositionals: true,
 });
@@ -35,21 +34,20 @@ if (!bump || !["patch", "minor", "major"].includes(bump)) {
   process.exit(1);
 }
 
-const apiKey = process.env.OPEN_ROUTER_API_KEY?.trim();
-if (!apiKey) {
-  console.error("OPEN_ROUTER_API_KEY is required");
-  process.exit(1);
-}
+const repo =
+  values.repo?.trim() ||
+  process.env.GITHUB_REPOSITORY?.trim() ||
+  DEFAULT_REPO;
 
-const LOG_FORMAT =
-  "----%ncommit %H%nauthor %an%n date %ad%n subject %s%n body %b";
+const LOG_FORMAT = "----%ncommit %H%n subject %s%n body %b";
 
 function git(args) {
   return execFileSync("git", args, { encoding: "utf8", cwd: root }).trim();
 }
 
-const pending = readdirSync(join(root, ".changeset"))
-  .filter((name) => name.endsWith(".md"));
+const pending = readdirSync(join(root, ".changeset")).filter(
+  (name) => name.endsWith(".md") && name.toLowerCase() !== "readme.md",
+);
 if (pending.length > 0) {
   console.error(
     `Pending changeset(s) already exist: ${pending.join(", ")}. Merge or remove them first.`,
@@ -57,9 +55,14 @@ if (pending.length > 0) {
   process.exit(1);
 }
 
-const currentVersion = JSON.parse(
-  readFileSync(join(root, "apps/fuda/package.json"), "utf8"),
-).version;
+const changesetConfig = JSON.parse(
+  readFileSync(join(root, ".changeset/config.json"), "utf8"),
+);
+const packageNames = changesetConfig.fixed?.[0];
+if (!Array.isArray(packageNames) || packageNames.length === 0) {
+  console.error("Expected .changeset/config.json fixed[0] to list platform packages");
+  process.exit(1);
+}
 
 let sinceRef = values.since?.trim();
 if (!sinceRef) {
@@ -74,7 +77,6 @@ if (!sinceRef) {
 const rawLog = git([
   "log",
   `${sinceRef}..HEAD`,
-  "--reverse",
   `--format=${LOG_FORMAT}`,
 ]);
 
@@ -83,25 +85,28 @@ if (!rawLog) {
   process.exit(1);
 }
 
-/** @type {{ hash: string; author: string; date: string; subject: string; body: string }[]} */
+/** @type {{ hash: string; subject: string; body: string }[]} */
 const commits = [];
 for (const block of rawLog.split(/^----$/m)) {
   const trimmed = block.trim();
   if (!trimmed) continue;
 
   const hash = trimmed.match(/^commit (\S+)/m)?.[1] ?? "";
-  const author = trimmed.match(/^author (.+)$/m)?.[1] ?? "";
-  const date = trimmed.match(/^ date (.+)$/m)?.[1] ?? "";
   const subject = trimmed.match(/^ subject (.+)$/m)?.[1] ?? "";
   const body = trimmed.match(/^ body ([\s\S]*)$/m)?.[1]?.trim() ?? "";
 
   if (!hash || !subject) continue;
-  if (bump !== "patch" && NOISE_SUBJECT.test(subject)) continue;
-
-  commits.push({ hash, author, date, subject, body });
+  commits.push({ hash, subject, body });
 }
 
-if (commits.length === 0) {
+const changelog = formatChangelog({
+  commits,
+  bump,
+  notes: values.notes,
+  repo,
+});
+
+if (!changelog.trim()) {
   console.error(
     bump === "patch"
       ? `No commits between ${sinceRef} and HEAD; nothing to release`
@@ -110,96 +115,21 @@ if (commits.length === 0) {
   process.exit(1);
 }
 
-function formatCommitLog(entries) {
-  return entries
-    .map((c) => {
-      const lines = [
-        `commit ${c.hash}`,
-        `author ${c.author}`,
-        `date ${c.date}`,
-        `subject ${c.subject}`,
-      ];
-      if (c.body) lines.push(`body ${c.body}`);
-      return lines.join("\n");
-    })
-    .join("\n----\n");
-}
-
-let commitLog = formatCommitLog(commits);
-let truncated = false;
-if (commitLog.length > LOG_CHAR_CAP) {
-  truncated = true;
-  while (commitLog.length > LOG_CHAR_CAP && commits.length > 1) {
-    commits.shift();
-    commitLog = formatCommitLog(commits);
-  }
-  commitLog =
-    `[Note: oldest commits omitted — log exceeded ${LOG_CHAR_CAP} characters]\n\n` +
-    commitLog;
-}
-
-const systemPrompt = `You write Keidai platform release notes for operators and developers.
-Synthesize the provided commit messages into a concise markdown bullet list.
-Group related work; emphasize user-facing features, fixes, and operational changes.
-Omit test-only tweaks, internal refactors, and chore noise unless operationally relevant.
-Output ONLY markdown bullet lines (each starting with "- "). No heading, no frontmatter, no code fences.`;
-
-const maintainerNotes = values.notes?.trim();
-const userPrompt = [
-  `Current platform version: ${currentVersion}`,
-  `Requested bump: ${bump}`,
-  `Commits since ${sinceRef}:`,
-  truncated ? "(log truncated to fit context limits)" : "",
-  maintainerNotes ? `Maintainer notes: ${maintainerNotes}` : "",
-  "",
-  commitLog,
-]
-  .filter(Boolean)
-  .join("\n");
-
-const llmResponse = await fetch(OPENROUTER_URL, {
-  method: "POST",
-  headers: {
-    Authorization: `Bearer ${apiKey}`,
-    "Content-Type": "application/json",
-    "HTTP-Referer": "https://github.com/nathanlb/keidai",
-    "X-Title": "Keidai Release",
-  },
-  body: JSON.stringify({
-    model: values.model ?? DEFAULT_MODEL,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-  }),
-});
-
-if (!llmResponse.ok) {
-  const errText = await llmResponse.text();
-  console.error(`OpenRouter request failed (${llmResponse.status}): ${errText}`);
-  process.exit(1);
-}
-
-const llmJson = await llmResponse.json();
-let changelog = llmJson.choices?.[0]?.message?.content?.trim() ?? "";
-if (!changelog) {
-  console.error("OpenRouter returned empty changelog");
-  process.exit(1);
-}
-
-changelog = changelog.replace(/^```(?:markdown)?\s*/i, "").replace(/\s*```$/i, "");
-
 const shortSha = git(["rev-parse", "--short", "HEAD"]);
 const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
 const filename = `prepare-release-${date}-${shortSha}.md`;
 const changesetPath = join(root, ".changeset", filename);
 
-const changesetBody = `---
-"@keidai/fuda": ${bump}
----
+writeFileSync(
+  changesetPath,
+  `${changesetFrontmatter(bump, packageNames)}\n\n${changelog}\n`,
+);
 
-${changelog}
-`;
+const prBodyOut = values["pr-body-out"]?.trim();
+if (prBodyOut) {
+  writeFileSync(prBodyOut, `${changelog}\n`);
+}
 
-writeFileSync(changesetPath, changesetBody);
 console.log(`Wrote ${changesetPath}`);
+console.log(`Changelog since ${sinceRef}:\n`);
+console.log(changelog);
