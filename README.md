@@ -55,8 +55,9 @@ for Compose, native local development, and Kubernetes.
 Keidai uses a single platform semver across all workspace packages and the Helm
 chart. Releases are maintainer-driven from GitHub Actions:
 
-1. Actions → **Prepare release** → choose bump type (and optional notes for the
-   changelog). This opens one **Release** PR with the version bump and changelog.
+1. Actions → **Prepare release** → choose bump type (and optional extra notes).
+   This opens one **Release** PR with the version bump and a changelog built
+   from conventional commits since the last `v*` tag.
 2. Review and merge that PR. Merging tags `v{semver}` and publishes GHCR images
    plus the Helm chart (`oci://ghcr.io/<owner>/keidai`).
 

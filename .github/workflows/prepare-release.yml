@@ -14,13 +14,8 @@ on:
           - major
         default: minor
       notes:
-        description: Optional context for the changelog LLM
+        description: Optional markdown prepended to the commit-derived changelog
         required: false
-        type: string
-      model:
-        description: OpenRouter model id
-        required: false
-        default: ~deepseek/deepseek-v4-flash-latest
         type: string
 
 concurrency:
@@ -43,14 +38,14 @@ jobs:
       - uses: ./.github/actions/setup
 
       - name: Generate changeset
+        env:
+          RELEASE_NOTES: ${{ inputs.notes }}
         run: |
-          ARGS=(--bump "${{ inputs.bump }}" --model "${{ inputs.model }}")
-          if [ -n "${{ inputs.notes }}" ]; then
-            ARGS+=(--notes "${{ inputs.notes }}")
+          ARGS=(--bump "${{ inputs.bump }}" --pr-body-out "${RUNNER_TEMP}/release-notes.md")
+          if [ -n "${RELEASE_NOTES}" ]; then
+            ARGS+=(--notes "${RELEASE_NOTES}")
           fi
           node scripts/prepare-release-changeset.mjs "${ARGS[@]}"
-        env:
-          OPEN_ROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_RELEASE_API_KEY }}
 
       - name: Apply version bump
         run: pnpm run version-packages
@@ -60,6 +55,7 @@ jobs:
       - name: Open release pull request
         env:
           GH_TOKEN: ${{ secrets.RELEASE_GITHUB_TOKEN || github.token }}
+          BUMP: ${{ inputs.bump }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -69,8 +65,15 @@ jobs:
           git add -- apps packages deploy/k8s/chart/Chart.yaml .changeset
           git commit -m "chore: release ${VERSION}"
           git push origin "HEAD:${BRANCH}"
+          {
+            echo "Platform release ${VERSION} (${BUMP})."
+            echo
+            echo "Changelog is generated from conventional commits since the last \`v*\` tag. Review it, then merge to tag \`v${VERSION}\` and publish GHCR images plus the Helm chart."
+            echo
+            cat "${RUNNER_TEMP}/release-notes.md"
+          } > "${RUNNER_TEMP}/pr-body.md"
           gh pr create \
             --base main \
             --head "${BRANCH}" \
             --title "Release ${VERSION}" \
-            --body "Platform release ${VERSION} (${{ inputs.bump }}). Review the changelog, then merge to tag \`v${VERSION}\` and publish GHCR images plus the Helm chart."
+            --body-file "${RUNNER_TEMP}/pr-body.md"
