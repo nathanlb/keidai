@@ -2,6 +2,7 @@ import "reflect-metadata";
 import { container, type DependencyContainer, Lifecycle } from "tsyringe";
 import type { ToriiConfig } from "@keidai/shared";
 import type { MigrationResult, Pool } from "@keidai/postgres";
+import { PgChannelListener } from "@keidai/postgres";
 import { ConnectionManager } from "./connections/connection-manager.service.js";
 import { DefaultMcpClientConnector } from "./connections/mcp-client-connector.service.js";
 import { ToolCatalogService } from "./catalog/tool-catalog.service.js";
@@ -53,6 +54,7 @@ import { GroupsApiController } from "./policy/groups-api.controller.js";
 import { ConnectorRegistry } from "./connectors/connector-registry.service.js";
 import { PgConnectorRepository } from "./connectors/pg-connector-repository.service.js";
 import { ConnectorManagementService } from "./connectors/connector-management.service.js";
+import { TORII_CONNECTORS_CHANNEL } from "./connectors/connector-invalidation.js";
 import { ConnectorsApiController } from "./connectors/connectors-api.controller.js";
 import { PgSecretRepository } from "./secrets/pg-secret-repository.service.js";
 import { SECRET_REPOSITORY } from "./secrets/secret-store.js";
@@ -72,10 +74,16 @@ const SINGLETON = { lifecycle: Lifecycle.Singleton } as const;
 export interface ToriiContainerResult {
   container: DependencyContainer;
   migrations: MigrationResult;
+  stop: () => Promise<void>;
 }
 
 export interface CreateContainerOptions {
   pool?: Pool;
+  /**
+   * Postgres URL for the connector LISTEN connection. Production uses
+   * `TORII_DATABASE_URL`. Tests that inject a pool omit this and skip LISTEN.
+   */
+  listenDatabaseUrl?: string;
 }
 
 export async function createContainer(
@@ -371,11 +379,40 @@ export async function createContainer(
     appContainer.resolve(ConnectionManager),
   );
 
+  let connectorListener: PgChannelListener | undefined;
   if (!seededFromConfig) {
-    await appContainer.resolve(ConnectorManagementService).loadIntoRegistry();
+    const management = appContainer.resolve(ConnectorManagementService);
+    await management.loadIntoRegistry();
+    appContainer.resolve(OAuthLinkService).bindRegistryReload(() =>
+      management.loadIntoRegistry(),
+    );
+
+    const listenUrl =
+      options.listenDatabaseUrl ??
+      (options.pool ? undefined : resolveToriiDatabaseUrl());
+    if (listenUrl) {
+      const logger = appContainer.resolve(StructuredLoggerService);
+      connectorListener = new PgChannelListener({
+        connectionString: listenUrl,
+        channel: TORII_CONNECTORS_CHANNEL,
+        onNotification: () => management.refreshFromStore(),
+        onError: (error) => {
+          logger.warn("connectors.listen_error", {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        },
+      });
+      await connectorListener.start();
+    }
   }
 
-  return { container: appContainer, migrations };
+  return {
+    container: appContainer,
+    migrations,
+    stop: async () => {
+      await connectorListener?.stop();
+    },
+  };
 }
 
 export function resolveToriiDatabase(appContainer: DependencyContainer): Pool {

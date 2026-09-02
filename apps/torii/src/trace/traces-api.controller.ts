@@ -7,6 +7,7 @@ import {
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { inject, injectable } from "tsyringe";
 import { TraceReadService } from "./trace-read.service.js";
+import { openSseStream } from "../http/utils/sse-stream.js";
 import {
   DEFAULT_TRACE_LIST_LIMIT,
   DEFAULT_TRACE_STATS_WINDOW_MS,
@@ -60,26 +61,20 @@ export class TracesApiController {
     });
 
     app.get("/api/traces/events", async (request, reply) => {
-      reply.hijack();
-      reply.raw.writeHead(200, {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      });
+      const { writeEvent } = openSseStream(request, reply);
 
-      const writeEvent = (event: TraceSseEvent): void => {
-        reply.raw.write(`event: ${event.type}\n`);
-        reply.raw.write(`data: ${JSON.stringify(event.trace)}\n\n`);
+      const emit = (event: TraceSseEvent): void => {
+        writeEvent(event.type, event.trace);
       };
 
       for (const trace of (await this.traceRead.listTraces({ limit: 50 })).traces) {
-        writeEvent({
+        emit({
           type: TRACE_SSE_EVENT.traceCreated,
           trace,
         });
       }
 
-      const unsubscribe = this.traceRead.subscribe(writeEvent);
+      const unsubscribe = this.traceRead.subscribe(emit);
 
       request.raw.on("close", () => {
         unsubscribe();

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createServer as createHttpServer } from "node:http";
 import { after, before, describe, it } from "node:test";
-import { createServer } from "../create-server.js";
+import { createServer, bffUpstreamAgentOptions } from "../create-server.js";
 
 describe("createServer", () => {
   let app: Awaited<ReturnType<typeof createServer>>;
@@ -54,6 +54,16 @@ describe("createServer", () => {
           connection: "keep-alive",
         });
         res.write("data: {\"type\":\"trace\"}\n\n");
+        res.end();
+        return;
+      }
+      if (req.url?.startsWith("/api/connections/events")) {
+        res.writeHead(200, {
+          "content-type": "text/event-stream",
+          "cache-control": "no-cache",
+          connection: "keep-alive",
+        });
+        res.write("data: {\"type\":\"connection\"}\n\n");
         res.end();
         return;
       }
@@ -213,7 +223,7 @@ describe("createServer", () => {
     });
   });
 
-  it("hardens SSE proxy responses for runs and traces events", async () => {
+  it("hardens SSE proxy responses for runs, traces, and connections events", async () => {
     const address = app.server.address();
     assert(address && typeof address === "object");
     const base = `http://127.0.0.1:${address.port}`;
@@ -229,6 +239,19 @@ describe("createServer", () => {
     assert.match(traces.headers.get("cache-control") ?? "", /no-cache/);
     assert.equal(traces.headers.get("x-accel-buffering"), "no");
     assert.match(await traces.text(), /"type":"trace"/);
+
+    const connections = await fetch(`${base}/api/connections/events`);
+    assert.equal(connections.status, 200);
+    assert.match(connections.headers.get("cache-control") ?? "", /no-cache/);
+    assert.equal(connections.headers.get("x-accel-buffering"), "no");
+    assert.match(await connections.text(), /"type":"connection"/);
+  });
+
+  it("disables undici SSE timeouts without setting http timeout 0", () => {
+    const options = bffUpstreamAgentOptions();
+    assert.equal("http" in options, false);
+    assert.equal(options.undici.headersTimeout, 0);
+    assert.equal(options.undici.bodyTimeout, 0);
   });
 
   it("serves enriched runs visibility from the BFF UI route", async () => {

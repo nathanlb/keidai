@@ -1,8 +1,10 @@
 import "reflect-metadata";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { PgChannelListener, resolveTestDatabaseUrl } from "@keidai/postgres";
 import { ConnectorManagementService } from "../connector-management.service.js";
 import { ConnectorRegistry } from "../connector-registry.service.js";
+import { TORII_CONNECTORS_CHANNEL } from "../connector-invalidation.js";
 import { PgConnectorRepository } from "../pg-connector-repository.service.js";
 import { PgOAuthRegistrationRepository } from "../../credentials/pg-oauth-registration-repository.service.js";
 import { PgSecretRepository } from "../../secrets/pg-secret-repository.service.js";
@@ -10,6 +12,20 @@ import { createTestGatewayPersistence } from "../../testing/gateway-persistence.
 import type { ConnectionManager } from "../../connections/connection-manager.service.js";
 import type { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
 import { ConnectorWriteError } from "../types/connector-write.js";
+
+async function waitUntil(
+  predicate: () => boolean,
+  timeoutMs = 2_000,
+): Promise<void> {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    if (predicate()) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  throw new Error("timed out waiting for connector fan-out");
+}
 
 function stubRuntime(): {
   connections: ConnectionManager;
@@ -26,21 +42,38 @@ function stubRuntime(): {
   };
 }
 
+function createManagement(
+  pool: NonNullable<
+    Awaited<ReturnType<typeof createTestGatewayPersistence>>["pool"]
+  >,
+  registry: ConnectorRegistry,
+  groups: Awaited<
+    ReturnType<typeof createTestGatewayPersistence>
+  >["groupPolicyRepository"],
+): ConnectorManagementService {
+  const runtime = stubRuntime();
+  return new ConnectorManagementService(
+    new PgConnectorRepository(pool),
+    registry,
+    new PgSecretRepository(pool),
+    new PgOAuthRegistrationRepository(pool),
+    groups,
+    runtime.connections,
+    runtime.catalog,
+    pool,
+  );
+}
+
 describe("ConnectorManagementService", () => {
   it("installs a catalog connector and hides secrets on GET", async () => {
     const persistence = await createTestGatewayPersistence("postgres");
     try {
       const pool = persistence.pool!;
       const registry = new ConnectorRegistry();
-      const runtime = stubRuntime();
-      const management = new ConnectorManagementService(
-        new PgConnectorRepository(pool),
+      const management = createManagement(
+        pool,
         registry,
-        new PgSecretRepository(pool),
-        new PgOAuthRegistrationRepository(pool),
         persistence.groupPolicyRepository,
-        runtime.connections,
-        runtime.catalog,
       );
 
       const created = await management.installFromCatalog({
@@ -71,15 +104,10 @@ describe("ConnectorManagementService", () => {
     try {
       const pool = persistence.pool!;
       const registry = new ConnectorRegistry();
-      const runtime = stubRuntime();
-      const management = new ConnectorManagementService(
-        new PgConnectorRepository(pool),
+      const management = createManagement(
+        pool,
         registry,
-        new PgSecretRepository(pool),
-        new PgOAuthRegistrationRepository(pool),
         persistence.groupPolicyRepository,
-        runtime.connections,
-        runtime.catalog,
       );
 
       const created = await management.installFromCatalog({
@@ -98,15 +126,10 @@ describe("ConnectorManagementService", () => {
     try {
       const pool = persistence.pool!;
       const registry = new ConnectorRegistry();
-      const runtime = stubRuntime();
-      const management = new ConnectorManagementService(
-        new PgConnectorRepository(pool),
+      const management = createManagement(
+        pool,
         registry,
-        new PgSecretRepository(pool),
-        new PgOAuthRegistrationRepository(pool),
         persistence.groupPolicyRepository,
-        runtime.connections,
-        runtime.catalog,
       );
       await management.create({
         slug: "gmail",
@@ -137,6 +160,38 @@ describe("ConnectorManagementService", () => {
         },
       );
     } finally {
+      await persistence.close();
+    }
+  });
+
+  it("fans a catalog install out to another in-memory registry via NOTIFY", async () => {
+    const persistence = await createTestGatewayPersistence("postgres");
+    const writerRegistry = new ConnectorRegistry();
+    const peerRegistry = new ConnectorRegistry();
+    const pool = persistence.pool!;
+    const writer = createManagement(
+      pool,
+      writerRegistry,
+      persistence.groupPolicyRepository,
+    );
+    const peer = createManagement(
+      pool,
+      peerRegistry,
+      persistence.groupPolicyRepository,
+    );
+    const listener = new PgChannelListener({
+      connectionString: resolveTestDatabaseUrl(),
+      channel: TORII_CONNECTORS_CHANNEL,
+      onNotification: () => peer.refreshFromStore(),
+    });
+
+    try {
+      await listener.start();
+      await writer.installFromCatalog({ catalogId: "linear" });
+      await waitUntil(() => peerRegistry.find("linear") !== undefined);
+      assert.equal(peerRegistry.find("linear")?.authMode, "user_oauth");
+    } finally {
+      await listener.stop();
       await persistence.close();
     }
   });

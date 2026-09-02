@@ -77,6 +77,8 @@ function isCallbackError(
 
 @injectable()
 export class OAuthLinkService {
+  private reloadRegistry?: () => Promise<void>;
+
   constructor(
     @inject(ToriiConfigService)
     private readonly configService: ToriiConfigService,
@@ -96,13 +98,18 @@ export class OAuthLinkService {
     private readonly discoveryCache?: PgOAuthDiscoveryCache,
   ) {}
 
+  /** Reload connectors from Postgres when this replica's registry is stale. */
+  bindRegistryReload(reload: () => Promise<void>): void {
+    this.reloadRegistry = reload;
+  }
+
   async initiate(
     provider: string,
     baseUrl: string,
     ownerId?: string,
     uiOrigin?: string,
   ): Promise<OAuthInitiateResponse> {
-    const connector = this.findConnector(provider);
+    const connector = await this.resolveConnector(provider);
     if (!connector) {
       throw new Error(
         `Unknown OAuth provider "${provider}". Defined providers: ${this.knownProviderNames().join(", ") || "(none)"}`,
@@ -195,7 +202,7 @@ export class OAuthLinkService {
   }
 
   async unlink(provider: string, ownerId?: string): Promise<boolean> {
-    if (!this.findConnector(provider)) {
+    if (!(await this.resolveConnector(provider))) {
       throw new Error(`Unknown OAuth provider "${provider}"`);
     }
 
@@ -279,7 +286,7 @@ export class OAuthLinkService {
     provider: string,
     { code, pendingLink }: ResolvedCallbackContext,
   ): Promise<OAuthCallbackResult> {
-    const connector = this.findConnector(provider);
+    const connector = await this.resolveConnector(provider);
     if (!connector) {
       return this.callbackFailure(
         `Unknown OAuth provider "${provider}"`,
@@ -437,6 +444,17 @@ export class OAuthLinkService {
       status: "failed",
       error: message,
     });
+  }
+
+  private async resolveConnector(
+    provider: string,
+  ): Promise<ConnectorRecord | undefined> {
+    const found = this.findConnector(provider);
+    if (found || !this.reloadRegistry) {
+      return found;
+    }
+    await this.reloadRegistry();
+    return this.findConnector(provider);
   }
 
   private findConnector(provider: string): ConnectorRecord | undefined {

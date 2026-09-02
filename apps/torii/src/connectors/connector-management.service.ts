@@ -1,5 +1,5 @@
 import { inject, injectable } from "tsyringe";
-import { isUniqueViolation } from "@keidai/postgres";
+import { isUniqueViolation, notifyChannel, type Pool } from "@keidai/postgres";
 import type {
   CatalogEntry,
   ConnectorOAuthOverride,
@@ -25,7 +25,9 @@ import {
 import { PgOAuthRegistrationRepository } from "../credentials/pg-oauth-registration-repository.service.js";
 import { PgOAuthDiscoveryCache } from "../credentials/pg-oauth-discovery-cache.service.js";
 import { ConnectorRegistry } from "./connector-registry.service.js";
+import { TORII_CONNECTORS_CHANNEL } from "./connector-invalidation.js";
 import { PgConnectorRepository } from "./pg-connector-repository.service.js";
+import { TORII_DATABASE } from "../storage/gateway-postgres.js";
 import type {
   CreateConnectorBody,
   InstallCatalogBody,
@@ -51,6 +53,8 @@ export class ConnectorManagementService {
     private readonly connections: ConnectionManager,
     @inject(ToolCatalogService)
     private readonly toolCatalog: ToolCatalogService,
+    @inject(TORII_DATABASE)
+    private readonly pool: Pool,
     @inject(PgOAuthDiscoveryCache)
     private readonly discoveryCache?: PgOAuthDiscoveryCache,
   ) {}
@@ -93,7 +97,7 @@ export class ConnectorManagementService {
       if (oauth?.clientId && oauth.clientSecret && oauth.issuer) {
         await this.storeManualRegistration(oauth);
       }
-      await this.refreshRuntime();
+      await this.refreshRuntimeAndNotify();
       const hydrated = this.registry.find(created.slug);
       return this.toPublic(hydrated ?? created);
     } catch (error) {
@@ -177,7 +181,7 @@ export class ConnectorManagementService {
     if (oauth?.clientId && oauth.clientSecret && oauth.issuer) {
       await this.storeManualRegistration(oauth);
     }
-    await this.refreshRuntime();
+    await this.refreshRuntimeAndNotify();
     const hydrated = this.registry.find(slug);
     return this.toPublic(hydrated ?? updated);
   }
@@ -198,7 +202,7 @@ export class ConnectorManagementService {
     }
     const deleted = await this.repository.delete(slug);
     if (deleted) {
-      await this.refreshRuntime();
+      await this.refreshRuntimeAndNotify();
     }
     return deleted;
   }
@@ -222,11 +226,20 @@ export class ConnectorManagementService {
     return { ...row, resolvedServiceKey };
   }
 
-  private async refreshRuntime(): Promise<void> {
+  /**
+   * Reload connectors from Postgres and reconcile live MCP connections.
+   * Used at boot and when another replica NOTIFYs a write.
+   */
+  async refreshFromStore(): Promise<void> {
     await this.loadIntoRegistry();
     await this.connections.reconcile();
     await this.toolCatalog.refresh();
     this.connections.rebroadcast();
+  }
+
+  private async refreshRuntimeAndNotify(): Promise<void> {
+    await this.refreshFromStore();
+    await notifyChannel(this.pool, TORII_CONNECTORS_CHANNEL);
   }
 
   private async toPublic(connector: ConnectorRecord): Promise<PublicConnector> {
