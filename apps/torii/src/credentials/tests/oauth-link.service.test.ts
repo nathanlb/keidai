@@ -120,6 +120,19 @@ describe("OAuthLinkService", () => {
     );
   });
 
+  it("reloads connectors from the store before treating a provider as unknown", async () => {
+    const { service } = createOAuthLinkService();
+    let reloads = 0;
+    service.bindRegistryReload(async () => {
+      reloads += 1;
+    });
+    await assert.rejects(
+      () => service.initiate("linear", "http://127.0.0.1:3100"),
+      /Unknown OAuth provider "linear"/,
+    );
+    assert.equal(reloads, 1);
+  });
+
   it("completeCallback marks the pending link failed when the provider returns an error", async () => {
     const pendingLinkStore = new MockPendingLinkStore();
     const { service } = createOAuthLinkService(sampleConfig, { pendingLinkStore });

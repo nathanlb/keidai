@@ -22,7 +22,7 @@ Browser → keidai-ui:3000 (SPA, /auth/*, /api/*, /oauth/callback/*)
 | [`chart/values-secrets.example.yaml`](chart/values-secrets.example.yaml) | Shape of the uncommitted secrets values file |
 | [`kind/kind-config.yaml`](kind/kind-config.yaml) | kind cluster (port map + SA issuer) |
 | [`up.sh`](up.sh) / [`down.sh`](down.sh) | Local bring-up / teardown (`helm upgrade --install`) |
-| [`install-k3s.md`](install-k3s.md) | Host install: OCI chart, no git clone, nginx Ingress |
+| [`install-k3s.md`](install-k3s.md) | Host install and **[upgrade](install-k3s.md#upgrades)** from GHCR (no git clone) |
 
 ## Prerequisites
 
@@ -140,6 +140,10 @@ upgrading:
 2. Run `helm upgrade` (the pre-upgrade Job applies migrations with the new
    image tags before rolling pods).
 
+Host (k3s) procedure: **[install-k3s.md § Upgrades](install-k3s.md#upgrades)**
+(OCI chart, secrets files, breaking values). kind/OrbStack: re-run `up.sh`
+after bumping the chart in this tree.
+
 Compose / local processes still auto-migrate at boot (`KEIDAI_AUTO_MIGRATE`
 defaults to true when unset).
 
@@ -205,9 +209,9 @@ kubectl -n keidai get svc torii -o jsonpath='{.spec.type} {.spec.sessionAffinity
 ```
 
 Expect two Ready pods and `ClusterIP None`. Approvals and MCP tasks live in
-shared Postgres, so approve and `tasks/get` may hit different pods.
-
-Known leftovers: operator SSE is process-local across Torii replicas.
+shared Postgres, so approve and `tasks/get` may hit different pods. Connector
+writes `NOTIFY` so every replica reloads its in-memory registry; operator SSE
+is still process-local.
 
 ## Auth wiring
 

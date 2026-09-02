@@ -6,6 +6,7 @@ import { runWithAgentPrincipal } from "../identity/agent-principal-context.js";
 import { operatorReconnectPrincipal } from "../identity/operator-reconnect-principal.js";
 import { ConnectionManager } from "./connection-manager.service.js";
 import { ConnectionReadService } from "./connection-read.service.js";
+import { openSseStream } from "../http/utils/sse-stream.js";
 
 function readOwnerQuery(
   request: FastifyRequest<{ Querystring: { owner?: string } }>,
@@ -59,26 +60,20 @@ export class ConnectionsApiController {
     });
 
     app.get("/api/connections/events", (request, reply) => {
-      reply.hijack();
-      reply.raw.writeHead(200, {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      });
+      const { writeEvent } = openSseStream(request, reply);
 
-      const writeEvent = (event: ConnectionSseEvent): void => {
-        reply.raw.write(`event: ${event.type}\n`);
-        reply.raw.write(`data: ${JSON.stringify(event.connection)}\n\n`);
+      const emit = (event: ConnectionSseEvent): void => {
+        writeEvent(event.type, event.connection);
       };
 
       for (const connection of this.connectionRead.listConnections().connections) {
-        writeEvent({
+        emit({
           type: CONNECTION_SSE_EVENT.stateChanged,
           connection,
         });
       }
 
-      const unsubscribe = this.connectionRead.subscribe(writeEvent);
+      const unsubscribe = this.connectionRead.subscribe(emit);
 
       request.raw.on("close", () => {
         unsubscribe();

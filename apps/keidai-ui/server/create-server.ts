@@ -92,6 +92,24 @@ function hardenSseHeaders(
   return next;
 }
 
+/**
+ * Agent options for `@fastify/http-proxy` / reply-from.
+ *
+ * Do not set `http.requestOptions.timeout: 0`. reply-from treats 0 as missing
+ * (`if (!timeout)`) and falls back to 10s, which 504s idle SSE. Omitting
+ * `http` selects undici, where 0 disables headersTimeout and bodyTimeout.
+ */
+export function bffUpstreamAgentOptions(): {
+  undici: { headersTimeout: number; bodyTimeout: number };
+} {
+  return {
+    undici: {
+      headersTimeout: 0,
+      bodyTimeout: 0,
+    },
+  };
+}
+
 function readForwardedHeader(
   value: string | string[] | undefined,
 ): string | undefined {
@@ -175,17 +193,7 @@ export async function registerApiProxy(
       ...(enforceSessionOwner && isToriiApiCatchAll
         ? { preHandler: enforceSessionOwnerOnToriiApiProxy }
         : {}),
-      // Disable default proxy timeouts so long-lived SSE streams (runs, traces,
-      // connections) are not cut off after 10s.
-      http: {
-        requestOptions: {
-          timeout: 0,
-        },
-      },
-      undici: {
-        headersTimeout: 0,
-        bodyTimeout: 0,
-      },
+      ...bffUpstreamAgentOptions(),
       replyOptions: {
         rewriteRequestHeaders(request, headers) {
           return forwardOperatorEdgeHeaders(

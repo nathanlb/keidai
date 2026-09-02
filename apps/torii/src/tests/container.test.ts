@@ -23,7 +23,7 @@ describe("createContainer", () => {
   it("shares ConnectionManager across services resolved from the same container", async () => {
     const isolated = await createIsolatedSchema();
     try {
-      const { container: app } = await createContainer(MINIMAL_CONFIG, {
+      const { container: app, stop } = await createContainer(MINIMAL_CONFIG, {
         pool: isolated.pool,
       });
       const connectionManager = app.resolve(ConnectionManager);
@@ -34,6 +34,7 @@ describe("createContainer", () => {
           .connectionManager,
         connectionManager,
       );
+      await stop();
     } finally {
       await isolated.close();
     }
@@ -42,11 +43,12 @@ describe("createContainer", () => {
   it("loads an empty group policy cache when the groups table is empty", async () => {
     const isolated = await createIsolatedSchema();
     try {
-      const { container: app } = await createContainer(MINIMAL_CONFIG, {
+      const { container: app, stop } = await createContainer(MINIMAL_CONFIG, {
         pool: isolated.pool,
       });
       const cache = app.resolve(GroupPolicyCache);
       assert.deepEqual(cache.get(), []);
+      await stop();
     } finally {
       await isolated.close();
     }

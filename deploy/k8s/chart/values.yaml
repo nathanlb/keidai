@@ -62,6 +62,8 @@ keidaiUi:
 ingress:
   enabled: false
   className: ""
+  # Chart templates always set nginx SSE proxy timeouts (3600s, buffering off).
+  # Extra keys here are merged on top (e.g. force-ssl-redirect).
   annotations: {}
   # Required when enabled. Example:
   # hosts:

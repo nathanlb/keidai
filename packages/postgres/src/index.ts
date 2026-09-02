@@ -1,5 +1,10 @@
 export { quoteIdent } from "./ident.js";
 export {
+  notifyChannel,
+  PgChannelListener,
+  type PgChannelListenerOptions,
+} from "./listen.js";
+export {
   createPool,
   requireDatabaseUrl,
   resolveTestDatabaseUrl,

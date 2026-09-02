@@ -101,6 +101,7 @@ openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out fuda.pem
 chmod 600 fuda.pem
 openssl rand -hex 32   # paste as keidaiSessionSecret (≥32 chars)
 openssl rand -hex 32   # paste as bffServiceToken
+openssl rand -hex 32   # paste as toriiSecretKey (≥32 chars; seals connector secrets)
 ```
 
 `secrets-values.yaml` (mode `600`). `operators` is the Google identity → opaque
@@ -118,6 +119,7 @@ secrets:
   keidaiGoogleClientId: "....apps.googleusercontent.com"
   keidaiGoogleClientSecret: "..."
   keidaiSessionSecret: "..."
+  toriiSecretKey: "..."
   bffServiceToken: "..."
   bffServiceTokenDisabled: ""
 ```
@@ -296,6 +298,9 @@ ingress:
   className: nginx
   annotations:
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
   hosts:
     - host: ${HOST}
       paths:
@@ -343,14 +348,80 @@ kubectl -n keidai get pods -l app=torii
 
 ## Upgrades
 
-Back up the Postgres PVC **before** upgrading. `helm rollback` reverts manifests
-only — it does not undo schema. The pre-upgrade Job applies migrations with the
-new image tags before pods roll.
+Chart version, `appVersion`, and image tags stay one semver. Installing chart
+`0.4.0` pulls `ghcr.io/nathanlb/keidai-*:0.4.0`. There is no `:latest`.
 
-Bump `VERSION` and re-run the same `helm upgrade` line, always passing
-`-f secrets-values.yaml`, `-f values.yaml`, and `--set-file secrets.fudaSigningKey`.
-Empty secret keys in the chart look up the existing Secret, but omitting the
-files is how values get wiped.
+Do **not** `helm uninstall` to pick up a new release. That deletes
+`keidai-secrets` and the operators ConfigMap. The Postgres PVC is kept, but you
+would have to re-supply every secret. A failed `helm upgrade` that errors
+during template render leaves the previous release running — fix values and
+retry.
+
+`helm rollback` reverts manifests only. It does **not** undo schema. Back up
+Postgres before every upgrade. Do **not** pass `helm --wait` (same deadlock as
+install: Deployments wait for the migrate Job, Helm would wait for Deployments).
+
+### 1. See what is running vs published
+
+```bash
+helm list -n keidai
+helm show chart oci://ghcr.io/nathanlb/keidai --version 0.4.0
+```
+
+`CHART` in `helm list` is `keidai-{installed}`. Pick a published `{semver}` that
+is newer.
+
+### 2. Back up Postgres
+
+```bash
+kubectl -n keidai exec deploy/postgres -- \
+  pg_dumpall -U postgres > ~/keidai/postgres-$(date +%Y%m%d).sql
+```
+
+### 3. Breaking values (read before you bump)
+
+Empty keys in `secrets-values.yaml` lookup the existing Secret. **New** keys
+that did not exist on the old chart cannot be looked up — add them to the file
+or Helm fails closed (or, on 0.4.0, crashes in `b64dec` on a missing key).
+
+| From → to | Extra values |
+|-----------|----------------|
+| 0.3 → 0.4 | `secrets.toriiSecretKey` (≥32 chars). `openssl rand -hex 32`. The bundled Torii YAML is gone; connectors already in Postgres stay. |
+
+Always re-pass `-f secrets-values.yaml`, `-f values.yaml`, and
+`--set-file secrets.fudaSigningKey`. Omitting those files wipes config. The
+TLS Secret `keidai-ui-tls` is not in the chart; leave it alone.
+
+### 4. Upgrade
+
+From `~/keidai`:
+
+```bash
+export VERSION=0.4.0          # the release you are moving to
+export CHART=oci://ghcr.io/nathanlb/keidai
+
+helm upgrade keidai "${CHART}" --version "${VERSION}" \
+  --namespace keidai \
+  -f secrets-values.yaml \
+  -f values.yaml \
+  --set-file secrets.fudaSigningKey=./fuda.pem \
+  --timeout 10m
+```
+
+The pre-upgrade Job applies migrations with the new image tags before pods
+roll. Then:
+
+```bash
+kubectl -n keidai rollout status deployment/postgres --timeout=180s
+kubectl -n keidai rollout status deployment/fuda --timeout=180s
+kubectl -n keidai rollout status deployment/torii --timeout=180s
+kubectl -n keidai rollout status deployment/shaiden --timeout=180s
+kubectl -n keidai rollout status deployment/keidai-ui --timeout=180s
+kubectl -n keidai get pods
+```
+
+Sign in at `{publicUrl}/auth/login`. ingress-nginx is a separate chart; leave
+it unless you meant to upgrade that too.
 
 ## Uninstall
 
