@@ -1,5 +1,11 @@
 # @keidai/shared
 
+## 0.5.0
+
+### Minor Changes
+
+- Enhance SSE event handling and introduce PgChannelListener for connector notifications ([#139](https://github.com/nathanlb/keidai/pull/139))
+
 ## 0.4.0
 
 ### Minor Changes
