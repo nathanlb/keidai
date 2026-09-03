@@ -1,5 +1,17 @@
 # @keidai/torii
 
+## 0.5.0
+
+### Minor Changes
+
+- Enhance SSE event handling and introduce PgChannelListener for connector notifications ([#139](https://github.com/nathanlb/keidai/pull/139))
+
+### Patch Changes
+
+- Updated dependencies:
+  - @keidai/shared@0.5.0
+  - @keidai/postgres@0.5.0
+
 ## 0.4.0
 
 ### Minor Changes
