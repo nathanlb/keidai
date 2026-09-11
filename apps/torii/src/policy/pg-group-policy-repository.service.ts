@@ -213,18 +213,6 @@ export class PgGroupPolicyRepository implements GroupPolicyRepository {
     return (result.rowCount ?? 0) > 0;
   }
 
-  async referencesServer(server: string): Promise<boolean> {
-    const result = await this.pool.query<{ present: boolean }>(
-      `
-        SELECT EXISTS (
-          SELECT 1 FROM group_server_policies WHERE server = $1
-        ) AS present
-      `,
-      [server],
-    );
-    return result.rows[0]?.present ?? false;
-  }
-
   private async loadServersByGroupId(
     groupIds: readonly string[],
   ): Promise<Map<string, GroupServerPolicy[]>> {

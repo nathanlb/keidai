@@ -13,8 +13,6 @@ import {
 } from "@keidai/shared";
 import { ToolCatalogService } from "../catalog/tool-catalog.service.js";
 import { ConnectionManager } from "../connections/connection-manager.service.js";
-import { GROUP_POLICY_REPOSITORY } from "../policy/types/group-policy-repository.js";
-import type { GroupPolicyRepository } from "../policy/types/group-policy-repository.js";
 import {
   createEnvRefSecret,
   createSealedSecret,
@@ -47,8 +45,6 @@ export class ConnectorManagementService {
     private readonly secrets: SecretRepository,
     @inject(PgOAuthRegistrationRepository)
     private readonly registrations: PgOAuthRegistrationRepository,
-    @inject(GROUP_POLICY_REPOSITORY)
-    private readonly groups: GroupPolicyRepository,
     @inject(ConnectionManager)
     private readonly connections: ConnectionManager,
     @inject(ToolCatalogService)
@@ -187,12 +183,6 @@ export class ConnectorManagementService {
   }
 
   async delete(slug: string): Promise<boolean> {
-    if (await this.groups.referencesServer(slug)) {
-      throw new ConnectorWriteError(
-        `connector "${slug}" is referenced by group policy; update groups first`,
-        409,
-      );
-    }
     const existing = await this.repository.get(slug);
     if (!existing) {
       return false;

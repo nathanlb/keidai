@@ -19,6 +19,7 @@ import { inject, injectable } from "tsyringe";
 import type { CatalogTool } from "../catalog/types/catalog-tool.js";
 import { ConnectionManager } from "../connections/connection-manager.service.js";
 import type { BackendConnection } from "../connections/types/backend-connection.js";
+import { buildOutboundMcpParamHeaders } from "../connections/utils/mcp-param-headers.js";
 import { postBackendMcpJsonRpc } from "../connections/utils/post-backend-mcp.js";
 import { ToolCatalogService } from "../catalog/tool-catalog.service.js";
 import { CredentialResolverService } from "../credentials/credential-resolver.service.js";
@@ -402,7 +403,13 @@ export class ToolDispatchService {
           name: entry.bareName,
           arguments: ctx.parsedArgs.upstreamArgs,
         },
-        headers: resolved.headers,
+        headers: {
+          ...resolved.headers,
+          ...buildOutboundMcpParamHeaders(
+            entry.tool.inputSchema,
+            ctx.parsedArgs.upstreamArgs,
+          ),
+        },
         protocolVersion: connection.client.getNegotiatedProtocolVersion(),
       });
       const classified = classifyBackendToolResult(raw);

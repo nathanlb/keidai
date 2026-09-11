@@ -98,6 +98,66 @@ describe("ToolCatalogService", () => {
     }
   });
 
+  it("preserves backend x-mcp-header annotations on cataloged inputSchema", async () => {
+    const githubFileTool = {
+      name: "get_file_contents",
+      description: "Reads a file",
+      inputSchema: {
+        type: "object",
+        properties: {
+          owner: { type: "string", "x-mcp-header": "owner" },
+          repo: { type: "string", "x-mcp-header": "repo" },
+          path: { type: "string" },
+        },
+        required: ["owner", "repo", "path"],
+      },
+    };
+    const mockServer = await startMockMcpServer({
+      tools: [{ name: "get_file_contents", description: "Reads a file" }],
+      onJsonRpc: (message) => {
+        if (message.method === "tools/list") {
+          return { tools: [githubFileTool] };
+        }
+        return undefined;
+      },
+    });
+    const groups = [
+      testAgentsGroup([{ server: "github", tools: ["get_file_contents"] }]),
+    ];
+    const configService = new ToriiConfigService({
+      oauth_providers: {},
+      servers: [serverConfig("github", mockServer.url)],
+    });
+    const { credentialResolver } = createCredentialServices();
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
+    const catalogService = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+      createPolicyEnforcement(groups),
+      createNoopLogger(),
+    );
+
+    try {
+      await bootBackends(connectionManager, catalogService);
+      const fileTool = catalogService.findTool("github.get_file_contents");
+      const properties = (
+        fileTool?.tool.inputSchema as {
+          properties?: Record<string, { "x-mcp-header"?: string }>;
+        }
+      )?.properties;
+      assert.equal(properties?.owner?.["x-mcp-header"], "owner");
+      assert.equal(properties?.repo?.["x-mcp-header"], "repo");
+      assert.equal(properties?.path?.["x-mcp-header"], undefined);
+    } finally {
+      await closeManagerConnections(connectionManager);
+      await mockServer.close();
+    }
+  });
+
   it("filters tools denied by backend policy from tools/list", async () => {
     const mockServer = await startMockMcpServer({
       tools: [

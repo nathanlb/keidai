@@ -13,7 +13,6 @@ export interface GroupPolicyRepository {
     input: UpdateGroupPolicyInput,
   ): Promise<GroupPolicy | null>;
   delete(id: string): Promise<boolean>;
-  referencesServer(server: string): Promise<boolean>;
 }
 
 /** tsyringe injection token for {@link GroupPolicyRepository}. */

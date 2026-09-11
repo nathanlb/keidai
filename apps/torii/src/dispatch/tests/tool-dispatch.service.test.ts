@@ -1,5 +1,6 @@
 import "reflect-metadata";
 import assert from "node:assert/strict";
+import type { IncomingHttpHeaders } from "node:http";
 import { describe, it } from "node:test";
 import type { GroupDefinitionConfig, ToriiConfig } from "@keidai/shared";
 import { PolicyDecision, TORII_RUN_ID_ARG, TORII_STEP_ID_ARG, TORII_CALL_META_KEY } from "@keidai/shared";
@@ -249,6 +250,73 @@ describe("ToolDispatchService", () => {
       assert.notEqual(result.isError, true);
     } finally {
       await stack.close();
+      await mockServer.close();
+    }
+  });
+
+  it("mirrors x-mcp-header arguments as Mcp-Param-* on backend tools/call", async () => {
+    const githubFileTool = {
+      name: "get_file_contents",
+      description: "Reads a file",
+      inputSchema: {
+        type: "object",
+        properties: {
+          owner: { type: "string", "x-mcp-header": "owner" },
+          repo: { type: "string", "x-mcp-header": "repo" },
+          path: { type: "string" },
+        },
+        required: ["owner", "repo", "path"],
+      },
+    };
+    let callHeaders: IncomingHttpHeaders | undefined;
+    const mockServer = await startMockMcpServer({
+      tools: [{ name: "get_file_contents", description: "Reads a file" }],
+      onRequest: (req) => {
+        if (req.headers["mcp-method"] === "tools/call") {
+          callHeaders = { ...req.headers };
+        }
+      },
+      onJsonRpc: (message) => {
+        if (message.method === "tools/list") {
+          return { tools: [githubFileTool] };
+        }
+        if (message.method === "tools/call") {
+          return { content: [{ type: "text", text: "ok" }] };
+        }
+        return undefined;
+      },
+    });
+    let stack: Awaited<ReturnType<typeof createDispatchStack>> | undefined;
+    try {
+      stack = await createDispatchStack(
+        [noneServer("github", mockServer.url)],
+        [testAgentsGroup([{ server: "github", tools: ["get_file_contents"] }])],
+      );
+      await bootBackends(stack.connectionManager, stack.toolCatalog);
+
+      const cataloged = stack.toolCatalog.findTool("github.get_file_contents");
+      const repoProperty = (
+        cataloged?.tool.inputSchema as {
+          properties?: { repo?: { "x-mcp-header"?: string } };
+        }
+      )?.properties?.repo;
+      assert.equal(repoProperty?.["x-mcp-header"], "repo");
+
+      const result = expectCallToolResult(
+        await withTestAgentPrincipal(() =>
+          stack!.toolDispatch.callTool("github.get_file_contents", {
+            owner: "octo",
+            repo: "hello",
+            path: "README.md",
+          }),
+        ),
+      );
+      assert.notEqual(result.isError, true);
+      assert.equal(callHeaders?.["mcp-param-owner"], "octo");
+      assert.equal(callHeaders?.["mcp-param-repo"], "hello");
+      assert.equal(callHeaders?.["mcp-param-path"], undefined);
+    } finally {
+      await stack?.close();
       await mockServer.close();
     }
   });

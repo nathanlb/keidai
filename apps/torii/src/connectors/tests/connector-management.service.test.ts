@@ -11,7 +11,6 @@ import { PgSecretRepository } from "../../secrets/pg-secret-repository.service.j
 import { createTestGatewayPersistence } from "../../testing/gateway-persistence.js";
 import type { ConnectionManager } from "../../connections/connection-manager.service.js";
 import type { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
-import { ConnectorWriteError } from "../types/connector-write.js";
 
 async function waitUntil(
   predicate: () => boolean,
@@ -47,9 +46,6 @@ function createManagement(
     Awaited<ReturnType<typeof createTestGatewayPersistence>>["pool"]
   >,
   registry: ConnectorRegistry,
-  groups: Awaited<
-    ReturnType<typeof createTestGatewayPersistence>
-  >["groupPolicyRepository"],
 ): ConnectorManagementService {
   const runtime = stubRuntime();
   return new ConnectorManagementService(
@@ -57,7 +53,6 @@ function createManagement(
     registry,
     new PgSecretRepository(pool),
     new PgOAuthRegistrationRepository(pool),
-    groups,
     runtime.connections,
     runtime.catalog,
     pool,
@@ -70,11 +65,7 @@ describe("ConnectorManagementService", () => {
     try {
       const pool = persistence.pool!;
       const registry = new ConnectorRegistry();
-      const management = createManagement(
-        pool,
-        registry,
-        persistence.groupPolicyRepository,
-      );
+      const management = createManagement(pool, registry);
 
       const created = await management.installFromCatalog({
         catalogId: "github",
@@ -104,11 +95,7 @@ describe("ConnectorManagementService", () => {
     try {
       const pool = persistence.pool!;
       const registry = new ConnectorRegistry();
-      const management = createManagement(
-        pool,
-        registry,
-        persistence.groupPolicyRepository,
-      );
+      const management = createManagement(pool, registry);
 
       const created = await management.installFromCatalog({
         catalogId: "linear",
@@ -121,23 +108,19 @@ describe("ConnectorManagementService", () => {
     }
   });
 
-  it("rejects deleting a connector referenced by group policy", async () => {
+  it("deletes a connector even when group policy still names it", async () => {
     const persistence = await createTestGatewayPersistence("postgres");
     try {
       const pool = persistence.pool!;
       const registry = new ConnectorRegistry();
-      const management = createManagement(
-        pool,
-        registry,
-        persistence.groupPolicyRepository,
-      );
+      const management = createManagement(pool, registry);
       await management.create({
         slug: "gmail",
         displayName: "Gmail",
         url: "https://gmail.example/mcp",
         authMode: "none",
       });
-      await persistence.groupPolicyRepository.create({
+      const group = await persistence.groupPolicyRepository.create({
         name: "ops",
         description: "",
         servers: [
@@ -151,14 +134,19 @@ describe("ConnectorManagementService", () => {
         ],
       });
 
-      await assert.rejects(
-        () => management.delete("gmail"),
-        (error: unknown) => {
-          assert.ok(error instanceof ConnectorWriteError);
-          assert.equal(error.statusCode, 409);
-          return true;
+      assert.equal(await management.delete("gmail"), true);
+      assert.equal(await management.get("gmail"), null);
+
+      const leftover = await persistence.groupPolicyRepository.get(group.id);
+      assert.deepEqual(leftover?.servers, [
+        {
+          server: "gmail",
+          default: "deny",
+          allow: [],
+          deny: [],
+          gated: [],
         },
-      );
+      ]);
     } finally {
       await persistence.close();
     }
@@ -169,16 +157,8 @@ describe("ConnectorManagementService", () => {
     const writerRegistry = new ConnectorRegistry();
     const peerRegistry = new ConnectorRegistry();
     const pool = persistence.pool!;
-    const writer = createManagement(
-      pool,
-      writerRegistry,
-      persistence.groupPolicyRepository,
-    );
-    const peer = createManagement(
-      pool,
-      peerRegistry,
-      persistence.groupPolicyRepository,
-    );
+    const writer = createManagement(pool, writerRegistry);
+    const peer = createManagement(pool, peerRegistry);
     const listener = new PgChannelListener({
       connectionString: resolveTestDatabaseUrl(),
       channel: TORII_CONNECTORS_CHANNEL,

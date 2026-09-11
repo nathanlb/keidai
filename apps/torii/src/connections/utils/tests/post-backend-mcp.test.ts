@@ -92,6 +92,35 @@ describe("postBackendMcpJsonRpc", () => {
         TORII_OUTBOUND_CLIENT_CAPABILITIES,
       );
       assert.equal(captured?.headers.get("authorization"), "Bearer secret");
+      assert.equal(captured?.headers.get("mcp-method"), "tools/call");
+      assert.equal(captured?.headers.get("mcp-name"), "echo");
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("forwards Mcp-Param headers on tools/call", async () => {
+    let captured: { headers: Headers } | undefined;
+    const server = await listen((_body, headers) => {
+      captured = { headers };
+    });
+
+    try {
+      await postBackendMcpJsonRpc({
+        url: server.url,
+        method: "tools/call",
+        params: {
+          name: "get_file_contents",
+          arguments: { owner: "octo", repo: "hello" },
+        },
+        headers: {
+          "mcp-param-owner": "octo",
+          "mcp-param-repo": "hello",
+        },
+        protocolVersion: MCP_PROTOCOL_VERSION,
+      });
+      assert.equal(captured?.headers.get("mcp-param-owner"), "octo");
+      assert.equal(captured?.headers.get("mcp-param-repo"), "hello");
     } finally {
       await server.close();
     }
