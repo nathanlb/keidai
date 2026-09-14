@@ -76,11 +76,8 @@ export function ConnectionsPageProvider({
     refresh: refreshConnections,
   } = useFetchOAuthConnections(ownerIds);
 
-  const {
-    connections: liveConnections,
-    error: liveConnectionsError,
-    isLoading: liveConnectionsLoading,
-  } = useLiveConnections();
+  const { connections: liveConnections, isLoading: liveConnectionsLoading } =
+    useLiveConnections();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedServerName = searchParams.get(CONNECTION_SERVER_PARAM);
@@ -379,11 +376,7 @@ export function ConnectionsPageProvider({
     liveConnectionsLoading ||
     (ownerIds.length > 0 && oauthConnectionsLoading && !connectionsByOwner);
 
-  const error =
-    serversError ??
-    providersError ??
-    oauthConnectionsError ??
-    liveConnectionsError;
+  const error = serversError ?? providersError ?? oauthConnectionsError;
 
   const value = useMemo((): ConnectionsPageContextValue => {
     return {
