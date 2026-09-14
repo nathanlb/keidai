@@ -1,5 +1,11 @@
 # @keidai/shared
 
+## 0.6.0
+
+### Minor Changes
+
+- Implement Mcp-Param header handling for backend tool calls and enhance tests for header mirroring ([#143](https://github.com/nathanlb/keidai/pull/143))
+
 ## 0.5.0
 
 ### Minor Changes
