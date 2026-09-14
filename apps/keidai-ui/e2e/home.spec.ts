@@ -194,7 +194,9 @@ test.describe("Home dashboard", () => {
 
     await page.getByTestId("system-map-server-gmail").click();
     await expect(page).toHaveURL(/\/connections\?server=gmail/);
-    await expect(page.getByRole("heading", { name: "gmail" })).toBeVisible();
+    const drawer = page.getByRole("dialog");
+    await expect(drawer).toBeVisible({ timeout: 15_000 });
+    await expect(drawer.getByRole("heading", { name: "gmail" })).toBeVisible();
   });
 
   test("opens New agent and New task from the header", async ({ page }) => {

@@ -64,11 +64,6 @@ export function useLiveConnections() {
       CONNECTION_SSE_EVENT.stateChanged,
       handleStateChanged,
     );
-    eventSource.onerror = () => {
-      if (!cancelled) {
-        setError(new Error("Connection event stream interrupted"));
-      }
-    };
 
     return () => {
       cancelled = true;

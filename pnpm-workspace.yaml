@@ -14,6 +14,9 @@ overrides:
   fastify: 5.12.1
   thread-stream: 4.1.0
   brace-expansion@1: 1.1.18
+  # CVE-2026-76172 / GHSA-jqff-g426-hqxp: host confusion via percent-encoded
+  # scheme. Pin 3.x only — ajv@8 still depends on fast-uri^3; 4.1.3 is patched.
+  fast-uri@3: 3.1.6
   # CVE floor from #71. Cap at 7.x: jsdom@29 deep-imports
   # undici/lib/handler/wrap-handler.js, which undici 8 removed.
   undici: "^7.24.0"
