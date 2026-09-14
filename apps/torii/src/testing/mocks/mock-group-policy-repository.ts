@@ -69,10 +69,4 @@ export class MockGroupPolicyRepository implements GroupPolicyRepository {
     this.groups.splice(index, 1);
     return true;
   }
-
-  async referencesServer(server: string): Promise<boolean> {
-    return this.groups.some((group) =>
-      group.servers.some((policy) => policy.server === server),
-    );
-  }
 }
