@@ -387,10 +387,13 @@ async function driveHarnessRun({
         assignee: task.assignee,
       });
 
+      const budget = (await runStore.getRunBudget(runId)) ?? undefined;
+
       const { outcome, iterations, history } = await runTaskLoop(
         {
           initialHistory,
           limits,
+          ...(budget ? { budget } : {}),
           ...(parked
             ? {
                 resumeParkedApproval: {
@@ -407,6 +410,9 @@ async function driveHarnessRun({
             runStore.drainParkedFollowUps(runId),
           onHistoryChanged: async (updatedHistory) => {
             await runStore.setConversationHistory(runId, updatedHistory);
+          },
+          onBudgetChanged: async (updatedBudget) => {
+            await runStore.setRunBudget(runId, updatedBudget);
           },
           stopSignal,
         },

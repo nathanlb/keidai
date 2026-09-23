@@ -5,6 +5,7 @@ import type {
   RunStep,
 } from "@keidai/shared";
 import type { ConversationEntry } from "../../run/types/conversation-history.js";
+import type { RunBudget } from "../../run/types/task-loop.js";
 import {
   DEFAULT_RUN_RETENTION_COUNT,
   TaskAlreadyRunningError,
@@ -36,6 +37,8 @@ interface StoredRun extends RunReport {
   ownerId?: string;
   leaseExpiresAt?: string;
   updatedAt: string;
+  iterationsUsed: number;
+  activeElapsedMs: number;
 }
 
 /** @internal Test-only. Not for production use. */
@@ -65,6 +68,8 @@ export class MockRunRepository implements RunRepository {
       steps: [],
       pendingFollowUps: [],
       updatedAt: input.startedAt ?? new Date().toISOString(),
+      iterationsUsed: 0,
+      activeElapsedMs: 0,
       ...(input.personaVersion !== undefined
         ? { personaVersion: input.personaVersion }
         : {}),
@@ -174,6 +179,30 @@ export class MockRunRepository implements RunRepository {
       return null;
     }
     return [...run.conversationHistory];
+  }
+
+  async getRunBudget(runId: string): Promise<RunBudget | null> {
+    const run = this.runs.get(runId);
+    if (!run) {
+      return null;
+    }
+    return {
+      iterationsUsed: run.iterationsUsed,
+      activeElapsedMs: run.activeElapsedMs,
+    };
+  }
+
+  async setRunBudget(runId: string, budget: RunBudget): Promise<boolean> {
+    const run = this.runs.get(runId);
+    if (!run) {
+      return false;
+    }
+    this.runs.set(runId, {
+      ...run,
+      iterationsUsed: budget.iterationsUsed,
+      activeElapsedMs: budget.activeElapsedMs,
+    });
+    return true;
   }
 
   async setParkedMcpTask(
@@ -383,6 +412,7 @@ export class MockRunRepository implements RunRepository {
       stepCount:
         hasMessage && userMessageStep ? run.steps.length + 1 : run.stepCount,
       updatedAt: new Date().toISOString(),
+      ...(hasMessage ? { iterationsUsed: 0, activeElapsedMs: 0 } : {}),
     };
     this.runs.set(runId, updated);
     return { ok: true, history: updatedHistory };

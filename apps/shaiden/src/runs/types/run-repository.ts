@@ -6,6 +6,7 @@ import type {
   RunStep,
 } from "@keidai/shared";
 import type { ConversationEntry } from "../../run/types/conversation-history.js";
+import type { RunBudget } from "../../run/types/task-loop.js";
 import type { BeginContinuationResult } from "../utils/conversation-history.js";
 
 export const DEFAULT_RUN_LIST_LIMIT = 50;
@@ -58,6 +59,8 @@ export interface RunRepository {
     history: readonly ConversationEntry[],
   ): Promise<boolean>;
   getConversationHistory(runId: string): Promise<ConversationEntry[] | null>;
+  getRunBudget(runId: string): Promise<RunBudget | null>;
+  setRunBudget(runId: string, budget: RunBudget): Promise<boolean>;
   setParkedMcpTask(
     runId: string,
     parked: Omit<ParkedMcpTask, "runId">,

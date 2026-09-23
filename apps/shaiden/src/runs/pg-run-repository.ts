@@ -18,6 +18,7 @@ import {
   type TerminationOutcome,
 } from "@keidai/shared";
 import type { ConversationEntry } from "../run/types/conversation-history.js";
+import type { RunBudget } from "../run/types/task-loop.js";
 import {
   DEFAULT_RUN_RETENTION_COUNT,
   TaskAlreadyRunningError,
@@ -325,6 +326,41 @@ export class PgRunRepository implements RunRepository {
     return parseConversationHistory(runRow.conversation_history_json);
   }
 
+  async getRunBudget(runId: string): Promise<RunBudget | null> {
+    const result = await this.pool.query<{
+      iterations_used: number;
+      active_elapsed_ms: string | number;
+    }>(
+      `
+        SELECT iterations_used, active_elapsed_ms
+        FROM runs
+        WHERE id = $1
+      `,
+      [runId],
+    );
+    const row = result.rows[0];
+    if (!row) {
+      return null;
+    }
+    return {
+      iterationsUsed: Number(row.iterations_used),
+      activeElapsedMs: Number(row.active_elapsed_ms),
+    };
+  }
+
+  async setRunBudget(runId: string, budget: RunBudget): Promise<boolean> {
+    const result = await this.pool.query(
+      `
+        UPDATE runs
+        SET iterations_used = $1,
+            active_elapsed_ms = $2
+        WHERE id = $3
+      `,
+      [budget.iterationsUsed, budget.activeElapsedMs, runId],
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
   async setParkedMcpTask(
     runId: string,
     parked: Omit<ParkedMcpTask, "runId">,
@@ -585,6 +621,8 @@ export class PgRunRepository implements RunRepository {
               outcome_json = NULL,
               conversation_history_json = $1::jsonb,
               step_count = step_count + $2,
+              iterations_used = CASE WHEN $5 THEN 0 ELSE iterations_used END,
+              active_elapsed_ms = CASE WHEN $5 THEN 0 ELSE active_elapsed_ms END,
               updated_at = $3
           WHERE id = $4 AND status = 'completed'
         `,
@@ -593,6 +631,7 @@ export class PgRunRepository implements RunRepository {
           normalizedStep ? 1 : 0,
           nowIso(),
           runId,
+          hasMessage,
         ],
       );
       if ((result.rowCount ?? 0) === 0) {

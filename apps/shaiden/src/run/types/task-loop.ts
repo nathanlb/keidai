@@ -51,6 +51,12 @@ export interface ApprovalWaitContext {
   call?: ModelToolCall;
 }
 
+/** Iterations and active time already consumed by this run. */
+export interface RunBudget {
+  iterationsUsed: number;
+  activeElapsedMs: number;
+}
+
 export interface TaskLoopDeps {
   callModel: (history: ConversationEntry[]) => Promise<ModelStep>;
   dispatchToolCall: (
@@ -75,6 +81,8 @@ export interface TaskLoopDeps {
   onHistoryChanged?: (
     history: readonly ConversationEntry[],
   ) => void | Promise<void>;
+  /** Persists remaining-budget progress at each checkpoint and on exit. */
+  onBudgetChanged?: (budget: RunBudget) => void | Promise<void>;
   /** Cooperative operator stop; checked at loop boundaries and after in-flight tools. */
   stopSignal?: AbortSignal;
 }
@@ -82,6 +90,12 @@ export interface TaskLoopDeps {
 export interface TaskLoopStart {
   initialHistory: ConversationEntry[];
   limits: TaskLimits;
+  /**
+   * Budget already consumed. Omitted means a fresh segment (zeros).
+   * Lease reclaim and stop/resume pass the stored counters; a follow-up
+   * message passes zeros.
+   */
+  budget?: RunBudget;
   /** Durable MCP task handle for a tool call parked when this process died. */
   resumeParkedApproval?: { approvalId: string };
 }
