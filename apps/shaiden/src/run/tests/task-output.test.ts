@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { EXECUTE_PYTHON_TOOL } from "../../sandbox/execute-python.js";
 import {
   clipTaskOutput,
   isHarnessLocalTool,
@@ -33,6 +34,7 @@ describe("task output", () => {
 
   it("identifies harness-local output tool", () => {
     assert.equal(isHarnessLocalTool(REPORT_TASK_OUTPUT_TOOL), true);
+    assert.equal(isHarnessLocalTool(EXECUTE_PYTHON_TOOL), true);
     assert.equal(isHarnessLocalTool("notion_search"), false);
   });
 });

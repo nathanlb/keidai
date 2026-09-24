@@ -6,6 +6,7 @@ import {
 import type { ParkedMcpTask } from "../runs/types/run-repository.js";
 import type { RunStore } from "../runs/run-store.js";
 import { completeRunWithOutcomeStep } from "./run-completion.js";
+import type { SandboxClient } from "../sandbox/sandbox-client.js";
 import {
   DEFAULT_RUN_LEASE_MS,
   isRunLeaseError,
@@ -37,6 +38,7 @@ export async function resumeParkedHarnessRuns(input: {
   replicaId: string;
   leaseMs?: number;
   logger: Logger;
+  sandbox?: SandboxClient;
   now?: () => number;
   nextPollDelayMs?: (pollIntervalMs?: number) => number;
 }): Promise<number> {
@@ -92,10 +94,15 @@ export async function resumeParkedHarnessRuns(input: {
         });
         continue;
       }
-      await completeRunWithOutcomeStep(input.runStore, parked.runId, {
-        status: "failed",
-        reason: poll.reason,
-      });
+      await completeRunWithOutcomeStep(
+        input.runStore,
+        parked.runId,
+        {
+          status: "failed",
+          reason: poll.reason,
+        },
+        input.sandbox,
+      );
       input.logger.error("boot.resume_parked_failed", {
         runId: parked.runId,
         error: poll.reason,

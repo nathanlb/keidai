@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { PLATFORM_BEARER_ID } from "../../bearers/platform-bearer.js";
 import {
+  SANDBOX_TOKEN_AUDIENCE,
   TOKEN_EXCHANGE_AUDIENCE,
   TOKEN_EXCHANGE_TTL_SECONDS,
 } from "../../token-exchange/constants.js";
@@ -142,6 +143,40 @@ describe("token exchange", () => {
       assert.equal(response.status, 404);
       const body = (await response.json()) as { error: string };
       assert.equal(body.error, "agent not found");
+    } finally {
+      await handle.close();
+    }
+  });
+
+  it("mints a sandbox-audience JWT for the platform bearer alone", async () => {
+    const server = await createTestServer("agent,public");
+    const handle = await server.start({ host: "127.0.0.1", port: 0 });
+    try {
+      const response = await fetch(`${handle.baseUrl}/token`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          subject_token: SUBJECT_TOKEN,
+          audience: SANDBOX_TOKEN_AUDIENCE,
+        }),
+      });
+      assert.equal(response.status, 200);
+      const body = (await response.json()) as { access_token: string };
+      const jwks = createRemoteJWKSet(
+        new URL(`${handle.baseUrl}/.well-known/jwks.json`),
+      );
+      const verified = await jwtVerify(body.access_token, jwks, {
+        issuer: ISSUER,
+        audience: SANDBOX_TOKEN_AUDIENCE,
+      });
+      assert.equal(verified.payload.bearer_id, PLATFORM_BEARER_ID);
+      assert.equal(verified.payload.agent_id, undefined);
+      await assert.rejects(() =>
+        jwtVerify(body.access_token, jwks, {
+          issuer: ISSUER,
+          audience: TOKEN_EXCHANGE_AUDIENCE,
+        }),
+      );
     } finally {
       await handle.close();
     }

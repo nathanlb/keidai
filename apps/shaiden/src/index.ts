@@ -8,6 +8,8 @@ import { loadRuntimeConfig } from "./config/runtime-config.js";
 import { ShaidenHttpServer } from "./http/shaiden-http-server.js";
 import { defaultLogger } from "./logging/logger.js";
 import { pollAssigneeMcpTask } from "./mcp/torii-client.js";
+import { createRuntimeSandboxClient } from "./sandbox/sandbox-client.js";
+import { sweepSandboxWorkspaces } from "./sandbox/sweep-sandbox-workspaces.js";
 import {
   createToriiCredential,
   launchHarnessRun,
@@ -44,6 +46,14 @@ async function main(): Promise<void> {
     stopController: runStopController,
   };
 
+  const sandbox = config.sandboxUrl
+    ? createRuntimeSandboxClient({
+        baseUrl: config.sandboxUrl,
+        fuda: fudaClient,
+        getSubjectToken: config.getSubjectToken,
+      })
+    : undefined;
+
   const resumeParked = () =>
     resumeParkedHarnessRuns({
       runStore,
@@ -62,6 +72,7 @@ async function main(): Promise<void> {
           pollIntervalMs: parked.pollIntervalMs,
         }),
       logger: defaultLogger,
+      ...(sandbox ? { sandbox } : {}),
     });
 
   await runStore.pollRemoteUpdates();
@@ -75,6 +86,24 @@ async function main(): Promise<void> {
     void resumeParked();
   }, DEFAULT_PARKED_RECLAIM_INTERVAL_MS);
   reclaim.unref();
+
+  if (sandbox) {
+    const sweepSandbox = () =>
+      sweepSandboxWorkspaces({
+        sandbox,
+        runStore,
+        logger: defaultLogger,
+      }).catch((error: unknown) => {
+        defaultLogger.error("sandbox.sweep_failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      });
+    void sweepSandbox();
+    const sandboxSweep = setInterval(() => {
+      void sweepSandbox();
+    }, DEFAULT_PARKED_RECLAIM_INTERVAL_MS);
+    sandboxSweep.unref();
+  }
 
   const schedule = startScheduleDispatcher({
     taskRepository,

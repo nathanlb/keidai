@@ -157,6 +157,19 @@ export function createHttpFudaClient(options: HttpFudaClientOptions): FudaClient
 
   return {
     async exchangeToken(input: ExchangeTokenInput): Promise<ExchangedAgentToken> {
+      const audience = input.audience ?? "torii";
+      if (audience === "torii" && !input.agentId) {
+        throw new TokenExchangeError(
+          "invalid_request",
+          "agent_id is required for audience torii",
+        );
+      }
+      if (audience === "shaiden-sandbox" && input.agentId) {
+        throw new TokenExchangeError(
+          "invalid_request",
+          "agent_id is not accepted for audience shaiden-sandbox",
+        );
+      }
       let response: Response;
       try {
         response = await fetchWithTimeout(`${baseUrl}/token`, {
@@ -164,7 +177,8 @@ export function createHttpFudaClient(options: HttpFudaClientOptions): FudaClient
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             subject_token: input.subjectToken,
-            agent_id: input.agentId,
+            ...(input.agentId ? { agent_id: input.agentId } : {}),
+            ...(input.audience ? { audience: input.audience } : {}),
           }),
         });
       } catch (error) {

@@ -50,6 +50,23 @@ torii:
 
 shaiden:
   replicas: 1
+  # The sandbox Deployment is always installed. The tool stays off until this
+  # is true, which sets SHAIDEN_SANDBOX_URL. Leave it false until gVisor
+  # Compose turns the tool on for local development without gVisor.
+  # Workspace PVC is ReadWriteOnce: one node.
+  sandbox:
+    enabled: false
+    port: 8080
+    persistence:
+      size: 1Gi
+      storageClassName: ""
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: "1"
+        memory: 512Mi
 
 keidaiUi:
   replicas: 1
