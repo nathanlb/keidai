@@ -18,6 +18,8 @@ export interface ParkedMcpTask {
   runId: string;
   mcpTaskId: string;
   pollIntervalMs?: number;
+  /** When the reclaim sweep may next call `tasks/get`. Absent means due now. */
+  nextPollAt?: string;
 }
 
 /** `{id, updatedAt}` watermark used to fan run events across replicas. */
@@ -69,10 +71,11 @@ export interface RunRepository {
   getParkedMcpTask(runId: string): Promise<ParkedMcpTask | null>;
   listParkedMcpTasks(): Promise<ParkedMcpTask[]>;
   /**
-   * Parked runs whose lease is missing or expired. Another replica may claim
-   * these without double-driving a live owner.
+   * Parked runs with no live owner whose `next_poll_at` is due. The sweep
+   * polls these; it does not claim them until the Torii task is terminal.
    */
   listClaimableParkedMcpTasks(nowIso: string): Promise<ParkedMcpTask[]>;
+  setNextPollAt(runId: string, nextPollAt: string): Promise<boolean>;
   enqueueParkedFollowUp(
     runId: string,
     message: string,

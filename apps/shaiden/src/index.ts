@@ -7,7 +7,12 @@ import { getShaidenPersistence } from "./boot/persistence.js";
 import { loadRuntimeConfig } from "./config/runtime-config.js";
 import { ShaidenHttpServer } from "./http/shaiden-http-server.js";
 import { defaultLogger } from "./logging/logger.js";
-import { launchHarnessRun, resumeHarnessRun } from "./run/harness.js";
+import { pollAssigneeMcpTask } from "./mcp/torii-client.js";
+import {
+  createToriiCredential,
+  launchHarnessRun,
+  resumeHarnessRun,
+} from "./run/harness.js";
 import { RunStopController } from "./run/run-stop-controller.js";
 import {
   DEFAULT_PARKED_RECLAIM_INTERVAL_MS,
@@ -42,11 +47,19 @@ async function main(): Promise<void> {
   const resumeParked = () =>
     resumeParkedHarnessRuns({
       runStore,
+      replicaId,
       resumeHarnessRun: (input) =>
         resumeHarnessRun({
           ...input,
           config,
           options: harnessOptions,
+        }),
+      pollParkedTask: (parked, task) =>
+        pollAssigneeMcpTask({
+          toriiMcpUrl: config.toriiMcpUrl,
+          credential: createToriiCredential(config, fudaClient, task.assignee),
+          taskId: parked.mcpTaskId,
+          pollIntervalMs: parked.pollIntervalMs,
         }),
       logger: defaultLogger,
     });

@@ -36,6 +36,11 @@ export interface ToolDispatchResult {
   policyDenied?: boolean;
   /** Out-of-band Torii metadata from MCP `_meta` (never model-facing). */
   meta?: ToriiCallMeta;
+  /**
+   * The gated call was checkpointed and the process should exit. Not a tool
+   * result and not a run status.
+   */
+  hibernated?: boolean;
 }
 
 export interface ToolDispatchOptions {
@@ -49,6 +54,11 @@ export interface ApprovalWaitContext {
   stepId?: string;
   pollIntervalMs?: number;
   call?: ModelToolCall;
+  /**
+   * Persist the park and return without polling. The reclaim sweep polls.
+   * Resume omits this and waits for the terminal tool result.
+   */
+  hibernate?: boolean;
 }
 
 /** Iterations and active time already consumed by this run. */
@@ -64,8 +74,8 @@ export interface TaskLoopDeps {
     options?: ToolDispatchOptions,
   ) => Promise<ToolDispatchResult>;
   /**
-   * Parks until a gated tool's MCP task is terminal, then returns that tool
-   * result. Wall-clock pause is handled by the task loop.
+   * Live parks pass `hibernate` and return immediately. Resume polls until
+   * the MCP task is terminal. Active-time pause is handled by the task loop.
    */
   waitForApproval?: (
     approvalId: string,
@@ -100,8 +110,11 @@ export interface TaskLoopStart {
   resumeParkedApproval?: { approvalId: string };
 }
 
+/** In-memory unwind. The run row stays `running` with `mcp_task_id` set. */
+export type TaskLoopOutcome = TerminationOutcome | { status: "parked" };
+
 export interface TaskLoopResult {
-  outcome: TerminationOutcome;
+  outcome: TaskLoopOutcome;
   history: ConversationEntry[];
   iterations: number;
 }

@@ -221,4 +221,64 @@ describe("createParkedMcpTaskWaiter", () => {
       await persistence.close();
     }
   });
+
+  it("hibernates without polling and keeps the run running under its lease", async () => {
+    const persistence = await createTestPersistence();
+    try {
+      await createTestRun(persistence, { runId: "run-1", task: sampleTask });
+      await claimRun(persistence);
+      let polls = 0;
+      const now = Date.parse("2026-07-08T12:00:00.000Z");
+      const wait = createParkedMcpTaskWaiter({
+        runId: "run-1",
+        runStore: persistence.runStore,
+        replicaId: "replica-a",
+        leaseMs: 15_000,
+        now: () => now,
+        pollMcpTask: async () => {
+          polls += 1;
+          return { isError: false, text: "should not poll" };
+        },
+        reporter: createLocalRunReporter(persistence.runStore, "run-1"),
+        logger: silentLogger(),
+      });
+
+      const result = await wait("task-1", {
+        hibernate: true,
+        pollIntervalMs: 1_500,
+        call: toolCall("gmail.create_draft"),
+      });
+
+      assert.equal(result.hibernated, true);
+      assert.equal(polls, 0);
+      assert.equal((await persistence.runStore.getRun("run-1"))?.status, "running");
+      assert.deepEqual(await persistence.runStore.getParkedMcpTask("run-1"), {
+        runId: "run-1",
+        mcpTaskId: "task-1",
+        pollIntervalMs: 1_500,
+        nextPollAt: new Date(now).toISOString(),
+      });
+      assert.deepEqual(
+        await persistence.runStore.listClaimableParkedMcpTasks(
+          new Date(now).toISOString(),
+        ),
+        [],
+      );
+
+      assert.equal(
+        await persistence.runStore.releaseRun("run-1", "replica-a"),
+        true,
+      );
+      assert.equal(
+        (
+          await persistence.runStore.listClaimableParkedMcpTasks(
+            new Date(now).toISOString(),
+          )
+        ).length,
+        1,
+      );
+    } finally {
+      await persistence.close();
+    }
+  });
 });

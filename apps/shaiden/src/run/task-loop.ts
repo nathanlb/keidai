@@ -94,7 +94,9 @@ export async function runTaskLoop(
     await deps.onBudgetChanged?.(budgetSnapshot());
   };
 
-  const drainPendingUserMessages = async (): Promise<void> => {
+  const drainPendingUserMessages = async (options?: {
+    resetBudget?: boolean;
+  }): Promise<void> => {
     if (!deps.drainPendingUserMessages) {
       return;
     }
@@ -104,6 +106,14 @@ export async function runTaskLoop(
       return;
     }
 
+    // A message drained on wake is a new segment. An in-process drain keeps
+    // the budget that was already counting this run.
+    if (options?.resetBudget) {
+      iterationsUsed = 0;
+      activeElapsedMs = 0;
+      segmentStartedAt = now();
+      activeClockPaused = false;
+    }
     for (const entry of pending) {
       history.push(entry);
     }
@@ -144,7 +154,7 @@ export async function runTaskLoop(
   const waitForParkedResult = async (
     call: ModelToolCall,
     approvalId: string,
-    parked?: { stepId?: string; pollIntervalMs?: number },
+    parked?: { stepId?: string; pollIntervalMs?: number; hibernate?: boolean },
   ): Promise<ToolDispatchResult> => {
     if (!deps.waitForApproval) {
       throw new Error(
@@ -159,6 +169,7 @@ export async function runTaskLoop(
         stepId: parked?.stepId,
         pollIntervalMs: parked?.pollIntervalMs,
         call,
+        hibernate: parked?.hibernate,
       });
       if (result.policyDenied) {
         throw new Error(`policy denied after approval resume: ${result.text}`);
@@ -188,8 +199,12 @@ export async function runTaskLoop(
         {
           stepId: result.approvalRequired.stepId,
           pollIntervalMs: result.approvalRequired.pollIntervalMs,
+          hibernate: true,
         },
       );
+      if (result.hibernated) {
+        return result;
+      }
     }
 
     return result;
@@ -229,6 +244,14 @@ export async function runTaskLoop(
         },
         iterations,
       );
+    }
+
+    if (result.hibernated) {
+      return {
+        outcome: { status: "parked" },
+        history,
+        iterations,
+      };
     }
 
     if (stopRequested()) {
@@ -285,6 +308,8 @@ export async function runTaskLoop(
       }
     }
   }
+
+  await drainPendingUserMessages({ resetBudget: true });
 
   for (
     let iteration = iterationsUsed + 1;

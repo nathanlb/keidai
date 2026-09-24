@@ -116,6 +116,10 @@ export class RunStore {
     return this.repository.setParkedMcpTask(runId, parked);
   }
 
+  setNextPollAt(runId: string, nextPollAt: string): Promise<boolean> {
+    return this.repository.setNextPollAt(runId, nextPollAt);
+  }
+
   clearParkedMcpTask(runId: string): Promise<boolean> {
     return this.repository.clearParkedMcpTask(runId);
   }

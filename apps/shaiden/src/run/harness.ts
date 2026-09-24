@@ -62,7 +62,7 @@ function resolveFudaClient(
   return createHttpFudaClient({ baseUrl: config.fudaBaseUrl });
 }
 
-function createToriiCredential(
+export function createToriiCredential(
   config: RuntimeConfig,
   fudaClient: FudaClient | undefined,
   agentId: string,
@@ -420,6 +420,20 @@ async function driveHarnessRun({
 
       if (lostLease) {
         throw new RunLeaseLostError(runId);
+      }
+
+      if (outcome.status === "parked") {
+        await runStore.setConversationHistory(runId, history);
+        logger.info("run.hibernated", { runId });
+        return {
+          run: {
+            id: runId,
+            task,
+            startedAt: runDraft.startedAt,
+          },
+          discoveredTools: session.tools,
+          iterations,
+        };
       }
 
       if (outcome.status === "goal_met") {

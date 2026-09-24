@@ -1,7 +1,17 @@
 import type { Logger, Task } from "@keidai/shared";
-import type { ConversationEntry } from "./types/conversation-history.js";
-import { isRunLeaseError } from "./run-lease.js";
+import {
+  nextTaskPollDelayMs,
+  type ParkedTaskPoll,
+} from "../mcp/poll-mcp-task.js";
+import type { ParkedMcpTask } from "../runs/types/run-repository.js";
 import type { RunStore } from "../runs/run-store.js";
+import { completeRunWithOutcomeStep } from "./run-completion.js";
+import {
+  DEFAULT_RUN_LEASE_MS,
+  isRunLeaseError,
+  leaseExpiresAt,
+} from "./run-lease.js";
+import type { ConversationEntry } from "./types/conversation-history.js";
 
 export interface ResumeParkedHarnessRun {
   runId: string;
@@ -11,19 +21,28 @@ export interface ResumeParkedHarnessRun {
 }
 
 /**
- * Re-attach in-flight gated tool calls after a restart or when another
- * replica's lease has expired. Claim happens inside the harness so two
- * replicas cannot drive the same parked run.
+ * Poll ownerless parked runs, then claim one only after its Torii task is
+ * terminal. A non-terminal poll schedules `next_poll_at` and leaves the run
+ * unclaimed. `input_required` and fatal poll errors fail the run from here.
  */
 export async function resumeParkedHarnessRuns(input: {
   runStore: RunStore;
   resumeHarnessRun: (args: ResumeParkedHarnessRun) =>
     | { done: Promise<unknown> }
     | Promise<{ done: Promise<unknown> }>;
+  pollParkedTask: (
+    parked: ParkedMcpTask,
+    task: Task,
+  ) => Promise<ParkedTaskPoll>;
+  replicaId: string;
+  leaseMs?: number;
   logger: Logger;
   now?: () => number;
+  nextPollDelayMs?: (pollIntervalMs?: number) => number;
 }): Promise<number> {
-  const nowIso = new Date((input.now ?? Date.now)()).toISOString();
+  const nowMs = (input.now ?? Date.now)();
+  const nowIso = new Date(nowMs).toISOString();
+  const delayFor = input.nextPollDelayMs ?? nextTaskPollDelayMs;
   const parkedRuns = await input.runStore.listClaimableParkedMcpTasks(nowIso);
   if (parkedRuns.length === 0) {
     return 0;
@@ -36,15 +55,59 @@ export async function resumeParkedHarnessRuns(input: {
   let resumed = 0;
   for (const parked of parkedRuns) {
     const run = await input.runStore.getRun(parked.runId);
-    const history = await input.runStore.getConversationHistory(parked.runId);
-    if (!run || run.status !== "running" || !history) {
+    if (!run || run.status !== "running") {
       input.logger.error("boot.resume_parked_skipped", {
         runId: parked.runId,
-        reason: !run
-          ? "missing_run"
-          : !history
-            ? "missing_history"
-            : run.status,
+        reason: !run ? "missing_run" : run.status,
+      });
+      continue;
+    }
+
+    const poll = await input.pollParkedTask(parked, run.task);
+    if (poll.kind === "pending") {
+      const delayMs = delayFor(poll.pollIntervalMs ?? parked.pollIntervalMs);
+      await input.runStore.setNextPollAt(
+        parked.runId,
+        new Date(nowMs + delayMs).toISOString(),
+      );
+      if (poll.pollIntervalMs != null) {
+        await input.runStore.setParkedMcpTask(parked.runId, {
+          mcpTaskId: parked.mcpTaskId,
+          pollIntervalMs: poll.pollIntervalMs,
+        });
+      }
+      continue;
+    }
+
+    if (poll.kind === "failed") {
+      const claimed = await input.runStore.claimRun(
+        parked.runId,
+        input.replicaId,
+        leaseExpiresAt(nowMs, input.leaseMs ?? DEFAULT_RUN_LEASE_MS),
+        nowIso,
+      );
+      if (!claimed) {
+        input.logger.info("boot.resume_parked_not_claimed", {
+          runId: parked.runId,
+        });
+        continue;
+      }
+      await completeRunWithOutcomeStep(input.runStore, parked.runId, {
+        status: "failed",
+        reason: poll.reason,
+      });
+      input.logger.error("boot.resume_parked_failed", {
+        runId: parked.runId,
+        error: poll.reason,
+      });
+      continue;
+    }
+
+    const history = await input.runStore.getConversationHistory(parked.runId);
+    if (!history) {
+      input.logger.error("boot.resume_parked_skipped", {
+        runId: parked.runId,
+        reason: "missing_history",
       });
       continue;
     }

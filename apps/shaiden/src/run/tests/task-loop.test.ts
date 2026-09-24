@@ -977,4 +977,124 @@ describe("task loop", () => {
     );
     assert.deepEqual(reset.outcome, { status: "goal_met" });
   });
+
+  it("returns parked when the approval wait hibernates and does not call the model again", async () => {
+    let modelCalls = 0;
+    const result = await runGoalLoop("goal", limits, {
+      callModel: async () => {
+        modelCalls += 1;
+        return modelStep({
+          text: "",
+          toolCalls: [toolCall("gmail.create_draft")],
+        });
+      },
+      dispatchToolCall: approvalRequiredDispatch(),
+      waitForApproval: async () => ({
+        isError: false,
+        text: "",
+        hibernated: true,
+      }),
+    });
+
+    assert.deepEqual(result.outcome, { status: "parked" });
+    assert.equal(modelCalls, 1);
+    assert.equal(
+      result.history.filter((entry) => entry.role === "tool").length,
+      0,
+    );
+  });
+
+  it("resets the budget when a wake drains a queued follow-up", async () => {
+    const budgets: RunBudget[] = [];
+    let modelCalls = 0;
+    let drained = false;
+    const result = await runTaskLoop(
+      {
+        initialHistory: [
+          { role: "user", text: "goal" },
+          {
+            role: "assistant",
+            text: "",
+            toolCalls: [toolCall("gmail.create_draft")],
+          },
+        ],
+        limits: { max_iterations: 2, timeout_seconds: 60 },
+        budget: { iterationsUsed: 2, activeElapsedMs: 9_000 },
+        resumeParkedApproval: { approvalId: "task-1" },
+      },
+      {
+        callModel: async () => {
+          modelCalls += 1;
+          return modelStep({ text: "Done.", toolCalls: [] });
+        },
+        dispatchToolCall: async () => ({ isError: false, text: "ok" }),
+        waitForApproval: async () => ({
+          isError: false,
+          text: "approved result",
+        }),
+        drainPendingUserMessages: () => {
+          if (drained) {
+            return [];
+          }
+          drained = true;
+          return [{ role: "user", text: "new instruction" }];
+        },
+        onBudgetChanged: (budget) => {
+          budgets.push({ ...budget });
+        },
+      },
+    );
+
+    assert.equal(modelCalls, 1);
+    assert.deepEqual(result.outcome, { status: "goal_met" });
+    assert.ok(
+      budgets.some(
+        (budget) => budget.iterationsUsed === 0 && budget.activeElapsedMs === 0,
+      ),
+    );
+  });
+
+  it("keeps the budget when an in-process drain folds a follow-up", async () => {
+    const budgets: RunBudget[] = [];
+    let releaseQueued = false;
+    const approval = deferredParkedResult();
+    const loop = runTaskLoop(
+      {
+        initialHistory: [{ role: "user", text: "goal" }],
+        limits: { max_iterations: 3, timeout_seconds: 60 },
+        budget: { iterationsUsed: 1, activeElapsedMs: 4_000 },
+      },
+      {
+        callModel: scriptedModel([
+          { text: "", toolCalls: [toolCall("gmail.create_draft")] },
+          { text: "Done.", toolCalls: [] },
+        ]),
+        dispatchToolCall: approvalRequiredDispatch(),
+        waitForApproval: approval.waitForApproval,
+        drainPendingUserMessages: () => {
+          if (!releaseQueued) {
+            return [];
+          }
+          releaseQueued = false;
+          return [{ role: "user", text: "queued guidance" }];
+        },
+        onBudgetChanged: (budget) => {
+          budgets.push({ ...budget });
+        },
+      },
+    );
+
+    await approval.whenPending;
+    releaseQueued = true;
+    approval.resolve({ isError: false, text: "approved result" });
+    const result = await loop;
+
+    assert.deepEqual(result.outcome, { status: "goal_met" });
+    assert.ok(budgets.length > 0);
+    assert.ok(
+      budgets.every(
+        (budget) => budget.iterationsUsed >= 1 && budget.activeElapsedMs >= 4_000,
+      ),
+    );
+  });
 });

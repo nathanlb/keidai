@@ -8,6 +8,8 @@ import {
   MCP_TASKS_GET_METHOD,
   isMcpTaskTerminalStatus,
   mcpCreateTaskResultSchema,
+  mcpGetTaskResultSchema,
+  type McpGetTaskResult,
 } from "@keidai/shared";
 import {
   listToolsCacheIsStale,
@@ -19,7 +21,12 @@ import {
   mapTerminalMcpTaskToToolCallResult,
   tryMapTerminalCreateTaskResult,
 } from "./parse-tool-result.js";
-import { pollUntilTerminalMcpTask } from "./poll-mcp-task.js";
+import {
+  parkedTaskPollFromError,
+  parkedTaskPollFromGet,
+  pollUntilTerminalMcpTask,
+  type ParkedTaskPoll,
+} from "./poll-mcp-task.js";
 import {
   MCP_PROTOCOL_VERSION,
   SHAIDEN_CLIENT_CAPABILITIES,
@@ -218,4 +225,37 @@ export async function connectToriiSession(
       // Per-request callers hold no stream; nothing to tear down.
     },
   };
+}
+
+export async function getMcpTask(input: {
+  toriiMcpUrl: string;
+  credential: ToriiSessionCredential;
+  taskId: string;
+}): Promise<McpGetTaskResult> {
+  const token = await input.credential.ensureToken();
+  const raw = await postMcpJsonRpc({
+    mcpUrl: input.toriiMcpUrl,
+    authorization: `Bearer ${token}`,
+    method: MCP_TASKS_GET_METHOD,
+    params: { taskId: input.taskId },
+  });
+  const parsed = mcpGetTaskResultSchema.safeParse(raw);
+  if (!parsed.success) {
+    throw new Error("invalid tasks/get result");
+  }
+  return parsed.data;
+}
+
+/** Single-shot park check used by the reclaim sweep. */
+export async function pollAssigneeMcpTask(input: {
+  toriiMcpUrl: string;
+  credential: ToriiSessionCredential;
+  taskId: string;
+  pollIntervalMs?: number;
+}): Promise<ParkedTaskPoll> {
+  try {
+    return parkedTaskPollFromGet(await getMcpTask(input));
+  } catch (error) {
+    return parkedTaskPollFromError(error, input.pollIntervalMs);
+  }
 }
