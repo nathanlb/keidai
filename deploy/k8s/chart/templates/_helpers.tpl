@@ -85,3 +85,14 @@ Checksum of ConfigMaps that feed envFrom / mounts so pods restart on change.
 {{- define "keidai.secretChecksum" -}}
 {{- include (print $.Template.BasePath "/secrets.yaml") . | sha256sum -}}
 {{- end }}
+
+{{/*
+SHAIDEN_SANDBOX_URL is set only when gVisor is on, or when the documented
+shared-kernel override is on. Both flags together is a mistake.
+*/}}
+{{- define "keidai.sandboxToolEnabled" -}}
+{{- if and .Values.shaiden.sandbox.gvisor .Values.shaiden.sandbox.allowRunc -}}
+{{- fail "shaiden.sandbox.gvisor and shaiden.sandbox.allowRunc cannot both be true. Set gvisor for the k3s RuntimeClass. allowRunc turns the tool on while the sandbox pod shares the host kernel with Torii and Fuda." -}}
+{{- end -}}
+{{- if or .Values.shaiden.sandbox.gvisor .Values.shaiden.sandbox.allowRunc -}}true{{- end -}}
+{{- end -}}

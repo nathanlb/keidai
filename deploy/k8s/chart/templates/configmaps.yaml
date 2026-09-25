@@ -59,7 +59,7 @@ data:
   TORII_MCP_URL: http://torii:3100/mcp
   SHAIDEN_SUBJECT_TOKEN_FILE: /var/run/secrets/tokens/token
   KEIDAI_AUTO_MIGRATE: "false"
-  {{- if .Values.shaiden.sandbox.enabled }}
+  {{- if include "keidai.sandboxToolEnabled" . }}
   SHAIDEN_SANDBOX_URL: http://shaiden-sandbox:{{ .Values.shaiden.sandbox.port }}
   {{- end }}
 ---

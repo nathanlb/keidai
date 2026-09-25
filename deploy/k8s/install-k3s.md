@@ -11,6 +11,7 @@ Browser → nginx Ingress :80/:443 → keidai-ui:3000
                                       ├─ torii:3100
                                       ├─ fuda:3300
                                       └─ shaiden:3200 ──SA JWT──▶ Fuda /token
+                                                       └──▶ shaiden-sandbox:8080
 ```
 
 Every command below reads `HOST`, `PUBLIC_URL`, and `VERSION` from the shell
@@ -227,6 +228,11 @@ for you; see [Appendix: private overlay networks](#appendix-private-overlay-netw
 
 ## 5. Install the chart
 
+The sandbox Deployment is installed on runc with the Python tool off. Turning
+the tool on requires gVisor on this node first — do
+[gVisor for the sandbox](#gvisor-for-the-sandbox) before you set
+`shaiden.sandbox.gvisor`. A first install can stay on the defaults.
+
 Do **not** pass `helm --wait`. Helm would wait for Deployments before the
 post-install migrate Job; app pods wait for that Job — deadlock. Hook Jobs still
 block `helm` until they succeed.
@@ -392,7 +398,116 @@ Always re-pass `-f secrets-values.yaml`, `-f values.yaml`, and
 `--set-file secrets.fudaSigningKey`. Omitting those files wipes config. The
 TLS Secret `keidai-ui-tls` is not in the chart; leave it alone.
 
-### 4. Upgrade
+### 4. gVisor for the sandbox
+
+Do this on the node before the `helm upgrade` that sets
+`shaiden.sandbox.gvisor: true`. The chart then emits a `RuntimeClass` named
+`gvisor` (handler `runsc`), sets `runtimeClassName: gvisor` on the
+`shaiden-sandbox` Deployment only, and sets `SHAIDEN_SANDBOX_URL`. Until that
+flag is true the tool stays off and the pod stays on runc, so a node without
+`runsc` still schedules it.
+
+`shaiden.sandbox.enabled` is gone. `shaiden.sandbox.allowRunc: true` turns the
+tool on without the RuntimeClass. That shares the host kernel with Torii and
+Fuda. Leave it false here. Setting both flags makes Helm fail the render.
+Compose and local kind/OrbStack stay on runc; that parity gap is accepted.
+The sandbox image does not change.
+
+gVisor needs Linux 5.6 or newer. The platform is systrap, which does not need
+KVM. k3s has shipped containerd 2.0 since the February 2025 releases
+(v1.31.6+k3s1, v1.32.2+k3s1). These steps use the version 3 drop-in that those
+releases already import. Do not edit the generated `config.toml`; k3s
+overwrites it.
+
+Install the latest release tarball. It contains `runsc`,
+`containerd-shim-runsc-v1`, and the `gvisor-bin/` sidecars. `runsc` looks for
+`gvisor-bin/` next to itself, so they stay together under `/usr/local/bin`,
+which is on the k3s service `PATH`.
+
+```bash
+(
+  set -euo pipefail
+  ARCH=$(uname -m)
+  URL="https://storage.googleapis.com/gvisor/releases/release/latest/${ARCH}"
+  cd /tmp
+  curl -fsSL -O "${URL}/gvisor.tar.zstd" -O "${URL}/gvisor.tar.zstd.sha512"
+  sha512sum -c gvisor.tar.zstd.sha512
+  sudo tar --zstd -xf gvisor.tar.zstd -C /usr/local/bin
+  rm -f gvisor.tar.zstd gvisor.tar.zstd.sha512
+)
+runsc --version
+```
+
+If `tar` has no `--zstd`, install `zstd` or download `gvisor.tar.bz2` and
+`gvisor.tar.bz2.sha512` from the same URL and extract with `tar -xjf`.
+
+Pin systrap so a later `runsc` default cannot switch this node to KVM:
+
+```bash
+sudo tee /var/lib/rancher/k3s/agent/etc/containerd/runsc.toml >/dev/null <<'EOF'
+[runsc_config]
+  platform = "systrap"
+EOF
+```
+
+Confirm the generated containerd config is version 3, then register the
+`runsc` runtime. The handler name on the RuntimeClass is `runsc`, so the
+containerd runtime key has to be `runsc` too.
+
+```bash
+head -n 5 /var/lib/rancher/k3s/agent/etc/containerd/config.toml
+sudo mkdir -p /var/lib/rancher/k3s/agent/etc/containerd/config-v3.toml.d
+sudo tee /var/lib/rancher/k3s/agent/etc/containerd/config-v3.toml.d/gvisor.toml >/dev/null <<'EOF'
+[plugins.'io.containerd.cri.v1.runtime'.containerd.runtimes.runsc]
+  runtime_type = "io.containerd.runsc.v1"
+
+[plugins.'io.containerd.cri.v1.runtime'.containerd.runtimes.runsc.options]
+  TypeUrl = "io.containerd.runsc.v1.options"
+  ConfigPath = "/var/lib/rancher/k3s/agent/etc/containerd/runsc.toml"
+EOF
+sudo systemctl restart k3s
+```
+
+If that `head` shows `version = 2`, this node is still on containerd 1.7. Use
+`config.toml.d/gvisor.toml` instead, with plugin id
+`io.containerd.grpc.v1.cri` in place of `io.containerd.cri.v1.runtime`.
+
+k3s is up when the node is Ready again:
+
+```bash
+kubectl get nodes
+grep -n runsc /var/lib/rancher/k3s/agent/etc/containerd/config-v3.toml.d/gvisor.toml
+```
+
+Add `shaiden.sandbox.gvisor: true` under `shaiden.sandbox` in `values.yaml`,
+then continue with the upgrade below. After the sandbox pod is Running:
+
+```bash
+kubectl -n keidai get pod -l app=shaiden-sandbox \
+  -o jsonpath='{.items[0].spec.runtimeClassName}{"\n"}'
+kubectl -n keidai exec deploy/shaiden-sandbox -- dmesg | head -n 5
+```
+
+The runtime class is `gvisor`. `dmesg` prints `Starting gVisor...`. Torii,
+Fuda, and Shaiden stay on runc; only this pod carries the class.
+
+The NAT-167 checks that are sensitive to the runtime are egress and
+process-group kill. This guide does not clone the repo, so they are not
+re-run here. From a checkout they are
+`isolates workspaces by uid and blocks outbound network` and
+`keeps files across calls and kills a background process` in
+`apps/shaiden`. On this node, after a real `execute_python` call, confirm the
+same two outcomes: a child `sleep` is gone, and an outbound `urlopen` fails.
+
+```bash
+kubectl -n keidai exec deploy/shaiden-sandbox -- ps -eo user,pid,cmd
+```
+
+That listing should be the supervisor and the per-run uid's short-lived
+interpreter only while a call is in flight. A `sleep` left behind after the
+call returns means process-group kill did not reap the child under gVisor.
+
+### 5. Upgrade
 
 From `~/keidai`:
 
