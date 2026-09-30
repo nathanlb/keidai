@@ -9,7 +9,10 @@ import type { ServerConfig } from "@keidai/shared";
 import { MCP_PROTOCOL_VERSION } from "@keidai/shared/mcp-jsonrpc";
 import { inject, injectable } from "tsyringe";
 import { CredentialResolverService } from "../credentials/credential-resolver.service.js";
-import { CredentialResolutionError, LinkingRequiredError } from "../credentials/types/credential-resolution.js";
+import {
+  CredentialResolutionError,
+  LinkingRequiredError,
+} from "../credentials/types/credential-resolution.js";
 import { ensureOutboundMcpRoutingHeaders } from "./utils/outbound-mcp-headers.js";
 import {
   TORII_OUTBOUND_CLIENT_CAPABILITIES,
@@ -76,9 +79,7 @@ export class DefaultMcpClientConnector implements McpClientConnector {
 
   async connect(server: ServerConfig): Promise<McpClient> {
     if (server.transport.type !== "http") {
-      throw new Error(
-        `Unsupported transport type for server "${server.name}"`,
-      );
+      throw new Error(`Unsupported transport type for server "${server.name}"`);
     }
 
     const client = new Client(TORII_OUTBOUND_CLIENT_INFO, {

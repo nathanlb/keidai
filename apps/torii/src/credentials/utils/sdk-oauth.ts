@@ -26,8 +26,7 @@ export function metadataFromOverride(
   }
   const authorizationEndpoint =
     oauth.authorizeUrl ?? deriveAuthorizeUrl(oauth.tokenUrl);
-  const issuer =
-    oauth.issuer ?? new URL(authorizationEndpoint).origin;
+  const issuer = oauth.issuer ?? new URL(authorizationEndpoint).origin;
   return {
     issuer,
     authorization_endpoint: authorizationEndpoint,

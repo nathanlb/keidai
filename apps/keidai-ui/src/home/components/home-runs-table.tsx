@@ -147,9 +147,11 @@ function ScheduledRows({ rows }: { rows: readonly HomeScheduledTask[] }) {
               aria-hidden
             />
             <div className="min-w-0">
-              <div className="
+              <div
+                className="
                 truncate text-[13.5px] font-medium text-foreground
-              ">
+              "
+              >
                 {row.task}
               </div>
               <div className="truncate text-[11px] text-muted-foreground">
@@ -215,18 +217,22 @@ export function HomeRunsTable({
       data-testid="home-runs-table"
       className="gap-0 overflow-hidden py-0 shadow-none"
     >
-      <div className="
+      <div
+        className="
         flex items-center gap-4 overflow-x-auto border-b border-border px-4
-      ">
+      "
+      >
         <TabButton active={isRecent} onClick={() => onTabChange("recent")}>
           Recent
         </TabButton>
         <TabButton active={!isRecent} onClick={() => onTabChange("scheduled")}>
           <span className="flex items-center gap-1.75">
             Scheduled
-            <span className="
+            <span
+              className="
               font-mono text-[11px] font-normal text-muted-foreground
-            ">
+            "
+            >
               {scheduled.length}
             </span>
           </span>

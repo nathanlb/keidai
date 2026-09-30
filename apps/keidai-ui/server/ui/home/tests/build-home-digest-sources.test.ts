@@ -55,18 +55,21 @@ describe("collectRunningRunIds", () => {
   });
 
   it("ignores non-running runs", () => {
-    const ids = collectRunningRunIds([], [
-      {
-        id: "run-done",
-        taskId: "task-1",
-        startedAt: "2026-01-01T00:00:00.000Z",
-        assignee: "agt-1",
-        goalPreview: "done",
-        status: "completed",
-        stepCount: 1,
-        assigneeDisplay: null,
-      },
-    ]);
+    const ids = collectRunningRunIds(
+      [],
+      [
+        {
+          id: "run-done",
+          taskId: "task-1",
+          startedAt: "2026-01-01T00:00:00.000Z",
+          assignee: "agt-1",
+          goalPreview: "done",
+          status: "completed",
+          stepCount: 1,
+          assigneeDisplay: null,
+        },
+      ],
+    );
 
     assert.deepEqual(ids, []);
   });

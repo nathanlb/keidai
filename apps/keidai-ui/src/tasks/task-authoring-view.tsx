@@ -25,6 +25,7 @@ import {
   formValuesFromTask,
   taskAuthoringFormSchema,
   taskFromFormValues,
+  taskUpdateFromFormValues,
 } from "./schemas/task-authoring-form-schema.js";
 import { toAgentAssigneeOption } from "./utils/to-agent-assignee-option.js";
 import {
@@ -35,6 +36,7 @@ import { TaskAssigneeSection } from "./components/task-assignee-section.js";
 import { TaskAuthoringFooter } from "./components/task-authoring-footer.js";
 import { TaskGoalSection } from "./components/task-goal-section.js";
 import { TaskLimitsSection } from "./components/task-limits-section.js";
+import { TaskModelSection } from "./components/task-model-section.js";
 import { TaskTriggerSection } from "./components/task-trigger-section.js";
 
 const EMPTY_FORM_VALUES = emptyTaskAuthoringValues();
@@ -206,7 +208,10 @@ export function TaskAuthoringView({
 
     try {
       if (taskId) {
-        const { task: saved } = await updateTask(taskId, task);
+        const { task: saved } = await updateTask(
+          taskId,
+          taskUpdateFromFormValues(values),
+        );
         setScheduleFailure(
           saved.scheduleFailedAt ? (saved.scheduleError ?? "") : null,
         );
@@ -281,17 +286,9 @@ export function TaskAuthoringView({
 
       <FormProvider {...form}>
         <form className="flex max-w-180 flex-col" onSubmit={onSubmit}>
-          <div
-            className="
-          flex flex-col gap-4.5 rounded-xl border border-border bg-card p-5
-        "
-          >
+          <div className="flex flex-col gap-5 rounded-xl border border-border bg-card p-5">
             {isLoadingTask ? (
-              <div
-                className="
-                flex items-center gap-2 py-8 text-sm text-muted-foreground
-              "
-              >
+              <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
                 <Loader2 className="size-4 animate-spin" aria-hidden />
                 Loading task…
               </div>
@@ -302,11 +299,7 @@ export function TaskAuthoringView({
             ) : isLoadingTask ? null : (
               <>
                 {isArchived ? (
-                  <p
-                    className="
-                    border-b border-border py-4 text-sm text-muted-foreground
-                  "
-                  >
+                  <p className="border-b border-border py-4 text-sm text-muted-foreground">
                     This task is archived. Past runs are preserved, but the
                     definition can no longer be edited or run.
                   </p>
@@ -325,6 +318,10 @@ export function TaskAuthoringView({
                   agentsError={agentsError}
                   runtimeError={runtimeError}
                   runtimeReady={runtimeReady}
+                />
+                <TaskModelSection
+                  agents={agentsData?.agents ?? []}
+                  disabled={isArchived}
                 />
                 <TaskLimitsSection />
                 {submitError ? (

@@ -13,11 +13,9 @@ const initialFudaHealth: ServiceHealth = {
 };
 
 export function useFudaStatus() {
-  const { data, mutate, isLoading } = useSWR(
-    FUDA_STATUS_KEY,
-    fetchFudaHealth,
-    { refreshInterval: pollIntervalMs },
-  );
+  const { data, mutate, isLoading } = useSWR(FUDA_STATUS_KEY, fetchFudaHealth, {
+    refreshInterval: pollIntervalMs,
+  });
 
   return {
     status: data ?? initialFudaHealth,

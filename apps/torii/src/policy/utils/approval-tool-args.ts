@@ -1,8 +1,5 @@
 import { createHash } from "node:crypto";
-import {
-  TORII_RUN_ID_ARG,
-  TORII_STEP_ID_ARG,
-} from "@keidai/shared";
+import { TORII_RUN_ID_ARG, TORII_STEP_ID_ARG } from "@keidai/shared";
 
 export interface ParsedToolArguments {
   upstreamArgs: Record<string, unknown>;
@@ -36,9 +33,7 @@ export function parseToolArguments(
 }
 
 export function hashToolParams(params: Record<string, unknown>): string {
-  return createHash("sha256")
-    .update(stableStringify(params))
-    .digest("hex");
+  return createHash("sha256").update(stableStringify(params)).digest("hex");
 }
 
 function stableStringify(value: unknown): string {

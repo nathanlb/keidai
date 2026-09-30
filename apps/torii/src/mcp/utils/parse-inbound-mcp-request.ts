@@ -27,7 +27,9 @@ export type InboundMcpResolution =
 /**
  * Body-only parse used as the validation fallback against routing headers.
  */
-export function parseInboundMcpRequest(body: unknown): InboundMcpRequestContext {
+export function parseInboundMcpRequest(
+  body: unknown,
+): InboundMcpRequestContext {
   if (!body || typeof body !== "object") {
     return { id: null };
   }
@@ -43,7 +45,8 @@ export function parseInboundMcpRequest(body: unknown): InboundMcpRequestContext 
       ? request.id
       : null;
 
-  const method = typeof request.method === "string" ? request.method : undefined;
+  const method =
+    typeof request.method === "string" ? request.method : undefined;
   const name = bodyNameForMethod(method, request.params);
 
   return { id, method, name };
@@ -115,7 +118,11 @@ export function resolveInboundMcpRequest(
     };
   }
 
-  if (name !== undefined && parsedBody.name !== undefined && parsedBody.name !== name) {
+  if (
+    name !== undefined &&
+    parsedBody.name !== undefined &&
+    parsedBody.name !== name
+  ) {
     return {
       ok: false,
       context: parsedBody,

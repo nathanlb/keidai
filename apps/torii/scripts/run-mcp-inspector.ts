@@ -1,6 +1,10 @@
 #!/usr/bin/env tsx
 import { loadEnvForPackage } from "@keidai/shared/load-env";
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
 import { request as httpRequest } from "node:http";
 import { writeFileSync } from "node:fs";
 import { mkdtempSync } from "node:fs";
@@ -125,14 +129,10 @@ function writeInspectorConfig(shimUrl: URL): string {
 }
 
 function spawnInspector(configPath: string): ChildProcess {
-  return spawn(
-    "mcp-inspector",
-    ["--config", configPath, "--server", "torii"],
-    {
-      stdio: "inherit",
-      env: process.env,
-    },
-  );
+  return spawn("mcp-inspector", ["--config", configPath, "--server", "torii"], {
+    stdio: "inherit",
+    env: process.env,
+  });
 }
 
 async function main(): Promise<void> {

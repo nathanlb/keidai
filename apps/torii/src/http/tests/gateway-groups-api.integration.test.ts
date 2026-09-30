@@ -198,24 +198,21 @@ describe("Gateway /api/groups", () => {
         /unknown server "linear"/,
       );
 
-      const overlap = await fetch(
-        `${gateway.baseUrl}/api/groups/${group.id}`,
-        {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            servers: [
-              {
-                server: "gmail",
-                default: "deny",
-                allow: ["create_draft"],
-                deny: ["create_draft"],
-                gated: [],
-              },
-            ],
-          }),
-        },
-      );
+      const overlap = await fetch(`${gateway.baseUrl}/api/groups/${group.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          servers: [
+            {
+              server: "gmail",
+              default: "deny",
+              allow: ["create_draft"],
+              deny: ["create_draft"],
+              gated: [],
+            },
+          ],
+        }),
+      });
       assert.equal(overlap.status, 400);
       assert.match(
         ((await overlap.json()) as { error: string }).error,

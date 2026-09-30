@@ -66,7 +66,8 @@ export class ConnectionsApiController {
         writeEvent(event.type, event.connection);
       };
 
-      for (const connection of this.connectionRead.listConnections().connections) {
+      for (const connection of this.connectionRead.listConnections()
+        .connections) {
         emit({
           type: CONNECTION_SSE_EVENT.stateChanged,
           connection,

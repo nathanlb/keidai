@@ -12,11 +12,7 @@ vi.mock("../../lib/api/runs.js", () => ({
   resumeRun: vi.fn().mockResolvedValue({ runId: "run-1" }),
 }));
 
-import {
-  resumeRun,
-  sendRunFollowUp,
-  stopRun,
-} from "../../lib/api/runs.js";
+import { resumeRun, sendRunFollowUp, stopRun } from "../../lib/api/runs.js";
 
 const baseRun: RunReport = {
   id: "run-1",

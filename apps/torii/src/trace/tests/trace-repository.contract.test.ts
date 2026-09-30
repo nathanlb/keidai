@@ -146,7 +146,8 @@ function runTraceRepositoryContract(
         );
 
         assert.equal(
-          (await repository.list({ limit: 10, outcome: "denied" })).traces.length,
+          (await repository.list({ limit: 10, outcome: "denied" })).traces
+            .length,
           1,
         );
         assert.equal(

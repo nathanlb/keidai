@@ -109,8 +109,7 @@ export async function createContainer(
   let discoveryCache: PgOAuthDiscoveryCache | undefined;
 
   const seededFromConfig =
-    config.servers.length > 0 ||
-    Object.keys(config.oauth_providers).length > 0;
+    config.servers.length > 0 || Object.keys(config.oauth_providers).length > 0;
   const connectorRegistry = seededFromConfig
     ? ConnectorRegistry.fromConfig(config)
     : new ConnectorRegistry();
@@ -383,9 +382,9 @@ export async function createContainer(
   if (!seededFromConfig) {
     const management = appContainer.resolve(ConnectorManagementService);
     await management.loadIntoRegistry();
-    appContainer.resolve(OAuthLinkService).bindRegistryReload(() =>
-      management.loadIntoRegistry(),
-    );
+    appContainer
+      .resolve(OAuthLinkService)
+      .bindRegistryReload(() => management.loadIntoRegistry());
 
     const listenUrl =
       options.listenDatabaseUrl ??

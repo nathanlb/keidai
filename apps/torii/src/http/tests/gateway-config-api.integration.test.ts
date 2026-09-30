@@ -100,12 +100,13 @@ describe("Gateway /api/config endpoints", () => {
     const gateway = await gatewayHttpServer.start();
 
     try {
-      const [serversRes, providersRes, agentsRes, groupsRes] = await Promise.all([
-        fetch(`${gateway.baseUrl}/api/config/servers`),
-        fetch(`${gateway.baseUrl}/api/config/oauth-providers`),
-        fetch(`${gateway.baseUrl}/api/config/agents`),
-        fetch(`${gateway.baseUrl}/api/config/groups`),
-      ]);
+      const [serversRes, providersRes, agentsRes, groupsRes] =
+        await Promise.all([
+          fetch(`${gateway.baseUrl}/api/config/servers`),
+          fetch(`${gateway.baseUrl}/api/config/oauth-providers`),
+          fetch(`${gateway.baseUrl}/api/config/agents`),
+          fetch(`${gateway.baseUrl}/api/config/groups`),
+        ]);
 
       assert.equal(serversRes.status, 200);
       assert.equal(providersRes.status, 200);
@@ -162,7 +163,9 @@ describe("Gateway /api/config endpoints", () => {
     const { approvalsApi } = services;
     const groupPolicies = groupPolicyCacheFromDefinitions();
     const gatewayHttpServer = new GatewayHttpServer(
-      new ConfigApiController(new ConfigReadService(configService, groupPolicies)),
+      new ConfigApiController(
+        new ConfigReadService(configService, groupPolicies),
+      ),
       new ConnectionsApiController(
         new ConnectionReadService(connectionManager, toolCatalog),
         connectionManager,
@@ -172,7 +175,11 @@ describe("Gateway /api/config endpoints", () => {
       createOAuthApiController(configService),
       createTracesApiController({ traceEmitter: new CapturingTraceEmitter() }),
       approvalsApi,
-      createGroupsApiController(configService, services.persistence, groupPolicies),
+      createGroupsApiController(
+        configService,
+        services.persistence,
+        groupPolicies,
+      ),
       new GatewayMcpServer(
         {} as ToolCatalogService,
         {} as ToolDispatchService,

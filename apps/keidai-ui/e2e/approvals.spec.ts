@@ -25,10 +25,14 @@ test.describe("Approvals panel", () => {
     await page.goto("/approvals");
 
     await expect(page.getByText("You're all caught up")).toBeVisible();
-    await expect(page.getByRole("link", { name: "View run history" })).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "View run history" }),
+    ).toBeVisible();
   });
 
-  test("lists pending approvals with params and quick approve", async ({ page }) => {
+  test("lists pending approvals with params and quick approve", async ({
+    page,
+  }) => {
     await mockToriiConfig(page, { approvals: [pendingApproval] });
     await page.goto("/approvals");
 
@@ -36,7 +40,9 @@ test.describe("Approvals panel", () => {
     await expect(page.getByText("send_email")).toBeVisible();
     await expect(page.getByText("team@example.com")).toBeHidden();
 
-    await page.getByRole("button", { name: "Approve and resume", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Approve and resume", exact: true })
+      .click();
     await expect(page.getByText("You're all caught up")).toBeVisible();
     await expect(page.getByText("Approved")).toBeVisible();
   });
@@ -48,7 +54,9 @@ test.describe("Approvals panel", () => {
     await page.getByRole("button", { name: /send_email/i }).click();
     await expect(page.getByText("team@example.com")).toBeVisible();
     await expect(page.getByText("Weekly newsletter draft")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Approve & resume" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Approve & resume" }),
+    ).toBeVisible();
   });
 
   test("records a rejection with optional reason", async ({ page }) => {
@@ -57,7 +65,9 @@ test.describe("Approvals panel", () => {
 
     await page.getByRole("button", { name: /send_email/i }).click();
     await page.getByRole("button", { name: "Reject" }).click();
-    await page.getByPlaceholder("Optional reason for the agent…").fill("Wrong recipient list");
+    await page
+      .getByPlaceholder("Optional reason for the agent…")
+      .fill("Wrong recipient list");
     await page.getByRole("button", { name: "Record denial" }).click();
 
     await expect(page.getByText("You're all caught up")).toBeVisible();

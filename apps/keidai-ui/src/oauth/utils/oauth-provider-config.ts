@@ -48,9 +48,10 @@ export function formatClientIdDisplay(
   return `${config.client_id.slice(0, 8)}…`;
 }
 
-export function formatClientSecretLabel(
-  config: PublicOAuthProviderConfig,
-): { label: string; missing: boolean } {
+export function formatClientSecretLabel(config: PublicOAuthProviderConfig): {
+  label: string;
+  missing: boolean;
+} {
   if (config.registration_endpoint) {
     return { label: "dynamic registration", missing: false };
   }

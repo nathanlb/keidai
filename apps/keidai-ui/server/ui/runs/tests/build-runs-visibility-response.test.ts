@@ -18,16 +18,13 @@ function makeRun(overrides: Partial<RunListItem> = {}): RunListItem {
 
 describe("buildRunsVisibilityResponse", () => {
   it("joins runs to agents with displayName and initials", () => {
-    const response = buildRunsVisibilityResponse(
-      { runs: [makeRun()] },
-      [
-        {
-          id: "agent-1",
-          name: "Demo Agent",
-          slug: "demo-agent",
-        },
-      ],
-    );
+    const response = buildRunsVisibilityResponse({ runs: [makeRun()] }, [
+      {
+        id: "agent-1",
+        name: "Demo Agent",
+        slug: "demo-agent",
+      },
+    ]);
 
     assert.equal(response.runs[0]?.assigneeDisplay?.displayName, "Demo Agent");
     assert.equal(response.runs[0]?.assigneeDisplay?.initials, "DA");
@@ -70,21 +67,18 @@ describe("buildRunsVisibilityResponse", () => {
   });
 
   it("builds agentsById for all agents returned by Fuda", () => {
-    const response = buildRunsVisibilityResponse(
-      { runs: [] },
-      [
-        {
-          id: "agent-1",
-          name: "Alpha",
-          slug: "alpha",
-        },
-        {
-          id: "agent-2",
-          name: "Beta",
-          slug: "beta",
-        },
-      ],
-    );
+    const response = buildRunsVisibilityResponse({ runs: [] }, [
+      {
+        id: "agent-1",
+        name: "Alpha",
+        slug: "alpha",
+      },
+      {
+        id: "agent-2",
+        name: "Beta",
+        slug: "beta",
+      },
+    ]);
 
     assert.deepEqual(Object.keys(response.agentsById).sort(), [
       "agent-1",

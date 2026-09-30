@@ -5,9 +5,7 @@ export interface ServiceHealth {
   version: string;
 }
 
-export const initialServiceHealth = (
-  label: string,
-): ServiceHealth => ({
+export const initialServiceHealth = (label: string): ServiceHealth => ({
   healthy: false,
   label,
   displayAddress: "",

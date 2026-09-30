@@ -21,6 +21,7 @@ export function previewScheduleNextFire(
       goal: "preview",
       assignee: "preview",
       triggerType: "schedule",
+      modelId: "",
       ...values,
     });
     const next = nextRunAt(task.trigger, now);

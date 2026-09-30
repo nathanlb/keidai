@@ -34,10 +34,7 @@ function resolvePairStatus(
   return result.status === "error" ? "error" : "ok";
 }
 
-function durationBetween(
-  startIso: string,
-  endIso: string,
-): number | undefined {
+function durationBetween(startIso: string, endIso: string): number | undefined {
   const start = new Date(startIso).getTime();
   const end = new Date(endIso).getTime();
   if (Number.isNaN(start) || Number.isNaN(end)) {
@@ -113,9 +110,7 @@ export function formatToolCallOutcome(status: ToolCallPairStatus): string {
   return status === "error" ? "failed" : "ok";
 }
 
-export function formatToolResultEyebrow(
-  entry: GroupedToolCallEntry,
-): string {
+export function formatToolResultEyebrow(entry: GroupedToolCallEntry): string {
   if (entry.status === "pending") {
     return "";
   }

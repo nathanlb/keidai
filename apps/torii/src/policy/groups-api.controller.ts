@@ -86,7 +86,9 @@ export class GroupsApiController {
   }
 
   private sendWriteError(
-    reply: { code: (statusCode: number) => { send: (payload: unknown) => void } },
+    reply: {
+      code: (statusCode: number) => { send: (payload: unknown) => void };
+    },
     error: unknown,
   ): void {
     if (error instanceof GroupPolicyWriteError) {

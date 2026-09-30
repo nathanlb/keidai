@@ -139,9 +139,9 @@ describe("OAuthConnectionReadService", () => {
       createdAt: new Date(),
     });
 
-    const github = (await service.listConnections("demo-owner")).connections.find(
-      (connection) => connection.provider === "github",
-    );
+    const github = (
+      await service.listConnections("demo-owner")
+    ).connections.find((connection) => connection.provider === "github");
     assert.equal(github?.status, "linked");
   });
 
@@ -159,9 +159,9 @@ describe("OAuthConnectionReadService", () => {
       createdAt: new Date(),
     });
 
-    const github = (await service.listConnections("demo-owner")).connections.find(
-      (connection) => connection.provider === "github",
-    );
+    const github = (
+      await service.listConnections("demo-owner")
+    ).connections.find((connection) => connection.provider === "github");
     assert.equal(github?.status, "failed");
     assert.equal(github?.error, "access denied");
   });

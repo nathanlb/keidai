@@ -120,7 +120,10 @@ function projectAgent(
   sources: SystemMapSources,
   now: number,
   liveByAssignee: ReadonlyMap<string, RunVisibilityListItem>,
-  parkedByAssignee: ReadonlyMap<string, { count: number; since: string; task: string }>,
+  parkedByAssignee: ReadonlyMap<
+    string,
+    { count: number; since: string; task: string }
+  >,
 ): SystemMapAgent {
   const live = liveByAssignee.get(agent.id);
   const parked = parkedByAssignee.get(agent.id);
@@ -215,10 +218,7 @@ export function buildSystemMap(sources: SystemMapSources): HomeSystemMap {
       continue;
     }
     const current = liveByAssignee.get(run.assignee);
-    if (
-      !current ||
-      Date.parse(run.startedAt) > Date.parse(current.startedAt)
-    ) {
+    if (!current || Date.parse(run.startedAt) > Date.parse(current.startedAt)) {
       liveByAssignee.set(run.assignee, run);
     }
   }

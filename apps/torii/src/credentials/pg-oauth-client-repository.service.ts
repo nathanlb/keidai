@@ -29,7 +29,9 @@ export class PgOAuthClientRepository implements OAuthClientRepository {
 
     return {
       clientId: row.client_id,
-      ...(row.client_secret !== null ? { clientSecret: row.client_secret } : {}),
+      ...(row.client_secret !== null
+        ? { clientSecret: row.client_secret }
+        : {}),
       ...(row.redirect_uri !== null ? { redirectUri: row.redirect_uri } : {}),
     };
   }

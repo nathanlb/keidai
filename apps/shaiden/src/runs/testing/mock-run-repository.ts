@@ -69,6 +69,7 @@ export class MockRunRepository implements RunRepository {
         ? { personaVersion: input.personaVersion }
         : {}),
       ...(input.persona !== undefined ? { persona: input.persona } : {}),
+      ...(input.modelId !== undefined ? { modelId: input.modelId } : {}),
     };
     this.runs.set(run.id, run);
     this.trim();
@@ -91,7 +92,10 @@ export class MockRunRepository implements RunRepository {
     return updated;
   }
 
-  async complete(runId: string, input: CompleteRunRequest): Promise<RunReport | null> {
+  async complete(
+    runId: string,
+    input: CompleteRunRequest,
+  ): Promise<RunReport | null> {
     const run = this.runs.get(runId);
     if (!run) {
       return null;
@@ -133,6 +137,7 @@ export class MockRunRepository implements RunRepository {
           ? { personaVersion: run.personaVersion }
           : {}),
         ...(run.persona !== undefined ? { persona: run.persona } : {}),
+        ...(run.modelId !== undefined ? { modelId: run.modelId } : {}),
       }));
 
     return { runs };
@@ -168,7 +173,9 @@ export class MockRunRepository implements RunRepository {
     return true;
   }
 
-  async getConversationHistory(runId: string): Promise<ConversationEntry[] | null> {
+  async getConversationHistory(
+    runId: string,
+  ): Promise<ConversationEntry[] | null> {
     const run = this.runs.get(runId);
     if (!run?.conversationHistory) {
       return null;

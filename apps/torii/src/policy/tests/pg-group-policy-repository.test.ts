@@ -57,7 +57,10 @@ describe("PgGroupPolicyRepository", () => {
         ],
       });
       assert.equal(created.name, "editors");
-      assert.equal((await repository.get(created.id))?.description, "Draft access");
+      assert.equal(
+        (await repository.get(created.id))?.description,
+        "Draft access",
+      );
 
       const updated = await repository.update(created.id, {
         description: "Draft and list",

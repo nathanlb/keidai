@@ -5,6 +5,7 @@ import { usePendingApprovalsCount } from "../../../lib/hooks/use-approvals.js";
 import {
   homeNavItem,
   isNavItemActive,
+  settingsNavItem,
   workspaceNavSections,
   APPROVALS_PATH,
 } from "../../navigation.js";
@@ -15,6 +16,29 @@ import {
   navItemClassName,
   sidebarNavLinkTestId,
 } from "./nav-primitives.js";
+
+export function SettingsNavLink() {
+  const { pathname } = useLocation();
+
+  return (
+    <NavLink
+      to={settingsNavItem.path}
+      data-testid={sidebarNavLinkTestId(settingsNavItem.path)}
+      className={() =>
+        cn(
+          navItemClassName,
+          isNavItemActive(settingsNavItem, pathname) &&
+            "bg-sidebar-accent font-semibold text-sidebar-accent-foreground",
+        )
+      }
+    >
+      <NavIcon>
+        <settingsNavItem.icon className="size-4" />
+      </NavIcon>
+      {settingsNavItem.label}
+    </NavLink>
+  );
+}
 
 export function WorkspaceSidebarNav() {
   const { pathname } = useLocation();

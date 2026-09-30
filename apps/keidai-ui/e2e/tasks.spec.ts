@@ -139,7 +139,9 @@ test.describe("Shaiden tasks", () => {
     const runningRow = page.getByRole("row", { name: savedTask.goal });
     const idleRow = page.getByRole("row", { name: secondSavedTask.goal });
 
-    await expect(runningRow.getByRole("button", { name: "Run" })).toBeDisabled();
+    await expect(
+      runningRow.getByRole("button", { name: "Run" }),
+    ).toBeDisabled();
     await expect(idleRow.getByRole("button", { name: "Run" })).toBeEnabled();
 
     await idleRow.getByRole("button", { name: "Run" }).click();
@@ -173,7 +175,9 @@ test.describe("Shaiden tasks", () => {
     await page.goto("/tasks?task=task-saved-1");
 
     await expect(page).toHaveURL(/\/tasks\/task-saved-1$/);
-    await expect(page.getByRole("heading", { name: "Edit task" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Edit task" }),
+    ).toBeVisible();
 
     await saveEditedTaskGoal(page, {
       expectedGoal: savedTask.goal,
@@ -200,7 +204,9 @@ test.describe("Shaiden tasks", () => {
     await page.getByRole("button", { name: "Edit" }).click();
 
     await expect(page).toHaveURL(/\/tasks\/task-saved-1$/);
-    await expect(page.getByRole("heading", { name: "Edit task" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Edit task" }),
+    ).toBeVisible();
 
     await saveEditedTaskGoal(page, {
       expectedGoal: savedTask.goal,
@@ -220,7 +226,9 @@ test.describe("Shaiden tasks", () => {
 
     await page.goto("/tasks/task-saved-1");
 
-    await expect(page.getByRole("heading", { name: "Edit task" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Edit task" }),
+    ).toBeVisible();
 
     await waitForEditTaskFormReady(page, {
       expectedGoal: savedTask.goal,
@@ -279,18 +287,24 @@ test.describe("Shaiden tasks", () => {
 
     await page.getByRole("button", { name: "Cancel" }).click();
 
-    const confirmDialog = page.getByRole("dialog", { name: "Discard changes?" });
+    const confirmDialog = page.getByRole("dialog", {
+      name: "Discard changes?",
+    });
     await expect(confirmDialog).toBeVisible();
 
     await confirmDialog.getByRole("button", { name: "Keep editing" }).click();
     await expect(confirmDialog).toBeHidden();
-    await expect(page.getByRole("heading", { name: "Edit task" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Edit task" }),
+    ).toBeVisible();
     await expect(goalInput).toHaveValue("Unsaved edit");
 
     await page.getByRole("button", { name: "Cancel" }).click();
     await expect(confirmDialog).toBeVisible();
 
-    await confirmDialog.getByRole("button", { name: "Discard changes" }).click();
+    await confirmDialog
+      .getByRole("button", { name: "Discard changes" })
+      .click();
     await expect(confirmDialog).toBeHidden();
     await expect(page).toHaveURL(/\/tasks$/);
     await expect(

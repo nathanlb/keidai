@@ -37,6 +37,9 @@ export class AgentDefinitionApiController {
         slug: agent.slug,
         persona: persona.content,
         personaVersion: persona.version,
+        ...(agent.defaultModelId
+          ? { defaultModelId: agent.defaultModelId }
+          : {}),
       };
       reply.send(definition);
     });

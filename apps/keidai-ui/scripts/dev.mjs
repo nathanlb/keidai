@@ -2,7 +2,10 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const pkgRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const pkgRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+);
 
 /** @type {import("node:child_process").ChildProcess[]} */
 const children = [];

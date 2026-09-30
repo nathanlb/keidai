@@ -4,9 +4,15 @@ import {
   postMcpJsonRpc as postSharedMcpJsonRpc,
 } from "@keidai/shared/mcp-jsonrpc";
 
-export { MCP_PROTOCOL_VERSION, McpJsonRpcError } from "@keidai/shared/mcp-jsonrpc";
+export {
+  MCP_PROTOCOL_VERSION,
+  McpJsonRpcError,
+} from "@keidai/shared/mcp-jsonrpc";
 
-export const SHAIDEN_CLIENT_INFO = { name: "shaiden", version: "0.1.0" } as const;
+export const SHAIDEN_CLIENT_INFO = {
+  name: "shaiden",
+  version: "0.1.0",
+} as const;
 
 /** Declared on every Client and stamped on per-request `_meta`. */
 export const SHAIDEN_CLIENT_CAPABILITIES = {

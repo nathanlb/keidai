@@ -164,11 +164,7 @@ export async function registerHomeDigestRoute(
       const runningIds = collectRunningRunIds(approvals, runsResponse.runs);
       const reportEntries = await Promise.all(
         runningIds.map(async (runId) => {
-          const report = await fetchRunReport(
-            backends,
-            bffServiceToken,
-            runId,
-          );
+          const report = await fetchRunReport(backends, bffServiceToken, runId);
           return report ? ([runId, report] as const) : null;
         }),
       );

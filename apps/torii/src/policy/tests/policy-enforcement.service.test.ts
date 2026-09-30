@@ -46,7 +46,8 @@ describe("PolicyEnforcementService", () => {
     assert.ok(
       logger.logs.some(
         (entry) =>
-          entry.event === "policy.unknown_tool" && entry.fields.tool === "stale_tool",
+          entry.event === "policy.unknown_tool" &&
+          entry.fields.tool === "stale_tool",
       ),
     );
     assert.ok(
@@ -93,7 +94,8 @@ describe("PolicyEnforcementService", () => {
     assert.ok(
       logger.logs.some(
         (entry) =>
-          entry.event === "policy.unknown_group" && entry.fields.group === "ops",
+          entry.event === "policy.unknown_group" &&
+          entry.fields.group === "ops",
       ),
     );
   });

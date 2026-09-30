@@ -5,7 +5,11 @@ function plural(count: number, singular: string, pluralForm: string): string {
   return count === 1 ? singular : pluralForm;
 }
 
-function countPhrase(count: number, singular: string, pluralForm: string): string {
+function countPhrase(
+  count: number,
+  singular: string,
+  pluralForm: string,
+): string {
   return `${count} ${plural(count, singular, pluralForm)}`;
 }
 
@@ -16,9 +20,7 @@ export function formatUndefinedGroupsTitle(
 }
 
 /** Design copy uses words for small counts. */
-export function formatUndefinedGroupsCopy(
-  refs: readonly UndefinedGroupRef[],
-): {
+export function formatUndefinedGroupsCopy(refs: readonly UndefinedGroupRef[]): {
   title: string;
   body: string;
   defineName: string | undefined;
@@ -33,8 +35,7 @@ export function formatUndefinedGroupsCopy(
     2: "Two agents belong",
   };
   const agentLead =
-    agentWords[primary.agentCount] ??
-    `${primary.agentCount} agents belong`;
+    agentWords[primary.agentCount] ?? `${primary.agentCount} agents belong`;
 
   let body = `${agentLead} to ${primary.name}, which grants nothing because no policy defines it. Their calls are denied at the gateway. Define it or remove it from those agents.`;
   if (refs.length > 1) {
@@ -94,9 +95,7 @@ export function formatOtherGroupsLine(otherNames: readonly string[]): string {
   return `also in ${otherNames.join(", ")}`;
 }
 
-export function formatDefaultExplain(
-  policyDefault: "allow" | "deny",
-): string {
+export function formatDefaultExplain(policyDefault: "allow" | "deny"): string {
   if (policyDefault === "allow") {
     return "Permitted — including any tool this server adds in future. Broad by design; switch to Deny to allow only the rules above.";
   }
@@ -144,9 +143,7 @@ export function formatCatalogueUnavailable(
   return "No tools reported by this backend. Existing rules stay editable.";
 }
 
-export function formatPickerEmpty(
-  unruledCount: number,
-): string {
+export function formatPickerEmpty(unruledCount: number): string {
   return unruledCount === 0
     ? "Every tool on this server already has a rule."
     : "No tool matches that search.";

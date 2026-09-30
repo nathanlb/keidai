@@ -27,7 +27,10 @@ function cloneHistory(
     if (entry.role === "assistant") {
       return {
         ...entry,
-        toolCalls: entry.toolCalls.map((call) => ({ ...call, input: { ...call.input } })),
+        toolCalls: entry.toolCalls.map((call) => ({
+          ...call,
+          input: { ...call.input },
+        })),
       };
     }
     return { ...entry };
@@ -248,7 +251,11 @@ export async function runTaskLoop(
     }
   }
 
-  for (let iteration = 1; iteration <= start.limits.max_iterations; iteration++) {
+  for (
+    let iteration = 1;
+    iteration <= start.limits.max_iterations;
+    iteration++
+  ) {
     if (now() >= deadline) {
       return terminate({ status: "timeout" }, iteration - 1);
     }
@@ -315,5 +322,8 @@ export async function runTaskLoop(
     await checkpoint();
   }
 
-  return terminate({ status: "iteration_exhausted" }, start.limits.max_iterations);
+  return terminate(
+    { status: "iteration_exhausted" },
+    start.limits.max_iterations,
+  );
 }

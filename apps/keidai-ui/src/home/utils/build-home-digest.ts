@@ -18,10 +18,7 @@ import type { RunVisibilityListItem } from "../../lib/api/runs.js";
 import { deriveAgentInitials } from "../../lib/utils/derive-agent-initials.js";
 import { parseNamespacedToolName } from "../../approvals/utils/parse-namespaced-tool-name.js";
 import { runDetailHref, taskEditHref } from "../../runs/navigation.js";
-import {
-  APPROVAL_ID_PARAM,
-  APPROVALS_PATH,
-} from "../../shell/navigation.js";
+import { APPROVAL_ID_PARAM, APPROVALS_PATH } from "../../shell/navigation.js";
 import type {
   HomeAgentCard,
   HomeAgentHealth,
@@ -138,12 +135,8 @@ function buildLiveRun(
   agentsById: Readonly<Record<string, ManagementAgent>>,
   now: number,
 ): HomeLiveRun {
-  const limits = report
-    ? resolveTaskLimits(report.task)
-    : DEFAULT_TASK_LIMITS;
-  const iteration = report
-    ? countModelIterations(report.steps)
-    : run.stepCount;
+  const limits = report ? resolveTaskLimits(report.task) : DEFAULT_TASK_LIMITS;
+  const iteration = report ? countModelIterations(report.steps) : run.stepCount;
   const progressPct =
     limits.max_iterations <= 0
       ? 0
@@ -240,7 +233,9 @@ function buildAttention(options: {
 }): HomeAttentionItem[] {
   const { pending, failed24h, runsById, agentsById, now } = options;
   const approvalRows: HomeAttentionItem[] = [...pending]
-    .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt))
+    .sort(
+      (left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt),
+    )
     .map((approval) => {
       const { server, tool } = parseNamespacedToolName(approval.toolName);
       const run = approval.runId ? runsById[approval.runId] : undefined;
@@ -262,7 +257,9 @@ function buildAttention(options: {
     });
 
   const failedRows: HomeAttentionItem[] = [...failed24h]
-    .sort((left, right) => Date.parse(right.startedAt) - Date.parse(left.startedAt))
+    .sort(
+      (left, right) => Date.parse(right.startedAt) - Date.parse(left.startedAt),
+    )
     .map((run) => {
       const reason =
         run.outcome && run.outcome.status === "failed"

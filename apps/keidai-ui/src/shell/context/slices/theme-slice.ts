@@ -29,7 +29,10 @@ export const initialThemeState: ThemeState = {
   theme: initialTheme,
 };
 
-export function themeReducer(state: ThemeState, action: ThemeAction): ThemeState {
+export function themeReducer(
+  state: ThemeState,
+  action: ThemeAction,
+): ThemeState {
   switch (action.type) {
     case "theme/set":
       return { theme: action.theme };

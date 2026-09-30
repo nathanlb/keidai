@@ -6,6 +6,7 @@ import {
   House,
   ListChecks,
   Play,
+  Settings,
   ShieldCheck,
   UsersRound,
 } from "lucide-react";
@@ -21,6 +22,7 @@ export const CONFIGURE_PATH = "/configure";
 export const CONNECTIONS_PATH = "/connections";
 export const PROVIDERS_PATH = "/configure/providers";
 export const GROUPS_PATH = "/groups";
+export const SETTINGS_PATH = "/settings";
 
 export interface AppNavItem {
   path: string;
@@ -52,7 +54,8 @@ export const homeNavItem: AppNavItem = {
   path: HOME_PATH,
   label: "Home",
   title: "Home",
-  description: "What needs you, what's running, and whether the work succeeded.",
+  description:
+    "What needs you, what's running, and whether the work succeeded.",
   icon: House,
   showRefresh: false,
   suppressPageHeader: true,
@@ -131,6 +134,15 @@ export const gatewayNavItems: AppNavItem[] = [
   },
 ];
 
+export const settingsNavItem: AppNavItem = {
+  path: SETTINGS_PATH,
+  label: "Settings",
+  title: "Settings",
+  description: "OpenRouter API key used when an agent calls a model.",
+  icon: Settings,
+  isActive: exact(SETTINGS_PATH),
+};
+
 export const workspaceNavSections: AppNavSection[] = [
   {
     id: "work",
@@ -146,6 +158,7 @@ export const workspaceNavSections: AppNavSection[] = [
 
 const allNavItems: AppNavItem[] = [
   homeNavItem,
+  settingsNavItem,
   ...workspaceNavSections.flatMap((section) => section.items),
 ];
 

@@ -27,12 +27,17 @@ export function NeedsYouBand({
       "
     >
       <CardContent className="p-0">
-        <div className="
+        <div
+          className="
           flex items-center gap-2.25 border-b
           border-[color-mix(in_srgb,var(--amber-500)_28%,var(--border))] px-4
           py-3.25
-        ">
-          <TriangleAlert className="size-4 shrink-0 text-amber-500" aria-hidden />
+        "
+        >
+          <TriangleAlert
+            className="size-4 shrink-0 text-amber-500"
+            aria-hidden
+          />
           <span className="text-[14px] font-semibold">Needs you</span>
           <span className="font-mono text-[11.5px] text-muted-foreground">
             {formatItemCount(items.length)}
@@ -49,10 +54,12 @@ export function NeedsYouBand({
         </div>
         {items.map((item) => (
           <div key={item.id} className={rowClassName}>
-            <div className="
+            <div
+              className="
               flex size-8 shrink-0 items-center justify-center rounded-lg
               bg-secondary font-mono text-xs font-bold text-secondary-foreground
-            ">
+            "
+            >
               {item.mark}
             </div>
             <div className="min-w-0 flex-1">
@@ -70,9 +77,11 @@ export function NeedsYouBand({
                 {item.context}
               </div>
             </div>
-            <span className="
+            <span
+              className="
               shrink-0 font-mono text-[11.5px] text-muted-foreground
-            ">
+            "
+            >
               {item.parkedLabel}
             </span>
             <div className="flex shrink-0 gap-1.5">

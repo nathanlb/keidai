@@ -53,9 +53,6 @@ export function toDetailedMcpTask(record: StoredMcpTask): McpDetailedTask {
   }
 }
 
-export function isMcpTaskExpired(
-  record: StoredMcpTask,
-  now: number,
-): boolean {
+export function isMcpTaskExpired(record: StoredMcpTask, now: number): boolean {
   return record.ttlMs !== null && record.createdAtMs + record.ttlMs <= now;
 }

@@ -11,7 +11,9 @@ describe("splitToolDescription", () => {
 
   it("keeps the first two lines and marks the rest as expandable", () => {
     expect(
-      splitToolDescription("Send a message.\n\nRequires a linked Gmail account."),
+      splitToolDescription(
+        "Send a message.\n\nRequires a linked Gmail account.",
+      ),
     ).toEqual({
       preview: "Send a message.",
       expandable: true,

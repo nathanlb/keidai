@@ -17,23 +17,29 @@ function StatTile({
   return (
     <Card data-testid={testId} className="py-0 shadow-none">
       <CardContent className="px-4 py-3.5">
-        <div className="
+        <div
+          className="
           flex items-center gap-1.75 text-xs text-muted-foreground
-        ">
+        "
+        >
           <span
             className={cn("size-1.75 shrink-0 rounded-full", dotClass)}
             aria-hidden
           />
           {label}
         </div>
-        <div className="
+        <div
+          className="
           mt-1.75 text-2xl leading-none font-bold tracking-[-0.02em]
-        ">
+        "
+        >
           {value}
         </div>
-        <div className="
+        <div
+          className="
           mt-1 truncate font-mono text-[11.5px] text-muted-foreground
-        ">
+        "
+        >
           {sub}
         </div>
       </CardContent>
@@ -61,10 +67,12 @@ export function HomeStatTiles({
   failedTaskName: string | null;
 }) {
   return (
-    <div className="
+    <div
+      className="
       grid grid-cols-2 gap-3
       md:grid-cols-4
-    ">
+    "
+    >
       <StatTile
         testId="home-stat-awaiting"
         label="Awaiting you"

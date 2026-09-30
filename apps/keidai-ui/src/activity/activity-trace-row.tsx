@@ -1,11 +1,6 @@
 import { Badge, cn, TableCell, TableRow } from "@keidai/ui";
 import type { TraceListItem } from "@keidai/shared";
-import {
-  Ban,
-  CircleCheck,
-  Link2,
-  TriangleAlert,
-} from "lucide-react";
+import { Ban, CircleCheck, Link2, TriangleAlert } from "lucide-react";
 import { deriveAgentInitials } from "../lib/utils/derive-agent-initials.js";
 import { OwnerAvatar } from "../shell/components/owner-avatar/owner-avatar.js";
 import { formatAgentPrincipalLabel } from "./utils/format-agent-principal.js";
@@ -113,9 +108,11 @@ export function ActivityTraceRow({
       >
         {formatTracePolicyShort(trace)}
       </TableCell>
-      <TableCell className="
+      <TableCell
+        className="
         py-3 pr-4.5 text-right font-mono text-xs text-muted-foreground
-      ">
+      "
+      >
         {formatDurationMs(trace.durationMs)}
       </TableCell>
     </TableRow>

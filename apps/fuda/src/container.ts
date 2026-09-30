@@ -19,10 +19,7 @@ import { SUBJECT_TOKEN_VALIDATOR } from "./subject-token/types/subject-token-val
 import { createSubjectTokenValidator } from "./subject-token/utils/create-subject-token-validator.js";
 import { PgOwnerRepository } from "./owners/pg-owner-repository.js";
 import { OWNER_REPOSITORY } from "./owners/types/owner-repository.js";
-import {
-  FUDA_DATABASE,
-  openFudaDatabase,
-} from "./storage/fuda-postgres.js";
+import { FUDA_DATABASE, openFudaDatabase } from "./storage/fuda-postgres.js";
 import { TokenExchangeApiController } from "./token-exchange/token-exchange-api.controller.js";
 import type { MigrationResult } from "@keidai/postgres";
 

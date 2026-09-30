@@ -31,9 +31,7 @@ interface Stub {
 }
 
 /** `reply` receives the request id so stubs can echo or deliberately mismatch. */
-async function startStub(
-  reply: (id: unknown) => Reply,
-): Promise<Stub> {
+async function startStub(reply: (id: unknown) => Reply): Promise<Stub> {
   const requests: Stub["requests"] = [];
   const server = createServer(async (req, res) => {
     const chunks: Buffer[] = [];
@@ -117,7 +115,9 @@ describe("postMcpJsonRpc", () => {
   });
 
   it("preserves caller-supplied _meta keys", async () => {
-    const stub = await startStub((id) => jsonResult(id, { resultType: "complete" }));
+    const stub = await startStub((id) =>
+      jsonResult(id, { resultType: "complete" }),
+    );
 
     try {
       await post(stub, "tools/call", {
@@ -135,7 +135,11 @@ describe("postMcpJsonRpc", () => {
 
   it("uses taskId as Mcp-Name for tasks/*", async () => {
     const stub = await startStub((id) =>
-      jsonResult(id, { resultType: "complete", taskId: "abc", status: "working" }),
+      jsonResult(id, {
+        resultType: "complete",
+        taskId: "abc",
+        status: "working",
+      }),
     );
 
     try {
@@ -151,7 +155,11 @@ describe("postMcpJsonRpc", () => {
       body: JSON.stringify({
         jsonrpc: "2.0",
         id,
-        error: { code: -32602, message: "Task not found", data: { taskId: "x" } },
+        error: {
+          code: -32602,
+          message: "Task not found",
+          data: { taskId: "x" },
+        },
       }),
     }));
 
@@ -199,7 +207,10 @@ describe("postMcpJsonRpc", () => {
       const response = JSON.stringify({
         jsonrpc: "2.0",
         id,
-        result: { resultType: "complete", content: [{ type: "text", text: "ok" }] },
+        result: {
+          resultType: "complete",
+          content: [{ type: "text", text: "ok" }],
+        },
       });
       return {
         contentType: "text/event-stream",
@@ -334,7 +345,11 @@ describe("postMcpJsonRpc", () => {
   it("rejects a result payload delivered with a non-2xx status", async () => {
     const stub = await startStub((id) => ({
       status: 503,
-      body: JSON.stringify({ jsonrpc: "2.0", id, result: { resultType: "complete" } }),
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id,
+        result: { resultType: "complete" },
+      }),
     }));
 
     try {

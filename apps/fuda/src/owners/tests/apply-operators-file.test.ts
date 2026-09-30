@@ -3,10 +3,7 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
-import {
-  createIsolatedSchema,
-  resolveTestDatabaseUrl,
-} from "@keidai/postgres";
+import { createIsolatedSchema, resolveTestDatabaseUrl } from "@keidai/postgres";
 import { PgAgentRepository } from "../../agents/pg-agent-repository.js";
 import { openFudaDatabase } from "../../storage/fuda-postgres.js";
 import { applyOperatorsFile } from "../apply-operators-file.js";

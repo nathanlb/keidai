@@ -178,8 +178,8 @@ export async function createTestGatewayHttpServer(
       oauth_providers: {},
       servers: [],
     });
-  const ownedPersistence = options.persistence === undefined
-    && options.approvalServices === undefined;
+  const ownedPersistence =
+    options.persistence === undefined && options.approvalServices === undefined;
   const groupPolicies =
     options.groupPolicyCache ??
     groupPolicyCacheFromDefinitions(options.groups, options.gatedTools);
@@ -194,7 +194,9 @@ export async function createTestGatewayHttpServer(
   const persistence = options.persistence ?? approvalServices.persistence;
   const pool = persistence.pool;
   if (!pool) {
-    throw new Error("createTestGatewayHttpServer requires postgres persistence");
+    throw new Error(
+      "createTestGatewayHttpServer requires postgres persistence",
+    );
   }
   const configRead = new ConfigReadService(configService, groupPolicies);
   const connectionManager =

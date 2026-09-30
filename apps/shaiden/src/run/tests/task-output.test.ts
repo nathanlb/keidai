@@ -25,7 +25,9 @@ describe("task output", () => {
   });
 
   it("clips oversized text while preserving newlines", () => {
-    const clipped = clipTaskOutput(`line1\n${"x".repeat(TASK_OUTPUT_MAX_LENGTH)}`);
+    const clipped = clipTaskOutput(
+      `line1\n${"x".repeat(TASK_OUTPUT_MAX_LENGTH)}`,
+    );
     assert.equal(clipped.startsWith("line1\n"), true);
     assert.equal(clipped.endsWith("…"), true);
     assert.equal(clipped.length, TASK_OUTPUT_MAX_LENGTH + 1);

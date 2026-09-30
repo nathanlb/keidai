@@ -38,10 +38,12 @@ export function ApprovalCapturedCall({
 
   return (
     <div className="overflow-hidden rounded-lg border border-border">
-      <div className="
+      <div
+        className="
         flex flex-wrap items-center justify-between gap-2 border-b border-border
         bg-muted/40 px-3 py-2
-      ">
+      "
+      >
         <div>
           <div className="text-[12px] font-semibold">Captured call</div>
           <div className="text-[11px] text-muted-foreground">
@@ -114,11 +116,13 @@ export function ApprovalCapturedCall({
           )}
         </div>
       ) : (
-        <pre className="
+        <pre
+          className="
           max-h-64 overflow-auto border-t border-border bg-background p-3
           font-mono text-[12px] leading-relaxed wrap-break-word
           whitespace-pre-wrap
-        ">
+        "
+        >
           {JSON.stringify({ server, tool, args: params }, null, 2)}
         </pre>
       )}

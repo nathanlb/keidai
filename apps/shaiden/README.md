@@ -6,22 +6,22 @@ Agent runtime for the Keidai ecosystem. Exchanges a subject token with Fuda for 
 
 The loop is deliberately thin: call the model (OpenRouter via the AI SDK) with Torii-discovered tools, dispatch tool calls back to Torii over MCP (per-request caller; not a held protocol session), feed results in, repeat. Conversation state is persisted per run in Postgres and used to continue that same run after a terminal outcome. At most one run may be `running` for a given saved task (enforced in the store). Different saved tasks may run at the same time, including across Shaiden replicas. Every run records exactly one outcome:
 
-| Outcome | Meaning |
-|---------|---------|
-| `goal_met` | Agent called `report_step_assessment` with `status: goal_met`, or returned final text when assessment was omitted |
-| `iteration_exhausted` | Iteration cap reached (default 12) |
-| `timeout` | Wall-clock timeout reached (default 600s) |
-| `failed(reason)` | Harness-level failure (model unreachable, operator cancel, session/connect error, Fuda token exchange failure, policy denial on approval resume), or agent self-assessed give-up (`status: cannot_complete`). Per-call tool errors are fed back to the model as tool results so the agent can retry or adapt. |
-| `human_reject` | Human denied a gated tool call — the harness terminates immediately; the model does not decide |
+| Outcome               | Meaning                                                                                                                                                                                                                                                                                                       |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `goal_met`            | Agent called `report_step_assessment` with `status: goal_met`, or returned final text when assessment was omitted                                                                                                                                                                                             |
+| `iteration_exhausted` | Iteration cap reached (default 12)                                                                                                                                                                                                                                                                            |
+| `timeout`             | Wall-clock timeout reached (default 600s)                                                                                                                                                                                                                                                                     |
+| `failed(reason)`      | Harness-level failure (model unreachable, operator cancel, session/connect error, Fuda token exchange failure, policy denial on approval resume), or agent self-assessed give-up (`status: cannot_complete`). Per-call tool errors are fed back to the model as tool results so the agent can retry or adapt. |
+| `human_reject`        | Human denied a gated tool call — the harness terminates immediately; the model does not decide                                                                                                                                                                                                                |
 
 Working steps continue implicitly when the model calls Torii tools. `report_step_assessment` is terminal-only (`goal_met` | `cannot_complete`) and should not be called alongside other tools.
 
 ### Credentials
 
-| Call | Credential |
-|------|------------|
-| Shaiden → Fuda (`POST /token`) | Subject token (`SHAIDEN_BEARER` locally, or projected SA file via `SHAIDEN_SUBJECT_TOKEN_FILE` in-cluster) |
-| Shaiden → Torii (tools/list, tools/call) | Fuda-minted agent JWT (`aud=torii`, ~5 min TTL) |
+| Call                                     | Credential                                                                                                 |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Shaiden → Fuda (`POST /token`)           | Subject token (`SHAIDEN_BEARER` locally, or projected SA file via `SHAIDEN_SUBJECT_TOKEN_FILE` in-cluster) |
+| Shaiden → Torii (tools/list, tools/call) | Fuda-minted agent JWT (`aud=torii`, ~5 min TTL)                                                            |
 
 Tokens are minted when the harness needs Torii credentials and reminted when near expiry, including on each `tasks/get` poll while parked, so a long-parked task picks up revoked grants and group changes. Fuda unreachable at first mint fails the run clearly; mid-run Fuda outages keep a still-valid cached JWT.
 
@@ -52,8 +52,8 @@ Opaque correlation refs (`_torii_run_id`, `_torii_step_id`) are attached to gate
 
 During normal harness operation Shaiden emits structured operational logs to **stderr**, using the same `StructuredLogger` from `@keidai/shared` as Torii:
 
-| Stream | Content | Schema |
-|--------|---------|--------|
+| Stream     | Content                                                                     | Schema                                              |
+| ---------- | --------------------------------------------------------------------------- | --------------------------------------------------- |
 | **stderr** | Structured operational logs (boot, run lifecycle, tool dispatch, approvals) | JSON with `recordType: "log"`, `level`, and `event` |
 
 Events follow a `domain.action` naming convention (`boot.*`, `run.*`). Tool call audit records (`CallTrace`) are emitted by Torii on stdout when Shaiden dispatches through MCP — Shaiden does not duplicate them.
@@ -81,10 +81,10 @@ Saved tasks are listed at `GET /api/tasks` and persist in Postgres (`SHAIDEN_DAT
 
 `POST /api/runs/:runId/follow-up` with `{ "message": "..." }` appends a user follow-up to an existing run and resumes the same run record:
 
-| Run state | Behavior |
-|-----------|----------|
-| `waiting_approval` | Message is queued in the run store (any replica can accept it) and recorded in the run log; approval is unchanged |
-| Terminal (`failed`, `goal_met`, `iteration_exhausted`, `timeout`) | Run reopens, message is appended, and the loop resumes with persisted conversation history |
+| Run state                                                         | Behavior                                                                                                          |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `waiting_approval`                                                | Message is queued in the run store (any replica can accept it) and recorded in the run log; approval is unchanged |
+| Terminal (`failed`, `goal_met`, `iteration_exhausted`, `timeout`) | Run reopens, message is appended, and the loop resumes with persisted conversation history                        |
 
 Iteration cap and wall-clock timeout reset on each terminal continuation. Runs created before conversation-history persistence was added cannot be resumed (`409`). If the process restarts while a run is parked on approval, polling resumes from the persisted MCP task id; queued follow-ups persist in Postgres and are drained before the next model call. A replica claims a parked run with a short lease so two processes cannot drive it at once — another replica may reclaim after the lease expires. `human_reject` continuations are not supported in v0.
 
@@ -105,15 +105,16 @@ Starts **Postgres**, **Fuda** (identity / token exchange on `:3300`), **Torii** 
 
 ## Environment
 
-| Variable | Description |
-|----------|-------------|
-| `SHAIDEN_BEARER` | Subject token for Fuda token exchange (static shared secret; local/compose) |
-| `SHAIDEN_SUBJECT_TOKEN_FILE` | Path to projected SA token file (cluster). Exactly one of bearer or file |
-| `FUDA_URL` | Fuda base URL for `POST /token` (e.g. `http://127.0.0.1:3300`) |
-| `TORII_MCP_URL` | Torii MCP endpoint (default: `http://127.0.0.1:3100/mcp`) |
-| `OPEN_ROUTER_API_KEY` | OpenRouter API key for the task-loop model |
-| `SHAIDEN_MODEL_ID` | OpenRouter model id (default: `google/gemini-2.5-flash`) |
-| `SHAIDEN_HOST` | HTTP bind host for the runs API (default: `127.0.0.1`) |
-| `SHAIDEN_PORT` | HTTP bind port for the runs API (default: `3200`) |
-| `SHAIDEN_DATABASE_URL` | Postgres connection string for saved tasks and run history (required) |
-| `SHAIDEN_REPLICA_ID` | Optional stable replica id for run leases (default: a UUID at boot) |
+| Variable                     | Description                                                                         |
+| ---------------------------- | ----------------------------------------------------------------------------------- |
+| `SHAIDEN_BEARER`             | Subject token for Fuda token exchange (static shared secret; local/compose)         |
+| `SHAIDEN_SUBJECT_TOKEN_FILE` | Path to projected SA token file (cluster). Exactly one of bearer or file            |
+| `FUDA_URL`                   | Fuda base URL for `POST /token` (e.g. `http://127.0.0.1:3300`)                      |
+| `TORII_MCP_URL`              | Torii MCP endpoint (default: `http://127.0.0.1:3100/mcp`)                           |
+| `OPEN_ROUTER_API_KEY`        | Fallback OpenRouter API key. A key saved from the Models page takes precedence      |
+| `SHAIDEN_SECRET_KEY`         | Encrypts the UI-saved OpenRouter key (required to save one; at least 16 characters) |
+| `SHAIDEN_MODEL_ID`           | Platform default OpenRouter model id (default: `deepseek/deepseek-v4.1-flash`)      |
+| `SHAIDEN_HOST`               | HTTP bind host for the runs API (default: `127.0.0.1`)                              |
+| `SHAIDEN_PORT`               | HTTP bind port for the runs API (default: `3200`)                                   |
+| `SHAIDEN_DATABASE_URL`       | Postgres connection string for saved tasks and run history (required)               |
+| `SHAIDEN_REPLICA_ID`         | Optional stable replica id for run leases (default: a UUID at boot)                 |

@@ -101,7 +101,9 @@ describe("TraceEmitterService", () => {
 
       assert.equal(lines.length, 3);
 
-      const allowed = JSON.parse(lines[0]!) as CallTrace & { recordType?: string };
+      const allowed = JSON.parse(lines[0]!) as CallTrace & {
+        recordType?: string;
+      };
       assert.equal(allowed.recordType, "call_trace");
       assert.equal(allowed.traceId, "allowed-trace");
       assert.deepEqual(allowed.principal, {

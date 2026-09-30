@@ -28,7 +28,9 @@ import {
 } from "./utils/sdk-oauth.js";
 
 function isExpired(token: OAuthToken): boolean {
-  return token.expiresAt !== undefined && token.expiresAt.getTime() <= Date.now();
+  return (
+    token.expiresAt !== undefined && token.expiresAt.getTime() <= Date.now()
+  );
 }
 
 function refreshLockKey(ownerId: string, provider: string): string {
@@ -102,9 +104,7 @@ export class OAuthTokenLifecycleService {
   ): Promise<OAuthToken> {
     const connector = this.findConnector(provider);
     if (!connector) {
-      throw new Error(
-        `user_oauth provider "${provider}" is not defined`,
-      );
+      throw new Error(`user_oauth provider "${provider}" is not defined`);
     }
     const refreshToken = staleToken.refreshToken;
     if (!refreshToken) {
@@ -155,10 +155,7 @@ export class OAuthTokenLifecycleService {
       }
       const message =
         error instanceof Error ? error.message : "OAuth token refresh failed";
-      throw new OAuthTokenRefreshError(
-        message,
-        isTerminalOAuthFailure(error),
-      );
+      throw new OAuthTokenRefreshError(message, isTerminalOAuthFailure(error));
     }
   }
 

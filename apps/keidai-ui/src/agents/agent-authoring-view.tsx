@@ -1,199 +1,39 @@
-import { Button, cn, Input, Spinner, Textarea } from "@keidai/ui";
-import { ArrowLeft, Check, Lock, TriangleAlert, User } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Button } from "@keidai/ui";
+import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useSWRConfig } from "swr";
-import { checkSlugAvailability, createAgent } from "../lib/api/agents.js";
+import { createAgent } from "../lib/api/agents.js";
 import { AGENTS_KEY } from "../lib/hooks/use-fetch-agents.js";
 import { useActingOwner } from "../shell/hooks/use-acting-owner.js";
-import { useZodForm } from "../shell/forms/use-zod-form.js";
-import { useFetchBearers } from "./hooks/use-fetch-bearers.js";
-import { useFetchToriiGroups } from "./hooks/use-fetch-torii-groups.js";
-import { PLATFORM_BEARER_ID } from "../lib/constants/platform-bearer.js";
-import { AgentGroupChip } from "./components/agent-group-chip.js";
-import {
-  createAgentFormSchema,
-  type CreateAgentFormValues,
-} from "./schemas/create-agent-form-schema.js";
-import { isKnownGroup } from "./utils/collect-unknown-groups.js";
-import { slugifyAgentName } from "./utils/slugify-agent-name.js";
-import { validateAgentSlug } from "./utils/validate-agent-slug.js";
-
-const SLUG_CHECK_DEBOUNCE_MS = 300;
-
-const EMPTY_FORM_VALUES: CreateAgentFormValues = {
-  name: "",
-  slug: "",
-  groups: [],
-  persona: "",
-};
-
-type SlugStatus = "empty" | "invalid" | "checking" | "available" | "taken";
+import { AgentForm } from "./components/agent-form.js";
+import type { CreateAgentFormValues } from "./schemas/create-agent-form-schema.js";
 
 export function AgentAuthoringView() {
   const navigate = useNavigate();
   const { mutate } = useSWRConfig();
   const { owner } = useActingOwner();
-  const { data: toriiGroupsData } = useFetchToriiGroups();
-  const { data: bearersData } = useFetchBearers();
-  const toriiGroups = toriiGroupsData?.groups;
-  const knownGroupNames = useMemo(
-    () => (toriiGroups ?? []).map((group) => group.name),
-    [toriiGroups],
-  );
 
-  const [slugTouched, setSlugTouched] = useState(false);
-  const [availability, setAvailability] = useState<{
-    slug: string;
-    status: Extract<SlugStatus, "available" | "taken">;
-  } | null>(null);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { isSubmitting, isValid },
-  } = useZodForm(createAgentFormSchema, {
-    defaultValues: EMPTY_FORM_VALUES,
-  });
-
-  const name = watch("name");
-  const slugValue = watch("slug");
-  const groups = watch("groups");
-
-  const charsetValidity = validateAgentSlug(slugValue);
-  const trimmedSlug = slugValue.trim();
-  const slugStatus: SlugStatus = (() => {
-    if (charsetValidity !== "valid") {
-      return charsetValidity;
-    }
-    if (!trimmedSlug) {
-      return "empty";
-    }
-    if (availability?.slug === trimmedSlug) {
-      return availability.status;
-    }
-    return "checking";
-  })();
-
-  useEffect(() => {
-    if (!slugTouched) {
-      setValue("slug", slugifyAgentName(name), { shouldValidate: true });
-    }
-  }, [name, slugTouched, setValue]);
-
-  useEffect(() => {
-    if (charsetValidity !== "valid" || !trimmedSlug) {
+  async function handleCreate(values: CreateAgentFormValues) {
+    if (!owner) {
       return;
     }
-
-    let cancelled = false;
-    const timer = window.setTimeout(() => {
-      void checkSlugAvailability(trimmedSlug)
-        .then(({ available }) => {
-          if (!cancelled) {
-            setAvailability({
-              slug: trimmedSlug,
-              status: available ? "available" : "taken",
-            });
-          }
-        })
-        .catch(() => {
-          if (!cancelled) {
-            setAvailability({ slug: trimmedSlug, status: "taken" });
-          }
-        });
-    }, SLUG_CHECK_DEBOUNCE_MS);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [trimmedSlug, charsetValidity]);
-
-  function handleSlugChange(value: string) {
-    setSlugTouched(true);
-    setValue("slug", value, { shouldValidate: true });
+    const { agent } = await createAgent({
+      slug: values.slug.trim(),
+      name: values.name.trim() || values.slug.trim(),
+      ownerId: owner.ownerId,
+      groups: values.groups,
+      persona: values.persona,
+      ...(values.modelId.trim()
+        ? { defaultModelId: values.modelId.trim() }
+        : {}),
+    });
+    await mutate(AGENTS_KEY);
+    navigate(`/agents/${agent.id}`, {
+      state: {
+        toast: "Agent created. Shaiden can run it.",
+      },
+    });
   }
-
-  function removeGroup(group: string) {
-    setValue(
-      "groups",
-      groups.filter((existing) => existing !== group),
-      { shouldValidate: true },
-    );
-  }
-
-  function addGroup(group: string) {
-    const candidate = group.trim();
-    if (!candidate || groups.includes(candidate)) {
-      return;
-    }
-    setValue("groups", [...groups, candidate], { shouldValidate: true });
-  }
-
-  const canCreate =
-    Boolean(owner) && isValid && slugStatus === "available" && !isSubmitting;
-
-  const runner =
-    bearersData?.bearers.find(
-      (bearer) => bearer.bearerId === PLATFORM_BEARER_ID,
-    ) ?? bearersData?.bearers[0];
-
-  const onSubmit = handleSubmit(async (values) => {
-    if (!canCreate || !owner) {
-      return;
-    }
-    setSubmitError(null);
-    try {
-      const { agent } = await createAgent({
-        slug: values.slug.trim(),
-        name: values.name.trim() || values.slug.trim(),
-        ownerId: owner.ownerId,
-        groups: values.groups,
-        persona: values.persona,
-      });
-      await mutate(AGENTS_KEY);
-      navigate(`/agents/${agent.id}`, {
-        state: {
-          toast: "Agent created. Shaiden can run it.",
-        },
-      });
-    } catch (error) {
-      setSubmitError(
-        error instanceof Error ? error.message : "Failed to create agent",
-      );
-    }
-  });
-
-  const slugMessage = (() => {
-    switch (slugStatus) {
-      case "empty":
-        return {
-          text: "Lowercase letters, numbers, and dashes. Appears in every trace.",
-          tone: "muted" as const,
-        };
-      case "invalid":
-        return {
-          text: "Use lowercase letters, numbers, and single dashes only.",
-          tone: "destructive" as const,
-        };
-      case "checking":
-        return { text: "Checking availability…", tone: "muted" as const };
-      case "taken":
-        return {
-          text: `${slugValue.trim()} is already taken by another agent.`,
-          tone: "destructive" as const,
-        };
-      case "available":
-        return {
-          text: `${slugValue.trim()} is available.`,
-          tone: "success" as const,
-        };
-    }
-  })();
 
   return (
     <>
@@ -214,178 +54,11 @@ export function AgentAuthoringView() {
         editable.
       </p>
 
-      <form className="flex max-w-170 flex-col gap-4" onSubmit={onSubmit}>
-        <div
-          className="
-          flex flex-col gap-4.5 rounded-xl border border-border bg-card p-5
-        "
-        >
-          <div>
-            <label className="mb-1.5 block text-[13px] font-medium">Name</label>
-            <Input
-              {...register("name")}
-              placeholder="Agent Name"
-              className="h-9.5"
-            />
-            <p className="mt-1.5 text-[11.5px] text-muted-foreground">
-              Display string. Freely editable later.
-            </p>
-          </div>
-
-          <div>
-            <label
-              className="
-              mb-1.5 flex items-center gap-1.5 text-[13px] font-medium
-            "
-            >
-              Slug
-              <Lock className="size-3 text-muted-foreground" aria-hidden />
-              <span className="text-[11.5px] font-normal text-muted-foreground">
-                immutable after creation
-              </span>
-            </label>
-            <Input
-              value={slugValue}
-              onChange={(event) => handleSlugChange(event.target.value)}
-              placeholder="agent-slug"
-              className={cn(
-                "h-9.5 font-mono",
-                slugMessage.tone === "destructive" && "border-destructive",
-                slugMessage.tone === "success" && "border-(--green-600)",
-              )}
-            />
-            <div
-              className={cn(
-                "mt-1.5 flex items-center gap-1.5 text-[11.5px]",
-                slugMessage.tone === "destructive" && "text-destructive",
-                slugMessage.tone === "success" && "text-(--green-600)",
-                slugMessage.tone !== "destructive" &&
-                  slugMessage.tone !== "success" &&
-                  "text-muted-foreground",
-              )}
-            >
-              {slugMessage.tone === "destructive" ? (
-                <TriangleAlert className="size-3 shrink-0" aria-hidden />
-              ) : slugMessage.tone === "success" ? (
-                <Check className="size-3 shrink-0" aria-hidden />
-              ) : slugStatus === "checking" ? (
-                <Spinner className="size-3 shrink-0" aria-hidden />
-              ) : null}
-              {slugMessage.text}
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-[13px] font-medium">
-              Groups
-            </label>
-            <div className="mb-2.5 flex flex-wrap gap-1.5">
-              {groups.map((group) => (
-                <AgentGroupChip
-                  key={group}
-                  name={group}
-                  known={isKnownGroup(group, knownGroupNames)}
-                  onRemove={() => removeGroup(group)}
-                />
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {knownGroupNames
-                .filter((groupName) => !groups.includes(groupName))
-                .map((groupName) => (
-                  <button
-                    type="button"
-                    key={groupName}
-                    onClick={() => addGroup(groupName)}
-                    className="
-                      inline-flex h-7 items-center gap-1.5 rounded-full border
-                      border-dashed border-border px-2.5 font-mono text-[11.5px]
-                      text-muted-foreground
-                      hover:bg-accent
-                    "
-                  >
-                    + {groupName}
-                  </button>
-                ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-[13px] font-medium">
-              Persona
-            </label>
-            <Textarea
-              {...register("persona")}
-              placeholder="Describe how this agent should behave…"
-              className="min-h-37.5 text-[13.5px] leading-relaxed"
-            />
-            <p className="mt-1.5 text-[11.5px] text-muted-foreground">
-              Saved as version 1. Later edits append new versions.
-            </p>
-          </div>
-
-          <div
-            className="
-            flex items-center gap-2.5 border-t border-border pt-4 text-[12.5px]
-            text-muted-foreground
-          "
-          >
-            <User className="size-3 shrink-0" aria-hidden />
-            Owner will be{" "}
-            <span className="font-mono text-foreground">
-              {owner?.ownerId ?? "—"}
-            </span>{" "}
-            — single-valued and fixed at registration.
-          </div>
-
-          <div>
-            <label
-              className="
-              mb-1.5 flex items-center gap-1.5 text-[13px] font-medium
-            "
-            >
-              Runtime
-              <Lock className="size-3 text-muted-foreground" aria-hidden />
-              <span className="text-[11.5px] font-normal text-muted-foreground">
-                assigned automatically
-              </span>
-            </label>
-            <div
-              className="
-              flex h-9.5 items-center rounded-md border border-border px-3
-              font-mono text-[13px]
-            "
-            >
-              {runner?.displayName ?? PLATFORM_BEARER_ID}
-            </div>
-            <p className="mt-1.5 text-[11.5px] text-muted-foreground">
-              Shaiden in this ecosystem. Fuda grants{" "}
-              <span className="font-mono text-foreground">
-                {runner?.bearerId ?? PLATFORM_BEARER_ID}
-              </span>{" "}
-              when the agent is created.
-            </p>
-          </div>
-        </div>
-
-        {submitError ? (
-          <p className="text-sm text-destructive">{submitError}</p>
-        ) : null}
-
-        <div className="flex items-center justify-end gap-2.5">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => navigate("/agents")}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={!canCreate}>
-            {isSubmitting ? <Spinner className="size-3.5" aria-hidden /> : null}
-            Create agent
-          </Button>
-        </div>
-      </form>
+      <AgentForm
+        mode="create"
+        onSubmit={handleCreate}
+        onCancel={() => navigate("/agents")}
+      />
     </>
   );
 }

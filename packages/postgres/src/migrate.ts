@@ -38,7 +38,9 @@ async function ensureMigrationsTable(queryable: Queryable): Promise<void> {
   `);
 }
 
-async function listAppliedMigrationIds(queryable: Queryable): Promise<Set<string>> {
+async function listAppliedMigrationIds(
+  queryable: Queryable,
+): Promise<Set<string>> {
   const result = await queryable.query<{ id: string }>(
     "SELECT id FROM schema_migrations ORDER BY id ASC",
   );

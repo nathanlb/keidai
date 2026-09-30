@@ -48,10 +48,13 @@ describe("createHttpFudaClient.exchangeToken", () => {
     const client = createHttpFudaClient({
       baseUrl: "http://fuda.test",
       fetch: async () =>
-        new Response(JSON.stringify({ error: "bearer not granted for agent" }), {
-          status: 403,
-          headers: { "content-type": "application/json" },
-        }),
+        new Response(
+          JSON.stringify({ error: "bearer not granted for agent" }),
+          {
+            status: 403,
+            headers: { "content-type": "application/json" },
+          },
+        ),
     });
 
     await assert.rejects(
@@ -149,6 +152,26 @@ describe("createHttpFudaClient.getAgentDefinition", () => {
     assert.equal(calls[0]?.init.method, "GET");
   });
 
+  it("keeps a non-empty default model id", async () => {
+    const client = createHttpFudaClient({
+      baseUrl: "http://fuda.test",
+      fetch: async () =>
+        new Response(
+          JSON.stringify({
+            name: "Newsletter",
+            slug: "newsletter",
+            persona: "You write concise status newsletters.",
+            personaVersion: 3,
+            defaultModelId: "google/gemini-2.5-flash",
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+    });
+
+    const definition = await client.getAgentDefinition("agent-1");
+    assert.equal(definition.defaultModelId, "google/gemini-2.5-flash");
+  });
+
   it("URL-encodes agent ids", async () => {
     let requested = "";
     const client = createHttpFudaClient({
@@ -168,10 +191,7 @@ describe("createHttpFudaClient.getAgentDefinition", () => {
     });
 
     await client.getAgentDefinition("agent/with spaces");
-    assert.equal(
-      requested,
-      "http://fuda.test/agents/agent%2Fwith%20spaces",
-    );
+    assert.equal(requested, "http://fuda.test/agents/agent%2Fwith%20spaces");
   });
 
   it("maps 404 to agent_not_found", async () => {

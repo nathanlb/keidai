@@ -97,7 +97,9 @@ export function renderWithOAuthLink(
   options?: Omit<RenderOptions, "wrapper">,
 ): RenderResult {
   return render(ui, {
-    wrapper: ({ children }) => <OAuthLinkProvider>{children}</OAuthLinkProvider>,
+    wrapper: ({ children }) => (
+      <OAuthLinkProvider>{children}</OAuthLinkProvider>
+    ),
     ...options,
   });
 }

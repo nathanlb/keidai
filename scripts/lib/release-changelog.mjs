@@ -193,7 +193,10 @@ export function formatChangelog({
   const omitHeadings = present.length === 1 && !maintainerNotes;
 
   for (const group of present) {
-    const bullets = grouped.get(group).map((line) => `- ${line}`).join("\n");
+    const bullets = grouped
+      .get(group)
+      .map((line) => `- ${line}`)
+      .join("\n");
     if (omitHeadings) {
       sections.push(bullets);
     } else {

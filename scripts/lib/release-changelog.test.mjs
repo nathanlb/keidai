@@ -17,7 +17,10 @@ const changesetChangelog = require("../../.changeset/changelog.cjs");
 
 describe("isAlwaysSkipped", () => {
   it("skips merge commits, release PRs, and chore(release)", () => {
-    assert.equal(isAlwaysSkipped("Merge pull request #12 from origin/main"), true);
+    assert.equal(
+      isAlwaysSkipped("Merge pull request #12 from origin/main"),
+      true,
+    );
     assert.equal(isAlwaysSkipped("Merge branch 'main' into feat/x"), true);
     assert.equal(isAlwaysSkipped("Release 0.3.0 (#131)"), true);
     assert.equal(isAlwaysSkipped("chore(release): bump workflows"), true);
@@ -29,11 +32,23 @@ describe("isAlwaysSkipped", () => {
 
 describe("isPatchOnlyNoise", () => {
   it("drops chore/test/style on minor and major, keeps them on patch", () => {
-    assert.equal(isPatchOnlyNoise("chore(deps): bump vite (#119)", "minor"), true);
-    assert.equal(isPatchOnlyNoise("chore(deps): bump vite (#119)", "major"), true);
-    assert.equal(isPatchOnlyNoise("chore(deps): bump vite (#119)", "patch"), false);
+    assert.equal(
+      isPatchOnlyNoise("chore(deps): bump vite (#119)", "minor"),
+      true,
+    );
+    assert.equal(
+      isPatchOnlyNoise("chore(deps): bump vite (#119)", "major"),
+      true,
+    );
+    assert.equal(
+      isPatchOnlyNoise("chore(deps): bump vite (#119)", "patch"),
+      false,
+    );
     assert.equal(isPatchOnlyNoise("test: cover schedules", "minor"), true);
-    assert.equal(isPatchOnlyNoise("feat(tasks): add schedules", "minor"), false);
+    assert.equal(
+      isPatchOnlyNoise("feat(tasks): add schedules", "minor"),
+      false,
+    );
   });
 });
 
@@ -61,7 +76,10 @@ describe("shouldIncludeCommit", () => {
 
 describe("sentenceCase", () => {
   it("capitalizes the first character only", () => {
-    assert.equal(sentenceCase("refactor task authoring"), "Refactor task authoring");
+    assert.equal(
+      sentenceCase("refactor task authoring"),
+      "Refactor task authoring",
+    );
     assert.equal(sentenceCase("Fix MCP handshake"), "Fix MCP handshake");
   });
 });
@@ -96,7 +114,8 @@ describe("classifyCommit", () => {
     const { group, text } = classifyCommit(
       {
         hash: "abc",
-        subject: "feat(tasks): refactor task authoring and introducing scheduled tasks (#135)",
+        subject:
+          "feat(tasks): refactor task authoring and introducing scheduled tasks (#135)",
       },
       "nathanlb/keidai",
     );
@@ -109,7 +128,8 @@ describe("classifyCommit", () => {
 
   it("treats feat! and BREAKING CHANGE footers as breaking", () => {
     assert.equal(
-      classifyCommit({ subject: "feat!: drop sqlite" }, "nathanlb/keidai").group,
+      classifyCommit({ subject: "feat!: drop sqlite" }, "nathanlb/keidai")
+        .group,
       "breaking",
     );
     assert.equal(
@@ -184,7 +204,9 @@ describe("formatChangelog", () => {
   it("omits group headings when every commit is the same type", () => {
     const markdown = formatChangelog({
       bump: "minor",
-      commits: [{ hash: "abc", subject: "fix: handle missing approval tokens (#12)" }],
+      commits: [
+        { hash: "abc", subject: "fix: handle missing approval tokens (#12)" },
+      ],
     });
     assert.equal(
       markdown,
@@ -195,7 +217,9 @@ describe("formatChangelog", () => {
   it("includes chore commits on a patch bump", () => {
     const markdown = formatChangelog({
       bump: "patch",
-      commits: [{ hash: "1165a5f", subject: "chore(deps): upgrade to vite v8 (#119)" }],
+      commits: [
+        { hash: "1165a5f", subject: "chore(deps): upgrade to vite v8 (#119)" },
+      ],
     });
     assert.match(markdown, /Upgrade to vite v8/);
   });
@@ -225,7 +249,9 @@ describe("changesetFrontmatter", () => {
   it("lists every package so each app changelog gets the notes", () => {
     assert.equal(
       changesetFrontmatter("minor", ["@keidai/fuda", "@keidai/torii"]),
-      ['---', '"@keidai/fuda": minor', '"@keidai/torii": minor', '---'].join("\n"),
+      ["---", '"@keidai/fuda": minor', '"@keidai/torii": minor', "---"].join(
+        "\n",
+      ),
     );
   });
 });
@@ -243,12 +269,10 @@ describe("changeset changelog adapter", () => {
   });
 
   it("lists dependency bumps without an empty commit-link placeholder", async () => {
-    const line = await changesetChangelog.getDependencyReleaseLine([], [
-      { name: "@keidai/shared", newVersion: "0.4.0" },
-    ]);
-    assert.equal(
-      line,
-      "- Updated dependencies:\n  - @keidai/shared@0.4.0",
+    const line = await changesetChangelog.getDependencyReleaseLine(
+      [],
+      [{ name: "@keidai/shared", newVersion: "0.4.0" }],
     );
+    assert.equal(line, "- Updated dependencies:\n  - @keidai/shared@0.4.0");
   });
 });

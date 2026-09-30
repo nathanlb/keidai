@@ -18,12 +18,16 @@ export class OperatorAuthConfigError extends Error {
 function requireEnv(name: string, value: string | undefined): string {
   const trimmed = value?.trim();
   if (!trimmed) {
-    throw new OperatorAuthConfigError(`Missing required environment variable: ${name}`);
+    throw new OperatorAuthConfigError(
+      `Missing required environment variable: ${name}`,
+    );
   }
   return trimmed;
 }
 
-export async function loadOperatorsFile(filePath: string): Promise<OperatorsFile> {
+export async function loadOperatorsFile(
+  filePath: string,
+): Promise<OperatorsFile> {
   let raw: string;
   try {
     raw = await readFile(filePath, "utf8");

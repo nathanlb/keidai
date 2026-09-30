@@ -98,7 +98,9 @@ function formatOwnersLabel(
     return "—";
   }
 
-  const linkedCount = owners.filter((owner) => owner.status === "linked").length;
+  const linkedCount = owners.filter(
+    (owner) => owner.status === "linked",
+  ).length;
   const denominator = Math.max(1, owners.length);
   return `${linkedCount} of ${denominator} linked`;
 }

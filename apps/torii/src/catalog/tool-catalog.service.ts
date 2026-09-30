@@ -2,7 +2,10 @@ import { PolicyDecision, type ServerToolView } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
 import { ConnectionManager } from "../connections/connection-manager.service.js";
 import { CredentialResolverService } from "../credentials/credential-resolver.service.js";
-import { CredentialResolutionError, LinkingRequiredError } from "../credentials/types/credential-resolution.js";
+import {
+  CredentialResolutionError,
+  LinkingRequiredError,
+} from "../credentials/types/credential-resolution.js";
 import { getAgentPrincipal } from "../identity/agent-principal-context.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
 import type { Logger } from "@keidai/shared";
@@ -42,7 +45,9 @@ export class ToolCatalogService {
   }
 
   findTool(namespacedName: string): CatalogTool | undefined {
-    return this.catalog.find((entry) => entry.namespacedName === namespacedName);
+    return this.catalog.find(
+      (entry) => entry.namespacedName === namespacedName,
+    );
   }
 
   /**

@@ -12,7 +12,10 @@ export async function fetchJson<T>(path: string): Promise<T> {
   const response = await fetch(path);
   if (!response.ok) {
     throw new Error(
-      await readErrorMessage(response, `API request failed: ${response.status}`),
+      await readErrorMessage(
+        response,
+        `API request failed: ${response.status}`,
+      ),
     );
   }
   return (await response.json()) as T;
@@ -25,7 +28,10 @@ export async function fetchJsonWithBody<T>(
   const response = await fetch(path, init);
   if (!response.ok) {
     throw new Error(
-      await readErrorMessage(response, `API request failed: ${response.status}`),
+      await readErrorMessage(
+        response,
+        `API request failed: ${response.status}`,
+      ),
     );
   }
   return (await response.json()) as T;
@@ -38,7 +44,10 @@ export async function sendNoContent(
   const response = await fetch(path, init);
   if (!response.ok) {
     throw new Error(
-      await readErrorMessage(response, `API request failed: ${response.status}`),
+      await readErrorMessage(
+        response,
+        `API request failed: ${response.status}`,
+      ),
     );
   }
 }

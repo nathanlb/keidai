@@ -61,7 +61,9 @@ export function AgentGroupChip({
         className,
       )}
     >
-      {!known ? <TriangleAlert className="size-3 shrink-0" aria-hidden /> : null}
+      {!known ? (
+        <TriangleAlert className="size-3 shrink-0" aria-hidden />
+      ) : null}
       {name}
       {onRemove ? (
         <button

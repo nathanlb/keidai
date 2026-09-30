@@ -5,6 +5,7 @@ import type {
   AgentRepository,
   CreateAgentInput,
   PersonaVersion,
+  UpdateAgentDefaultModelInput,
   UpdateAgentGroupsInput,
   UpdateAgentNameInput,
 } from "./types/agent-repository.js";
@@ -15,10 +16,16 @@ interface AgentRow {
   name: string;
   owner_id: string;
   groups_json: string[] | string;
+  default_model_id: string | null;
   current_persona_version: number;
   created_at: Date | string;
   updated_at: Date | string;
 }
+
+const AGENT_COLUMNS = `
+  id, slug, name, owner_id, groups_json, default_model_id,
+  current_persona_version, created_at, updated_at
+`;
 
 interface PersonaRow {
   agent_id: string;
@@ -38,6 +45,7 @@ function rowToAgent(row: AgentRow): AgentRecord {
     name: row.name,
     ownerId: row.owner_id,
     groups: parseGroups(row.groups_json),
+    defaultModelId: row.default_model_id,
     currentPersonaVersion: row.current_persona_version,
     createdAt: toIso(row.created_at),
     updatedAt: toIso(row.updated_at),
@@ -65,9 +73,9 @@ export class PgAgentRepository implements AgentRepository {
       await client.query(
         `
           INSERT INTO agents (
-            id, slug, name, owner_id, groups_json,
+            id, slug, name, owner_id, groups_json, default_model_id,
             current_persona_version, created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8)
+          ) VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9)
         `,
         [
           id,
@@ -75,6 +83,7 @@ export class PgAgentRepository implements AgentRepository {
           input.name,
           input.ownerId,
           JSON.stringify(input.groups),
+          input.defaultModelId ?? null,
           initialVersion,
           now,
           now,
@@ -95,6 +104,7 @@ export class PgAgentRepository implements AgentRepository {
       name: input.name,
       ownerId: input.ownerId,
       groups: [...input.groups],
+      defaultModelId: input.defaultModelId ?? null,
       currentPersonaVersion: initialVersion,
       createdAt: now,
       updatedAt: now,
@@ -104,8 +114,7 @@ export class PgAgentRepository implements AgentRepository {
   async get(agentId: string): Promise<AgentRecord | null> {
     const result = await this.pool.query<AgentRow>(
       `
-        SELECT id, slug, name, owner_id, groups_json,
-               current_persona_version, created_at, updated_at
+        SELECT ${AGENT_COLUMNS}
         FROM agents
         WHERE id = $1
       `,
@@ -118,8 +127,7 @@ export class PgAgentRepository implements AgentRepository {
   async getBySlug(slug: string): Promise<AgentRecord | null> {
     const result = await this.pool.query<AgentRow>(
       `
-        SELECT id, slug, name, owner_id, groups_json,
-               current_persona_version, created_at, updated_at
+        SELECT ${AGENT_COLUMNS}
         FROM agents
         WHERE slug = $1
       `,
@@ -132,8 +140,7 @@ export class PgAgentRepository implements AgentRepository {
   async list(): Promise<AgentRecord[]> {
     const result = await this.pool.query<AgentRow>(
       `
-        SELECT id, slug, name, owner_id, groups_json,
-               current_persona_version, created_at, updated_at
+        SELECT ${AGENT_COLUMNS}
         FROM agents
         ORDER BY slug ASC
       `,
@@ -185,6 +192,28 @@ export class PgAgentRepository implements AgentRepository {
     };
   }
 
+  async updateDefaultModel(
+    agentId: string,
+    input: UpdateAgentDefaultModelInput,
+  ): Promise<AgentRecord | null> {
+    const existing = await this.get(agentId);
+    if (!existing) {
+      return null;
+    }
+
+    const updatedAt = new Date().toISOString();
+    await this.pool.query(
+      `UPDATE agents SET default_model_id = $1, updated_at = $2 WHERE id = $3`,
+      [input.defaultModelId, updatedAt, agentId],
+    );
+
+    return {
+      ...existing,
+      defaultModelId: input.defaultModelId,
+      updatedAt,
+    };
+  }
+
   async appendPersona(
     agentId: string,
     content: string,
@@ -192,8 +221,7 @@ export class PgAgentRepository implements AgentRepository {
     return withTransaction(this.pool, async (client) => {
       const agentResult = await client.query<AgentRow>(
         `
-          SELECT id, slug, name, owner_id, groups_json,
-                 current_persona_version, created_at, updated_at
+          SELECT ${AGENT_COLUMNS}
           FROM agents
           WHERE id = $1
         `,

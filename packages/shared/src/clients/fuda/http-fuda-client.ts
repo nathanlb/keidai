@@ -32,6 +32,7 @@ interface AgentDefinitionBody {
   slug?: unknown;
   persona?: unknown;
   personaVersion?: unknown;
+  defaultModelId?: unknown;
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -132,7 +133,9 @@ async function readErrorText(response: Response): Promise<string> {
  * HTTP client for Fuda's agent-facing surface: token exchange and definition
  * fetch (NAT-126 / NAT-127).
  */
-export function createHttpFudaClient(options: HttpFudaClientOptions): FudaClient {
+export function createHttpFudaClient(
+  options: HttpFudaClientOptions,
+): FudaClient {
   const baseUrl = trimTrailingSlash(options.baseUrl);
   const fetchFn = options.fetch ?? fetch;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -156,7 +159,9 @@ export function createHttpFudaClient(options: HttpFudaClientOptions): FudaClient
   }
 
   return {
-    async exchangeToken(input: ExchangeTokenInput): Promise<ExchangedAgentToken> {
+    async exchangeToken(
+      input: ExchangeTokenInput,
+    ): Promise<ExchangedAgentToken> {
       let response: Response;
       try {
         response = await fetchWithTimeout(`${baseUrl}/token`, {
@@ -278,6 +283,10 @@ export function createHttpFudaClient(options: HttpFudaClientOptions): FudaClient
         slug: body.slug,
         persona: body.persona,
         personaVersion: body.personaVersion,
+        ...(typeof body.defaultModelId === "string" &&
+        body.defaultModelId.length > 0
+          ? { defaultModelId: body.defaultModelId }
+          : {}),
       };
     },
   };

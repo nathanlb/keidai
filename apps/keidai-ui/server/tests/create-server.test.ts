@@ -22,8 +22,9 @@ describe("createServer", () => {
       if (req.url?.startsWith("/api/oauth/initiate/")) {
         const provider = req.url.split("/").pop()?.split("?")[0] ?? "unknown";
         const proto =
-          String(req.headers["x-forwarded-proto"] ?? "http").split(",")[0]?.trim() ||
-          "http";
+          String(req.headers["x-forwarded-proto"] ?? "http")
+            .split(",")[0]
+            ?.trim() || "http";
         const host =
           String(req.headers["x-forwarded-host"] ?? req.headers.host ?? "")
             .split(",")[0]
@@ -53,7 +54,7 @@ describe("createServer", () => {
           "cache-control": "no-cache",
           connection: "keep-alive",
         });
-        res.write("data: {\"type\":\"trace\"}\n\n");
+        res.write('data: {"type":"trace"}\n\n');
         res.end();
         return;
       }
@@ -63,7 +64,7 @@ describe("createServer", () => {
           "cache-control": "no-cache",
           connection: "keep-alive",
         });
-        res.write("data: {\"type\":\"connection\"}\n\n");
+        res.write('data: {"type":"connection"}\n\n');
         res.end();
         return;
       }
@@ -108,7 +109,7 @@ describe("createServer", () => {
           "cache-control": "no-cache",
           connection: "keep-alive",
         });
-        res.write("data: {\"type\":\"run\"}\n\n");
+        res.write('data: {"type":"run"}\n\n');
         res.end();
         return;
       }
@@ -157,7 +158,9 @@ describe("createServer", () => {
     const address = app.server.address();
     assert(address && typeof address === "object");
 
-    const response = await fetch(`http://127.0.0.1:${address.port}/torii/connections`);
+    const response = await fetch(
+      `http://127.0.0.1:${address.port}/torii/connections`,
+    );
     assert.equal(response.status, 200);
     assert.match(await response.text(), /<div id="root"><\/div>/);
   });
@@ -192,9 +195,12 @@ describe("createServer", () => {
     assert(address && typeof address === "object");
     const base = `http://127.0.0.1:${address.port}`;
 
-    const response = await fetch(`${base}/oauth/callback/github?code=x&state=y`, {
-      redirect: "manual",
-    });
+    const response = await fetch(
+      `${base}/oauth/callback/github?code=x&state=y`,
+      {
+        redirect: "manual",
+      },
+    );
     assert.equal(response.status, 302);
     assert.equal(response.headers.get("location"), "/?oauth=linked");
   });
@@ -204,14 +210,17 @@ describe("createServer", () => {
     assert(address && typeof address === "object");
     const base = `http://127.0.0.1:${address.port}`;
 
-    const response = await fetch(`${base}/api/oauth/initiate/github?owner=owner-a`, {
-      method: "POST",
-      headers: {
-        "x-forwarded-host": "localhost:3000",
-        "x-forwarded-proto": "http",
-        "x-torii-ui-origin": "http://localhost:3000",
+    const response = await fetch(
+      `${base}/api/oauth/initiate/github?owner=owner-a`,
+      {
+        method: "POST",
+        headers: {
+          "x-forwarded-host": "localhost:3000",
+          "x-forwarded-proto": "http",
+          "x-torii-ui-origin": "http://localhost:3000",
+        },
       },
-    });
+    );
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), {
       authorizationUrl: "https://example.com/oauth/github",
@@ -306,8 +315,12 @@ describe("createServer", () => {
     });
 
     await Promise.all([
-      new Promise<void>((resolve) => toriiBackend.listen(0, "127.0.0.1", resolve)),
-      new Promise<void>((resolve) => fudaBackend.listen(0, "127.0.0.1", resolve)),
+      new Promise<void>((resolve) =>
+        toriiBackend.listen(0, "127.0.0.1", resolve),
+      ),
+      new Promise<void>((resolve) =>
+        fudaBackend.listen(0, "127.0.0.1", resolve),
+      ),
       new Promise<void>((resolve) =>
         shaidenBackend.listen(0, "127.0.0.1", resolve),
       ),
@@ -412,9 +425,7 @@ describe("createServer", () => {
         res.writeHead(200, { "content-type": "application/json" });
         res.end(
           JSON.stringify({
-            connections: [
-              { name: "gmail", state: "connected", toolCount: 11 },
-            ],
+            connections: [{ name: "gmail", state: "connected", toolCount: 11 }],
           }),
         );
         return;
@@ -514,8 +525,12 @@ describe("createServer", () => {
     });
 
     await Promise.all([
-      new Promise<void>((resolve) => toriiBackend.listen(0, "127.0.0.1", resolve)),
-      new Promise<void>((resolve) => fudaBackend.listen(0, "127.0.0.1", resolve)),
+      new Promise<void>((resolve) =>
+        toriiBackend.listen(0, "127.0.0.1", resolve),
+      ),
+      new Promise<void>((resolve) =>
+        fudaBackend.listen(0, "127.0.0.1", resolve),
+      ),
       new Promise<void>((resolve) =>
         shaidenBackend.listen(0, "127.0.0.1", resolve),
       ),

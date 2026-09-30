@@ -4,14 +4,14 @@
   "private": true,
   "license": "Apache-2.0",
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "tsx --test 'src/**/*.test.ts'",

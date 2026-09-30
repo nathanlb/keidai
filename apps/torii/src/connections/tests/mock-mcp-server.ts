@@ -42,7 +42,10 @@ export interface MockMcpServerOptions {
    */
   onJsonRpc?: (
     message: MockJsonRpcMessage,
-  ) => Record<string, unknown> | undefined | Promise<Record<string, unknown> | undefined>;
+  ) =>
+    | Record<string, unknown>
+    | undefined
+    | Promise<Record<string, unknown> | undefined>;
 }
 
 async function readJsonBody(req: IncomingMessage): Promise<unknown> {
@@ -73,7 +76,10 @@ export async function startMockMcpServer(
   options?: MockMcpServerOptions,
 ): Promise<MockMcpServer> {
   const httpServer = createServer(async (req, res) => {
-    const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "127.0.0.1"}`);
+    const url = new URL(
+      req.url ?? "/",
+      `http://${req.headers.host ?? "127.0.0.1"}`,
+    );
 
     if (url.pathname !== "/mcp") {
       res.writeHead(404).end();

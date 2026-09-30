@@ -50,9 +50,9 @@ export class OAuthApiController {
           );
           reply.send(result);
         } catch (error) {
-          reply
-            .code(400)
-            .send({ error: error instanceof Error ? error.message : String(error) });
+          reply.code(400).send({
+            error: error instanceof Error ? error.message : String(error),
+          });
         }
       },
     );
@@ -62,36 +62,38 @@ export class OAuthApiController {
       async (request, reply) => {
         try {
           reply.send(
-            await this.oauthConnections.listConnections(readOwnerQuery(request)),
+            await this.oauthConnections.listConnections(
+              readOwnerQuery(request),
+            ),
           );
         } catch (error) {
-          reply
-            .code(400)
-            .send({ error: error instanceof Error ? error.message : String(error) });
+          reply.code(400).send({
+            error: error instanceof Error ? error.message : String(error),
+          });
         }
       },
     );
 
-    app.delete<{ Params: { provider: string }; Querystring: { owner?: string } }>(
-      "/api/oauth/connections/:provider",
-      async (request, reply) => {
-        try {
-          const removed = await this.oauthLink.unlink(
-            request.params.provider,
-            readOwnerQuery(request),
-          );
-          if (!removed) {
-            reply.code(404).send({ error: "No OAuth grant found for provider" });
-            return;
-          }
-          reply.code(204).send();
-        } catch (error) {
-          reply
-            .code(400)
-            .send({ error: error instanceof Error ? error.message : String(error) });
+    app.delete<{
+      Params: { provider: string };
+      Querystring: { owner?: string };
+    }>("/api/oauth/connections/:provider", async (request, reply) => {
+      try {
+        const removed = await this.oauthLink.unlink(
+          request.params.provider,
+          readOwnerQuery(request),
+        );
+        if (!removed) {
+          reply.code(404).send({ error: "No OAuth grant found for provider" });
+          return;
         }
-      },
-    );
+        reply.code(204).send();
+      } catch (error) {
+        reply.code(400).send({
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
 
     app.get<{
       Params: { provider: string };
@@ -129,7 +131,10 @@ export class OAuthApiController {
         .type("text/html; charset=utf-8")
         .send(
           oauthCallbackSuccessHtml(
-            result.page ?? { provider: request.params.provider, status: "success" },
+            result.page ?? {
+              provider: request.params.provider,
+              status: "success",
+            },
           ),
         );
       return;

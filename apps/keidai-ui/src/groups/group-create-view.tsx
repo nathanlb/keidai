@@ -64,9 +64,12 @@ export function GroupCreateView() {
         Name is the identifier agents join. You&apos;ll author the policy next.
       </p>
 
-      <form onSubmit={(event) => void handleSubmit(event)} className="
+      <form
+        onSubmit={(event) => void handleSubmit(event)}
+        className="
         mt-5 space-y-4
-      ">
+      "
+      >
         <div>
           <label className="text-[12.5px] font-medium" htmlFor="group-name">
             Name

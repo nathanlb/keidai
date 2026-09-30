@@ -38,11 +38,7 @@ describe("agent activity helpers", () => {
   it("keeps live tasks assigned to the agent", () => {
     expect(
       collectAgentTasks(
-        [
-          task("t1", "agt-1"),
-          task("t2", "agt-2"),
-          task("t3", "agt-1", true),
-        ],
+        [task("t1", "agt-1"), task("t2", "agt-2"), task("t3", "agt-1", true)],
         "agt-1",
       ).map((item) => item.id),
     ).toEqual(["t1"]);
@@ -64,7 +60,11 @@ describe("agent activity helpers", () => {
     expect(isAgentRunning(mine)).toBe(true);
     expect(lastOutcomeForTask(mine, "tsk-1")).toBe("awaiting");
     expect(
-      countRunsForTask(mine, "tsk-1", new Date("2026-08-19T00:00:00.000Z").getTime()),
+      countRunsForTask(
+        mine,
+        "tsk-1",
+        new Date("2026-08-19T00:00:00.000Z").getTime(),
+      ),
     ).toBe(2);
   });
 });

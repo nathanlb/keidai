@@ -10,9 +10,6 @@ export function resolveOAuthProviderOwnerIds(
   agentOwnerIds: readonly string[],
 ): string[] {
   return [
-    ...new Set([
-      ...(actingOwnerId ? [actingOwnerId] : []),
-      ...agentOwnerIds,
-    ]),
+    ...new Set([...(actingOwnerId ? [actingOwnerId] : []), ...agentOwnerIds]),
   ];
 }

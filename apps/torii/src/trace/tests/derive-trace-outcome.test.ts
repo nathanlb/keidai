@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { PolicyDecision } from "@keidai/shared";
-import { finalizeCallTrace, toTracePrincipal } from "../utils/build-call-trace.js";
+import {
+  finalizeCallTrace,
+  toTracePrincipal,
+} from "../utils/build-call-trace.js";
 import { deriveTraceOutcome } from "../utils/derive-trace-outcome.js";
 import { TEST_AGENT_PRINCIPAL } from "../../identity/tests/test-agent-principal.js";
 

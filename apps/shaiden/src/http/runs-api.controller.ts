@@ -156,7 +156,10 @@ export class RunsApiController {
     run: RunReport,
     runId: string,
     message: string,
-  ): Promise<{ status: number; body: FollowUpRunResponse | { error: string } }> {
+  ): Promise<{
+    status: number;
+    body: FollowUpRunResponse | { error: string };
+  }> {
     if (run.status === "running") {
       const queued = await this.deps.runStore.enqueueParkedFollowUp(
         runId,
@@ -172,7 +175,10 @@ export class RunsApiController {
       };
     }
 
-    if (run.status !== "completed" || !isEligibleContinuationOutcome(run.outcome)) {
+    if (
+      run.status !== "completed" ||
+      !isEligibleContinuationOutcome(run.outcome)
+    ) {
       return {
         status: 409,
         body: { error: followUpConflictMessage("ineligible_outcome") },
@@ -191,7 +197,12 @@ export class RunsApiController {
       };
     }
 
-    return this.launchContinuation(run, runId, continuation.history, "follow_up");
+    return this.launchContinuation(
+      run,
+      runId,
+      continuation.history,
+      "follow_up",
+    );
   }
 
   private async handleStop(
@@ -261,7 +272,8 @@ export class RunsApiController {
       },
     });
     done.catch((error: unknown) => {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.deps.logger.error(
         kind === "resume" ? "run.resume_failed" : "run.follow_up_failed",
         {

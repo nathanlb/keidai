@@ -384,8 +384,8 @@ Empty keys in `secrets-values.yaml` lookup the existing Secret. **New** keys
 that did not exist on the old chart cannot be looked up — add them to the file
 or Helm fails closed (or, on 0.4.0, crashes in `b64dec` on a missing key).
 
-| From → to | Extra values |
-|-----------|----------------|
+| From → to | Extra values                                                                                                                       |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | 0.3 → 0.4 | `secrets.toriiSecretKey` (≥32 chars). `openssl rand -hex 32`. The bundled Torii YAML is gone; connectors already in Postgres stay. |
 
 Always re-pass `-f secrets-values.yaml`, `-f values.yaml`, and

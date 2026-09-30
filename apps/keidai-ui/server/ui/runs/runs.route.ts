@@ -57,10 +57,7 @@ export async function registerShaidenRunsRoute(
         ),
       ]);
 
-      return buildRunsVisibilityResponse(
-        runsResponse,
-        agentsResponse.agents,
-      );
+      return buildRunsVisibilityResponse(runsResponse, agentsResponse.agents);
     } catch (error) {
       if (error instanceof UpstreamRequestError) {
         return reply.code(502).send({

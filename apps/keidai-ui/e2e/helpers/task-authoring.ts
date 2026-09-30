@@ -19,12 +19,15 @@ async function waitForTaskDependencies(page: Page): Promise<void> {
   await expect(page.getByText(/Could not load agents/i)).toHaveCount(0, {
     timeout: 15_000,
   });
-  await expect(
-    page.getByText(/Could not load Shaiden runtime/i),
-  ).toHaveCount(0, {
+  await expect(page.getByText(/Could not load Shaiden runtime/i)).toHaveCount(
+    0,
+    {
+      timeout: 15_000,
+    },
+  );
+  await expect(page.getByRole("combobox", { name: "Assignee" })).toBeVisible({
     timeout: 15_000,
   });
-  await expect(page.getByRole("combobox")).toBeVisible({ timeout: 15_000 });
 }
 
 /** Wait until the new-task form has agents and runtime ready. */

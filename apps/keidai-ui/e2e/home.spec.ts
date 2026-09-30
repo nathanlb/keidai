@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
-import type { ApprovalRecordView, RunListItem, RunReport } from "@keidai/shared";
+import type {
+  ApprovalRecordView,
+  RunListItem,
+  RunReport,
+} from "@keidai/shared";
 import { mockToriiConfig } from "./helpers/mock-torii.js";
 import type { ManagementAgent } from "../src/lib/api/agents.js";
 
@@ -72,11 +76,15 @@ test.describe("Home dashboard", () => {
 
     await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
     await expect(page.getByTestId("home-all-clear")).toBeVisible();
-    await expect(page.getByText("Nothing is blocked. 0 runs in flight.")).toBeVisible();
+    await expect(
+      page.getByText("Nothing is blocked. 0 runs in flight."),
+    ).toBeVisible();
     await expect(page.getByTestId("home-stat-awaiting")).toContainText("0");
     await expect(page.getByTestId("home-system-map")).toBeVisible();
     await expect(page.getByText("nothing running")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Connect a server" })).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Connect a server" }),
+    ).toBeVisible();
     await expect(page.getByTestId("system-map-fuda")).toBeVisible();
     await expect(page.getByTestId("system-map-health-torii")).toBeVisible();
     await expect(page.getByTestId("system-map-health-shaiden")).toBeVisible();
@@ -210,8 +218,6 @@ test.describe("Home dashboard", () => {
     await page.getByRole("link", { name: "New task" }).click();
     await expect(page).toHaveURL(/\/tasks\/new$/);
     await expect(page.getByRole("dialog")).toHaveCount(0);
-    await expect(
-      page.getByRole("heading", { name: "New task" }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "New task" })).toBeVisible();
   });
 });

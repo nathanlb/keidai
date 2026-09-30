@@ -6,7 +6,10 @@ export type { Pool, PoolClient } from "pg";
 
 export type Queryable = Pick<pg.Pool, "query">;
 
-export function createPool(connectionString: string, options?: pg.PoolConfig): pg.Pool {
+export function createPool(
+  connectionString: string,
+  options?: pg.PoolConfig,
+): pg.Pool {
   return new Pool({
     connectionString,
     max: options?.max ?? 10,
@@ -38,5 +41,7 @@ export function resolveTestDatabaseUrl(
 }
 
 export function toIso(value: Date | string): string {
-  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+  return value instanceof Date
+    ? value.toISOString()
+    : new Date(value).toISOString();
 }

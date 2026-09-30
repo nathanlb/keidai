@@ -52,7 +52,9 @@ function widthStyle(width: TableColumnWidth): CSSProperties | undefined {
   }
 }
 
-function computeMinTableWidth(columns: readonly TableColumnSpec[]): number | null {
+function computeMinTableWidth(
+  columns: readonly TableColumnSpec[],
+): number | null {
   let sum = 0;
   let hasPixelConstraints = false;
 
@@ -124,4 +126,4 @@ export function defineTableColumns<T extends string>(
     cellClassName,
     cellStyle,
   };
-};
+}

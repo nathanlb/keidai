@@ -148,6 +148,11 @@ export class AgentsManagementApiController {
       if (parsed.data.persona !== undefined) {
         await this.agents.appendPersona(agentId, parsed.data.persona);
       }
+      if (parsed.data.defaultModelId !== undefined) {
+        await this.agents.updateDefaultModel(agentId, {
+          defaultModelId: parsed.data.defaultModelId,
+        });
+      }
 
       const updated = await this.agents.get(agentId);
       const agent = updated ? await this.toManagementAgent(updated) : null;

@@ -8,15 +8,16 @@ import { DefaultMcpClientConnector } from "../../../connections/mcp-client-conne
 import { startMockMcpServer } from "../../../connections/tests/mock-mcp-server.js";
 import { ToriiConfigService } from "../../../config/torii-config.service.js";
 import { ToolCatalogService } from "../../../catalog/tool-catalog.service.js";
-import { bootBackends, createCredentialServices, withTestAgentPrincipal } from "../test-helpers.js";
+import {
+  bootBackends,
+  createCredentialServices,
+  withTestAgentPrincipal,
+} from "../test-helpers.js";
 import { createPolicyEnforcement } from "../../../policy/tests/test-helpers.js";
 import { createNoopLogger } from "../../../logging/tests/test-helpers.js";
 import { testAgentsGroup } from "../../../testing/test-config.js";
 
-function noneServer(
-  name: string,
-  url: string,
-): ToriiConfig["servers"][number] {
+function noneServer(name: string, url: string): ToriiConfig["servers"][number] {
   return {
     name,
     transport: { type: "http", url },
@@ -57,14 +58,25 @@ describe("none credentials with tools/list", () => {
       },
     });
 
-        const groups = [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])];
+    const groups = [
+      testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }]),
+    ];
     const configService = new ToriiConfigService({
       oauth_providers: {},
       servers: [noneServer("deepwiki", mockServer.url)],
     });
     const { credentialResolver } = createCredentialServices();
-    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
-    const catalogService = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(groups), createNoopLogger());
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
+    const catalogService = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+      createPolicyEnforcement(groups),
+      createNoopLogger(),
+    );
 
     try {
       await bootBackends(connectionManager, catalogService);
@@ -72,9 +84,10 @@ describe("none credentials with tools/list", () => {
         catalogService.listToolsForAgent(),
       );
 
-      assert.deepEqual(tools.map((tool) => tool.name), [
-        "deepwiki.read_wiki_structure",
-      ]);
+      assert.deepEqual(
+        tools.map((tool) => tool.name),
+        ["deepwiki.read_wiki_structure"],
+      );
       assertNoAuthorizationHeader(receivedHeaders);
       const listHeaders = receivedHeaders.find(
         (headerSet) => headerSet["mcp-method"] === "tools/list",
@@ -107,7 +120,11 @@ describe("none credentials with tools/call", () => {
       servers: [noneServer("deepwiki", mockServer.url)],
     });
     const { credentialResolver } = createCredentialServices();
-    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
 
     try {
       await connectionManager.connectAll();
@@ -135,7 +152,9 @@ describe("none credentials with tools/call", () => {
 
 describe("none credentials with DeepWiki MCP", () => {
   it("lists and calls tools from DeepWiki", async () => {
-        const groups = [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])];
+    const groups = [
+      testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }]),
+    ];
     const configService = new ToriiConfigService({
       oauth_providers: {},
       servers: [
@@ -150,8 +169,17 @@ describe("none credentials with DeepWiki MCP", () => {
       ],
     });
     const { credentialResolver } = createCredentialServices();
-    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
-    const catalogService = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(groups), createNoopLogger());
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
+    const catalogService = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+      createPolicyEnforcement(groups),
+      createNoopLogger(),
+    );
 
     try {
       await bootBackends(connectionManager, catalogService);
@@ -159,7 +187,9 @@ describe("none credentials with DeepWiki MCP", () => {
         catalogService.listToolsForAgent(),
       );
 
-      assert.ok(tools.some((tool) => tool.name === "deepwiki.read_wiki_structure"));
+      assert.ok(
+        tools.some((tool) => tool.name === "deepwiki.read_wiki_structure"),
+      );
 
       const connection = connectionManager.get("deepwiki");
       assert.ok(connection?.client);

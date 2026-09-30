@@ -8,10 +8,7 @@ describe("discoverClusterOidcIssuer", () => {
   });
 
   it("fails when not in-cluster and issuer would be required", async () => {
-    await assert.rejects(
-      () => discoverClusterOidcIssuer({}),
-      /not in-cluster/,
-    );
+    await assert.rejects(() => discoverClusterOidcIssuer({}), /not in-cluster/);
   });
 
   it("reads issuer from well-known discovery via kubernetes.default.svc", async () => {

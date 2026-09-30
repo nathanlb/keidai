@@ -56,7 +56,9 @@ export const BACKEND_INPUT_REQUIRED_MESSAGE =
 export const BACKEND_TASK_INPUT_REQUIRED_MESSAGE =
   "Backend task requires input, which Torii does not relay";
 
-export function unrecognizedBackendResultTypeMessage(resultType: string): string {
+export function unrecognizedBackendResultTypeMessage(
+  resultType: string,
+): string {
   return `Backend returned unrecognised resultType "${resultType}"`;
 }
 

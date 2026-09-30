@@ -100,7 +100,9 @@ describe("Gateway OAuth linking API", () => {
 
     const gateway = await gatewayHttpServer.start();
     try {
-      const response = await fetch(`${gateway.baseUrl}/api/oauth/connections?owner=demo-owner`);
+      const response = await fetch(
+        `${gateway.baseUrl}/api/oauth/connections?owner=demo-owner`,
+      );
       assert.equal(response.status, 200);
 
       const body = (await response.json()) as OAuthConnectionsResponse;
@@ -145,7 +147,9 @@ describe("Gateway OAuth linking API", () => {
       );
       assert.equal(deleteResponse.status, 204);
 
-      const listResponse = await fetch(`${gateway.baseUrl}/api/oauth/connections?owner=demo-owner`);
+      const listResponse = await fetch(
+        `${gateway.baseUrl}/api/oauth/connections?owner=demo-owner`,
+      );
       const body = (await listResponse.json()) as OAuthConnectionsResponse;
       assert.equal(body.connections[0]?.status, "not_linked");
 
@@ -181,7 +185,9 @@ describe("Gateway OAuth linking API", () => {
         { method: "POST" },
       );
       const initiate = (await initiateResponse.json()) as OAuthInitiateResponse;
-      const state = new URL(initiate.authorizationUrl).searchParams.get("state");
+      const state = new URL(initiate.authorizationUrl).searchParams.get(
+        "state",
+      );
 
       const errorResponse = await fetch(
         `${gateway.baseUrl}/oauth/callback/github?error=access_denied&state=${encodeURIComponent(state ?? "")}`,
@@ -240,7 +246,9 @@ describe("Gateway OAuth linking API", () => {
         assert.equal(token?.accessToken, "new-access-token");
 
         const connectionsAfterSuccess = (await (
-          await fetch(`${gateway.baseUrl}/api/oauth/connections?owner=demo-owner`)
+          await fetch(
+            `${gateway.baseUrl}/api/oauth/connections?owner=demo-owner`,
+          )
         ).json()) as OAuthConnectionsResponse;
         assert.equal(connectionsAfterSuccess.connections[0]?.status, "linked");
       } finally {

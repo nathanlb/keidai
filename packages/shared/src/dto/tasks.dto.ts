@@ -24,8 +24,14 @@ export interface TaskResponse {
 /** Request body for `POST /api/tasks` and `POST /api/tasks/run`. */
 export type CreateTaskRequest = Task;
 
-/** Request body for `PATCH /api/tasks/:taskId`. */
-export type UpdateTaskRequest = Partial<Task>;
+/**
+ * Request body for `PATCH /api/tasks/:taskId`.
+ * `modelId: null` clears a task-level override; omitting it leaves the
+ * stored override unchanged.
+ */
+export type UpdateTaskRequest = Partial<Omit<Task, "modelId">> & {
+  modelId?: string | null;
+};
 
 /** Request body for `POST /api/tasks/run` (create saved task and start run). */
 export type StartTaskRunRequest = Task;

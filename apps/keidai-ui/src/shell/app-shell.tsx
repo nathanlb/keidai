@@ -16,6 +16,7 @@ export interface AppShellProps {
   breadcrumb: AppShellBreadcrumb;
   pageHeader?: AppShellPageHeader;
   sidebarNav: ReactNode;
+  sidebarFooter?: ReactNode;
   sidebarSubtitle?: string;
   onRefresh?: () => void;
 }
@@ -24,6 +25,7 @@ export function AppShell({
   breadcrumb,
   pageHeader,
   sidebarNav,
+  sidebarFooter,
   sidebarSubtitle,
   onRefresh,
 }: AppShellProps) {
@@ -46,6 +48,7 @@ export function AppShell({
   const sidebarPanelProps = {
     subtitle: sidebarSubtitle,
     children: sidebarNav,
+    footer: sidebarFooter,
   };
 
   return (
@@ -59,10 +62,12 @@ export function AppShell({
           theme === "dark" && "dark",
         )}
       >
-        <div className="
+        <div
+          className="
           flex h-screen overflow-hidden bg-background font-sans text-sm
           text-foreground
-        ">
+        "
+        >
           <Sidebar {...sidebarPanelProps} />
 
           {!isDesktop ? (
@@ -76,15 +81,19 @@ export function AppShell({
           <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
             <TopBar breadcrumb={breadcrumb} showNavButton={!isDesktop} />
 
-            <div className="
+            <div
+              className="
               flex-1 overflow-y-auto px-5 pt-6 pb-10
               md:px-7 md:pt-6 md:pb-15
-            ">
-              <div className="
+            "
+            >
+              <div
+                className="
                 mx-auto w-full max-w-full
                 xl:max-w-270
                 2xl:max-w-350
-              ">
+              "
+              >
                 {pageHeader ? (
                   <PageHeader page={pageHeader} onRefresh={refresh} />
                 ) : null}

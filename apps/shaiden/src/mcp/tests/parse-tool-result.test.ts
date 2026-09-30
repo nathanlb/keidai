@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import {
-  APPROVAL_DENIED_STATUS,
-  TORII_CALL_META_KEY,
-} from "@keidai/shared";
+import { APPROVAL_DENIED_STATUS, TORII_CALL_META_KEY } from "@keidai/shared";
 import {
   enrichToolCallResult,
   formatApprovalDeniedForModel,

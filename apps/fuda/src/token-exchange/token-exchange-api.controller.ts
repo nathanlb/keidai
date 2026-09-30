@@ -55,7 +55,9 @@ export class TokenExchangeApiController {
       }
 
       if (!this.subjects) {
-        reply.code(500).send({ error: "subject token validator not configured" });
+        reply
+          .code(500)
+          .send({ error: "subject token validator not configured" });
         return;
       }
 

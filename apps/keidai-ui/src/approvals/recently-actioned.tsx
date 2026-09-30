@@ -44,12 +44,10 @@ export function RecentlyActioned({
   bufferCount,
 }: RecentlyActionedProps) {
   const { pageIndex, onPageChange } = useTablePageIndex([items.length]);
-  const {
-    pageItems,
-    shownCount,
-    canGoNewer,
-    canGoOlder,
-  } = paginateItems(items, pageIndex);
+  const { pageItems, shownCount, canGoNewer, canGoOlder } = paginateItems(
+    items,
+    pageIndex,
+  );
 
   if (items.length === 0) {
     return null;
@@ -57,9 +55,11 @@ export function RecentlyActioned({
 
   return (
     <section className="mt-8">
-      <h3 className="
+      <h3
+        className="
         text-[11px] font-semibold tracking-wide text-muted-foreground uppercase
-      ">
+      "
+      >
         Recently actioned
       </h3>
       <ul className="mt-3 divide-y divide-border">
@@ -97,9 +97,11 @@ export function RecentlyActioned({
                 </div>
 
                 {item.rejectionReason ? (
-                  <p className="
+                  <p
+                    className="
                     mt-0.5 truncate text-[12px] text-muted-foreground
-                  ">
+                  "
+                  >
                     {item.rejectionReason}
                   </p>
                 ) : null}

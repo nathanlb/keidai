@@ -8,9 +8,7 @@ import { MockPendingLinkStore } from "../../testing/mocks/mock-pending-link-stor
 import { MockTokenRepository } from "../../testing/mocks/mock-token-repository.js";
 import { OAuthLinkService } from "../oauth-link.service.js";
 import { encodeOAuthLinkState } from "../utils/oauth-link-state.js";
-import {
-  createCapturingLogger,
-} from "../../logging/tests/test-helpers.js";
+import { createCapturingLogger } from "../../logging/tests/test-helpers.js";
 
 const sampleConfig: ToriiConfig = {
   oauth_providers: {
@@ -91,7 +89,9 @@ function mockTokenExchange(response: Record<string, unknown> = {}): () => void {
 describe("OAuthLinkService", () => {
   it("initiate stores a pending link and returns an authorization URL", async () => {
     const pendingLinkStore = new MockPendingLinkStore();
-    const { service } = createOAuthLinkService(sampleConfig, { pendingLinkStore });
+    const { service } = createOAuthLinkService(sampleConfig, {
+      pendingLinkStore,
+    });
 
     const result = await service.initiate(
       "github",
@@ -100,7 +100,10 @@ describe("OAuthLinkService", () => {
     );
 
     assert.ok(result.linkId);
-    assert.match(result.authorizationUrl, /github\.com\/login\/oauth\/authorize/);
+    assert.match(
+      result.authorizationUrl,
+      /github\.com\/login\/oauth\/authorize/,
+    );
     assert.equal(
       result.redirectUri,
       "http://127.0.0.1:3100/oauth/callback/github",
@@ -135,7 +138,9 @@ describe("OAuthLinkService", () => {
 
   it("completeCallback marks the pending link failed when the provider returns an error", async () => {
     const pendingLinkStore = new MockPendingLinkStore();
-    const { service } = createOAuthLinkService(sampleConfig, { pendingLinkStore });
+    const { service } = createOAuthLinkService(sampleConfig, {
+      pendingLinkStore,
+    });
     const { linkId } = await service.initiate(
       "github",
       "http://127.0.0.1:3100",
@@ -168,7 +173,9 @@ describe("OAuthLinkService", () => {
     assert.equal(missing.success, false);
     assert.equal(missing.error, "OAuth callback missing code or state");
 
-    const codeOnly = await service.completeCallback("github", { code: "only-code" });
+    const codeOnly = await service.completeCallback("github", {
+      code: "only-code",
+    });
     assert.equal(codeOnly.success, false);
     assert.equal(codeOnly.error, "OAuth callback missing code or state");
   });
@@ -187,7 +194,9 @@ describe("OAuthLinkService", () => {
 
   it("completeCallback rejects provider mismatches and marks the link failed", async () => {
     const pendingLinkStore = new MockPendingLinkStore();
-    const { service } = createOAuthLinkService(sampleConfig, { pendingLinkStore });
+    const { service } = createOAuthLinkService(sampleConfig, {
+      pendingLinkStore,
+    });
     const { linkId } = await service.initiate(
       "github",
       "http://127.0.0.1:3100",
@@ -234,7 +243,9 @@ describe("OAuthLinkService", () => {
 
   it("completeCallback rejects already completed links", async () => {
     const pendingLinkStore = new MockPendingLinkStore();
-    const { service } = createOAuthLinkService(sampleConfig, { pendingLinkStore });
+    const { service } = createOAuthLinkService(sampleConfig, {
+      pendingLinkStore,
+    });
     const { linkId } = await service.initiate(
       "github",
       "http://127.0.0.1:3100",
@@ -301,7 +312,9 @@ describe("OAuthLinkService", () => {
 
   it("completeCallback marks the link failed when token exchange fails", async () => {
     const pendingLinkStore = new MockPendingLinkStore();
-    const { service } = createOAuthLinkService(sampleConfig, { pendingLinkStore });
+    const { service } = createOAuthLinkService(sampleConfig, {
+      pendingLinkStore,
+    });
     const { linkId } = await service.initiate(
       "github",
       "http://127.0.0.1:3100",
@@ -350,7 +363,9 @@ describe("OAuthLinkService", () => {
 
   it("unlink removes stored grants for the resolved owner", async () => {
     const tokenRepository = new MockTokenRepository();
-    const { service } = createOAuthLinkService(sampleConfig, { tokenRepository });
+    const { service } = createOAuthLinkService(sampleConfig, {
+      tokenRepository,
+    });
     await tokenRepository.set("demo-owner", "github", {
       accessToken: "token",
     });
@@ -374,10 +389,10 @@ describe("OAuthLinkService", () => {
 
     try {
       const initiated = await service.initiate(
-      "github",
-      "http://127.0.0.1:3100",
-      "demo-owner",
-    );
+        "github",
+        "http://127.0.0.1:3100",
+        "demo-owner",
+      );
       assert.ok(
         logger.logs.some(
           (entry) =>

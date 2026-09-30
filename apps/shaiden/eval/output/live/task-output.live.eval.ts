@@ -50,7 +50,11 @@ describe("task-output live harness eval", { concurrency: 1 }, () => {
           stack,
         });
 
-        assertOutcome(result.outcome, { status: "goal_met" }, "in_band_arithmetic");
+        assertOutcome(
+          result.outcome,
+          { status: "goal_met" },
+          "in_band_arithmetic",
+        );
         assertHasOutputStep(result.steps, "in_band_arithmetic", /\b42\b/);
       } finally {
         await stack.close();
@@ -68,8 +72,16 @@ describe("task-output live harness eval", { concurrency: 1 }, () => {
             name: "list_issues",
             handler: async () => ({
               text: JSON.stringify([
-                { id: "NAT-1", title: "Ship output steps", completedAt: "yesterday" },
-                { id: "NAT-2", title: "Harden assessment", completedAt: "yesterday" },
+                {
+                  id: "NAT-1",
+                  title: "Ship output steps",
+                  completedAt: "yesterday",
+                },
+                {
+                  id: "NAT-2",
+                  title: "Harden assessment",
+                  completedAt: "yesterday",
+                },
               ]),
             }),
           },
@@ -94,7 +106,8 @@ describe("task-output live harness eval", { concurrency: 1 }, () => {
         assert.ok(
           result.steps.some(
             (step) =>
-              step.kind === "tool_result" && step.toolName === "linear.list_issues",
+              step.kind === "tool_result" &&
+              step.toolName === "linear.list_issues",
           ),
           "expected linear.list_issues to be called before the in-band summary",
         );
@@ -114,7 +127,11 @@ describe("task-output live harness eval", { concurrency: 1 }, () => {
             name: "list_issues",
             handler: async () => ({
               text: JSON.stringify([
-                { id: "NAT-1", title: "Shipped feature", completedAt: "yesterday" },
+                {
+                  id: "NAT-1",
+                  title: "Shipped feature",
+                  completedAt: "yesterday",
+                },
               ]),
             }),
           },

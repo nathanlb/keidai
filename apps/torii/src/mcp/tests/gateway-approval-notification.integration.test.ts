@@ -13,7 +13,10 @@ import { ConnectionManager } from "../../connections/connection-manager.service.
 import { DefaultMcpClientConnector } from "../../connections/mcp-client-connector.service.js";
 import { startMockMcpServer } from "../../connections/tests/mock-mcp-server.js";
 import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
-import { createCredentialServices, withTestAgentPrincipal } from "../../credentials/tests/test-helpers.js";
+import {
+  createCredentialServices,
+  withTestAgentPrincipal,
+} from "../../credentials/tests/test-helpers.js";
 import { createTestGatewayHttpServer } from "../../http/tests/test-helpers.js";
 import type { GatewayHttpServerHandle } from "../../http/types/gateway-http-server.js";
 import { TEST_AGENT_BEARER } from "../../identity/tests/test-helpers.js";
@@ -115,7 +118,7 @@ async function withGatedGateway(
 ): Promise<void> {
   const ownedPersistence = persistence === undefined;
   const gatewayPersistence =
-    persistence ?? await createTestGatewayPersistence("postgres");
+    persistence ?? (await createTestGatewayPersistence("postgres"));
   let backendCallCount = 0;
   const backend = await startMockMcpServer({
     tools: [
@@ -131,7 +134,9 @@ async function withGatedGateway(
     ],
   });
 
-  const groups = [testAgentsGroup([{ server: "gmail", tools: ["create_draft"] }])];
+  const groups = [
+    testAgentsGroup([{ server: "gmail", tools: ["create_draft"] }]),
+  ];
   const gatedTools = {
     [TEST_AGENT_PRINCIPAL.agentId]: ["gmail.create_draft"],
   };
@@ -322,7 +327,11 @@ describe("Gateway MCP approval gate (tasks)", () => {
 
       const approveResponse = await fetch(
         `${gateway.baseUrl}/api/approvals/${approvalId}/approve`,
-        { method: "POST", headers: { "content-type": "application/json" }, body: "{}" },
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: "{}",
+        },
       );
       assert.equal(approveResponse.status, 200);
 
@@ -381,7 +390,11 @@ describe("Gateway MCP approval gate (tasks)", () => {
 
       const cancelResponse = await fetch(
         `${gateway.baseUrl}/api/approvals/${approvalId}/cancel`,
-        { method: "POST", headers: { "content-type": "application/json" }, body: "{}" },
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: "{}",
+        },
       );
       assert.equal(cancelResponse.status, 200);
 
@@ -400,7 +413,11 @@ describe("Gateway MCP approval gate (tasks)", () => {
       const approvalId = await listPendingApprovalId(gateway.baseUrl);
       const approveResponse = await fetch(
         `${gateway.baseUrl}/api/approvals/${approvalId}/approve`,
-        { method: "POST", headers: { "content-type": "application/json" }, body: "{}" },
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: "{}",
+        },
       );
       assert.equal(approveResponse.status, 200);
 
@@ -411,7 +428,9 @@ describe("Gateway MCP approval gate (tasks)", () => {
       ]);
       assert.equal(backendCallCount(), 1);
 
-      const drain = jsonResult((await getTask(gateway.mcpUrl, taskId, "get-drain")).json);
+      const drain = jsonResult(
+        (await getTask(gateway.mcpUrl, taskId, "get-drain")).json,
+      );
       assert.equal(drain.status, "completed");
       for (const poll of polls) {
         const status = jsonResult(poll.json).status;
@@ -447,7 +466,9 @@ describe("Gateway MCP approval gate (tasks)", () => {
         const toolResult = result.result as {
           content?: Array<{ type: string; text?: string }>;
         };
-        const textPart = toolResult.content?.find((part) => part.type === "text");
+        const textPart = toolResult.content?.find(
+          (part) => part.type === "text",
+        );
         assert.match(textPart?.text ?? "", /drafted:Replica/);
         assert.equal(backendCallCount(), 1);
         assert.ok(

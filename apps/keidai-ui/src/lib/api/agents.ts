@@ -8,11 +8,7 @@ import type {
   PersonaVersion,
   UpdateAgentRequest,
 } from "../types/agents.js";
-import {
-  fetchJson,
-  fetchJsonWithBody,
-  sendNoContent,
-} from "./fetch-json.js";
+import { fetchJson, fetchJsonWithBody, sendNoContent } from "./fetch-json.js";
 
 export type {
   Bearer,

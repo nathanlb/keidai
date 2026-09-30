@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { PolicyDecision } from "@keidai/shared";
-import type { AgentPrincipal, CallTrace, CallTracePrincipal } from "@keidai/shared";
+import type {
+  AgentPrincipal,
+  CallTrace,
+  CallTracePrincipal,
+} from "@keidai/shared";
 
 export function createTraceId(): string {
   return randomUUID();

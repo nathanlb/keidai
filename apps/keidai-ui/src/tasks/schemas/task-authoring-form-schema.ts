@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   DEFAULT_TASK_LIMITS,
   WEEKDAYS,
+  type UpdateTaskRequest,
   isIanaTimeZone,
   isScheduleTrigger,
   isValidLocalDateTime,
@@ -22,6 +23,7 @@ export const taskAuthoringFormSchema = z
     freq: z.enum(["daily", "weekly", "monthly"]),
     days: z.array(z.enum(WEEKDAYS)),
     paused: z.boolean(),
+    modelId: z.string(),
   })
   .superRefine((values, ctx) => {
     if (values.triggerType !== "schedule") {
@@ -83,6 +85,7 @@ export function emptyTaskAuthoringValues(): TaskAuthoringFormValues {
     freq: "daily",
     days: ["mon"],
     paused: false,
+    modelId: "",
   };
 }
 
@@ -94,6 +97,7 @@ export function formValuesFromTask(task: SavedTask): TaskAuthoringFormValues {
       goal: task.goal,
       assignee: task.assignee,
       triggerType: "now",
+      modelId: task.modelId ?? "",
     };
   }
   const recurrence = task.trigger.recurrence;
@@ -110,17 +114,26 @@ export function formValuesFromTask(task: SavedTask): TaskAuthoringFormValues {
     freq: recurrence?.freq ?? "daily",
     days,
     paused: Boolean(task.trigger.paused),
+    modelId: task.modelId ?? "",
   };
+}
+
+function withModelId(values: TaskAuthoringFormValues, task: Task): Task {
+  const modelId = values.modelId.trim();
+  return modelId ? { ...task, modelId } : task;
 }
 
 export function taskFromFormValues(values: TaskAuthoringFormValues): Task {
   if (values.triggerType === "now") {
-    return taskSchema.parse({
-      goal: values.goal.trim(),
-      trigger: { type: "now" },
-      assignee: values.assignee,
-      limits: DEFAULT_TASK_LIMITS,
-    });
+    return withModelId(
+      values,
+      taskSchema.parse({
+        goal: values.goal.trim(),
+        trigger: { type: "now" },
+        assignee: values.assignee,
+        limits: DEFAULT_TASK_LIMITS,
+      }),
+    );
   }
 
   const recurrence = values.repeat
@@ -129,16 +142,29 @@ export function taskFromFormValues(values: TaskAuthoringFormValues): Task {
       : { freq: values.freq }
     : undefined;
 
-  return taskSchema.parse({
-    goal: values.goal.trim(),
-    trigger: {
-      type: "schedule",
-      timezone: values.timezone,
-      at: values.at,
-      ...(recurrence ? { recurrence } : {}),
-      ...(values.paused ? { paused: true } : {}),
-    },
-    assignee: values.assignee,
-    limits: DEFAULT_TASK_LIMITS,
-  });
+  return withModelId(
+    values,
+    taskSchema.parse({
+      goal: values.goal.trim(),
+      trigger: {
+        type: "schedule",
+        timezone: values.timezone,
+        at: values.at,
+        ...(recurrence ? { recurrence } : {}),
+        ...(values.paused ? { paused: true } : {}),
+      },
+      assignee: values.assignee,
+      limits: DEFAULT_TASK_LIMITS,
+    }),
+  );
+}
+
+/** Edit payload. An empty model clears a previously saved override. */
+export function taskUpdateFromFormValues(
+  values: TaskAuthoringFormValues,
+): UpdateTaskRequest {
+  return {
+    ...taskFromFormValues(values),
+    modelId: values.modelId.trim() || null,
+  };
 }

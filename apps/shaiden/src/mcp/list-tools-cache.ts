@@ -10,7 +10,9 @@ export type ListToolsCacheHint = {
  * Read `ttlMs` / `cacheScope` from a `tools/list` result when the server emits them
  * (required on 2026-07-28; absent on legacy Torii).
  */
-export function readListToolsCacheHint(result: unknown): ListToolsCacheHint | undefined {
+export function readListToolsCacheHint(
+  result: unknown,
+): ListToolsCacheHint | undefined {
   if (!result || typeof result !== "object") {
     return undefined;
   }

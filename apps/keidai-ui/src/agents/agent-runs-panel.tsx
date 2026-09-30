@@ -92,10 +92,12 @@ export function AgentRunsPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="
+      <div
+        className="
         grid grid-cols-2 gap-3
         md:grid-cols-4
-      ">
+      "
+      >
         <StatTile
           label="Runs (7d)"
           value={recent.length}
@@ -119,10 +121,12 @@ export function AgentRunsPanel({
       </div>
 
       <div className="overflow-hidden rounded-xl border border-border bg-card">
-        <div className="
+        <div
+          className="
           flex items-center justify-between gap-3 border-b border-border px-4.5
           py-3
-        ">
+        "
+        >
           <div className="text-[13.5px] font-semibold">
             Runs{" "}
             <span className="font-mono font-medium text-muted-foreground">
@@ -150,11 +154,13 @@ export function AgentRunsPanel({
           </p>
         ) : (
           <>
-            <div className="
+            <div
+              className="
               grid grid-cols-[106px_1.4fr_.8fr_78px_.95fr_.95fr] gap-3.5
               border-b border-border px-4.5 py-2.5 text-[10.5px] font-semibold
               tracking-[0.06em] text-muted-foreground uppercase
-            ">
+            "
+            >
               <span>Run</span>
               <span>Task</span>
               <span>Started</span>
@@ -181,9 +187,11 @@ export function AgentRunsPanel({
                     hover:bg-muted/45
                   "
                 >
-                  <span className="
+                  <span
+                    className="
                     truncate font-mono text-xs text-muted-foreground
-                  ">
+                  "
+                  >
                     {run.id}
                   </span>
                   <span className="min-w-0 truncate text-[12.5px]">
@@ -223,11 +231,13 @@ export function AgentRunsPanel({
             })}
           </>
         )}
-        <p className="
+        <p
+          className="
           px-4.5 py-2.5 text-[11.5px] leading-normal text-muted-foreground
-        ">
-          Exit status is whether the run finished. Goal verdict is whether it did
-          the thing — a run can complete cleanly and still miss its goal.
+        "
+        >
+          Exit status is whether the run finished. Goal verdict is whether it
+          did the thing — a run can complete cleanly and still miss its goal.
         </p>
       </div>
     </div>

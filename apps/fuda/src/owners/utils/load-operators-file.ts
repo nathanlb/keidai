@@ -7,7 +7,9 @@ import {
 } from "@keidai/shared";
 import { ConfigValidationError } from "../../config/runtime-config.js";
 
-export async function loadOperatorsFile(filePath: string): Promise<OperatorsFile> {
+export async function loadOperatorsFile(
+  filePath: string,
+): Promise<OperatorsFile> {
   let raw: string;
   try {
     raw = await readFile(filePath, "utf8");

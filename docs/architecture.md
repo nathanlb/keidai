@@ -47,13 +47,13 @@ approval decision and ledger.
 
 ## Credential boundaries
 
-| Hop | Credential | Owner |
-| --- | --- | --- |
-| Browser → keidai-ui | Google OIDC session | keidai-ui |
-| keidai-ui → management APIs | `BFF_SERVICE_TOKEN` | deployment operator |
-| Shaiden → Fuda `/token` | local shared secret or projected SA token | Fuda subject validator |
-| Shaiden → Torii | short-lived Fuda JWT | Fuda |
-| Torii → backend MCP server | `user_oauth`, `service_key`, or `none` | Torii |
+| Hop                         | Credential                                | Owner                  |
+| --------------------------- | ----------------------------------------- | ---------------------- |
+| Browser → keidai-ui         | Google OIDC session                       | keidai-ui              |
+| keidai-ui → management APIs | `BFF_SERVICE_TOKEN`                       | deployment operator    |
+| Shaiden → Fuda `/token`     | local shared secret or projected SA token | Fuda subject validator |
+| Shaiden → Torii             | short-lived Fuda JWT                      | Fuda                   |
+| Torii → backend MCP server  | `user_oauth`, `service_key`, or `none`    | Torii                  |
 
 Backend credentials are never sent to Shaiden or the browser. Unknown agent
 groups fail closed in Torii.

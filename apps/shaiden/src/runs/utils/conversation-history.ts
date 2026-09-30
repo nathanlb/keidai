@@ -23,7 +23,9 @@ const ELIGIBLE_CONTINUATION_OUTCOMES = new Set<TerminationOutcome["status"]>([
 export function isEligibleContinuationOutcome(
   outcome: TerminationOutcome | undefined,
 ): outcome is TerminationOutcome {
-  return outcome !== undefined && ELIGIBLE_CONTINUATION_OUTCOMES.has(outcome.status);
+  return (
+    outcome !== undefined && ELIGIBLE_CONTINUATION_OUTCOMES.has(outcome.status)
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

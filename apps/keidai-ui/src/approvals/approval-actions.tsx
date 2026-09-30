@@ -81,10 +81,14 @@ export function ApprovalActions({
 
   if (mode === "cancel") {
     return (
-      <div className="
+      <div
+        className="
         rounded-lg border border-destructive/30 bg-destructive/5 p-3.5
-      ">
-        <div className="text-[12.5px] font-semibold">Cancel the parked task?</div>
+      "
+      >
+        <div className="text-[12.5px] font-semibold">
+          Cancel the parked task?
+        </div>
         <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
           Ends the run outright — the agent stops and the call is never
           dispatched.

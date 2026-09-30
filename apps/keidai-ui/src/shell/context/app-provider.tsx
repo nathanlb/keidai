@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useReducer, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  type ReactNode,
+} from "react";
 import { SWRConfig } from "swr";
 import { AppContext, type AppContextValue } from "./app-context.js";
 import {

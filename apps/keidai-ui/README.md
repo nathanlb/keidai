@@ -45,28 +45,28 @@ Open [http://localhost:3000](http://localhost:3000) and sign in with Google OIDC
 
 ### Scripts
 
-| Script | Purpose |
-|--------|---------|
-| `dev` | Vite HMR (`:3000`) + API-only BFF (`:3001`) |
-| `dev:vite` / `dev:bff` | Run either process alone |
-| `build` | Build client (`dist/client`) and server (`dist/server`) |
-| `start` | Serve the production build from Fastify |
-| `test` | Unit, server, and e2e tests |
-| `typecheck` / `lint` | TypeScript checks for client and server |
+| Script                 | Purpose                                                 |
+| ---------------------- | ------------------------------------------------------- |
+| `dev`                  | Vite HMR (`:3000`) + API-only BFF (`:3001`)             |
+| `dev:vite` / `dev:bff` | Run either process alone                                |
+| `build`                | Build client (`dist/client`) and server (`dist/server`) |
+| `start`                | Serve the production build from Fastify                 |
+| `test`                 | Unit, server, and e2e tests                             |
+| `typecheck` / `lint`   | TypeScript checks for client and server                 |
 
 ### Environment
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `KEIDAI_UI_HOST` | `127.0.0.1` | BFF bind address |
-| `KEIDAI_UI_PORT` | `3000` | Production BFF listen port |
-| `KEIDAI_UI_BFF_PORT` | `3001` | API-only BFF port used by `pnpm dev` |
-| `VITE_BFF_URL` | `http://127.0.0.1:3001` | Vite proxy target for `/api`, `/auth`, `/oauth/callback` |
-| `KEIDAI_UI_TORII_URL` | `http://127.0.0.1:3100` | Torii upstream for the BFF |
-| `KEIDAI_UI_FUDA_URL` | `http://127.0.0.1:3300` | Fuda upstream for the BFF |
-| `KEIDAI_UI_SHAIDEN_URL` | `http://127.0.0.1:3200` | Shaiden upstream for the BFF |
-| `BFF_SERVICE_TOKEN` | — | Required shared secret with Torii/Fuda/Shaiden (root `.env`); injected on proxied management APIs. Opt out: `BFF_SERVICE_TOKEN_DISABLED=true` |
-| `VITE_TORII_URL` / `VITE_FUDA_URL` / `VITE_SHAIDEN_URL` | — | Display-only addresses in the health footer; unset shows `<NAME> unset` |
+| Variable                                                | Default                 | Purpose                                                                                                                                       |
+| ------------------------------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `KEIDAI_UI_HOST`                                        | `127.0.0.1`             | BFF bind address                                                                                                                              |
+| `KEIDAI_UI_PORT`                                        | `3000`                  | Production BFF listen port                                                                                                                    |
+| `KEIDAI_UI_BFF_PORT`                                    | `3001`                  | API-only BFF port used by `pnpm dev`                                                                                                          |
+| `VITE_BFF_URL`                                          | `http://127.0.0.1:3001` | Vite proxy target for `/api`, `/auth`, `/oauth/callback`                                                                                      |
+| `KEIDAI_UI_TORII_URL`                                   | `http://127.0.0.1:3100` | Torii upstream for the BFF                                                                                                                    |
+| `KEIDAI_UI_FUDA_URL`                                    | `http://127.0.0.1:3300` | Fuda upstream for the BFF                                                                                                                     |
+| `KEIDAI_UI_SHAIDEN_URL`                                 | `http://127.0.0.1:3200` | Shaiden upstream for the BFF                                                                                                                  |
+| `BFF_SERVICE_TOKEN`                                     | —                       | Required shared secret with Torii/Fuda/Shaiden (root `.env`); injected on proxied management APIs. Opt out: `BFF_SERVICE_TOKEN_DISABLED=true` |
+| `VITE_TORII_URL` / `VITE_FUDA_URL` / `VITE_SHAIDEN_URL` | —                       | Display-only addresses in the health footer; unset shows `<NAME> unset`                                                                       |
 
 Copy `.env.example` → `.env` and fill Google OIDC + operators path. Redirect URI stays `http://localhost:3000/auth/callback` (Vite origin; proxied to the BFF). Always open the UI as `http://localhost:3000` — not `127.0.0.1` — so OAuth matches IdP registrations and k8s.
 

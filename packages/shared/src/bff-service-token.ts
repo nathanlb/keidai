@@ -107,10 +107,7 @@ export function authorizeBffServiceToken(input: {
   }
 
   const presented = extractBearerCredential(input.authorization);
-  if (
-    !presented ||
-    !timingSafeEqualString(presented, input.expectedToken)
-  ) {
+  if (!presented || !timingSafeEqualString(presented, input.expectedToken)) {
     return { ok: false, statusCode: 401, error: "Unauthorized" };
   }
 

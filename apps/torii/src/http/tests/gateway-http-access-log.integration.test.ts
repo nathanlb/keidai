@@ -43,7 +43,9 @@ describe("Gateway HTTP access logging", () => {
     const { approvalsApi } = services;
     const groupPolicies = groupPolicyCacheFromDefinitions();
     const gatewayHttpServer = new GatewayHttpServer(
-      new ConfigApiController(new ConfigReadService(configService, groupPolicies)),
+      new ConfigApiController(
+        new ConfigReadService(configService, groupPolicies),
+      ),
       new ConnectionsApiController(
         new ConnectionReadService(connectionManager, createStubToolCatalog()),
         connectionManager,
@@ -53,7 +55,11 @@ describe("Gateway HTTP access logging", () => {
       createOAuthApiController(configService),
       createTracesApiController(),
       approvalsApi,
-      createGroupsApiController(configService, services.persistence, groupPolicies),
+      createGroupsApiController(
+        configService,
+        services.persistence,
+        groupPolicies,
+      ),
       new GatewayMcpServer(
         {} as never,
         {} as never,
@@ -75,7 +81,9 @@ describe("Gateway HTTP access logging", () => {
       });
       assert.equal(response.status, 200);
 
-      const accessLog = logger.logs.find((entry) => entry.event === "http.request");
+      const accessLog = logger.logs.find(
+        (entry) => entry.event === "http.request",
+      );
       assert.ok(accessLog);
       assert.equal(accessLog.fields.method, "GET");
       assert.equal(accessLog.fields.url, "/api/config/servers");

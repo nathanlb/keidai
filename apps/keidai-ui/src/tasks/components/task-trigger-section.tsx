@@ -1,7 +1,7 @@
 import { Calendar, GitBranch, Zap } from "lucide-react";
 import { useWatch } from "react-hook-form";
 import { useTaskAuthoringForm } from "../hooks/use-task-authoring-form.js";
-import { FieldHeader } from "./field-header.js";
+import { FieldHeader } from "../../shell/forms/field-header.js";
 import { TaskScheduleFields } from "./task-schedule-fields.js";
 import { TriggerChip } from "./trigger-chip.js";
 
@@ -19,7 +19,7 @@ export function TaskTriggerSection({
   const isSchedule = triggerType === "schedule";
 
   return (
-    <section className="border-b border-border py-5">
+    <section>
       <FieldHeader
         icon={<Zap className="size-3.5" aria-hidden />}
         label="Trigger"

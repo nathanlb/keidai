@@ -156,11 +156,24 @@ export const DEFAULT_TASK_LIMITS: TaskLimits = {
   timeout_seconds: 600,
 };
 
+/** OpenRouter model ids are `author/slug` with no whitespace. */
+export const openRouterModelIdSchema = z
+  .string()
+  .trim()
+  .min(3)
+  .max(200)
+  .regex(
+    /^[A-Za-z0-9][A-Za-z0-9._:-]*\/[A-Za-z0-9][A-Za-z0-9._:@/-]*$/,
+    "expected an OpenRouter model id (author/slug)",
+  );
+
 export const taskSchema = z.object({
   goal: z.string().min(1),
   trigger: taskTriggerSchema,
   assignee: z.string().min(1),
   limits: taskLimitsSchema.optional(),
+  /** When set, this run uses this model instead of the agent's default. */
+  modelId: openRouterModelIdSchema.optional(),
 });
 
 export type Task = z.infer<typeof taskSchema>;

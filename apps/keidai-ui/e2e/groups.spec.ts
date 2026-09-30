@@ -107,9 +107,21 @@ test.describe("Policy Groups", () => {
       serverTools: {
         gmail: {
           tools: [
-            { name: "messages.send", description: "Send a message", allowed: true },
-            { name: "messages.list", description: "List messages", allowed: true },
-            { name: "messages.get", description: "Read a message", allowed: false },
+            {
+              name: "messages.send",
+              description: "Send a message",
+              allowed: true,
+            },
+            {
+              name: "messages.list",
+              description: "List messages",
+              allowed: true,
+            },
+            {
+              name: "messages.get",
+              description: "Read a message",
+              allowed: false,
+            },
           ],
         },
       },
@@ -122,7 +134,9 @@ test.describe("Policy Groups", () => {
     await expect(page.getByRole("button", { name: "Saved" })).toBeDisabled();
 
     await page.getByRole("radio", { name: "Deny" }).first().click();
-    await expect(page.getByRole("button", { name: "Save policy" })).toBeEnabled();
+    await expect(
+      page.getByRole("button", { name: "Save policy" }),
+    ).toBeEnabled();
     await page.getByRole("button", { name: "Save policy" }).click();
 
     await expect(
@@ -152,7 +166,9 @@ test.describe("Policy Groups", () => {
 
     await expect(page).toHaveURL(/\/groups\/ops-write$/);
     await expect(
-      page.getByRole("heading", { name: "ops-write" }).or(page.getByText("ops-write").first()),
+      page
+        .getByRole("heading", { name: "ops-write" })
+        .or(page.getByText("ops-write").first()),
     ).toBeVisible();
   });
 });

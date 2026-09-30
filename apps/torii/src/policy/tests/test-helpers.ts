@@ -46,11 +46,7 @@ export async function createApprovalServices(
     gatewayPersistence.approvalStore ??
     new ApprovalStoreService(gatewayPersistence.pool!);
   const taskStore = gatewayPersistence.taskStore!;
-  const approvalGate = new ApprovalGateService(
-    cache,
-    approvalStore,
-    taskStore,
-  );
+  const approvalGate = new ApprovalGateService(cache, approvalStore, taskStore);
   const approvalRead = new ApprovalReadService(approvalStore);
   const approvalsApi = new ApprovalsApiController(
     approvalRead,
@@ -73,4 +69,6 @@ export async function createApprovalServices(
   };
 }
 
-export type ApprovalServices = Awaited<ReturnType<typeof createApprovalServices>>;
+export type ApprovalServices = Awaited<
+  ReturnType<typeof createApprovalServices>
+>;

@@ -33,7 +33,8 @@ export async function openShaidenDatabase(
     typeof existingPoolOrOptions === "object" &&
     "query" in existingPoolOrOptions
       ? { pool: existingPoolOrOptions }
-      : ((existingPoolOrOptions as OpenShaidenDatabaseOptions | undefined) ?? {});
+      : ((existingPoolOrOptions as OpenShaidenDatabaseOptions | undefined) ??
+        {});
   const pool = options.pool ?? createPool(connectionString);
   const migrate = options.migrate ?? shouldAutoMigrate();
   const migrations = migrate

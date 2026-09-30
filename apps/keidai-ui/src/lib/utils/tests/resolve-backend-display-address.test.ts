@@ -4,10 +4,7 @@ import { resolveBackendDisplayAddress } from "../resolve-backend-display-address
 describe("resolveBackendDisplayAddress", () => {
   it("parses host:port from a valid URL", () => {
     expect(
-      resolveBackendDisplayAddress(
-        "VITE_SHAIDEN_URL",
-        "http://127.0.0.1:3200",
-      ),
+      resolveBackendDisplayAddress("VITE_SHAIDEN_URL", "http://127.0.0.1:3200"),
     ).toBe("127.0.0.1:3200");
   });
 

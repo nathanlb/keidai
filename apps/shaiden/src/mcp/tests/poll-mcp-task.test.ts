@@ -49,7 +49,10 @@ describe("nextTaskPollDelayMs", () => {
   });
 
   it("floors a zero interval so polling cannot busy-loop", () => {
-    assert.equal(nextTaskPollDelayMs(0, () => 0), MIN_TASK_POLL_INTERVAL_MS * 0.8);
+    assert.equal(
+      nextTaskPollDelayMs(0, () => 0),
+      MIN_TASK_POLL_INTERVAL_MS * 0.8,
+    );
   });
 
   it("caps an oversized interval", () => {

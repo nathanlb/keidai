@@ -28,11 +28,9 @@ describe("compareRunListItems", () => {
       run("b", "2026-07-14T12:00:00.000Z"),
     ];
 
-    expect([...items].sort(compareRunListItems).map((item) => item.id)).toEqual([
-      "c",
-      "b",
-      "a",
-    ]);
+    expect([...items].sort(compareRunListItems).map((item) => item.id)).toEqual(
+      ["c", "b", "a"],
+    );
   });
 });
 

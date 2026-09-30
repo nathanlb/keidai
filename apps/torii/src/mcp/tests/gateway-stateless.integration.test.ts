@@ -20,7 +20,10 @@ import { createCredentialServices } from "../../credentials/tests/test-helpers.j
 import { createTestGatewayHttpServer } from "../../http/tests/test-helpers.js";
 import { readPackageVersion } from "../../http/utils/read-package-version.js";
 import { TEST_AGENT_BEARER } from "../../identity/tests/test-helpers.js";
-import { createPolicyEnforcement, createApprovalServices } from "../../policy/tests/test-helpers.js";
+import {
+  createPolicyEnforcement,
+  createApprovalServices,
+} from "../../policy/tests/test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 import { testAgentsGroup } from "../../testing/test-config.js";
 
@@ -74,9 +77,7 @@ async function withGateway(
   });
 
   const groups = [
-    testAgentsGroup([
-      { server: "github", tools: ["search_issues", "echo"] },
-    ]),
+    testAgentsGroup([{ server: "github", tools: ["search_issues", "echo"] }]),
   ];
   const configService = new ToriiConfigService({
     oauth_providers: {},
@@ -190,7 +191,9 @@ describe("Gateway MCP stateless protocol core", () => {
 
       const serverInfo = (
         result._meta as Record<string, unknown> | undefined
-      )?.[SERVER_INFO_META_KEY] as { name?: string; version?: string } | undefined;
+      )?.[SERVER_INFO_META_KEY] as
+        | { name?: string; version?: string }
+        | undefined;
       assert.deepEqual(serverInfo, {
         name: "torii-gateway",
         version: readPackageVersion(),
@@ -216,12 +219,10 @@ describe("Gateway MCP stateless protocol core", () => {
       );
 
       assert.ok(status === 400 || status === 200);
-      const error = (json as { error?: { code?: number; data?: unknown } }).error;
+      const error = (json as { error?: { code?: number; data?: unknown } })
+        .error;
       assert.ok(error);
-      assert.equal(
-        error.code,
-        ProtocolErrorCode.UnsupportedProtocolVersion,
-      );
+      assert.equal(error.code, ProtocolErrorCode.UnsupportedProtocolVersion);
     });
   });
 

@@ -24,9 +24,9 @@ export function TablePaginationFooter({
   const content = (
     <>
       <span>
-        Showing{" "}
-        <span className="font-mono text-foreground">{shownCount}</span> of{" "}
-        <span className="font-mono text-foreground">{totalCount}</span> {totalLabel}
+        Showing <span className="font-mono text-foreground">{shownCount}</span>{" "}
+        of <span className="font-mono text-foreground">{totalCount}</span>{" "}
+        {totalLabel}
       </span>
       <div className="flex items-center gap-2">
         <Button
@@ -58,10 +58,12 @@ export function TablePaginationFooter({
   return (
     <>
       <Separator />
-      <div className="
+      <div
+        className="
         flex items-center justify-between px-4.5 py-2.5 text-xs
         text-muted-foreground
-      ">
+      "
+      >
         {content}
       </div>
     </>

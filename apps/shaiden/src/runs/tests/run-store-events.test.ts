@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { RunSseEvent } from "@keidai/shared";
-import {
-  createIsolatedSchema,
-  resolveTestDatabaseUrl,
-} from "@keidai/postgres";
+import { createIsolatedSchema, resolveTestDatabaseUrl } from "@keidai/postgres";
 import { RunStore } from "../run-store.js";
 import { PgRunRepository } from "../pg-run-repository.js";
 import { openShaidenDatabase } from "../../storage/shaiden-postgres.js";
-import { createTestPersistence, createTestRun } from "../../testing/persistence.js";
+import {
+  createTestPersistence,
+  createTestRun,
+} from "../../testing/persistence.js";
 
 const sampleTask = {
   goal: "Draft a note.",

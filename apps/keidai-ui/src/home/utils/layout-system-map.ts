@@ -308,10 +308,8 @@ export function layoutSystemMap(
   const groupCap = groupSlotCapacity(width);
   const railLeft = toriiRailLeft();
 
-  const groupsVisible = pickVisible(
-    map.groups,
-    groupCap,
-    (group) => (group.allGated ? 0 : 1),
+  const groupsVisible = pickVisible(map.groups, groupCap, (group) =>
+    group.allGated ? 0 : 1,
   );
   const visibleGroupIds = new Set(
     groupsVisible.kept.map((entry) => entry.item.id),
@@ -347,11 +345,8 @@ export function layoutSystemMap(
     return visible?.item.allGated ?? false;
   };
 
-  const serversVisible = pickVisible(
-    map.servers,
-    serverCap,
-    (server) =>
-      server.groupId && visibleGroupIds.has(server.groupId) ? 0 : 1,
+  const serversVisible = pickVisible(map.servers, serverCap, (server) =>
+    server.groupId && visibleGroupIds.has(server.groupId) ? 0 : 1,
   );
   const serverSlots =
     serversVisible.kept.length + (serversVisible.overflow > 0 ? 1 : 0);
@@ -456,9 +451,7 @@ export function layoutSystemMap(
   if (serversVisible.overflow > 0 && overflowGroupAnchor != null) {
     const toX = serverXs[serverSlots - 1];
     if (toX != null) {
-      edges.push(
-        overflowServerEdge({ fromX: overflowGroupAnchor, toX }),
-      );
+      edges.push(overflowServerEdge({ fromX: overflowGroupAnchor, toX }));
     }
   }
 
@@ -477,9 +470,7 @@ export function layoutSystemMap(
   if (agentsVisible.overflow > 0 && overflowGroupAnchor != null) {
     const fromX = agentXs[agentSlots - 1];
     if (fromX != null) {
-      edges.push(
-        overflowAgentEdge({ fromX, toX: overflowGroupAnchor }),
-      );
+      edges.push(overflowAgentEdge({ fromX, toX: overflowGroupAnchor }));
     }
   }
 

@@ -22,7 +22,8 @@ describe("weekly partitions", () => {
       14 * 24 * 60 * 60 * 1000,
     );
     assert.throws(
-      () => defaultPartitionRetentionMs({ KEIDAI_PARTITION_RETENTION_DAYS: "0" }),
+      () =>
+        defaultPartitionRetentionMs({ KEIDAI_PARTITION_RETENTION_DAYS: "0" }),
       /positive number/,
     );
   });

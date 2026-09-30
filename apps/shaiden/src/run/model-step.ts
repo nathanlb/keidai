@@ -61,7 +61,9 @@ function toModelMessages(history: ConversationEntry[]): ModelMessage[] {
         return {
           role: "assistant",
           content: [
-            ...(entry.text ? [{ type: "text" as const, text: entry.text }] : []),
+            ...(entry.text
+              ? [{ type: "text" as const, text: entry.text }]
+              : []),
             ...entry.toolCalls.map((call) => ({
               type: "tool-call" as const,
               toolCallId: call.toolCallId,

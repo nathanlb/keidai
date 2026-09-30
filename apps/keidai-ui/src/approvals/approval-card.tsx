@@ -42,7 +42,9 @@ export function ApprovalCard({
   onCancel,
 }: ApprovalCardProps) {
   const [busy, setBusy] = useState(false);
-  const { data: run } = useFetchRun(expanded && approval.runId ? approval.runId : null);
+  const { data: run } = useFetchRun(
+    expanded && approval.runId ? approval.runId : null,
+  );
   const display = deriveApprovalDisplay(approval, run);
   const parkedLabel = formatParkedDuration(approval.createdAt);
 
@@ -68,15 +70,19 @@ export function ApprovalCard({
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-              <span className="font-mono text-[14.5px] font-bold">{display.tool}</span>
+              <span className="font-mono text-[14.5px] font-bold">
+                {display.tool}
+              </span>
               <span className="text-[12px] text-muted-foreground">
                 {display.connectionLabel}
               </span>
             </div>
-            <div className="
+            <div
+              className="
               mt-0.5 flex min-w-0 items-center gap-1 text-[12px]
               text-muted-foreground
-            ">
+            "
+            >
               <CornerDownRight className="size-3 shrink-0" />
               <span className="truncate">
                 {display.taskName ?? "Parked run"}
@@ -143,31 +149,42 @@ export function ApprovalCard({
           <div className="flex flex-col gap-4 px-4.5 pt-3.75 pb-4.5">
             {display.reasoning ? (
               <div className="rounded-lg border border-border bg-muted/30 p-3">
-                <div className="
+                <div
+                  className="
                   flex items-center gap-1.5 text-[11px] font-semibold
                   tracking-wide text-muted-foreground uppercase
-                ">
+                "
+                >
                   <MessageSquare className="size-3.5" />
                   Why the agent wants this
                 </div>
-                <p className="mt-2 text-[13px] leading-relaxed">{display.reasoning}</p>
+                <p className="mt-2 text-[13px] leading-relaxed">
+                  {display.reasoning}
+                </p>
               </div>
             ) : null}
 
-            <div className="
+            <div
+              className="
               flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-muted-foreground
-            ">
+            "
+            >
               <span>
                 Agent{" "}
-                <span className="font-mono text-foreground">{approval.agentId}</span>
+                <span className="font-mono text-foreground">
+                  {approval.agentId}
+                </span>
               </span>
               <span>
                 Connection{" "}
-                <span className="font-mono text-foreground">{display.server}</span>
+                <span className="font-mono text-foreground">
+                  {display.server}
+                </span>
               </span>
               <span>
                 Parked{" "}
-                <span className="font-mono text-foreground">{parkedLabel}</span> ago
+                <span className="font-mono text-foreground">{parkedLabel}</span>{" "}
+                ago
               </span>
               {display.iterationCurrent !== undefined ? (
                 <span>

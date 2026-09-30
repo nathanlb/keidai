@@ -1,4 +1,7 @@
-import type { RunDisplayStatus, RunStatusFilter } from "./derive-run-display-status.js";
+import type {
+  RunDisplayStatus,
+  RunStatusFilter,
+} from "./derive-run-display-status.js";
 
 export interface RunStatusMeta {
   label: string;
@@ -24,8 +27,7 @@ export const RUN_STATUS_META: Record<RunDisplayStatus, RunStatusMeta> = {
   },
   failed: {
     label: "Failed",
-    badgeClass:
-      "border-transparent bg-destructive text-destructive-foreground",
+    badgeClass: "border-transparent bg-destructive text-destructive-foreground",
     dotClass: "bg-destructive",
   },
   iteration_exhausted: {
@@ -40,8 +42,7 @@ export const RUN_STATUS_META: Record<RunDisplayStatus, RunStatusMeta> = {
   },
   human_reject: {
     label: "Rejected",
-    badgeClass:
-      "border-transparent bg-destructive text-destructive-foreground",
+    badgeClass: "border-transparent bg-destructive text-destructive-foreground",
     dotClass: "bg-destructive",
   },
   stopped: {

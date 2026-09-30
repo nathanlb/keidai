@@ -1,7 +1,4 @@
-import {
-  PolicyDecision,
-  type AgentPrincipal,
-} from "@keidai/shared";
+import { PolicyDecision, type AgentPrincipal } from "@keidai/shared";
 import type { PolicyEvaluation } from "../types/policy-evaluation.js";
 import type {
   GroupPolicySnapshot,

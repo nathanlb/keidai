@@ -51,10 +51,12 @@ export function AddServerButton({
 
   return (
     <div className="rounded-xl border border-dashed border-border p-3">
-      <div className="
+      <div
+        className="
         flex h-8.5 items-center gap-2.5 rounded-md border border-ring
         bg-background px-2.5
-      ">
+      "
+      >
         <Search
           className="size-3.5 shrink-0 text-muted-foreground"
           aria-hidden
@@ -85,9 +87,11 @@ export function AddServerButton({
           <X className="size-3.5" aria-hidden />
         </button>
       </div>
-      <div className="
+      <div
+        className="
         mt-1.5 overflow-hidden rounded-lg border border-border bg-popover
-      ">
+      "
+      >
         {matches.length === 0 ? (
           <div className="p-3 text-[12px] text-muted-foreground">
             No server matches that search.

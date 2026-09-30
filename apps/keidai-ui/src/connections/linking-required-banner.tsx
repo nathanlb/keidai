@@ -1,9 +1,4 @@
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-  Button,
-} from "@keidai/ui";
+import { Alert, AlertDescription, AlertTitle, Button } from "@keidai/ui";
 import type { PublicServerConfig } from "@keidai/shared/dto";
 import type { TraceListItem } from "@keidai/shared";
 import { AlertTriangle, Link2 } from "lucide-react";
@@ -33,14 +28,19 @@ export function LinkingRequiredBanner({
   }
 
   return (
-    <Alert variant="destructive" className="
+    <Alert
+      variant="destructive"
+      className="
       border-destructive/40 bg-destructive/8
-    ">
+    "
+    >
       <AlertTriangle aria-hidden />
-      <div className="
+      <div
+        className="
         flex flex-col gap-3
         sm:flex-row sm:items-start
-      ">
+      "
+      >
         <div className="min-w-0 flex-1">
           <AlertTitle>{LINKING_REQUIRED_BANNER_TITLE}</AlertTitle>
           <AlertDescription className="text-[13px] leading-snug text-foreground">

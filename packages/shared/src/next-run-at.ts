@@ -47,7 +47,10 @@ function formatLocalDateTime(civil: CivilDateTime): string {
   return `${civil.year}-${pad2(civil.month)}-${pad2(civil.day)}T${pad2(civil.hour)}:${pad2(civil.minute)}`;
 }
 
-function partsInZone(date: Date, timeZone: string): CivilDateTime & {
+function partsInZone(
+  date: Date,
+  timeZone: string,
+): CivilDateTime & {
   second: number;
 } {
   const formatter = new Intl.DateTimeFormat("en-US", {
@@ -111,7 +114,13 @@ export function zonedLocalToUtc(local: string, timeZone: string): Date {
 
 function addUtcDays(civil: CivilDateTime, days: number): CivilDateTime {
   const date = new Date(
-    Date.UTC(civil.year, civil.month - 1, civil.day + days, civil.hour, civil.minute),
+    Date.UTC(
+      civil.year,
+      civil.month - 1,
+      civil.day + days,
+      civil.hour,
+      civil.minute,
+    ),
   );
   return {
     year: date.getUTCFullYear(),

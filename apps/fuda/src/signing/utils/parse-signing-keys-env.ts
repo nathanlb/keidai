@@ -68,7 +68,9 @@ export function parseSigningKeysEnv(
   return { keys, signingKid };
 }
 
-function parseMaterialSource(sourceRaw: string): SigningKeyMaterialSource | string {
+function parseMaterialSource(
+  sourceRaw: string,
+): SigningKeyMaterialSource | string {
   if (sourceRaw.startsWith("env:")) {
     const name = sourceRaw.slice("env:".length).trim();
     if (name.length === 0) {

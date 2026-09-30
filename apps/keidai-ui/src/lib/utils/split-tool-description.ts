@@ -15,7 +15,10 @@ export function splitToolDescription(description: string): {
   const lines = text.split("\n");
   if (lines.length > TOOL_DESCRIPTION_PREVIEW_LINES) {
     return {
-      preview: lines.slice(0, TOOL_DESCRIPTION_PREVIEW_LINES).join("\n").trimEnd(),
+      preview: lines
+        .slice(0, TOOL_DESCRIPTION_PREVIEW_LINES)
+        .join("\n")
+        .trimEnd(),
       expandable: true,
     };
   }
@@ -26,6 +29,8 @@ export function splitToolDescription(description: string): {
 
   const cut = text.slice(0, TOOL_DESCRIPTION_PREVIEW_CHARS);
   const breakAt = cut.lastIndexOf(" ");
-  const preview = (breakAt > TOOL_DESCRIPTION_PREVIEW_CHARS / 2 ? cut.slice(0, breakAt) : cut).trimEnd();
+  const preview = (
+    breakAt > TOOL_DESCRIPTION_PREVIEW_CHARS / 2 ? cut.slice(0, breakAt) : cut
+  ).trimEnd();
   return { preview, expandable: true };
 }

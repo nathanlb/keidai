@@ -22,9 +22,5 @@ export async function applyOperatorsFile(
   }
 
   const file = await loadOperatorsFile(trimmed);
-  return reconcileOwners(
-    owners,
-    agents,
-    ownerIdsFromOperators(file.operators),
-  );
+  return reconcileOwners(owners, agents, ownerIdsFromOperators(file.operators));
 }

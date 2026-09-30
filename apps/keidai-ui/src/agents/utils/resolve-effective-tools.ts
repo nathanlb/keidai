@@ -195,7 +195,8 @@ export function resolveEffectiveTools(
       return {
         name: server,
         via: uniqueSorted(viaByServer.get(server) ?? []),
-        catalogueAvailable: catalogue?.available !== false && Boolean(catalogue),
+        catalogueAvailable:
+          catalogue?.available !== false && Boolean(catalogue),
         unavailableReason: catalogue?.unavailableReason,
         tools: rows,
       };

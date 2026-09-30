@@ -105,10 +105,10 @@ function runTokenRepositoryContract(
 
         const grants = await repository.listByOwner("owner-a");
         assert.equal(grants.length, 2);
-        assert.deepEqual(
-          grants.map((grant) => grant.provider).sort(),
-          ["github", "linear"],
-        );
+        assert.deepEqual(grants.map((grant) => grant.provider).sort(), [
+          "github",
+          "linear",
+        ]);
         assert.equal(
           grants.every((grant) => grant.token.accessToken !== "other-token"),
           true,

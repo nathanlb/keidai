@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import {
-  createIsolatedSchema,
-  resolveTestDatabaseUrl,
-} from "@keidai/postgres";
+import { createIsolatedSchema, resolveTestDatabaseUrl } from "@keidai/postgres";
 import { PgAgentRepository } from "../../agents/pg-agent-repository.js";
 import { openFudaDatabase } from "../../storage/fuda-postgres.js";
 import { ensurePlatformBearer } from "../ensure-platform-bearer.js";

@@ -15,7 +15,11 @@ import type {
   TraceStatsResponse,
   TracesResponse,
 } from "@keidai/shared";
-import { CONNECTION_SSE_EVENT, RUN_SSE_EVENT, TRACE_SSE_EVENT } from "@keidai/shared/dto";
+import {
+  CONNECTION_SSE_EVENT,
+  RUN_SSE_EVENT,
+  TRACE_SSE_EVENT,
+} from "@keidai/shared/dto";
 import type {
   Bearer,
   Grant,
@@ -238,7 +242,9 @@ export async function mockToriiConfig(
     }
 
     const url = new URL(route.request().url());
-    const toolsMatch = url.pathname.match(/\/api\/connections\/([^/]+)\/tools$/);
+    const toolsMatch = url.pathname.match(
+      /\/api\/connections\/([^/]+)\/tools$/,
+    );
     if (toolsMatch) {
       const serverName = decodeURIComponent(toolsMatch[1]!);
       await route.fulfill({
@@ -400,10 +406,7 @@ export async function mockToriiConfig(
 
     const activeTasks = taskState.filter((task) => !task.archivedAt);
     const runsVisibility = buildRunsVisibilityResponse(runs, agentState);
-    const runningIds = collectRunningRunIds(
-      approvalState,
-      runsVisibility.runs,
-    );
+    const runningIds = collectRunningRunIds(approvalState, runsVisibility.runs);
     const runReports: Record<string, RunReport> = {};
     for (const runId of runningIds) {
       const report = runDetails[runId];
@@ -502,7 +505,10 @@ export async function mockToriiConfig(
 
       const current = taskState[index]!;
       if (current.archivedAt) {
-        await route.fulfill({ status: 409, json: { error: "task is archived" } });
+        await route.fulfill({
+          status: 409,
+          json: { error: "task is archived" },
+        });
         return;
       }
 
@@ -632,51 +638,56 @@ export async function mockToriiConfig(
     await route.fulfill({ json: filtered });
   });
 
-  await page.route(/\/api\/approvals\/[^/?]+\/(approve|reject|cancel)$/, async (route) => {
-    if (!healthy) {
-      await route.fulfill({ status: 503, body: "Gateway unavailable" });
-      return;
-    }
+  await page.route(
+    /\/api\/approvals\/[^/?]+\/(approve|reject|cancel)$/,
+    async (route) => {
+      if (!healthy) {
+        await route.fulfill({ status: 503, body: "Gateway unavailable" });
+        return;
+      }
 
-    const url = new URL(route.request().url());
-    const segments = url.pathname.split("/");
-    const action = segments.at(-1);
-    const id = segments.at(-2) ?? "";
-    const index = approvalState.findIndex((record) => record.id === id);
-    if (index === -1) {
-      await route.fulfill({
-        status: 404,
-        json: { error: "approval not found or not pending" },
-      });
-      return;
-    }
+      const url = new URL(route.request().url());
+      const segments = url.pathname.split("/");
+      const action = segments.at(-1);
+      const id = segments.at(-2) ?? "";
+      const index = approvalState.findIndex((record) => record.id === id);
+      if (index === -1) {
+        await route.fulfill({
+          status: 404,
+          json: { error: "approval not found or not pending" },
+        });
+        return;
+      }
 
-    const current = approvalState[index]!;
-    if (current.status !== "pending") {
-      await route.fulfill({
-        status: 404,
-        json: { error: "approval not found or not pending" },
-      });
-      return;
-    }
+      const current = approvalState[index]!;
+      if (current.status !== "pending") {
+        await route.fulfill({
+          status: 404,
+          json: { error: "approval not found or not pending" },
+        });
+        return;
+      }
 
-    const decidedAt = new Date().toISOString();
-    if (action === "approve") {
-      approvalState[index] = { ...current, status: "approved", decidedAt };
-    } else if (action === "reject") {
-      const body = route.request().postDataJSON() as { reason?: string } | null;
-      approvalState[index] = {
-        ...current,
-        status: "rejected",
-        decidedAt,
-        rejectionReason: body?.reason,
-      };
-    } else if (action === "cancel") {
-      approvalState[index] = { ...current, status: "cancelled", decidedAt };
-    }
+      const decidedAt = new Date().toISOString();
+      if (action === "approve") {
+        approvalState[index] = { ...current, status: "approved", decidedAt };
+      } else if (action === "reject") {
+        const body = route.request().postDataJSON() as {
+          reason?: string;
+        } | null;
+        approvalState[index] = {
+          ...current,
+          status: "rejected",
+          decidedAt,
+          rejectionReason: body?.reason,
+        };
+      } else if (action === "cancel") {
+        approvalState[index] = { ...current, status: "cancelled", decidedAt };
+      }
 
-    await route.fulfill({ json: approvalState[index] });
-  });
+      await route.fulfill({ json: approvalState[index] });
+    },
+  );
 
   await page.route("**/api/fuda/health", async (route) => {
     if (!fudaHealthy) {
@@ -699,7 +710,10 @@ export async function mockToriiConfig(
 
     if (method === "GET") {
       if (index === -1) {
-        await route.fulfill({ status: 404, json: { error: "group not found" } });
+        await route.fulfill({
+          status: 404,
+          json: { error: "group not found" },
+        });
         return;
       }
       await route.fulfill({ json: { group: groupState[index] } });
@@ -708,7 +722,10 @@ export async function mockToriiConfig(
 
     if (method === "PATCH") {
       if (index === -1) {
-        await route.fulfill({ status: 404, json: { error: "group not found" } });
+        await route.fulfill({
+          status: 404,
+          json: { error: "group not found" },
+        });
         return;
       }
       const body = route.request().postDataJSON() as {
@@ -729,7 +746,10 @@ export async function mockToriiConfig(
 
     if (method === "DELETE") {
       if (index === -1) {
-        await route.fulfill({ status: 404, json: { error: "group not found" } });
+        await route.fulfill({
+          status: 404,
+          json: { error: "group not found" },
+        });
         return;
       }
       groupState.splice(index, 1);
@@ -771,13 +791,16 @@ export async function mockToriiConfig(
     await route.fulfill({ json: { groups: groupState } });
   });
 
-  await page.route(/\/api\/agents\/slugs\/[^/]+\/availability$/, async (route) => {
-    const url = new URL(route.request().url());
-    const segments = url.pathname.split("/");
-    const slug = decodeURIComponent(segments.at(-2) ?? "");
-    const available = !agentState.some((agent) => agent.slug === slug);
-    await route.fulfill({ json: { available } });
-  });
+  await page.route(
+    /\/api\/agents\/slugs\/[^/]+\/availability$/,
+    async (route) => {
+      const url = new URL(route.request().url());
+      const segments = url.pathname.split("/");
+      const slug = decodeURIComponent(segments.at(-2) ?? "");
+      const available = !agentState.some((agent) => agent.slug === slug);
+      await route.fulfill({ json: { available } });
+    },
+  );
 
   await page.route(/\/api\/agents\/[^/]+\/personas$/, async (route) => {
     const url = new URL(route.request().url());
@@ -819,7 +842,12 @@ export async function mockToriiConfig(
       };
       agentState.push(agent);
       personaState.set(agent.id, [
-        { agentId: agent.id, version: 1, content: body.persona, createdAt: now },
+        {
+          agentId: agent.id,
+          version: 1,
+          content: body.persona,
+          createdAt: now,
+        },
       ]);
       const platform = bearerState.find(
         (bearer) => bearer.bearerId === "shaiden-runner",
@@ -842,7 +870,10 @@ export async function mockToriiConfig(
 
     if (method === "GET") {
       if (index === -1) {
-        await route.fulfill({ status: 404, json: { error: "agent not found" } });
+        await route.fulfill({
+          status: 404,
+          json: { error: "agent not found" },
+        });
         return;
       }
 
@@ -852,7 +883,10 @@ export async function mockToriiConfig(
 
     if (method === "PATCH") {
       if (index === -1) {
-        await route.fulfill({ status: 404, json: { error: "agent not found" } });
+        await route.fulfill({
+          status: 404,
+          json: { error: "agent not found" },
+        });
         return;
       }
 
@@ -890,7 +924,10 @@ export async function mockToriiConfig(
 
     if (method === "DELETE") {
       if (index === -1) {
-        await route.fulfill({ status: 404, json: { error: "agent not found" } });
+        await route.fulfill({
+          status: 404,
+          json: { error: "agent not found" },
+        });
         return;
       }
 

@@ -36,6 +36,7 @@ function savedTaskToTask(saved: SavedTask): Task {
     trigger: saved.trigger,
     assignee: saved.assignee,
     limits: saved.limits,
+    ...(saved.modelId ? { modelId: saved.modelId } : {}),
   };
 }
 
@@ -261,12 +262,7 @@ export function startScheduleDispatcher(input: {
         }
         const now = input.now?.() ?? new Date();
         const minNext = await input.taskRepository.peekMinNextRunAt();
-        delay = scheduleSleepMs(
-          minNext,
-          now.getTime(),
-          maxSleepMs,
-          dueWakeMs,
-        );
+        delay = scheduleSleepMs(minNext, now.getTime(), maxSleepMs, dueWakeMs);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         input.logger.error("schedule.tick_failed", { error: message });

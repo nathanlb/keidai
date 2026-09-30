@@ -23,7 +23,10 @@ function SummaryTile({
       <CardContent className="px-4 py-3.5">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           {showMutedDot ? (
-            <span className="size-1.5 rounded-full bg-muted-foreground" aria-hidden />
+            <span
+              className="size-1.5 rounded-full bg-muted-foreground"
+              aria-hidden
+            />
           ) : null}
           {showWarningDot ? (
             <span className="size-1.5 rounded-full bg-warning" aria-hidden />
@@ -61,10 +64,12 @@ export function RunsSummaryTiles({
   failed: number;
 }) {
   return (
-    <div className="
+    <div
+      className="
       grid grid-cols-2 gap-3
       md:grid-cols-4
-    ">
+    "
+    >
       <SummaryTile label="Runs today" value={runsToday.toLocaleString()} />
       <SummaryTile
         label="Running"

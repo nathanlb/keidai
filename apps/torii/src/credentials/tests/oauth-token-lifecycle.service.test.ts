@@ -87,7 +87,11 @@ describe("OAuthTokenLifecycleService", () => {
     const lifecycle = createLifecycle(repository);
 
     const token = await withMockFetch(
-      mockRefreshFetch({ onCall: () => { refreshCalls += 1; } }),
+      mockRefreshFetch({
+        onCall: () => {
+          refreshCalls += 1;
+        },
+      }),
       () => lifecycle.getValidToken("user-1", "github"),
     );
 
@@ -105,7 +109,11 @@ describe("OAuthTokenLifecycleService", () => {
     const lifecycle = createLifecycle(repository);
 
     const token = await withMockFetch(
-      mockRefreshFetch({ onCall: () => { refreshCalls += 1; } }),
+      mockRefreshFetch({
+        onCall: () => {
+          refreshCalls += 1;
+        },
+      }),
       () => lifecycle.getValidToken("user-1", "github"),
     );
 
@@ -187,20 +195,23 @@ describe("OAuthTokenLifecycleService", () => {
     const lifecycle = createLifecycle(repository);
 
     let accept: string | null = null;
-    const token = await withMockFetch(async (_input, init) => {
-      accept = new Headers(init?.headers).get("Accept");
-      return new Response(
-        JSON.stringify({
-          access_token: "gho_json",
-          expires_in: 3600,
-          token_type: "bearer",
-        }),
-        {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        },
-      );
-    }, () => lifecycle.getValidToken("user-1", "github"));
+    const token = await withMockFetch(
+      async (_input, init) => {
+        accept = new Headers(init?.headers).get("Accept");
+        return new Response(
+          JSON.stringify({
+            access_token: "gho_json",
+            expires_in: 3600,
+            token_type: "bearer",
+          }),
+          {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          },
+        );
+      },
+      () => lifecycle.getValidToken("user-1", "github"),
+    );
 
     assert.equal(accept, "application/json");
     assert.equal(token?.accessToken, "gho_json");
@@ -220,7 +231,9 @@ describe("OAuthTokenLifecycleService", () => {
     const [first, second] = await withMockFetch(
       mockRefreshFetch({
         delayMs: 50,
-        onCall: () => { refreshCalls += 1; },
+        onCall: () => {
+          refreshCalls += 1;
+        },
         response: {
           access_token: "gho_refreshed",
           expires_in: 3600,
@@ -254,7 +267,9 @@ describe("OAuthTokenLifecycleService", () => {
 
     await withMockFetch(
       mockRefreshFetch({
-        onCall: () => { refreshCalls += 1; },
+        onCall: () => {
+          refreshCalls += 1;
+        },
         response: {
           access_token: "gho_refreshed",
           expires_in: 3600,
@@ -284,7 +299,9 @@ describe("OAuthTokenLifecycleService", () => {
 
     await withMockFetch(
       mockRefreshFetch({
-        onCall: () => { refreshCalls += 1; },
+        onCall: () => {
+          refreshCalls += 1;
+        },
         response: {
           access_token: "gho_refreshed",
           expires_in: -120,

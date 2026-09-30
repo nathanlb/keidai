@@ -53,7 +53,10 @@ export async function recordToolResult(
   });
 }
 
-export async function recordTaskOutput(reporter: RunReporter, text: string): Promise<void> {
+export async function recordTaskOutput(
+  reporter: RunReporter,
+  text: string,
+): Promise<void> {
   await reporter.recordStep({
     kind: "output",
     text: clipTaskOutput(text),

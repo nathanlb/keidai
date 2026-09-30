@@ -33,10 +33,7 @@ describe("parseStaticSubjectTokens", () => {
   });
 
   it("rejects duplicate tokens", () => {
-    assert.match(
-      parseStaticSubjectTokens("a,a") as string,
-      /Duplicate token/,
-    );
+    assert.match(parseStaticSubjectTokens("a,a") as string, /Duplicate token/);
   });
 
   it("rejects the old mapping format", () => {

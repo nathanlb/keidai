@@ -92,9 +92,7 @@ describe("layoutSystemMap", () => {
     expect(layout.servers[0]?.x).toBe(100);
     expect(layout.railLeft).toBe(toriiRailLeft());
     expect(
-      layout.agents.every(
-        (node) => node.x + AGENT_TILE_WIDTH / 2 <= 1040,
-      ),
+      layout.agents.every((node) => node.x + AGENT_TILE_WIDTH / 2 <= 1040),
     ).toBe(true);
   });
 
@@ -127,13 +125,7 @@ describe("layoutSystemMap", () => {
   it("overflows large installs and keeps gated groups", () => {
     const map: HomeSystemMap = {
       workingCount: 3,
-      groups: [
-        group(0),
-        group(1),
-        group(2, true),
-        group(3),
-        group(4, true),
-      ],
+      groups: [group(0), group(1), group(2, true), group(3), group(4, true)],
       servers: Array.from({ length: 14 }, (_, index) =>
         server(index, index % 5),
       ),
@@ -185,13 +177,7 @@ describe("layoutSystemMap", () => {
   it("fits more nodes when the canvas is wider", () => {
     const map: HomeSystemMap = {
       workingCount: 3,
-      groups: [
-        group(0),
-        group(1),
-        group(2, true),
-        group(3),
-        group(4, true),
-      ],
+      groups: [group(0), group(1), group(2, true), group(3), group(4, true)],
       servers: Array.from({ length: 14 }, (_, index) =>
         server(index, index % 5),
       ),
@@ -279,8 +265,6 @@ describe("layoutSystemMap", () => {
   });
 
   it("builds vertical cubics with control points at 45% of the delta", () => {
-    expect(verticalCurve(10, 0, 20, 100)).toBe(
-      "M 10 0 C 10 45 20 55 20 100",
-    );
+    expect(verticalCurve(10, 0, 20, 100)).toBe("M 10 0 C 10 45 20 55 20 100");
   });
 });

@@ -16,7 +16,10 @@ import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter
 import { createCredentialServices } from "../../credentials/tests/test-helpers.js";
 import { createTestGatewayHttpServer } from "../../http/tests/test-helpers.js";
 import { TEST_AGENT_BEARER } from "../../identity/tests/test-helpers.js";
-import { createPolicyEnforcement, createApprovalServices } from "../../policy/tests/test-helpers.js";
+import {
+  createPolicyEnforcement,
+  createApprovalServices,
+} from "../../policy/tests/test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 import { testAgentsGroup } from "../../testing/test-config.js";
 import { MCP_HEADER_MISMATCH_ERROR_CODE } from "../utils/mcp-http-errors.js";
@@ -56,9 +59,7 @@ async function withGateway(
   });
 
   const groups = [
-    testAgentsGroup([
-      { server: "github", tools: ["search_issues", "echo"] },
-    ]),
+    testAgentsGroup([{ server: "github", tools: ["search_issues", "echo"] }]),
   ];
   const configService = new ToriiConfigService({
     oauth_providers: {},
@@ -183,7 +184,10 @@ describe("Gateway MCP routing headers and cacheable lists", () => {
         error?: { code?: number; message?: string };
       };
       assert.equal(body.error?.code, MCP_HEADER_MISMATCH_ERROR_CODE);
-      assert.match(body.error?.message ?? "", /github\.echo.*github\.search_issues/);
+      assert.match(
+        body.error?.message ?? "",
+        /github\.echo.*github\.search_issues/,
+      );
     });
   });
 
@@ -204,7 +208,8 @@ describe("Gateway MCP routing headers and cacheable lists", () => {
           method: "tools/list",
           params: {
             _meta: {
-              "io.modelcontextprotocol/protocolVersion": MODERN_PROTOCOL_VERSION,
+              "io.modelcontextprotocol/protocolVersion":
+                MODERN_PROTOCOL_VERSION,
               "io.modelcontextprotocol/clientInfo": {
                 name: "header-test-agent",
                 version: "1.0.0",

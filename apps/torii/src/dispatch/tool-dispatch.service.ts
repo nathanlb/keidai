@@ -48,9 +48,7 @@ import {
   toTracePrincipal,
 } from "../trace/utils/build-call-trace.js";
 import { deriveCredentialRef } from "../trace/utils/derive-credential-ref.js";
-import {
-  parseNamespacedToolName,
-} from "../trace/utils/parse-namespaced-tool-name.js";
+import { parseNamespacedToolName } from "../trace/utils/parse-namespaced-tool-name.js";
 import {
   BackendUnavailableError,
   ToolNotFoundError,
@@ -167,12 +165,18 @@ export class ToolDispatchService {
       return;
     }
 
-    const claimed = await this.approvalGate.claimApprovedExecution(taskId, principal);
+    const claimed = await this.approvalGate.claimApprovedExecution(
+      taskId,
+      principal,
+    );
     if (!claimed) {
       return;
     }
 
-    const stored = await this.taskStore.getDetailedTask(principal.agentId, taskId);
+    const stored = await this.taskStore.getDetailedTask(
+      principal.agentId,
+      taskId,
+    );
     if (stored.status !== "working") {
       return;
     }
@@ -299,7 +303,9 @@ export class ToolDispatchService {
       durationMs: Date.now() - ctx.startedAt,
     });
 
-    return intercepted.kind === "parked" ? intercepted.task : intercepted.result;
+    return intercepted.kind === "parked"
+      ? intercepted.task
+      : intercepted.result;
   }
 
   private async resolveConnectedBackend(
@@ -318,11 +324,7 @@ export class ToolDispatchService {
     }
 
     let connection = this.connectionManager.get(entry.server);
-    if (
-      !connection ||
-      connection.state === "failed" ||
-      !connection.client
-    ) {
+    if (!connection || connection.state === "failed" || !connection.client) {
       // Retry once with the current agent principal so user_oauth handshakes
       // can attach Authorization after a principal-less boot failure.
       try {
@@ -657,7 +659,10 @@ export class ToolDispatchService {
         });
         return;
       case "input_required":
-        await this.abandonBackendTask(stored, BACKEND_TASK_INPUT_REQUIRED_MESSAGE);
+        await this.abandonBackendTask(
+          stored,
+          BACKEND_TASK_INPUT_REQUIRED_MESSAGE,
+        );
         return;
       case "completed":
         await this.taskStore.complete(taskId, backend.result);

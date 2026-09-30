@@ -74,7 +74,10 @@ describe("defineTableColumns", () => {
       },
     });
 
-    expect(layout.cellStyle("endpoint")).toEqual({ width: "auto", maxWidth: 220 });
+    expect(layout.cellStyle("endpoint")).toEqual({
+      width: "auto",
+      maxWidth: 220,
+    });
   });
 
   it("supports mixed percent and shrink columns in one table", () => {

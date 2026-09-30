@@ -9,9 +9,7 @@ export function collectAgentTasks(
   tasks: readonly SavedTask[],
   agentId: string,
 ): SavedTask[] {
-  return tasks.filter(
-    (task) => task.assignee === agentId && !task.archivedAt,
-  );
+  return tasks.filter((task) => task.assignee === agentId && !task.archivedAt);
 }
 
 export function collectAgentRuns(
@@ -59,8 +57,7 @@ export function countRunsForTask(
   taskId: string,
   sinceMs: number,
 ): number {
-  return runsSince(runs, sinceMs).filter((run) => run.taskId === taskId)
-    .length;
+  return runsSince(runs, sinceMs).filter((run) => run.taskId === taskId).length;
 }
 
 export interface VerdictCounts {

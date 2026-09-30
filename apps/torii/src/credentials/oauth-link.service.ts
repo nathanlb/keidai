@@ -25,7 +25,11 @@ import {
   TOKEN_REPOSITORY,
   type TokenRepository,
 } from "./types/token-repository.js";
-import { decodeOAuthLinkState, encodeOAuthLinkState, type OAuthLinkState } from "./utils/oauth-link-state.js";
+import {
+  decodeOAuthLinkState,
+  encodeOAuthLinkState,
+  type OAuthLinkState,
+} from "./utils/oauth-link-state.js";
 import { buildOAuthCallbackRedirectUri } from "./utils/oauth-callback-redirect-uri.js";
 import { resolveOAuthOwnerId } from "./utils/resolve-oauth-owner.js";
 import {
@@ -67,10 +71,7 @@ interface ResolvedCallbackContext {
 }
 
 function isCallbackError(
-  result:
-    | { success?: boolean }
-    | ResolvedCallbackContext
-    | OAuthLinkState,
+  result: { success?: boolean } | ResolvedCallbackContext | OAuthLinkState,
 ): result is CallbackError {
   return "success" in result && result.success === false;
 }
@@ -194,7 +195,12 @@ export class OAuthLinkService {
         ...(ownerId ? { ownerId } : {}),
         error: resolved.error,
       });
-      const page = await this.callbackPageFromState(provider, query.state, "error", resolved.error);
+      const page = await this.callbackPageFromState(
+        provider,
+        query.state,
+        "error",
+        resolved.error,
+      );
       return { ...resolved, page };
     }
 
@@ -207,7 +213,10 @@ export class OAuthLinkService {
     }
 
     const resolvedOwnerId = resolveOAuthOwnerId(ownerId);
-    const removed = await this.tokenRepository.delete(resolvedOwnerId, provider);
+    const removed = await this.tokenRepository.delete(
+      resolvedOwnerId,
+      provider,
+    );
     if (removed) {
       this.logger.info("oauth.unlinked", {
         provider,
@@ -269,9 +278,7 @@ export class OAuthLinkService {
     return { code: query.code, pendingLink };
   }
 
-  private decodeCallbackState(
-    state: string,
-  ): OAuthLinkState | CallbackError {
+  private decodeCallbackState(state: string): OAuthLinkState | CallbackError {
     try {
       return decodeOAuthLinkState(state);
     } catch (error) {
@@ -386,7 +393,9 @@ export class OAuthLinkService {
     }
   }
 
-  private tryResolveOwnerIdFromState(state: string | undefined): string | undefined {
+  private tryResolveOwnerIdFromState(
+    state: string | undefined,
+  ): string | undefined {
     if (!state) {
       return undefined;
     }

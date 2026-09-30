@@ -27,8 +27,11 @@ export async function completeRunWithOutcomeStep(
   runId: string,
   outcome: TerminationOutcome,
 ): Promise<void> {
-  const { id: _id, timestamp: _timestamp, ...outcomeStep } =
-    outcomeStepFromTermination(outcome);
+  const {
+    id: _id,
+    timestamp: _timestamp,
+    ...outcomeStep
+  } = outcomeStepFromTermination(outcome);
   await store.appendStep(runId, {
     timestamp: new Date().toISOString(),
     ...outcomeStep,

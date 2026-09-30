@@ -109,7 +109,9 @@ export class ConnectorsApiController {
   }
 
   private sendWriteError(
-    reply: { code: (statusCode: number) => { send: (payload: unknown) => void } },
+    reply: {
+      code: (statusCode: number) => { send: (payload: unknown) => void };
+    },
     error: unknown,
   ): void {
     if (error instanceof ConnectorWriteError) {

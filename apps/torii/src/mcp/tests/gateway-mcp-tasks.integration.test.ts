@@ -7,10 +7,7 @@ import {
   PROTOCOL_VERSION_META_KEY,
   ProtocolErrorCode,
 } from "@modelcontextprotocol/server";
-import {
-  MCP_TASKS_EXTENSION_ID,
-  type ToriiConfig,
-} from "@keidai/shared";
+import { MCP_TASKS_EXTENSION_ID, type ToriiConfig } from "@keidai/shared";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
 import { ConnectionManager } from "../../connections/connection-manager.service.js";
 import { DefaultMcpClientConnector } from "../../connections/mcp-client-connector.service.js";
@@ -81,7 +78,7 @@ async function withTasksGateway(
 ): Promise<void> {
   const ownedPersistence = persistence === undefined;
   const gatewayPersistence =
-    persistence ?? await createTestGatewayPersistence("postgres");
+    persistence ?? (await createTestGatewayPersistence("postgres"));
   assert.ok(gatewayPersistence.taskStore);
   const backend = await startMockMcpServer({
     tools: [{ name: "echo", description: "Echo input" }],
@@ -92,7 +89,10 @@ async function withTasksGateway(
     oauth_providers: {},
     servers: [serverConfig("github", backend.url)],
   });
-  const approvalServices = await createApprovalServices(groups, gatewayPersistence);
+  const approvalServices = await createApprovalServices(
+    groups,
+    gatewayPersistence,
+  );
   const policyEnforcement = createPolicyEnforcement(groups);
   const { credentialResolver } = createCredentialServices();
   const connectionManager = new ConnectionManager(
@@ -190,8 +190,9 @@ describe("Gateway MCP tasks extension", () => {
         method: "tasks/get",
         params: { taskId: created.taskId, _meta: modernMeta() },
       });
-      const getError = (getJson as { error?: { code?: number; resultType?: string } })
-        .error;
+      const getError = (
+        getJson as { error?: { code?: number; resultType?: string } }
+      ).error;
       assert.equal(
         getError?.code,
         ProtocolErrorCode.MissingRequiredClientCapability,
@@ -267,8 +268,9 @@ describe("Gateway MCP tasks extension", () => {
         params: { taskId: "0".repeat(64), _meta: tasksMeta() },
       });
 
-      const otherError = (otherJson as { error?: { code?: number; message?: string } })
-        .error;
+      const otherError = (
+        otherJson as { error?: { code?: number; message?: string } }
+      ).error;
       const missingError = (
         missingJson as { error?: { code?: number; message?: string } }
       ).error;
@@ -326,8 +328,12 @@ describe("Gateway MCP tasks extension", () => {
         "complete",
       );
       assert.equal(
-        (await taskStore.getDetailedTask(TEST_AGENT_PRINCIPAL.agentId, created.taskId))
-          .status,
+        (
+          await taskStore.getDetailedTask(
+            TEST_AGENT_PRINCIPAL.agentId,
+            created.taskId,
+          )
+        ).status,
         "working",
       );
 
@@ -342,8 +348,12 @@ describe("Gateway MCP tasks extension", () => {
         "complete",
       );
       assert.equal(
-        (await taskStore.getDetailedTask(TEST_AGENT_PRINCIPAL.agentId, created.taskId))
-          .status,
+        (
+          await taskStore.getDetailedTask(
+            TEST_AGENT_PRINCIPAL.agentId,
+            created.taskId,
+          )
+        ).status,
         "cancelled",
       );
     });

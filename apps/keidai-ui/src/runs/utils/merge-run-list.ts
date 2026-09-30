@@ -19,7 +19,5 @@ export function mergeRunListItem<T extends RunListItem>(
   limit = LIST_BUFFER_LIMIT,
 ): T[] {
   const without = current.filter((item) => item.id !== run.id);
-  return [...without, run]
-    .sort(compareRunListItems)
-    .slice(0, limit);
+  return [...without, run].sort(compareRunListItems).slice(0, limit);
 }

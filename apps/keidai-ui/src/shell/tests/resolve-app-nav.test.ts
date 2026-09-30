@@ -24,6 +24,7 @@ describe("resolveAppNavSection", () => {
     expect(resolveAppNavSection("/configure/groups")).toBeUndefined();
     expect(resolveAppNavSection("/configure/groups/ops-write")).toBeUndefined();
     expect(resolveAppNavSection("/bearers")).toBeUndefined();
+    expect(resolveAppNavSection("/settings")).toBeUndefined();
   });
 });
 
@@ -43,12 +44,14 @@ describe("resolveAppNav", () => {
     expect(resolveAppNav("/activity")?.label).toBe("Activity");
     expect(resolveAppNav("/groups")?.label).toBe("Policy Groups");
     expect(resolveAppNav("/groups/ops-write")?.label).toBe("Policy Groups");
+    expect(resolveAppNav("/settings")?.label).toBe("Settings");
   });
 
   it("resolves section labels from the URL", () => {
     expect(resolveAppSection("/activity")).toBe("Gateway");
     expect(resolveAppSection("/connections")).toBe("Gateway");
     expect(resolveAppSection("/groups")).toBe("Gateway");
+    expect(resolveAppSection("/settings")).toBe("");
     expect(resolveAppSection("/agents")).toBe("Work");
     expect(resolveAppSection("/runs/4821")).toBe("Work");
     expect(resolveAppSection("/home")).toBe("");

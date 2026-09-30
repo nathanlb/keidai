@@ -67,10 +67,7 @@ export class RunStore {
     return projectRunListItem(run);
   }
 
-  async appendStep(
-    runId: string,
-    step: Omit<RunStep, "id"> & { id?: string },
-  ) {
+  async appendStep(runId: string, step: Omit<RunStep, "id"> & { id?: string }) {
     const run = await this.repository.appendStep(runId, createRunStep(step));
     if (run) {
       await this.notifyUpdated(runId);

@@ -15,10 +15,7 @@ import {
   recordToolDispatch,
   recordToolResult,
 } from "./run-step-recording.js";
-import {
-  parseTaskOutput,
-  REPORT_TASK_OUTPUT_TOOL,
-} from "./task-output.js";
+import { parseTaskOutput, REPORT_TASK_OUTPUT_TOOL } from "./task-output.js";
 import type {
   ModelToolCall,
   ToolDispatchOptions,

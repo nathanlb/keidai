@@ -10,9 +10,7 @@ function duplicateToolsInList(
   const errors: string[] = [];
   for (const tool of tools) {
     if (seen.has(tool)) {
-      errors.push(
-        `duplicate tool "${tool}" in ${list} on server "${server}"`,
-      );
+      errors.push(`duplicate tool "${tool}" in ${list} on server "${server}"`);
     }
     seen.add(tool);
   }

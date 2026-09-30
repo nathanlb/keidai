@@ -66,7 +66,9 @@ describe("countGroupGrants", () => {
       catalogueComplete: true,
     });
 
-    expect(countGroupGrants([gmail, drive], { gmail: catalogues.gmail })).toMatchObject({
+    expect(
+      countGroupGrants([gmail, drive], { gmail: catalogues.gmail }),
+    ).toMatchObject({
       catalogueComplete: false,
     });
   });

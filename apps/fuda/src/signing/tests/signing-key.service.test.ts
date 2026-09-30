@@ -18,7 +18,10 @@ describe("SigningKeyService", () => {
 
     assert.equal(service.getSigningKid(), "new");
     assert.deepEqual(
-      service.getJwks().keys.map((key) => key.kid).sort(),
+      service
+        .getJwks()
+        .keys.map((key) => key.kid)
+        .sort(),
       ["new", "old"],
     );
 
@@ -38,9 +41,7 @@ describe("SigningKeyService", () => {
     const pem = readFileSync(path, "utf8");
     const service = new SigningKeyService(
       {
-        keys: [
-          { kid: "env-key", material: { kind: "env", name: "FUDA_PEM" } },
-        ],
+        keys: [{ kid: "env-key", material: { kind: "env", name: "FUDA_PEM" } }],
         signingKid: "env-key",
       },
       { FUDA_PEM: pem },

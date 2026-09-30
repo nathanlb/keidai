@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Logger, Task } from "@keidai/shared";
-import { createTestPersistence, createTestRun } from "../../testing/persistence.js";
+import {
+  createTestPersistence,
+  createTestRun,
+} from "../../testing/persistence.js";
 import { resumeParkedHarnessRuns } from "../resume-parked-runs.js";
 
 const sampleTask: Task = {

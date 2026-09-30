@@ -25,10 +25,7 @@ export async function unsealPayload<T extends Record<string, unknown>>(
     const { payload } = await jwtDecrypt(token, deriveKey(secret));
     return payload as unknown as T;
   } catch (error) {
-    if (
-      error instanceof joseErrors.JOSEError ||
-      error instanceof TypeError
-    ) {
+    if (error instanceof joseErrors.JOSEError || error instanceof TypeError) {
       return null;
     }
     throw error;

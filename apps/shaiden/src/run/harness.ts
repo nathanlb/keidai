@@ -1,9 +1,5 @@
 import { randomUUID } from "node:crypto";
-import {
-  resolveTaskLimits,
-  type Logger,
-  type Task,
-} from "@keidai/shared";
+import { resolveTaskLimits, type Logger, type Task } from "@keidai/shared";
 import {
   AgentDefinitionError,
   createHttpFudaClient,
@@ -14,6 +10,8 @@ import type { RuntimeConfig } from "../config/runtime-config.js";
 import { createAgentTokenProvider } from "../fuda/agent-token-provider.js";
 import { defaultLogger } from "../logging/logger.js";
 import { createOpenRouterModel } from "../model/openrouter.js";
+import { resolveConfiguredOpenRouterApiKey } from "../openrouter/resolve-api-key.js";
+import { resolveModelId } from "./resolve-model-id.js";
 import { connectToriiSession } from "../mcp/torii-client.js";
 import type { ToriiSessionCredential } from "../mcp/types/index.js";
 import {
@@ -110,6 +108,7 @@ async function resolvePersonaAtTaskStart(input: {
   systemPrompt: string;
   personaVersion?: number;
   persona?: string;
+  agentDefaultModelId?: string;
 }> {
   const { assignee, fudaClient } = input;
 
@@ -122,6 +121,9 @@ async function resolvePersonaAtTaskStart(input: {
     systemPrompt: systemPromptFromPersona(definition.persona),
     personaVersion: definition.personaVersion,
     persona: definition.persona,
+    ...(definition.defaultModelId
+      ? { agentDefaultModelId: definition.defaultModelId }
+      : {}),
   };
 }
 
@@ -162,11 +164,17 @@ export async function launchHarnessRun({
 }: LaunchHarnessRunInput): Promise<LaunchedHarnessRun> {
   const logger = options.logger ?? defaultLogger;
   const fudaClient = resolveFudaClient(config, options);
-  const { systemPrompt, personaVersion, persona } =
+  const openRouterApiKey = await resolveConfiguredOpenRouterApiKey(config);
+  const { systemPrompt, personaVersion, persona, agentDefaultModelId } =
     await resolvePersonaAtTaskStart({
       assignee: task.assignee,
       fudaClient,
     });
+  const modelId = resolveModelId({
+    taskModelId: task.modelId,
+    agentDefaultModelId,
+    platformModelId: config.modelId,
+  });
 
   const limits = resolveTaskLimits(task);
   const runDraft = createRun(randomUUID(), {
@@ -183,6 +191,7 @@ export async function launchHarnessRun({
     startedAt: runDraft.startedAt,
     personaVersion,
     persona,
+    modelId,
   });
 
   const initialHistory: ConversationEntry[] = [
@@ -202,6 +211,8 @@ export async function launchHarnessRun({
     leaseMs: options.leaseMs ?? DEFAULT_RUN_LEASE_MS,
     now: options.now ?? Date.now,
     systemPrompt,
+    modelId,
+    openRouterApiKey,
     fudaClient,
     stopController: options.stopController,
   }).then((result) => result);
@@ -243,6 +254,14 @@ export async function resumeHarnessRun({
     runStore,
     fudaClient,
   });
+  const openRouterApiKey = await resolveConfiguredOpenRouterApiKey(config);
+  const stamped = await runStore.getRun(runId);
+  const modelId =
+    stamped?.modelId ??
+    resolveModelId({
+      taskModelId: task.modelId,
+      platformModelId: config.modelId,
+    });
 
   const done = driveHarnessRun({
     runId,
@@ -256,6 +275,8 @@ export async function resumeHarnessRun({
     leaseMs: options.leaseMs ?? DEFAULT_RUN_LEASE_MS,
     now: options.now ?? Date.now,
     systemPrompt,
+    modelId,
+    openRouterApiKey,
     fudaClient,
     stopController: options.stopController,
   }).catch(async (error) => {
@@ -288,6 +309,8 @@ async function driveHarnessRun({
   leaseMs,
   now,
   systemPrompt,
+  modelId,
+  openRouterApiKey,
   fudaClient,
   stopController,
 }: DriveHarnessRunInput): Promise<HarnessRunResult> {
@@ -325,7 +348,8 @@ async function driveHarnessRun({
   const runDraft = {
     id: runId,
     task,
-    startedAt: (await runStore.getRun(runId))?.startedAt ?? new Date().toISOString(),
+    startedAt:
+      (await runStore.getRun(runId))?.startedAt ?? new Date().toISOString(),
   };
 
   try {
@@ -342,7 +366,9 @@ async function driveHarnessRun({
         tools: session.tools.map((tool) => tool.name),
       });
 
-      const availableToolNames = new Set(session.tools.map((tool) => tool.name));
+      const availableToolNames = new Set(
+        session.tools.map((tool) => tool.name),
+      );
       const dispatchToolCall = createHarnessToolDispatcher({
         runId,
         reporter,
@@ -352,7 +378,7 @@ async function driveHarnessRun({
       });
 
       const baseCallModel = createModelStepCaller(
-        createOpenRouterModel(config.openRouterApiKey, config.modelId),
+        createOpenRouterModel(openRouterApiKey, modelId),
         systemPrompt,
         buildToolSet(session.tools),
       );
@@ -383,7 +409,7 @@ async function driveHarnessRun({
 
       logger.info("run.started", {
         runId,
-        modelId: config.modelId,
+        modelId,
         assignee: task.assignee,
       });
 
@@ -403,8 +429,7 @@ async function driveHarnessRun({
           callModel,
           dispatchToolCall,
           waitForApproval,
-          drainPendingUserMessages: () =>
-            runStore.drainParkedFollowUps(runId),
+          drainPendingUserMessages: () => runStore.drainParkedFollowUps(runId),
           onHistoryChanged: async (updatedHistory) => {
             await runStore.setConversationHistory(runId, updatedHistory);
           },

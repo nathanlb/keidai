@@ -93,7 +93,9 @@ export function defaultPartitionRetentionMs(
   }
   const days = Number(raw);
   if (!Number.isFinite(days) || days <= 0) {
-    throw new Error("KEIDAI_PARTITION_RETENTION_DAYS must be a positive number");
+    throw new Error(
+      "KEIDAI_PARTITION_RETENTION_DAYS must be a positive number",
+    );
   }
   return days * 24 * 60 * 60 * 1000;
 }

@@ -7,7 +7,9 @@ export const OAUTH_CONNECTIONS_KEY_PREFIX = "oauth-connections";
 
 const swrOptions = { onError: () => undefined } as const;
 
-export function oauthConnectionsKey(ownerIds: readonly string[]): string[] | null {
+export function oauthConnectionsKey(
+  ownerIds: readonly string[],
+): string[] | null {
   if (ownerIds.length === 0) {
     return null;
   }

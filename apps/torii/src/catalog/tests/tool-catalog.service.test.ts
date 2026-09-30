@@ -12,7 +12,11 @@ import {
   AGENT_TOOL_LIST_TTL_MS,
 } from "../types/catalog-tool.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
-import { createCredentialServices, bootBackends, withTestAgentPrincipal } from "../../credentials/tests/test-helpers.js";
+import {
+  createCredentialServices,
+  bootBackends,
+  withTestAgentPrincipal,
+} from "../../credentials/tests/test-helpers.js";
 import { GroupPolicyCache } from "../../policy/group-policy-cache.service.js";
 import { PolicyEnforcementService } from "../../policy/policy-enforcement.service.js";
 import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
@@ -83,7 +87,9 @@ describe("ToolCatalogService", () => {
       assert.equal(ttlMs, AGENT_TOOL_LIST_TTL_MS);
       assert.equal(cacheScope, AGENT_TOOL_LIST_CACHE_SCOPE);
 
-      const searchIssues = tools.find((tool) => tool.name === "github.search_issues");
+      const searchIssues = tools.find(
+        (tool) => tool.name === "github.search_issues",
+      );
       assert.equal(searchIssues?.description, "Search GitHub issues");
 
       const catalog = catalogService.getCatalog();
@@ -175,7 +181,9 @@ describe("ToolCatalogService", () => {
         },
       ],
     });
-    const groups = [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])];
+    const groups = [
+      testAgentsGroup([{ server: "github", tools: ["search_issues"] }]),
+    ];
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(
       configService,
@@ -195,7 +203,10 @@ describe("ToolCatalogService", () => {
         catalogService.listToolsForAgent(),
       );
 
-      assert.deepEqual(tools.map((tool) => tool.name), ["github.search_issues"]);
+      assert.deepEqual(
+        tools.map((tool) => tool.name),
+        ["github.search_issues"],
+      );
 
       const serverTools = catalogService.getServerTools("github");
       assert.equal(serverTools.length, 2);
@@ -314,18 +325,18 @@ describe("ToolCatalogService", () => {
     const connectionManager = new ConnectionManager(
       configService,
       {
-      connect: async (server) => {
-        const client = await new DefaultMcpClientConnector(
-          credentialResolver,
-        ).connect(server);
-        if (server.name === "deepwiki") {
-          client.listTools = async () => {
-            throw new Error("auth required");
-          };
-        }
-        return client;
+        connect: async (server) => {
+          const client = await new DefaultMcpClientConnector(
+            credentialResolver,
+          ).connect(server);
+          if (server.name === "deepwiki") {
+            client.listTools = async () => {
+              throw new Error("auth required");
+            };
+          }
+          return client;
+        },
       },
-    },
       createNoopLogger(),
     );
     const catalogService = new ToolCatalogService(
@@ -341,7 +352,10 @@ describe("ToolCatalogService", () => {
         catalogService.listToolsForAgent(),
       );
 
-      assert.deepEqual(tools.map((tool) => tool.name), ["stripe.list_customers"]);
+      assert.deepEqual(
+        tools.map((tool) => tool.name),
+        ["stripe.list_customers"],
+      );
       assert.equal(catalogService.getCatalog().length, 1);
     } finally {
       await closeManagerConnections(connectionManager);

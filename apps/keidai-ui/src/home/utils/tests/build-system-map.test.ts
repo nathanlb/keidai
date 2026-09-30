@@ -30,10 +30,7 @@ function server(
   };
 }
 
-function connection(
-  name: string,
-  toolCount: number,
-): ConnectionStatus {
+function connection(name: string, toolCount: number): ConnectionStatus {
   return { name, state: "connected", toolCount };
 }
 
@@ -72,7 +69,9 @@ function agent(overrides: Partial<ManagementAgent> = {}): ManagementAgent {
   };
 }
 
-function run(overrides: Partial<RunVisibilityListItem> = {}): RunVisibilityListItem {
+function run(
+  overrides: Partial<RunVisibilityListItem> = {},
+): RunVisibilityListItem {
   return {
     id: "run-live",
     taskId: "task-1",

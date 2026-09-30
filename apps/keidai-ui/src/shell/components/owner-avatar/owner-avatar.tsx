@@ -19,9 +19,11 @@ export function OwnerAvatar({
       className={cn("bg-primary text-primary-foreground", className)}
     >
       {picture ? <AvatarImage src={picture} alt="" /> : null}
-      <AvatarFallback className="
+      <AvatarFallback
+        className="
         bg-primary text-[length:inherit] text-primary-foreground
-      ">
+      "
+      >
         {initials}
       </AvatarFallback>
     </Avatar>

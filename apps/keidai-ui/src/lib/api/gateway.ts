@@ -242,9 +242,7 @@ export async function fetchConnections(): Promise<ConnectionsResponse> {
 export async function fetchServerTools(
   serverName: string,
 ): Promise<ServerToolsResponse> {
-  return fetchJson(
-    `/api/connections/${encodeURIComponent(serverName)}/tools`,
-  );
+  return fetchJson(`/api/connections/${encodeURIComponent(serverName)}/tools`);
 }
 
 export async function reconnectAllConnections(ownerId: string): Promise<void> {
@@ -318,9 +316,7 @@ export async function fetchTraceStats(
 }
 
 export async function fetchTrace(traceId: string): Promise<TraceListItem> {
-  return fetchJson<TraceListItem>(
-    `/api/traces/${encodeURIComponent(traceId)}`,
-  );
+  return fetchJson<TraceListItem>(`/api/traces/${encodeURIComponent(traceId)}`);
 }
 
 export async function fetchApprovals(
@@ -395,9 +391,7 @@ export async function initiateOAuthLink(
     const body = (await response.json().catch(() => null)) as {
       error?: string;
     } | null;
-    throw new Error(
-      body?.error ?? `OAuth initiate failed: ${response.status}`,
-    );
+    throw new Error(body?.error ?? `OAuth initiate failed: ${response.status}`);
   }
 
   return (await response.json()) as OAuthInitiateResponse;

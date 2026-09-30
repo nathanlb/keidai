@@ -21,11 +21,7 @@ import { ConnectionServerRow } from "./connection-server-row.js";
 import { ConnectionsSummaryTiles } from "./connections-summary-tiles.js";
 import { LinkingRequiredBanner } from "./linking-required-banner.js";
 
-function ConnectionsEmptyState({
-  onAdd,
-}: {
-  onAdd: () => void;
-}) {
+function ConnectionsEmptyState({ onAdd }: { onAdd: () => void }) {
   return (
     <PageEmptyState
       icon={<Cable className="size-7.5" aria-hidden />}
@@ -71,9 +67,11 @@ export function ConnectionsView() {
           <ConnectionsSummaryTiles counts={counts} />
 
           <Card className="overflow-hidden shadow-none">
-            <CardHeader className="
+            <CardHeader
+              className="
               flex flex-row items-start justify-between space-y-0 px-4.5 py-4
-            ">
+            "
+            >
               <div className="space-y-1">
                 <CardTitle className="text-base font-semibold">
                   Connectors
@@ -115,9 +113,11 @@ export function ConnectionsView() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="
+                    <TableHead
+                      className="
                       h-auto py-2.5 pl-4.5 text-xs font-medium
-                    ">
+                    "
+                    >
                       Server
                     </TableHead>
                     <TableHead className="h-auto py-2.5 text-xs font-medium">
@@ -126,25 +126,26 @@ export function ConnectionsView() {
                     <TableHead className="h-auto py-2.5 text-xs font-medium">
                       Credential
                     </TableHead>
-                    <TableHead className="
+                    <TableHead
+                      className="
                       h-auto py-2.5 text-right text-xs font-medium
-                    ">
+                    "
+                    >
                       Tools
                     </TableHead>
                     <TableHead className="h-auto py-2.5 text-xs font-medium">
                       Status
                     </TableHead>
-                    <TableHead className="
+                    <TableHead
+                      className="
                       h-auto w-0 py-2.5 pr-4.5 whitespace-nowrap
-                    " />
+                    "
+                    />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {summaries.map((summary) => (
-                    <ConnectionServerRow
-                      key={summary.name}
-                      summary={summary}
-                    />
+                    <ConnectionServerRow key={summary.name} summary={summary} />
                   ))}
                 </TableBody>
               </Table>

@@ -2,16 +2,16 @@ import { Textarea } from "@keidai/ui";
 import { Target } from "lucide-react";
 import { useId } from "react";
 import { useTaskAuthoringForm } from "../hooks/use-task-authoring-form.js";
-import { FieldHeader } from "./field-header.js";
+import { FieldHeader } from "../../shell/forms/field-header.js";
 
 export function TaskGoalSection({ disabled }: { disabled: boolean }) {
   const goalId = useId();
   const { register } = useTaskAuthoringForm();
 
   return (
-    <section className="border-b border-border py-5">
+    <section>
       <FieldHeader
-        icon={<Target className="size-4" aria-hidden />}
+        icon={<Target className="size-3.5" aria-hidden />}
         label="Goal"
         required
       />

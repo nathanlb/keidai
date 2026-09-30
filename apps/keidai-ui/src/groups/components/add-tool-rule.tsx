@@ -67,11 +67,13 @@ export function AddToolRule({
 
   return (
     <div>
-      <div className="
+      <div
+        className="
         flex h-8.5 items-center gap-2.5 rounded-md border border-ring
         bg-background px-2.5
         shadow-[0_0_0_3px_color-mix(in_srgb,var(--ring)_30%,transparent)]
-      ">
+      "
+      >
         <Search
           className="size-3.5 shrink-0 text-muted-foreground"
           aria-hidden
@@ -105,10 +107,12 @@ export function AddToolRule({
           <X className="size-3.5" aria-hidden />
         </button>
       </div>
-      <div className="
+      <div
+        className="
         mt-1.5 max-h-53 overflow-y-auto rounded-lg border border-border
         bg-popover shadow-lg
-      ">
+      "
+      >
         {matches.length === 0 ? (
           <div className="p-3 text-[12px] text-muted-foreground">
             {formatPickerEmpty(unruled.length)}
@@ -136,9 +140,11 @@ export function AddToolRule({
                   {tool.name}
                 </div>
                 {tool.description ? (
-                  <div className="
+                  <div
+                    className="
                     mt-px truncate text-[11px] text-muted-foreground
-                  ">
+                  "
+                  >
                     {tool.description}
                   </div>
                 ) : null}

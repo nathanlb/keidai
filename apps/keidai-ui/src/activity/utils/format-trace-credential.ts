@@ -6,9 +6,7 @@ export {
 import type { PublicServerConfig } from "@keidai/shared/dto";
 import type { TraceListItem } from "@keidai/shared";
 
-export function formatCredentialStrategy(
-  server?: PublicServerConfig,
-): string {
+export function formatCredentialStrategy(server?: PublicServerConfig): string {
   if (!server) {
     return "—";
   }
@@ -23,9 +21,7 @@ export function formatCredentialStrategy(
   }
 }
 
-export function formatCredentialProvider(
-  server?: PublicServerConfig,
-): string {
+export function formatCredentialProvider(server?: PublicServerConfig): string {
   if (server?.credential.strategy === "user_oauth") {
     return server.credential.provider;
   }

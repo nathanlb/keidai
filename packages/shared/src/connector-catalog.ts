@@ -40,7 +40,8 @@ export const CONNECTOR_CATALOG: readonly CatalogEntry[] = [
   {
     id: "gmail",
     displayName: "Gmail",
-    description: "Search, read, and draft mail through Google's Gmail MCP server.",
+    description:
+      "Search, read, and draft mail through Google's Gmail MCP server.",
     icon: "gmail",
     url: "https://gmailmcp.googleapis.com/mcp/v1",
     authMode: "user_oauth",
@@ -141,7 +142,8 @@ export const CONNECTOR_CATALOG: readonly CatalogEntry[] = [
   {
     id: "stripe",
     displayName: "Stripe",
-    description: "Customers, payments, and products through Stripe's hosted MCP server.",
+    description:
+      "Customers, payments, and products through Stripe's hosted MCP server.",
     icon: "stripe",
     url: "https://mcp.stripe.com",
     authMode: "user_oauth",
@@ -159,7 +161,8 @@ export const CONNECTOR_CATALOG: readonly CatalogEntry[] = [
   {
     id: "zapier",
     displayName: "Zapier",
-    description: "Actions across thousands of apps through Zapier's hosted MCP.",
+    description:
+      "Actions across thousands of apps through Zapier's hosted MCP.",
     icon: "zapier",
     url: "https://mcp.zapier.com/api/v1/connect",
     authMode: "user_oauth",
@@ -241,7 +244,8 @@ export const CONNECTOR_CATALOG: readonly CatalogEntry[] = [
   {
     id: "github",
     displayName: "GitHub",
-    description: "Repos, issues, pull requests, and Actions through GitHub MCP.",
+    description:
+      "Repos, issues, pull requests, and Actions through GitHub MCP.",
     icon: "github",
     url: "https://api.githubcopilot.com/mcp/",
     authMode: "user_oauth",

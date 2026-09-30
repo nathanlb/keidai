@@ -29,9 +29,7 @@ describe("ConfigReadService", () => {
       {
         name: "agents",
         description: "Test agents",
-        permissions: [
-          { server: "github", tools: ["search_issues"] },
-        ],
+        permissions: [{ server: "github", tools: ["search_issues"] }],
       },
     ];
     const configService = new ToriiConfigService(sampleConfig);
@@ -55,7 +53,9 @@ describe("ConfigReadService", () => {
       groups: [{ name: "agents", description: "Test agents" }],
     });
     assert.equal(
-      JSON.stringify({ servers, providers, groups: groupList }).includes("secret"),
+      JSON.stringify({ servers, providers, groups: groupList }).includes(
+        "secret",
+      ),
       false,
     );
   });

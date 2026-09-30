@@ -6,13 +6,21 @@ import {
   resolveBffServiceToken,
 } from "@keidai/shared/bff-service-token";
 import type { FudaClient } from "@keidai/shared/clients";
+import { OpenRouterApiController } from "../openrouter/openrouter-api.controller.js";
+import { PgOpenRouterCredentialRepository } from "../openrouter/pg-openrouter-credential-repository.js";
 import { RunsApiController } from "./runs-api.controller.js";
 import { TasksApiController } from "./tasks-api.controller.js";
 import type { RunStore } from "../runs/run-store.js";
-import type { LaunchedHarnessRun, ResumeHarnessRunInput } from "../run/types/harness.js";
+import type {
+  LaunchedHarnessRun,
+  ResumeHarnessRunInput,
+} from "../run/types/harness.js";
 import { RunStopController } from "../run/run-stop-controller.js";
 import type { TaskRepository } from "../tasks/types/task-repository.js";
-import type { ShaidenHttpServerHandle, ShaidenHttpServerOptions } from "./types/shaiden-http-server.js";
+import type {
+  ShaidenHttpServerHandle,
+  ShaidenHttpServerOptions,
+} from "./types/shaiden-http-server.js";
 import { registerShaidenRoutes } from "./utils/register-shaiden-routes.js";
 import { readPackageVersion } from "./utils/read-package-version.js";
 
@@ -39,12 +47,15 @@ export interface ShaidenHttpServerDeps {
   fudaClient?: FudaClient;
   runStopController?: RunStopController;
   onScheduleChanged?: () => void;
+  /** Test double for `GET https://openrouter.ai/api/v1/models`. */
+  fetchOpenRouterModels?: (apiKey: string) => Promise<unknown>;
 }
 
 export class ShaidenHttpServer {
   private app: FastifyInstance | null = null;
   private readonly runsApi: RunsApiController;
   private readonly tasksApi: TasksApiController;
+  private readonly openRouterApi: OpenRouterApiController;
 
   constructor(private readonly deps: ShaidenHttpServerDeps) {
     this.runsApi = new RunsApiController({
@@ -62,6 +73,11 @@ export class ShaidenHttpServer {
       fudaClient: deps.fudaClient,
       onScheduleChanged: deps.onScheduleChanged,
     });
+    this.openRouterApi = new OpenRouterApiController({
+      credentials: new PgOpenRouterCredentialRepository(deps.pool),
+      envFallback: deps.runtimeConfig.openRouterApiKey,
+      fetchModels: deps.fetchOpenRouterModels,
+    });
   }
 
   async createApp(): Promise<FastifyInstance> {
@@ -75,7 +91,10 @@ export class ShaidenHttpServer {
       // Browser clients may call Shaiden cross-origin when the UI is served
       // from Torii (or another origin) rather than the Vite proxy.
       reply.header("Access-Control-Allow-Origin", "*");
-      reply.header("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
+      reply.header(
+        "Access-Control-Allow-Methods",
+        "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+      );
       reply.header("Access-Control-Allow-Headers", "Content-Type");
     });
 
@@ -118,6 +137,7 @@ export class ShaidenHttpServer {
     registerShaidenRoutes(app, {
       runsApi: this.runsApi,
       tasksApi: this.tasksApi,
+      openRouterApi: this.openRouterApi,
     });
 
     return app;

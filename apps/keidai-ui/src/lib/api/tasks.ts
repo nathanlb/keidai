@@ -7,7 +7,11 @@ import type {
   TasksResponse,
   UpdateTaskRequest,
 } from "@keidai/shared";
-import { fetchJson, fetchJsonWithBody, readErrorMessage } from "./fetch-json.js";
+import {
+  fetchJson,
+  fetchJsonWithBody,
+  readErrorMessage,
+} from "./fetch-json.js";
 
 export async function fetchTaskRuntime(): Promise<TaskRuntimeResponse> {
   return fetchJson<TaskRuntimeResponse>("/api/tasks/runtime");
@@ -27,9 +31,7 @@ export async function fetchTasks(
 }
 
 export async function fetchTask(taskId: string): Promise<TaskResponse> {
-  return fetchJson<TaskResponse>(
-    `/api/tasks/${encodeURIComponent(taskId)}`,
-  );
+  return fetchJson<TaskResponse>(`/api/tasks/${encodeURIComponent(taskId)}`);
 }
 
 export async function createTask(
@@ -57,13 +59,15 @@ export async function updateTask(
 }
 
 export async function archiveTask(taskId: string): Promise<void> {
-  const response = await fetch(
-    `/api/tasks/${encodeURIComponent(taskId)}`,
-    { method: "DELETE" },
-  );
+  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}`, {
+    method: "DELETE",
+  });
   if (!response.ok) {
     throw new Error(
-      await readErrorMessage(response, `Archive task failed: ${response.status}`),
+      await readErrorMessage(
+        response,
+        `Archive task failed: ${response.status}`,
+      ),
     );
   }
 }
@@ -71,10 +75,9 @@ export async function archiveTask(taskId: string): Promise<void> {
 export async function runSavedTask(
   taskId: string,
 ): Promise<StartTaskRunResponse> {
-  const response = await fetch(
-    `/api/tasks/${encodeURIComponent(taskId)}/run`,
-    { method: "POST" },
-  );
+  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/run`, {
+    method: "POST",
+  });
 
   if (!response.ok) {
     throw new Error(

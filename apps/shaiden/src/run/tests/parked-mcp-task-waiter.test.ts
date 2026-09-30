@@ -27,10 +27,7 @@ function silentLogger(): Logger {
   };
 }
 
-async function claimRun(
-  persistence: TestPersistence,
-  replicaId = "replica-a",
-) {
+async function claimRun(persistence: TestPersistence, replicaId = "replica-a") {
   assert.equal(
     await persistence.runStore.claimRun(
       "run-1",

@@ -9,7 +9,7 @@ import { Bot } from "lucide-react";
 import { Controller, useWatch } from "react-hook-form";
 import { useTaskAuthoringForm } from "../hooks/use-task-authoring-form.js";
 import type { AgentAssigneeOption } from "../utils/to-agent-assignee-option.js";
-import { FieldHeader } from "./field-header.js";
+import { FieldHeader } from "../../shell/forms/field-header.js";
 
 function AssigneeTriggerContent({
   option,
@@ -93,7 +93,7 @@ export function TaskAssigneeSection({
     options.find((option) => option.agentId === assignee) ?? null;
 
   return (
-    <section className="border-b border-border py-5">
+    <section>
       <FieldHeader
         icon={<Bot className="size-3.5" aria-hidden />}
         label="Assignee"
@@ -131,6 +131,7 @@ export function TaskAssigneeSection({
               disabled={disabled}
             >
               <SelectTrigger
+                aria-label="Assignee"
                 className={cn(
                   `
                     h-auto min-h-11 w-full items-center gap-2.5

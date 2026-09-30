@@ -4,6 +4,8 @@ export interface AgentRecord {
   name: string;
   ownerId: string;
   groups: string[];
+  /** OpenRouter model id, or null to use the platform default at run time. */
+  defaultModelId: string | null;
   currentPersonaVersion: number;
   createdAt: string;
   updatedAt: string;
@@ -26,6 +28,8 @@ export interface CreateAgentInput {
   groups: string[];
   /** Initial persona content (stored as version 1). */
   persona: string;
+  /** Omit or null to leave the agent on the platform default model. */
+  defaultModelId?: string | null;
 }
 
 export interface UpdateAgentNameInput {
@@ -35,6 +39,11 @@ export interface UpdateAgentNameInput {
 export interface UpdateAgentGroupsInput {
   /** Opaque group strings; Torii fails closed on unknown ones. */
   groups: string[];
+}
+
+export interface UpdateAgentDefaultModelInput {
+  /** Null clears the agent default so runs use the platform model. */
+  defaultModelId: string | null;
 }
 
 export interface AgentRepository {
@@ -52,11 +61,19 @@ export interface AgentRepository {
     agentId: string,
     input: UpdateAgentGroupsInput,
   ): Promise<AgentRecord | null>;
+  /** Replace or clear the agent's default OpenRouter model. */
+  updateDefaultModel(
+    agentId: string,
+    input: UpdateAgentDefaultModelInput,
+  ): Promise<AgentRecord | null>;
   /**
    * Append-only persona edit. Inserts a new version row and advances
    * `currentPersonaVersion`. Never mutates existing persona content.
    */
-  appendPersona(agentId: string, content: string): Promise<PersonaVersion | null>;
+  appendPersona(
+    agentId: string,
+    content: string,
+  ): Promise<PersonaVersion | null>;
   getPersonaVersion(
     agentId: string,
     version: number,

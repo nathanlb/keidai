@@ -2,10 +2,7 @@ import assert from "node:assert/strict";
 import { generateKeyPairSync } from "node:crypto";
 import { describe, it } from "node:test";
 import { writeTempSigningKeyPem } from "../../signing/tests/test-helpers.js";
-import {
-  ConfigValidationError,
-  loadRuntimeConfig,
-} from "../runtime-config.js";
+import { ConfigValidationError, loadRuntimeConfig } from "../runtime-config.js";
 
 function envWithTempDbAndKey(
   overrides: NodeJS.ProcessEnv = {},
@@ -36,10 +33,7 @@ describe("loadRuntimeConfig", () => {
     assert.deepEqual(config.subjectTokenValidator, { kind: "static" });
     assert.equal(subjectTokenValidatorConfig?.kind, "static");
     if (subjectTokenValidatorConfig?.kind === "static") {
-      assert.equal(
-        subjectTokenValidatorConfig.tokens.has("dev-secret"),
-        true,
-      );
+      assert.equal(subjectTokenValidatorConfig.tokens.has("dev-secret"), true);
     }
   });
 
@@ -252,9 +246,7 @@ describe("loadRuntimeConfig", () => {
   it("fails fast when signing kid is not in the key list", () => {
     assert.throws(
       () =>
-        loadRuntimeConfig(
-          envWithTempDbAndKey({ FUDA_SIGNING_KID: "missing" }),
-        ),
+        loadRuntimeConfig(envWithTempDbAndKey({ FUDA_SIGNING_KID: "missing" })),
       (error: unknown) => {
         assert.ok(error instanceof ConfigValidationError);
         assert.match(error.errors.join("\n"), /FUDA_SIGNING_KID/);
@@ -291,9 +283,7 @@ describe("loadRuntimeConfig", () => {
   it("fails fast on empty listen groups", () => {
     assert.throws(
       () =>
-        loadRuntimeConfig(
-          envWithTempDbAndKey({ FUDA_LISTEN_GROUPS: " , " }),
-        ),
+        loadRuntimeConfig(envWithTempDbAndKey({ FUDA_LISTEN_GROUPS: " , " })),
       ConfigValidationError,
     );
   });
