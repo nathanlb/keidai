@@ -39,10 +39,12 @@ async function awaitUnlessAborted<T>(
 }
 
 /**
- * Persist the MCP task id and poll until the gated call's tool result is
- * available. Denials are not recorded as successful tool results — the task
- * loop terminates as `human_reject`. Parked state stays in the store if this
- * replica loses the run lease so another replica can finish the wait.
+ * Persist the MCP task id, then either hibernate or poll.
+ *
+ * Hibernate (`context.hibernate`) records the waiting step, marks the run due
+ * for a sweep poll, and returns without calling Torii. Resume omits the flag
+ * and polls until the tool result is available. Denials are not recorded as
+ * successful tool results — the task loop terminates as `human_reject`.
  */
 export function createParkedMcpTaskWaiter(input: {
   runId: string;
@@ -83,6 +85,14 @@ export function createParkedMcpTaskWaiter(input: {
       approvalId: mcpTaskId,
       toolName: context?.call?.toolName,
     });
+
+    if (context?.hibernate) {
+      await input.runStore.setNextPollAt(
+        input.runId,
+        new Date(now()).toISOString(),
+      );
+      return { isError: false, text: "", hibernated: true };
+    }
 
     const result = await awaitUnlessAborted(
       input.pollMcpTask(mcpTaskId, pollIntervalMs),

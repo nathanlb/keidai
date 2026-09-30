@@ -16,6 +16,7 @@ import {
   type SubjectTokenValidator,
 } from "../subject-token/types/subject-token-validator.js";
 import {
+  SANDBOX_TOKEN_AUDIENCE,
   TOKEN_EXCHANGE_AUDIENCE,
   TOKEN_EXCHANGE_TTL_SECONDS,
 } from "./constants.js";
@@ -60,6 +61,7 @@ export class TokenExchangeApiController {
       }
 
       const { subject_token: subjectToken, agent_id: agentId } = parsed.data;
+      const audience = parsed.data.audience ?? TOKEN_EXCHANGE_AUDIENCE;
 
       let bearerId: string;
       try {
@@ -70,6 +72,28 @@ export class TokenExchangeApiController {
           return;
         }
         throw error;
+      }
+
+      if (audience === SANDBOX_TOKEN_AUDIENCE) {
+        const { tokenIssuer } = this.configService.get();
+        const accessToken = await this.signingKeys.signJwt({
+          issuer: tokenIssuer,
+          audience,
+          expiresInSeconds: TOKEN_EXCHANGE_TTL_SECONDS,
+          claims: { bearer_id: bearerId },
+        });
+        const body: TokenExchangeResponse = {
+          access_token: accessToken,
+          token_type: "Bearer",
+          expires_in: TOKEN_EXCHANGE_TTL_SECONDS,
+        };
+        reply.send(body);
+        return;
+      }
+
+      if (!agentId) {
+        reply.code(400).send({ error: "agent_id is required" });
+        return;
       }
 
       const agent = await this.agents.get(agentId);

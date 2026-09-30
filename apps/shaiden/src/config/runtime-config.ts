@@ -8,7 +8,7 @@ function requiredEnv(name: string): string {
   return value;
 }
 
-const DEFAULT_MODEL_ID = "google/gemini-2.5-flash";
+const DEFAULT_MODEL_ID = "deepseek/deepseek-v4.1-flash";
 const DEFAULT_HTTP_PORT = 3200;
 
 export interface RuntimeConfig {
@@ -29,6 +29,11 @@ export interface RuntimeConfig {
   modelId: string;
   httpHost: string;
   httpPort: number;
+  /**
+   * When set, the harness exposes `execute_python`. Unset leaves the tool off.
+   * A present but invalid value fails boot.
+   */
+  sandboxUrl?: string;
 }
 
 /**
@@ -67,6 +72,23 @@ export function resolveSubjectTokenReader(
   return () => bearer;
 }
 
+export function resolveSandboxUrl(env: NodeJS.ProcessEnv = process.env): string | undefined {
+  const raw = env.SHAIDEN_SANDBOX_URL?.trim() ?? "";
+  if (!raw) {
+    return undefined;
+  }
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new Error(`Invalid SHAIDEN_SANDBOX_URL: ${raw}`);
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new Error(`Invalid SHAIDEN_SANDBOX_URL: ${raw}`);
+  }
+  return raw.replace(/\/$/, "");
+}
+
 export function loadRuntimeConfig(): RuntimeConfig {
   const rawPort = process.env.SHAIDEN_PORT?.trim() ?? String(DEFAULT_HTTP_PORT);
   const httpPort = Number(rawPort);
@@ -83,5 +105,6 @@ export function loadRuntimeConfig(): RuntimeConfig {
     modelId: process.env.SHAIDEN_MODEL_ID?.trim() ?? DEFAULT_MODEL_ID,
     httpHost: process.env.SHAIDEN_HOST?.trim() ?? "127.0.0.1",
     httpPort,
+    sandboxUrl: resolveSandboxUrl(),
   };
 }

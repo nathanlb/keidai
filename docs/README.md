@@ -8,6 +8,8 @@ Start here:
 - [Getting started](getting-started.md) — choose Docker Compose, native local
   development, or Kubernetes.
 - [Architecture](architecture.md) — component boundaries and trust model.
+- [Sandboxing](sandboxing.md) — where model-written Python runs, and what it
+  cannot reach.
 - [Operations](operations.md) — operator registry, OAuth, secrets, and
   observability.
 - [Reference](reference.md) — ports, public URLs, environment ownership, and

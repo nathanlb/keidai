@@ -1,0 +1,144 @@
+{{- $_ := include "keidai.sandboxToolEnabled" . -}}
+{{- if .Values.shaiden.sandbox.gvisor }}
+apiVersion: node.k8s.io/v1
+kind: RuntimeClass
+metadata:
+  name: gvisor
+  labels:
+    {{- include "keidai.labels" . | nindent 4 }}
+handler: runsc
+---
+{{- end }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: shaiden-sandbox-workspaces
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "keidai.labels" . | nindent 4 }}
+    app.kubernetes.io/name: shaiden-sandbox
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- with .Values.shaiden.sandbox.persistence.storageClassName }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.shaiden.sandbox.persistence.size | quote }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shaiden-sandbox
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "keidai.labels" . | nindent 4 }}
+    app.kubernetes.io/name: shaiden-sandbox
+    app: shaiden-sandbox
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shaiden-sandbox
+  template:
+    metadata:
+      labels:
+        app: shaiden-sandbox
+    spec:
+      {{- if .Values.shaiden.sandbox.gvisor }}
+      runtimeClassName: gvisor
+      {{- end }}
+      automountServiceAccountToken: false
+      {{- include "keidai.imagePullSecrets" . | nindent 6 }}
+      containers:
+        - name: shaiden-sandbox
+          image: {{ include "keidai.image" (list "keidai-shaiden-sandbox" .) | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: SANDBOX_FUDA_ISSUER
+              value: http://fuda:3300
+            - name: SANDBOX_FUDA_JWKS_URI
+              value: http://fuda:3300/.well-known/jwks.json
+          ports:
+            - containerPort: {{ .Values.shaiden.sandbox.port }}
+              name: http
+          securityContext:
+            runAsUser: 0
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+              add: ["SETUID", "SETGID", "CHOWN", "FOWNER", "DAC_OVERRIDE", "NET_ADMIN"]
+          resources:
+            {{- toYaml .Values.shaiden.sandbox.resources | nindent 12 }}
+          volumeMounts:
+            - name: workspaces
+              mountPath: /workspaces
+            - name: tmp
+              mountPath: /tmp
+            - name: shm
+              mountPath: /dev/shm
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+      volumes:
+        - name: workspaces
+          persistentVolumeClaim:
+            claimName: shaiden-sandbox-workspaces
+        - name: tmp
+          emptyDir: {}
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shaiden-sandbox
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "keidai.labels" . | nindent 4 }}
+    app.kubernetes.io/name: shaiden-sandbox
+spec:
+  type: ClusterIP
+  selector:
+    app: shaiden-sandbox
+  ports:
+    - name: http
+      port: {{ .Values.shaiden.sandbox.port }}
+      targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: shaiden-sandbox
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "keidai.labels" . | nindent 4 }}
+    app.kubernetes.io/name: shaiden-sandbox
+spec:
+  podSelector:
+    matchLabels:
+      app: shaiden-sandbox
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: shaiden
+      ports:
+        - protocol: TCP
+          port: {{ .Values.shaiden.sandbox.port }}
+  egress: []

@@ -541,6 +541,51 @@ describe("PgRunRepository", () => {
     }
   });
 
+  it("hides a parked run until next_poll_at and still accepts a follow-up with no owner", async () => {
+    const isolated = await createSchema();
+    try {
+      await seedTask(isolated.pool);
+      const repository = createRepository(isolated.pool);
+      await repository.create({
+        id: "run-1",
+        taskId: "task-1",
+        task: sampleTask,
+        assignee: sampleTask.assignee,
+        goal: sampleTask.goal,
+      });
+      await repository.setParkedMcpTask("run-1", { mcpTaskId: "parked-1" });
+      await repository.setNextPollAt("run-1", "2026-07-08T12:00:10.000Z");
+
+      assert.deepEqual(
+        await repository.listClaimableParkedMcpTasks("2026-07-08T12:00:00.000Z"),
+        [],
+      );
+      assert.equal(
+        (
+          await repository.listClaimableParkedMcpTasks(
+            "2026-07-08T12:00:10.000Z",
+          )
+        ).length,
+        1,
+      );
+
+      assert.equal(
+        await repository.enqueueParkedFollowUp(
+          "run-1",
+          "while hibernated",
+          createRunStep({
+            timestamp: "2026-07-08T12:00:02.000Z",
+            kind: "user_message",
+            text: "while hibernated",
+          }),
+        ),
+        true,
+      );
+    } finally {
+      await isolated.close();
+    }
+  });
+
   it("rejects a second running run for the same task and allows another task", async () => {
     const isolated = await createSchema();
     try {
@@ -601,6 +646,118 @@ describe("PgRunRepository", () => {
         { id: "run-2", taskId: "task-2", startedAt: "2026-07-08T12:00:02.000Z" },
         { id: "run-1c", taskId: "task-1", startedAt: "2026-07-08T12:02:00.000Z" },
       ]);
+    } finally {
+      await isolated.close();
+    }
+  });
+
+  it("persists run budget on a running row across repository instances", async () => {
+    const isolated = await createSchema();
+    try {
+      await seedTask(isolated.pool);
+      const repository = createRepository(isolated.pool);
+      await repository.create({
+        id: "run-1",
+        taskId: "task-1",
+        task: sampleTask,
+        assignee: sampleTask.assignee,
+        goal: sampleTask.goal,
+        startedAt: "2026-07-08T12:00:00.000Z",
+      });
+      assert.deepEqual(await repository.getRunBudget("run-1"), {
+        iterationsUsed: 0,
+        activeElapsedMs: 0,
+      });
+
+      assert.equal(
+        await repository.setRunBudget("run-1", {
+          iterationsUsed: 2,
+          activeElapsedMs: 4_500,
+        }),
+        true,
+      );
+
+      const reread = createRepository(isolated.pool);
+      assert.deepEqual(await reread.getRunBudget("run-1"), {
+        iterationsUsed: 2,
+        activeElapsedMs: 4_500,
+      });
+    } finally {
+      await isolated.close();
+    }
+  });
+
+  it("keeps run budget when a stopped run is resumed without a message", async () => {
+    const isolated = await createSchema();
+    try {
+      await seedTask(isolated.pool);
+      const repository = createRepository(isolated.pool);
+      await repository.create({
+        id: "run-1",
+        taskId: "task-1",
+        task: sampleTask,
+        assignee: sampleTask.assignee,
+        goal: sampleTask.goal,
+        startedAt: "2026-07-08T12:00:00.000Z",
+      });
+      await repository.setConversationHistory("run-1", [
+        { role: "user", text: "goal" },
+        { role: "assistant", text: "partial", toolCalls: [] },
+      ]);
+      await repository.setRunBudget("run-1", {
+        iterationsUsed: 2,
+        activeElapsedMs: 4_500,
+      });
+      await repository.complete("run-1", { outcome: { status: "stopped" } });
+
+      const result = await repository.beginContinuation("run-1");
+      assert.equal(result.ok, true);
+      assert.deepEqual(await repository.getRunBudget("run-1"), {
+        iterationsUsed: 2,
+        activeElapsedMs: 4_500,
+      });
+    } finally {
+      await isolated.close();
+    }
+  });
+
+  it("resets run budget when a follow-up continuation includes a message", async () => {
+    const isolated = await createSchema();
+    try {
+      await seedTask(isolated.pool);
+      const repository = createRepository(isolated.pool);
+      await repository.create({
+        id: "run-1",
+        taskId: "task-1",
+        task: sampleTask,
+        assignee: sampleTask.assignee,
+        goal: sampleTask.goal,
+        startedAt: "2026-07-08T12:00:00.000Z",
+      });
+      await repository.setConversationHistory("run-1", [
+        { role: "user", text: "goal" },
+        { role: "assistant", text: "partial", toolCalls: [] },
+      ]);
+      await repository.setRunBudget("run-1", {
+        iterationsUsed: 2,
+        activeElapsedMs: 4_500,
+      });
+      await repository.complete("run-1", { outcome: { status: "goal_met" } });
+
+      const result = await repository.beginContinuation(
+        "run-1",
+        "try again",
+        createRunStep({
+          timestamp: "2026-07-08T12:00:02.000Z",
+          kind: "user_message",
+          text: "try again",
+        }),
+      );
+      assert.equal(result.ok, true);
+      assert.deepEqual(await repository.getRunBudget("run-1"), {
+        iterationsUsed: 0,
+        activeElapsedMs: 0,
+      });
     } finally {
       await isolated.close();
     }

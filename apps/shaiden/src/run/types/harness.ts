@@ -1,4 +1,4 @@
-import { Logger, Run, Task } from "@keidai/shared";
+import { Logger, Run, Task, type TerminationOutcome } from "@keidai/shared";
 import { DiscoveredTool } from "../../mcp/types/index.js";
 import { RunStore } from "../../runs/run-store.js";
 import { RuntimeConfig } from "../../config/runtime-config.js";
@@ -8,7 +8,8 @@ import type { FudaClient } from "@keidai/shared/clients";
 import type { RunStopController } from "../run-stop-controller.js";
 
 export interface HarnessRunResult {
-  run: Run;
+  /** `outcome` is absent when the run hibernated and is still `running`. */
+  run: Omit<Run, "outcome"> & { outcome?: TerminationOutcome };
   discoveredTools: DiscoveredTool[];
   iterations: number;
 }

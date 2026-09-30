@@ -1,7 +1,15 @@
 import "../load-env.js";
 import type { RunStep, Task, TerminationOutcome } from "@keidai/shared";
 import type { RuntimeConfig } from "../../src/config/runtime-config.js";
-import { startHarnessRun } from "../../src/run/harness.js";
+import { defaultLogger } from "../../src/logging/logger.js";
+import { pollAssigneeMcpTask } from "../../src/mcp/torii-client.js";
+import {
+  createToriiCredential,
+  resumeHarnessRun,
+  startHarnessRun,
+} from "../../src/run/harness.js";
+import { resumeParkedHarnessRuns } from "../../src/run/resume-parked-runs.js";
+import type { RunStore } from "../../src/runs/run-store.js";
 import { createEvalPersistence } from "../../src/testing/persistence.js";
 import { EVAL_BEARER } from "./torii-eval-stack.js";
 import type { EvalToriiStack } from "./torii-eval-stack.js";
@@ -22,7 +30,7 @@ export function loadLiveEvalConfig(stack: EvalToriiStack): RuntimeConfig {
     toriiMcpUrl: stack.mcpUrl,
     getSubjectToken: () => bearer,
     openRouterApiKey: requiredEnv("OPEN_ROUTER_API_KEY"),
-    modelId: process.env.SHAIDEN_MODEL_ID?.trim() ?? "google/gemini-2.5-flash",
+    modelId: process.env.SHAIDEN_MODEL_ID?.trim() ?? "deepseek/deepseek-v4.1-flash",
     httpHost: "127.0.0.1",
     httpPort: 3200,
   };
@@ -62,13 +70,22 @@ export async function runLiveHarnessEval(input: {
       taskId,
       config,
       persistence.runStore,
+      { replicaId: "eval" },
     );
+    await wakeUntilFinished({
+      runId: result.run.id,
+      config,
+      runStore: persistence.runStore,
+    });
     const run = await persistence.runStore.getRun(result.run.id);
+    if (!run?.outcome) {
+      throw new Error(`live eval run ${result.run.id} finished without an outcome`);
+    }
     return {
-      outcome: result.run.outcome,
+      outcome: run.outcome,
       iterations: result.iterations,
       runId: result.run.id,
-      steps: run?.steps ?? [],
+      steps: run.steps,
     };
   } finally {
     driverAbort.abort();
@@ -113,6 +130,42 @@ async function pollAndApprovePending(input: {
     }
 
     await sleep(50);
+  }
+}
+
+async function wakeUntilFinished(input: {
+  runId: string;
+  config: RuntimeConfig;
+  runStore: RunStore;
+}): Promise<void> {
+  for (;;) {
+    const run = await input.runStore.getRun(input.runId);
+    if (!run || run.status !== "running") {
+      return;
+    }
+    await resumeParkedHarnessRuns({
+      runStore: input.runStore,
+      replicaId: "eval",
+      resumeHarnessRun: (resume) =>
+        resumeHarnessRun({
+          ...resume,
+          config: input.config,
+          options: { replicaId: "eval" },
+        }),
+      pollParkedTask: (parked, task) =>
+        pollAssigneeMcpTask({
+          toriiMcpUrl: input.config.toriiMcpUrl,
+          credential: createToriiCredential(
+            input.config,
+            undefined,
+            task.assignee,
+          ),
+          taskId: parked.mcpTaskId,
+          pollIntervalMs: parked.pollIntervalMs,
+        }),
+      logger: defaultLogger,
+    });
+    await sleep(250);
   }
 }
 

@@ -18,6 +18,7 @@ import {
   type TerminationOutcome,
 } from "@keidai/shared";
 import type { ConversationEntry } from "../run/types/conversation-history.js";
+import type { RunBudget } from "../run/types/task-loop.js";
 import {
   DEFAULT_RUN_RETENTION_COUNT,
   TaskAlreadyRunningError,
@@ -88,6 +89,7 @@ function parkedMcpTaskFromRow(row: {
   id: string;
   mcp_task_id: string;
   mcp_task_poll_interval_ms: number | null;
+  next_poll_at?: Date | string | null;
 }): ParkedMcpTask {
   return {
     runId: row.id,
@@ -95,6 +97,7 @@ function parkedMcpTaskFromRow(row: {
     ...(row.mcp_task_poll_interval_ms != null
       ? { pollIntervalMs: row.mcp_task_poll_interval_ms }
       : {}),
+    ...(row.next_poll_at != null ? { nextPollAt: toIso(row.next_poll_at) } : {}),
   };
 }
 
@@ -221,6 +224,7 @@ export class PgRunRepository implements RunRepository {
             outcome_json = $1::jsonb,
             mcp_task_id = NULL,
             mcp_task_poll_interval_ms = NULL,
+            next_poll_at = NULL,
             owner_id = NULL,
             lease_expires_at = NULL,
             updated_at = $2
@@ -325,6 +329,41 @@ export class PgRunRepository implements RunRepository {
     return parseConversationHistory(runRow.conversation_history_json);
   }
 
+  async getRunBudget(runId: string): Promise<RunBudget | null> {
+    const result = await this.pool.query<{
+      iterations_used: number;
+      active_elapsed_ms: string | number;
+    }>(
+      `
+        SELECT iterations_used, active_elapsed_ms
+        FROM runs
+        WHERE id = $1
+      `,
+      [runId],
+    );
+    const row = result.rows[0];
+    if (!row) {
+      return null;
+    }
+    return {
+      iterationsUsed: Number(row.iterations_used),
+      activeElapsedMs: Number(row.active_elapsed_ms),
+    };
+  }
+
+  async setRunBudget(runId: string, budget: RunBudget): Promise<boolean> {
+    const result = await this.pool.query(
+      `
+        UPDATE runs
+        SET iterations_used = $1,
+            active_elapsed_ms = $2
+        WHERE id = $3
+      `,
+      [budget.iterationsUsed, budget.activeElapsedMs, runId],
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
   async setParkedMcpTask(
     runId: string,
     parked: Omit<ParkedMcpTask, "runId">,
@@ -348,10 +387,23 @@ export class PgRunRepository implements RunRepository {
         UPDATE runs
         SET mcp_task_id = NULL,
             mcp_task_poll_interval_ms = NULL,
+            next_poll_at = NULL,
             updated_at = $1
         WHERE id = $2
       `,
       [nowIso(), runId],
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async setNextPollAt(runId: string, nextPollAt: string): Promise<boolean> {
+    const result = await this.pool.query(
+      `
+        UPDATE runs
+        SET next_poll_at = $1
+        WHERE id = $2 AND status = 'running'
+      `,
+      [nextPollAt, runId],
     );
     return (result.rowCount ?? 0) > 0;
   }
@@ -361,9 +413,10 @@ export class PgRunRepository implements RunRepository {
       id: string;
       mcp_task_id: string;
       mcp_task_poll_interval_ms: number | null;
+      next_poll_at: Date | string | null;
     }>(
       `
-        SELECT id, mcp_task_id, mcp_task_poll_interval_ms
+        SELECT id, mcp_task_id, mcp_task_poll_interval_ms, next_poll_at
         FROM runs
         WHERE id = $1 AND mcp_task_id IS NOT NULL
       `,
@@ -378,9 +431,10 @@ export class PgRunRepository implements RunRepository {
       id: string;
       mcp_task_id: string;
       mcp_task_poll_interval_ms: number | null;
+      next_poll_at: Date | string | null;
     }>(
       `
-        SELECT id, mcp_task_id, mcp_task_poll_interval_ms
+        SELECT id, mcp_task_id, mcp_task_poll_interval_ms, next_poll_at
         FROM runs
         WHERE status = 'running' AND mcp_task_id IS NOT NULL
         ORDER BY started_at ASC, id ASC
@@ -394,9 +448,10 @@ export class PgRunRepository implements RunRepository {
       id: string;
       mcp_task_id: string;
       mcp_task_poll_interval_ms: number | null;
+      next_poll_at: Date | string | null;
     }>(
       `
-        SELECT id, mcp_task_id, mcp_task_poll_interval_ms
+        SELECT id, mcp_task_id, mcp_task_poll_interval_ms, next_poll_at
         FROM runs
         WHERE status = 'running'
           AND mcp_task_id IS NOT NULL
@@ -404,6 +459,10 @@ export class PgRunRepository implements RunRepository {
             owner_id IS NULL
             OR lease_expires_at IS NULL
             OR lease_expires_at < $1
+          )
+          AND (
+            next_poll_at IS NULL
+            OR next_poll_at <= $1
           )
         ORDER BY started_at ASC, id ASC
       `,
@@ -585,6 +644,8 @@ export class PgRunRepository implements RunRepository {
               outcome_json = NULL,
               conversation_history_json = $1::jsonb,
               step_count = step_count + $2,
+              iterations_used = CASE WHEN $5 THEN 0 ELSE iterations_used END,
+              active_elapsed_ms = CASE WHEN $5 THEN 0 ELSE active_elapsed_ms END,
               updated_at = $3
           WHERE id = $4 AND status = 'completed'
         `,
@@ -593,6 +654,7 @@ export class PgRunRepository implements RunRepository {
           normalizedStep ? 1 : 0,
           nowIso(),
           runId,
+          hasMessage,
         ],
       );
       if ((result.rowCount ?? 0) === 0) {

@@ -30,7 +30,7 @@ const testRuntimeConfig: RuntimeConfig = {
   toriiMcpUrl: "http://127.0.0.1:3100/mcp",
   getSubjectToken: () => "test-bearer",
   openRouterApiKey: "test-openrouter",
-  modelId: "google/gemini-2.5-flash",
+  modelId: "deepseek/deepseek-v4.1-flash",
   httpHost: "127.0.0.1",
   httpPort: 3200,
 };

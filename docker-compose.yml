@@ -102,13 +102,6 @@ services:
     build:
       context: .
       dockerfile: apps/shaiden/Dockerfile
-    depends_on:
-      postgres:
-        condition: service_healthy
-      fuda:
-        condition: service_healthy
-      torii:
-        condition: service_healthy
     env_file:
       - .env
       - apps/shaiden/.env
@@ -119,6 +112,62 @@ services:
       SHAIDEN_HOST: 0.0.0.0
       SHAIDEN_PORT: "3200"
       SHAIDEN_DATABASE_URL: postgres://shaiden:${POSTGRES_PASSWORD:-keidai-local}@postgres:5432/shaiden
+      # Local only. The cluster leaves this unset until gVisor (NAT-195).
+      SHAIDEN_SANDBOX_URL: http://shaiden-sandbox:8080
+      SHAIDEN_MODEL_ID: deepseek/deepseek-v4.1-flash
+    depends_on:
+      postgres:
+        condition: service_healthy
+      fuda:
+        condition: service_healthy
+      torii:
+        condition: service_healthy
+      shaiden-sandbox:
+        condition: service_healthy
+
+  shaiden-sandbox:
+    image: keidai-shaiden-sandbox:${KEIDAI_IMAGE_TAG:-0.0.0-local}
+    build:
+      context: .
+      dockerfile: apps/shaiden-sandbox/Dockerfile
+    depends_on:
+      fuda:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:mode=0755
+      - /dev/shm:mode=0755
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID
+      - SETGID
+      - CHOWN
+      - FOWNER
+      - DAC_OVERRIDE
+      - NET_ADMIN
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 1
+    environment:
+      SANDBOX_FUDA_ISSUER: ${FUDA_ISSUER:-http://fuda:3300}
+      SANDBOX_FUDA_JWKS_URI: http://fuda:3300/.well-known/jwks.json
+    volumes:
+      - sandbox-workspaces:/workspaces
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
 
   keidai-ui:
     image: keidai-ui:${KEIDAI_IMAGE_TAG:-0.0.0-local}
@@ -165,3 +214,5 @@ services:
 
 volumes:
   postgres-data:
+  # Run workspaces. ReadWriteOnce on the single node; not shared across nodes.
+  sandbox-workspaces:

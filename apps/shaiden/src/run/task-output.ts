@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { EXECUTE_PYTHON_TOOL } from "../sandbox/execute-python.js";
 
 /**
  * Max stored length for an in-band task deliverable. Higher than model-step
@@ -43,5 +44,5 @@ export function clipTaskOutput(text: string): string {
 }
 
 export function isHarnessLocalTool(toolName: string): boolean {
-  return toolName === REPORT_TASK_OUTPUT_TOOL;
+  return toolName === REPORT_TASK_OUTPUT_TOOL || toolName === EXECUTE_PYTHON_TOOL;
 }

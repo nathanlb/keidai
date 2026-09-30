@@ -7,6 +7,7 @@ import { mapTerminalAssessmentToOutcome } from "./step-assessment.js";
 import { isHarnessLocalTool } from "./task-output.js";
 import type { ConversationEntry } from "./types/conversation-history.js";
 import {
+  RunBudget,
   TaskLoopDeps,
   TaskLoopResult,
   TaskLoopStart,
@@ -44,7 +45,7 @@ function cloneHistory(
  * - human approval rejection             -> human_reject (harness-driven; no model round-trip)
  * - operator stop                        -> stopped (cooperative; in-flight tool results dropped)
  * - iteration cap reached                -> iteration_exhausted
- * - wall-clock deadline passed           -> timeout
+ * - active-time budget exhausted         -> timeout
  * - model or harness-level error         -> failed(reason)
  *   (per-call tool errors are fed back as tool results; the model decides)
  */
@@ -53,14 +54,49 @@ export async function runTaskLoop(
   deps: TaskLoopDeps,
 ): Promise<TaskLoopResult> {
   const now = deps.now ?? Date.now;
-  let deadline = now() + start.limits.timeout_seconds * 1000;
+  const timeoutMs = start.limits.timeout_seconds * 1000;
+  let iterationsUsed = start.budget?.iterationsUsed ?? 0;
+  let activeElapsedMs = start.budget?.activeElapsedMs ?? 0;
+  let segmentStartedAt = now();
+  let activeClockPaused = false;
   const history = cloneHistory(start.initialHistory);
+
+  const currentActiveElapsed = (): number => {
+    if (activeClockPaused) {
+      return activeElapsedMs;
+    }
+    return activeElapsedMs + Math.max(0, now() - segmentStartedAt);
+  };
+
+  const budgetSnapshot = (): RunBudget => ({
+    iterationsUsed,
+    activeElapsedMs: Math.max(0, Math.trunc(currentActiveElapsed())),
+  });
+
+  const pauseActiveClock = (): void => {
+    if (activeClockPaused) {
+      return;
+    }
+    activeElapsedMs = budgetSnapshot().activeElapsedMs;
+    activeClockPaused = true;
+  };
+
+  const resumeActiveClock = (): void => {
+    if (!activeClockPaused) {
+      return;
+    }
+    segmentStartedAt = now();
+    activeClockPaused = false;
+  };
 
   const checkpoint = async (): Promise<void> => {
     await deps.onHistoryChanged?.(history);
+    await deps.onBudgetChanged?.(budgetSnapshot());
   };
 
-  const drainPendingUserMessages = async (): Promise<void> => {
+  const drainPendingUserMessages = async (options?: {
+    resetBudget?: boolean;
+  }): Promise<void> => {
     if (!deps.drainPendingUserMessages) {
       return;
     }
@@ -70,6 +106,14 @@ export async function runTaskLoop(
       return;
     }
 
+    // A message drained on wake is a new segment. An in-process drain keeps
+    // the budget that was already counting this run.
+    if (options?.resetBudget) {
+      iterationsUsed = 0;
+      activeElapsedMs = 0;
+      segmentStartedAt = now();
+      activeClockPaused = false;
+    }
     for (const entry of pending) {
       history.push(entry);
     }
@@ -97,6 +141,7 @@ export async function runTaskLoop(
     iterations: number,
   ): Promise<TaskLoopResult> => {
     await drainPendingUserMessages();
+    await deps.onBudgetChanged?.(budgetSnapshot());
     return { outcome, history, iterations };
   };
 
@@ -109,7 +154,7 @@ export async function runTaskLoop(
   const waitForParkedResult = async (
     call: ModelToolCall,
     approvalId: string,
-    parked?: { stepId?: string; pollIntervalMs?: number },
+    parked?: { stepId?: string; pollIntervalMs?: number; hibernate?: boolean },
   ): Promise<ToolDispatchResult> => {
     if (!deps.waitForApproval) {
       throw new Error(
@@ -117,18 +162,22 @@ export async function runTaskLoop(
       );
     }
 
-    const pauseStart = now();
-    const result = await deps.waitForApproval(approvalId, {
-      stepId: parked?.stepId,
-      pollIntervalMs: parked?.pollIntervalMs,
-      call,
-    });
-    deadline += now() - pauseStart;
-
-    if (result.policyDenied) {
-      throw new Error(`policy denied after approval resume: ${result.text}`);
+    pauseActiveClock();
+    try {
+      await checkpoint();
+      const result = await deps.waitForApproval(approvalId, {
+        stepId: parked?.stepId,
+        pollIntervalMs: parked?.pollIntervalMs,
+        call,
+        hibernate: parked?.hibernate,
+      });
+      if (result.policyDenied) {
+        throw new Error(`policy denied after approval resume: ${result.text}`);
+      }
+      return result;
+    } finally {
+      resumeActiveClock();
     }
-    return result;
   };
 
   const resolveToolResult = async (
@@ -150,8 +199,12 @@ export async function runTaskLoop(
         {
           stepId: result.approvalRequired.stepId,
           pollIntervalMs: result.approvalRequired.pollIntervalMs,
+          hibernate: true,
         },
       );
+      if (result.hibernated) {
+        return result;
+      }
     }
 
     return result;
@@ -193,6 +246,14 @@ export async function runTaskLoop(
       );
     }
 
+    if (result.hibernated) {
+      return {
+        outcome: { status: "parked" },
+        history,
+        iterations,
+      };
+    }
+
     if (stopRequested()) {
       return stopNow(iterations);
     }
@@ -214,7 +275,7 @@ export async function runTaskLoop(
           status: "failed",
           reason: `parked MCP task ${start.resumeParkedApproval.approvalId} has no pending tool call in history`,
         },
-        0,
+        iterationsUsed,
       );
     }
 
@@ -231,30 +292,36 @@ export async function runTaskLoop(
           status: "failed",
           reason: `tool call "${parkedCall.toolName}" failed: ${describeError(error)}`,
         },
-        0,
+        iterationsUsed,
       );
     }
 
     await appendToolResult(parkedCall, parkedResult);
     if (parkedResult.approvalDenied) {
-      return terminate({ status: "human_reject" }, 0);
+      return terminate({ status: "human_reject" }, iterationsUsed);
     }
 
     for (const call of unanswered.slice(1)) {
-      const failed = await dispatchCall(call, 0);
+      const failed = await dispatchCall(call, iterationsUsed);
       if (failed) {
         return failed;
       }
     }
   }
 
-  for (let iteration = 1; iteration <= start.limits.max_iterations; iteration++) {
-    if (now() >= deadline) {
-      return terminate({ status: "timeout" }, iteration - 1);
+  await drainPendingUserMessages({ resetBudget: true });
+
+  for (
+    let iteration = iterationsUsed + 1;
+    iteration <= start.limits.max_iterations;
+    iteration++
+  ) {
+    if (currentActiveElapsed() >= timeoutMs) {
+      return terminate({ status: "timeout" }, iterationsUsed);
     }
 
     if (stopRequested()) {
-      return stopNow(iteration - 1);
+      return stopNow(iterationsUsed);
     }
 
     await drainPendingUserMessages();
@@ -263,14 +330,17 @@ export async function runTaskLoop(
     try {
       step = await deps.callModel(history);
     } catch (error) {
+      iterationsUsed = iteration;
       return terminate(
         {
           status: "failed",
           reason: `model call failed: ${describeError(error)}`,
         },
-        iteration,
+        iterationsUsed,
       );
     }
+
+    iterationsUsed = iteration;
 
     history.push({
       role: "assistant",
@@ -315,5 +385,5 @@ export async function runTaskLoop(
     await checkpoint();
   }
 
-  return terminate({ status: "iteration_exhausted" }, start.limits.max_iterations);
+  return terminate({ status: "iteration_exhausted" }, iterationsUsed);
 }

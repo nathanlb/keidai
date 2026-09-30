@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  MCP_INPUT_REQUIRED_FAILURE_REASON,
   nextTaskPollDelayMs,
+  parkedTaskPollFromError,
+  parkedTaskPollFromGet,
   pollUntilTerminalMcpTask,
   DEFAULT_TASK_POLL_INTERVAL_MS,
   MAX_TASK_POLL_INTERVAL_MS,
@@ -188,5 +191,35 @@ describe("pollUntilTerminalMcpTask", () => {
     assert.equal(terminal.status, "completed");
     assert.equal(calls, 2);
     assert.deepEqual(sleeps, [800]);
+  });
+
+  it("classifies a single tasks/get for the reclaim sweep", () => {
+    assert.deepEqual(parkedTaskPollFromGet(workingTask(1_000)), {
+      kind: "pending",
+      pollIntervalMs: 1_000,
+    });
+    assert.deepEqual(parkedTaskPollFromGet(completedTask()), {
+      kind: "terminal",
+    });
+    assert.deepEqual(
+      parkedTaskPollFromGet({
+        ...workingTask(),
+        status: "input_required",
+        inputRequests: {},
+      }),
+      { kind: "failed", reason: MCP_INPUT_REQUIRED_FAILURE_REASON },
+    );
+    assert.deepEqual(
+      parkedTaskPollFromError(new McpJsonRpcError(-32602, "Invalid params")),
+      { kind: "failed", reason: "Invalid params" },
+    );
+    assert.deepEqual(
+      parkedTaskPollFromError(new McpJsonRpcError(-32603, "Internal error"), 1_000),
+      { kind: "pending", pollIntervalMs: 1_000 },
+    );
+    assert.deepEqual(parkedTaskPollFromError(new Error("socket hang up"), 1_000), {
+      kind: "pending",
+      pollIntervalMs: 1_000,
+    });
   });
 });

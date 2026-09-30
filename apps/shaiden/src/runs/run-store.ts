@@ -1,6 +1,7 @@
 import type { RunSseEvent, RunStep } from "@keidai/shared";
 import { RUN_SSE_EVENT } from "@keidai/shared";
 import type { ConversationEntry } from "../run/types/conversation-history.js";
+import type { RunBudget } from "../run/types/task-loop.js";
 import type { ParkedMcpTask, RunRepository } from "./types/run-repository.js";
 import type { BeginContinuationResult } from "./utils/conversation-history.js";
 import { createRunStep } from "./utils/create-run-step.js";
@@ -100,11 +101,23 @@ export class RunStore {
     return this.repository.getConversationHistory(runId);
   }
 
+  getRunBudget(runId: string): Promise<RunBudget | null> {
+    return this.repository.getRunBudget(runId);
+  }
+
+  setRunBudget(runId: string, budget: RunBudget): Promise<boolean> {
+    return this.repository.setRunBudget(runId, budget);
+  }
+
   setParkedMcpTask(
     runId: string,
     parked: Omit<ParkedMcpTask, "runId">,
   ): Promise<boolean> {
     return this.repository.setParkedMcpTask(runId, parked);
+  }
+
+  setNextPollAt(runId: string, nextPollAt: string): Promise<boolean> {
+    return this.repository.setNextPollAt(runId, nextPollAt);
   }
 
   clearParkedMcpTask(runId: string): Promise<boolean> {

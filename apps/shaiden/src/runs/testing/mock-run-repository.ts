@@ -5,6 +5,7 @@ import type {
   RunStep,
 } from "@keidai/shared";
 import type { ConversationEntry } from "../../run/types/conversation-history.js";
+import type { RunBudget } from "../../run/types/task-loop.js";
 import {
   DEFAULT_RUN_RETENTION_COUNT,
   TaskAlreadyRunningError,
@@ -35,7 +36,10 @@ interface StoredRun extends RunReport {
   pendingFollowUps: string[];
   ownerId?: string;
   leaseExpiresAt?: string;
+  nextPollAt?: string;
   updatedAt: string;
+  iterationsUsed: number;
+  activeElapsedMs: number;
 }
 
 /** @internal Test-only. Not for production use. */
@@ -65,6 +69,8 @@ export class MockRunRepository implements RunRepository {
       steps: [],
       pendingFollowUps: [],
       updatedAt: input.startedAt ?? new Date().toISOString(),
+      iterationsUsed: 0,
+      activeElapsedMs: 0,
       ...(input.personaVersion !== undefined
         ? { personaVersion: input.personaVersion }
         : {}),
@@ -103,6 +109,7 @@ export class MockRunRepository implements RunRepository {
       outcome: input.outcome,
       mcpTaskId: undefined,
       mcpTaskPollIntervalMs: undefined,
+      nextPollAt: undefined,
       ownerId: undefined,
       leaseExpiresAt: undefined,
       pendingFollowUps: [],
@@ -176,6 +183,30 @@ export class MockRunRepository implements RunRepository {
     return [...run.conversationHistory];
   }
 
+  async getRunBudget(runId: string): Promise<RunBudget | null> {
+    const run = this.runs.get(runId);
+    if (!run) {
+      return null;
+    }
+    return {
+      iterationsUsed: run.iterationsUsed,
+      activeElapsedMs: run.activeElapsedMs,
+    };
+  }
+
+  async setRunBudget(runId: string, budget: RunBudget): Promise<boolean> {
+    const run = this.runs.get(runId);
+    if (!run) {
+      return false;
+    }
+    this.runs.set(runId, {
+      ...run,
+      iterationsUsed: budget.iterationsUsed,
+      activeElapsedMs: budget.activeElapsedMs,
+    });
+    return true;
+  }
+
   async setParkedMcpTask(
     runId: string,
     parked: Omit<ParkedMcpTask, "runId">,
@@ -202,7 +233,20 @@ export class MockRunRepository implements RunRepository {
       ...run,
       mcpTaskId: undefined,
       mcpTaskPollIntervalMs: undefined,
+      nextPollAt: undefined,
       updatedAt: new Date().toISOString(),
+    });
+    return true;
+  }
+
+  async setNextPollAt(runId: string, nextPollAt: string): Promise<boolean> {
+    const run = this.runs.get(runId);
+    if (!run || run.status !== "running") {
+      return false;
+    }
+    this.runs.set(runId, {
+      ...run,
+      nextPollAt,
     });
     return true;
   }
@@ -218,6 +262,7 @@ export class MockRunRepository implements RunRepository {
       ...(run.mcpTaskPollIntervalMs != null
         ? { pollIntervalMs: run.mcpTaskPollIntervalMs }
         : {}),
+      ...(run.nextPollAt != null ? { nextPollAt: run.nextPollAt } : {}),
     };
   }
 
@@ -234,6 +279,7 @@ export class MockRunRepository implements RunRepository {
         ...(run.mcpTaskPollIntervalMs != null
           ? { pollIntervalMs: run.mcpTaskPollIntervalMs }
           : {}),
+        ...(run.nextPollAt != null ? { nextPollAt: run.nextPollAt } : {}),
       }));
   }
 
@@ -243,11 +289,12 @@ export class MockRunRepository implements RunRepository {
       if (!run) {
         return false;
       }
-      return (
+      const leaseFree =
         run.ownerId == null ||
         run.leaseExpiresAt == null ||
-        run.leaseExpiresAt < nowIso
-      );
+        run.leaseExpiresAt < nowIso;
+      const pollDue = run.nextPollAt == null || run.nextPollAt <= nowIso;
+      return leaseFree && pollDue;
     });
   }
 
@@ -383,6 +430,7 @@ export class MockRunRepository implements RunRepository {
       stepCount:
         hasMessage && userMessageStep ? run.steps.length + 1 : run.stepCount,
       updatedAt: new Date().toISOString(),
+      ...(hasMessage ? { iterationsUsed: 0, activeElapsedMs: 0 } : {}),
     };
     this.runs.set(runId, updated);
     return { ok: true, history: updatedHistory };
