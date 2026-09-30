@@ -114,6 +114,7 @@ services:
       SHAIDEN_DATABASE_URL: postgres://shaiden:${POSTGRES_PASSWORD:-keidai-local}@postgres:5432/shaiden
       # Local only. The cluster leaves this unset until gVisor (NAT-195).
       SHAIDEN_SANDBOX_URL: http://shaiden-sandbox:8080
+      SHAIDEN_MODEL_ID: deepseek/deepseek-v4.1-flash
     depends_on:
       postgres:
         condition: service_healthy
@@ -129,6 +130,9 @@ services:
     build:
       context: .
       dockerfile: apps/shaiden-sandbox/Dockerfile
+    depends_on:
+      fuda:
+        condition: service_healthy
     read_only: true
     tmpfs:
       - /tmp:mode=0755

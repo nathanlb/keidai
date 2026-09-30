@@ -30,7 +30,7 @@ export function loadLiveEvalConfig(stack: EvalToriiStack): RuntimeConfig {
     toriiMcpUrl: stack.mcpUrl,
     getSubjectToken: () => bearer,
     openRouterApiKey: requiredEnv("OPEN_ROUTER_API_KEY"),
-    modelId: process.env.SHAIDEN_MODEL_ID?.trim() ?? "google/gemini-2.5-flash",
+    modelId: process.env.SHAIDEN_MODEL_ID?.trim() ?? "deepseek/deepseek-v4.1-flash",
     httpHost: "127.0.0.1",
     httpPort: 3200,
   };

@@ -43,7 +43,8 @@ and records call traces.
 Shaiden runs saved tasks through a model and Torii's discovered tools. It
 persists tasks and runs in Postgres. When Torii returns a gated MCP task,
 Shaiden parks and later resumes the run; Torii remains responsible for the
-approval decision and ledger.
+approval decision and ledger. Model-written Python runs in a separate
+container; see [Sandboxing](sandboxing.md).
 
 ## Credential boundaries
 

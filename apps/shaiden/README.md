@@ -112,7 +112,7 @@ Starts **Postgres**, **Fuda** (identity / token exchange on `:3300`), **Torii** 
 | `FUDA_URL` | Fuda base URL for `POST /token` (e.g. `http://127.0.0.1:3300`) |
 | `TORII_MCP_URL` | Torii MCP endpoint (default: `http://127.0.0.1:3100/mcp`) |
 | `OPEN_ROUTER_API_KEY` | OpenRouter API key for the task-loop model |
-| `SHAIDEN_MODEL_ID` | OpenRouter model id (default: `google/gemini-2.5-flash`) |
+| `SHAIDEN_MODEL_ID` | OpenRouter model id (default: `deepseek/deepseek-v4.1-flash`) |
 | `SHAIDEN_HOST` | HTTP bind host for the runs API (default: `127.0.0.1`) |
 | `SHAIDEN_PORT` | HTTP bind port for the runs API (default: `3200`) |
 | `SHAIDEN_DATABASE_URL` | Postgres connection string for saved tasks and run history (required) |

@@ -617,12 +617,29 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, result)
 
 
+def wait_for_jwks() -> None:
+    """Fuda may not be on the network yet. A baked JWKS document does not wait."""
+    if FUDA_JWKS_JSON:
+        load_jwks()
+        return
+    deadline = time.monotonic() + 60
+    while True:
+        try:
+            load_jwks()
+            return
+        except (OSError, ValueError, RuntimeError) as error:
+            if time.monotonic() >= deadline:
+                raise
+            sys.stderr.write("sandbox.jwks_unavailable %s\n" % error)
+            time.sleep(1)
+
+
 def main() -> None:
     if not FUDA_ISSUER or not (FUDA_JWKS_URI or FUDA_JWKS_JSON):
         raise SystemExit(
             "SANDBOX_FUDA_ISSUER and SANDBOX_FUDA_JWKS_URI or SANDBOX_FUDA_JWKS_JSON are required"
         )
-    load_jwks()
+    wait_for_jwks()
     WORKSPACE_ROOT.mkdir(parents=True, exist_ok=True)
     server = ThreadingHTTPServer((LISTEN_HOST, LISTEN_PORT), Handler)
     server.serve_forever()

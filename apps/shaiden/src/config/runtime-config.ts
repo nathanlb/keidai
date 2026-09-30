@@ -8,7 +8,7 @@ function requiredEnv(name: string): string {
   return value;
 }
 
-const DEFAULT_MODEL_ID = "google/gemini-2.5-flash";
+const DEFAULT_MODEL_ID = "deepseek/deepseek-v4.1-flash";
 const DEFAULT_HTTP_PORT = 3200;
 
 export interface RuntimeConfig {
