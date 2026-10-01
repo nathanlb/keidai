@@ -580,7 +580,9 @@ describe("PgRunRepository", () => {
       await repository.setNextPollAt("run-1", "2026-07-08T12:00:10.000Z");
 
       assert.deepEqual(
-        await repository.listClaimableParkedMcpTasks("2026-07-08T12:00:00.000Z"),
+        await repository.listClaimableParkedMcpTasks(
+          "2026-07-08T12:00:00.000Z",
+        ),
         [],
       );
       assert.equal(

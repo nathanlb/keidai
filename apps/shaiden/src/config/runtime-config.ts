@@ -76,7 +76,9 @@ export function resolveSubjectTokenReader(
   return () => bearer;
 }
 
-export function resolveSandboxUrl(env: NodeJS.ProcessEnv = process.env): string | undefined {
+export function resolveSandboxUrl(
+  env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
   const raw = env.SHAIDEN_SANDBOX_URL?.trim() ?? "";
   if (!raw) {
     return undefined;

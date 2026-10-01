@@ -217,12 +217,18 @@ describe("pollUntilTerminalMcpTask", () => {
       { kind: "failed", reason: "Invalid params" },
     );
     assert.deepEqual(
-      parkedTaskPollFromError(new McpJsonRpcError(-32603, "Internal error"), 1_000),
+      parkedTaskPollFromError(
+        new McpJsonRpcError(-32603, "Internal error"),
+        1_000,
+      ),
       { kind: "pending", pollIntervalMs: 1_000 },
     );
-    assert.deepEqual(parkedTaskPollFromError(new Error("socket hang up"), 1_000), {
-      kind: "pending",
-      pollIntervalMs: 1_000,
-    });
+    assert.deepEqual(
+      parkedTaskPollFromError(new Error("socket hang up"), 1_000),
+      {
+        kind: "pending",
+        pollIntervalMs: 1_000,
+      },
+    );
   });
 });

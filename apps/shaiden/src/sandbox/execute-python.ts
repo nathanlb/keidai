@@ -24,12 +24,16 @@ export const executePythonSchema = z.object({
     .min(1)
     .max(EXECUTE_PYTHON_TIMEOUT_MAX_SECONDS)
     .optional()
-    .describe("Wall-clock limit for this call. The runtime kills the process at the cap."),
+    .describe(
+      "Wall-clock limit for this call. The runtime kills the process at the cap.",
+    ),
 });
 
 export type ExecutePythonInput = z.infer<typeof executePythonSchema>;
 
-export function parseExecutePython(value: unknown): ExecutePythonInput | undefined {
+export function parseExecutePython(
+  value: unknown,
+): ExecutePythonInput | undefined {
   const parsed = executePythonSchema.safeParse(value);
   return parsed.success ? parsed.data : undefined;
 }
@@ -42,7 +46,9 @@ export function formatSandboxExecResult(result: {
   truncated: boolean;
 }): { isError: boolean; text: string } {
   const lines = [
-    result.timedOut ? `timed out (exit ${result.exitCode})` : `exit ${result.exitCode}`,
+    result.timedOut
+      ? `timed out (exit ${result.exitCode})`
+      : `exit ${result.exitCode}`,
   ];
   if (result.stdout) {
     lines.push(result.stdout);

@@ -159,7 +159,9 @@ export function createHttpFudaClient(
   }
 
   return {
-    async exchangeToken(input: ExchangeTokenInput): Promise<ExchangedAgentToken> {
+    async exchangeToken(
+      input: ExchangeTokenInput,
+    ): Promise<ExchangedAgentToken> {
       const audience = input.audience ?? "torii";
       if (audience === "torii" && !input.agentId) {
         throw new TokenExchangeError(

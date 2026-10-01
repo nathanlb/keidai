@@ -15,16 +15,16 @@ import {
   recordToolDispatch,
   recordToolResult,
 } from "./run-step-recording.js";
-import {
-  parseTaskOutput,
-  REPORT_TASK_OUTPUT_TOOL,
-} from "./task-output.js";
+import { parseTaskOutput, REPORT_TASK_OUTPUT_TOOL } from "./task-output.js";
 import {
   EXECUTE_PYTHON_TOOL,
   formatSandboxExecResult,
   parseExecutePython,
 } from "../sandbox/execute-python.js";
-import type { SandboxExecRequest, SandboxExecResult } from "../sandbox/sandbox-client.js";
+import type {
+  SandboxExecRequest,
+  SandboxExecResult,
+} from "../sandbox/sandbox-client.js";
 import type {
   ModelToolCall,
   ToolDispatchOptions,

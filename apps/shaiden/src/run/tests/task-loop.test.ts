@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ConversationEntry } from "../types/conversation-history.js";
 import type { RunBudget } from "../types/task-loop.js";
-import { runGoalLoop, limits,
+import {
+  runGoalLoop,
+  limits,
   modelStep,
   runTaskLoop,
   approvalRequiredDispatch,
@@ -1113,7 +1115,8 @@ describe("task loop", () => {
     assert.ok(budgets.length > 0);
     assert.ok(
       budgets.every(
-        (budget) => budget.iterationsUsed >= 1 && budget.activeElapsedMs >= 4_000,
+        (budget) =>
+          budget.iterationsUsed >= 1 && budget.activeElapsedMs >= 4_000,
       ),
     );
   });

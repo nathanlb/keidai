@@ -100,7 +100,9 @@ function parkedMcpTaskFromRow(row: {
     ...(row.mcp_task_poll_interval_ms != null
       ? { pollIntervalMs: row.mcp_task_poll_interval_ms }
       : {}),
-    ...(row.next_poll_at != null ? { nextPollAt: toIso(row.next_poll_at) } : {}),
+    ...(row.next_poll_at != null
+      ? { nextPollAt: toIso(row.next_poll_at) }
+      : {}),
   };
 }
 

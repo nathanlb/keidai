@@ -11,7 +11,9 @@ import { createSandboxClient } from "../sandbox-client.js";
 
 const ISSUER = "https://fuda.test";
 const SANDBOX_AUDIENCE = "shaiden-sandbox";
-const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+const { privateKey, publicKey } = generateKeyPairSync("rsa", {
+  modulusLength: 2048,
+});
 const publicJwk = publicKey.export({ format: "jwk" }) as Record<string, string>;
 publicJwk.kid = "test";
 publicJwk.alg = "RS256";
@@ -24,7 +26,9 @@ function b64url(value: Buffer | string): string {
 
 function mintToken(audience: string, expiresInSeconds = 300): string {
   const now = Math.floor(Date.now() / 1000);
-  const header = b64url(JSON.stringify({ alg: "RS256", kid: "test", typ: "JWT" }));
+  const header = b64url(
+    JSON.stringify({ alg: "RS256", kid: "test", typ: "JWT" }),
+  );
   const payload = b64url(
     JSON.stringify({
       iss: ISSUER,
@@ -35,7 +39,10 @@ function mintToken(audience: string, expiresInSeconds = 300): string {
     }),
   );
   const signingInput = `${header}.${payload}`;
-  const signature = createSign("RSA-SHA256").update(signingInput).sign(privateKey).toString("base64url");
+  const signature = createSign("RSA-SHA256")
+    .update(signingInput)
+    .sign(privateKey)
+    .toString("base64url");
   return `${signingInput}.${signature}`;
 }
 
@@ -126,7 +133,9 @@ describe("shaiden-sandbox server", () => {
       assert.equal(ok.stdout.trim(), "hello");
       assert.equal(ok.timedOut, false);
 
-      const failed = await client.exec("run-a", { source: "raise SystemExit(3)" });
+      const failed = await client.exec("run-a", {
+        source: "raise SystemExit(3)",
+      });
       assert.equal(failed.exitCode, 3);
     } finally {
       await sandbox.stop();
@@ -186,7 +195,9 @@ describe("shaiden-sandbox server", () => {
       });
       assert.equal(capped.exitCode, 1);
       assert.match(capped.stderr, /workspace size cap exceeded/);
-      await assert.rejects(() => stat(join(sandbox.workspace, "run-cap", "f0.txt")));
+      await assert.rejects(() =>
+        stat(join(sandbox.workspace, "run-cap", "f0.txt")),
+      );
     } finally {
       await sandbox.stop();
     }
@@ -230,11 +241,14 @@ describe("shaiden-sandbox server", () => {
       await client.exec("run-a", {
         source: "open('secret.txt','w').write('a')",
       });
-      const response = await fetch(`${sandbox.baseUrl}/runs/..%2F..%2Fetc/exec`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ source: "print(1)" }),
-      });
+      const response = await fetch(
+        `${sandbox.baseUrl}/runs/..%2F..%2Fetc/exec`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ source: "print(1)" }),
+        },
+      );
       assert.equal(response.status, 404);
       await response.text();
       const ids = await client.listRuns();

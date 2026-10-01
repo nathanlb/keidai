@@ -1,7 +1,4 @@
-import {
-  TokenExchangeError,
-  type FudaClient,
-} from "@keidai/shared/clients";
+import { TokenExchangeError, type FudaClient } from "@keidai/shared/clients";
 
 /** Audience Fuda stamps on sandbox runtime tokens. */
 export const SANDBOX_TOKEN_AUDIENCE = "shaiden-sandbox";
@@ -31,11 +28,7 @@ export function createSandboxTokenProvider(input: {
   return {
     async ensureToken(options = {}) {
       const at = now();
-      if (
-        !options.force &&
-        cached &&
-        at < cached.expiresAtMs - refreshSkewMs
-      ) {
+      if (!options.force && cached && at < cached.expiresAtMs - refreshSkewMs) {
         return cached.accessToken;
       }
 

@@ -248,7 +248,10 @@ describe("createParkedMcpTaskWaiter", () => {
 
       assert.equal(result.hibernated, true);
       assert.equal(polls, 0);
-      assert.equal((await persistence.runStore.getRun("run-1"))?.status, "running");
+      assert.equal(
+        (await persistence.runStore.getRun("run-1"))?.status,
+        "running",
+      );
       assert.deepEqual(await persistence.runStore.getParkedMcpTask("run-1"), {
         runId: "run-1",
         mcpTaskId: "task-1",
