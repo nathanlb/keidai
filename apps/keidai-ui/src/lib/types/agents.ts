@@ -8,6 +8,8 @@ export interface ManagementAgent {
   groups: string[];
   /** OpenRouter model id, or null to use the platform default. */
   defaultModelId?: string | null;
+  /** Single emoji shown in place of initials, or null. */
+  emoji?: string | null;
   /** Content of the current persona version. */
   persona: string;
   currentPersonaVersion: number;
@@ -39,6 +41,7 @@ export interface CreateAgentRequest {
   groups: string[];
   persona: string;
   defaultModelId?: string | null;
+  emoji?: string | null;
 }
 
 export interface UpdateAgentRequest {
@@ -48,4 +51,6 @@ export interface UpdateAgentRequest {
   persona?: string;
   /** Null clears the agent default model. */
   defaultModelId?: string | null;
+  /** Null clears the agent emoji. */
+  emoji?: string | null;
 }

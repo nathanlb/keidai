@@ -123,7 +123,7 @@ function report(runId: string, text: string): RunReport {
 }
 
 describe("buildHomeDigest", () => {
-  it("builds a needs-you queue from pending approvals and failed runs", () => {
+  it("builds a needs-you queue from parked approvals only", () => {
     const digest = buildHomeDigest({
       approvals: [approval()],
       runs: [
@@ -145,12 +145,14 @@ describe("buildHomeDigest", () => {
       now: NOW,
     });
 
-    expect(digest.attention).toHaveLength(2);
+    expect(digest.attention).toHaveLength(1);
     expect(digest.attention[0]?.tool).toBe("send_email");
     expect(digest.attention[0]?.impact).toBe("Sends to team@example.com");
     expect(digest.attention[0]?.ctaLabel).toBe("Approve");
-    expect(digest.attention[1]?.ctaLabel).toBe("Retry");
-    expect(digest.subtitle).toMatch(/2 things want your decision/);
+    expect(digest.attention.every((item) => item.kind === "approval")).toBe(
+      true,
+    );
+    expect(digest.subtitle).toMatch(/1 thing wants your decision/);
     expect(digest.awaitingYou).toBe(1);
     expect(digest.failed24h).toBe(1);
     expect(digest.failedTaskName).toBe("sync-crm");

@@ -93,6 +93,12 @@ export {
   EmptyMedia,
   EmptyTitle,
 } from "./components/ui/empty.js";
+export {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+  PopoverTrigger,
+} from "./components/ui/popover.js";
 export { Separator } from "./components/ui/separator.js";
 export { Spinner } from "./components/ui/spinner.js";
 export {

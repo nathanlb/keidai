@@ -110,6 +110,7 @@ export function ActivityTracesView() {
     filters,
     serverOptions,
     agentSlugById,
+    agentEmojiById,
     pageIndex,
     isLive,
     setFilters,
@@ -219,6 +220,7 @@ export function ActivityTracesView() {
                       key={trace.traceId}
                       trace={trace}
                       agentSlugById={agentSlugById}
+                      agentEmojiById={agentEmojiById}
                       onOpen={onOpenTrace}
                     />
                   ))}

@@ -47,13 +47,17 @@ export function GroupAgentsRail({
               )}
             >
               <span
-                className="
-                flex size-7 shrink-0 items-center justify-center rounded-lg
-                bg-secondary font-mono text-[10.5px] font-bold
-                text-secondary-foreground
-              "
+                className={cn(
+                  `
+                    flex size-7 shrink-0 items-center justify-center rounded-lg
+                    bg-secondary text-secondary-foreground
+                  `,
+                  agent.emoji
+                    ? "text-base"
+                    : "font-mono text-[10.5px] font-bold",
+                )}
               >
-                {deriveAgentInitials(agent.name)}
+                {agent.emoji || deriveAgentInitials(agent.name)}
               </span>
               <div className="min-w-0 flex-1">
                 <div className="text-[13px] font-medium">{agent.name}</div>

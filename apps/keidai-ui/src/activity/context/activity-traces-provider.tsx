@@ -104,6 +104,16 @@ export function ActivityTracesProvider({
     );
   }, [agentsData?.agents]);
 
+  const agentEmojiById = useMemo(() => {
+    const emojiById = new Map<string, string>();
+    for (const agent of agentsData?.agents ?? []) {
+      if (agent.emoji) {
+        emojiById.set(agent.id, agent.emoji);
+      }
+    }
+    return emojiById;
+  }, [agentsData?.agents]);
+
   const handleLinkCompleted = useCallback(
     (ownerId: string, connections: OAuthConnectionStatus[]) => {
       setLinkingResolvedKeys((current) => {
@@ -260,6 +270,7 @@ export function ActivityTracesProvider({
       filters,
       serverOptions,
       agentSlugById,
+      agentEmojiById,
       pageIndex,
       isLive,
       selectedTrace,
@@ -284,6 +295,7 @@ export function ActivityTracesProvider({
     filters,
     serverOptions,
     agentSlugById,
+    agentEmojiById,
     pageIndex,
     isLive,
     selectedTrace,

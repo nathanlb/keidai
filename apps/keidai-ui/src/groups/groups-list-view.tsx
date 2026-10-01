@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   CardContent,
+  cn,
   Spinner,
   Table,
   TableBody,
@@ -234,12 +235,14 @@ export function GroupsListView() {
                               className="size-5.5 shrink-0"
                             >
                               <AvatarFallback
-                                className="
-                                bg-secondary font-mono text-[9.5px] font-bold
-                                text-secondary-foreground
-                              "
+                                className={cn(
+                                  "bg-secondary text-secondary-foreground",
+                                  agent.emoji
+                                    ? "text-xs"
+                                    : "font-mono text-[9.5px] font-bold",
+                                )}
                               >
-                                {deriveAgentInitials(agent.name)}
+                                {agent.emoji || deriveAgentInitials(agent.name)}
                               </AvatarFallback>
                             </Avatar>
                           ))}

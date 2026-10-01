@@ -62,6 +62,7 @@ const typical: HomeSystemMap = {
     {
       id: "agt-ops",
       label: "ops-bot",
+      emoji: null,
       groupId: "grp-inbox",
       state: "working",
       task: "triage-inbox · step 5 of 12",
@@ -70,6 +71,7 @@ const typical: HomeSystemMap = {
     {
       id: "agt-bill",
       label: "invoicer",
+      emoji: "🧾",
       groupId: "grp-billing",
       state: "waiting",
       task: "monthly-invoices · 1 approval parked",
@@ -113,6 +115,21 @@ describe("SystemMapCard", () => {
     expect(screen.getByTestId("system-map-health-fuda")).toHaveAttribute(
       "aria-label",
       "fuda, Healthy",
+    );
+  });
+
+  it("prefixes the slug with the agent emoji when one is set", () => {
+    render(
+      <MemoryRouter>
+        <SystemMapCard map={typical} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId("system-map-agent-agt-bill")).toHaveTextContent(
+      "🧾invoicer",
+    );
+    expect(screen.getByTestId("system-map-agent-agt-ops")).toHaveTextContent(
+      /^ops-bot/,
     );
   });
 

@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router";
 import { taskEditHref } from "./navigation.js";
-import { OwnerAvatar } from "../shell/components/owner-avatar/owner-avatar.js";
+import { AgentAvatar } from "../lib/components/agent-avatar.js";
 import { deriveRunDisplayStatus } from "./utils/derive-run-display-status.js";
 import { RUN_STATUS_META } from "./utils/format-run-status.js";
 import {
@@ -141,12 +141,9 @@ export function RunsTableRow({
         style={runsTableColumns.cellStyle("agent")}
       >
         <div className="flex min-w-0 items-center gap-2">
-          <OwnerAvatar
+          <AgentAvatar
+            emoji={run.assigneeDisplay?.emoji}
             initials={assigneeInitials}
-            className="
-              size-5.5 shrink-0 bg-secondary text-[9px]
-              text-secondary-foreground
-            "
           />
           <span className="truncate text-xs" title={run.assignee}>
             {assigneeLabel}

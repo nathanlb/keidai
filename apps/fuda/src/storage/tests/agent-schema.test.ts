@@ -14,6 +14,7 @@ describe("001_baseline schema", () => {
       assert.deepEqual(migrations.applied, [
         "001_baseline",
         "002_agent_default_model",
+        "003_agent_emoji",
       ]);
 
       const tables = await isolated.pool.query<{ tablename: string }>(
@@ -76,6 +77,7 @@ describe("001_baseline schema", () => {
       assert.deepEqual(first.migrations.applied, [
         "001_baseline",
         "002_agent_default_model",
+        "003_agent_emoji",
       ]);
       const second = await openFudaDatabase(
         resolveTestDatabaseUrl(),
@@ -85,6 +87,7 @@ describe("001_baseline schema", () => {
       assert.deepEqual(second.migrations.alreadyApplied, [
         "001_baseline",
         "002_agent_default_model",
+        "003_agent_emoji",
       ]);
     } finally {
       await isolated.close();

@@ -2,7 +2,7 @@ import { Badge, cn, TableCell, TableRow } from "@keidai/ui";
 import type { TraceListItem } from "@keidai/shared";
 import { Ban, CircleCheck, Link2, TriangleAlert } from "lucide-react";
 import { deriveAgentInitials } from "../lib/utils/derive-agent-initials.js";
-import { OwnerAvatar } from "../shell/components/owner-avatar/owner-avatar.js";
+import { AgentAvatar } from "../lib/components/agent-avatar.js";
 import { formatAgentPrincipalLabel } from "./utils/format-agent-principal.js";
 import { TRACE_OUTCOME_META } from "./utils/format-trace-outcome.js";
 import {
@@ -31,17 +31,17 @@ function OutcomeIcon({ outcome }: { outcome: TraceListItem["outcome"] }) {
 export function ActivityTraceRow({
   trace,
   agentSlugById,
+  agentEmojiById,
   onOpen,
 }: {
   trace: TraceListItem;
   agentSlugById: ReadonlyMap<string, string>;
+  agentEmojiById: ReadonlyMap<string, string>;
   onOpen: (trace: TraceListItem) => void;
 }) {
+  const agentId = trace.principal?.agentId;
   const meta = TRACE_OUTCOME_META[trace.outcome];
-  const agentLabel = formatAgentPrincipalLabel(
-    trace.principal?.agentId,
-    agentSlugById,
-  );
+  const agentLabel = formatAgentPrincipalLabel(agentId, agentSlugById);
 
   return (
     <TableRow
@@ -83,11 +83,9 @@ export function ActivityTraceRow({
       <TableCell className="py-3">
         {trace.principal && agentLabel ? (
           <div className="flex items-center gap-2">
-            <OwnerAvatar
+            <AgentAvatar
+              emoji={agentId ? agentEmojiById.get(agentId) : undefined}
               initials={deriveAgentInitials(agentLabel)}
-              className="
-                size-5.5 bg-secondary text-[9px] text-secondary-foreground
-              "
             />
             <div className="min-w-0 leading-tight">
               <div className="font-mono text-xs">{agentLabel}</div>

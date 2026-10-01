@@ -132,6 +132,7 @@ function projectAgent(
     parkedCount: parked?.count ?? 0,
   });
   const label = agent.slug || agent.name || agent.id;
+  const emoji = agent.emoji ?? null;
 
   if (state === "working" && live) {
     const steps = countModelIterations(
@@ -141,6 +142,7 @@ function projectAgent(
     return {
       id: agent.id,
       label,
+      emoji,
       groupId: assignAgentGroupId(agent, sources.groups),
       state,
       task: `${taskTitle(live.goalPreview)} · ${formatAgentStep(steps.current, steps.max)}`,
@@ -152,6 +154,7 @@ function projectAgent(
     return {
       id: agent.id,
       label,
+      emoji,
       groupId: assignAgentGroupId(agent, sources.groups),
       state,
       task: `${parked.task} · ${formatParkedApprovals(parked.count)}`,
@@ -162,6 +165,7 @@ function projectAgent(
   return {
     id: agent.id,
     label,
+    emoji,
     groupId: assignAgentGroupId(agent, sources.groups),
     state: "idle",
     task: "no task running",

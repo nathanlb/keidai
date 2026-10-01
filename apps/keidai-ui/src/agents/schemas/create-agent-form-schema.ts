@@ -15,6 +15,8 @@ export const createAgentFormSchema = z.object({
   groups: z.array(z.string().min(1)),
   persona: z.string().min(1, "Persona is required"),
   modelId: z.string(),
+  /** Empty string means no emoji. */
+  emoji: z.string(),
 });
 
 export type CreateAgentFormValues = z.infer<typeof createAgentFormSchema>;

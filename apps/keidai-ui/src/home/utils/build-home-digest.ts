@@ -17,7 +17,7 @@ import type { ManagementAgent } from "../../lib/api/agents.js";
 import type { RunVisibilityListItem } from "../../lib/api/runs.js";
 import { deriveAgentInitials } from "../../lib/utils/derive-agent-initials.js";
 import { parseNamespacedToolName } from "../../approvals/utils/parse-namespaced-tool-name.js";
-import { runDetailHref, taskEditHref } from "../../runs/navigation.js";
+import { taskEditHref } from "../../runs/navigation.js";
 import { APPROVAL_ID_PARAM, APPROVALS_PATH } from "../../shell/navigation.js";
 import type {
   HomeAgentCard,
@@ -226,13 +226,12 @@ function agentSummary(persona: string): string {
 
 function buildAttention(options: {
   pending: readonly ApprovalRecordView[];
-  failed24h: readonly RunVisibilityListItem[];
   runsById: Readonly<Record<string, RunVisibilityListItem>>;
   agentsById: Readonly<Record<string, ManagementAgent>>;
   now: number;
 }): HomeAttentionItem[] {
-  const { pending, failed24h, runsById, agentsById, now } = options;
-  const approvalRows: HomeAttentionItem[] = [...pending]
+  const { pending, runsById, agentsById, now } = options;
+  return [...pending]
     .sort(
       (left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt),
     )
@@ -255,31 +254,6 @@ function buildAttention(options: {
         ctaLabel: "Approve",
       };
     });
-
-  const failedRows: HomeAttentionItem[] = [...failed24h]
-    .sort(
-      (left, right) => Date.parse(right.startedAt) - Date.parse(left.startedAt),
-    )
-    .map((run) => {
-      const reason =
-        run.outcome && run.outcome.status === "failed"
-          ? run.outcome.reason
-          : "Hard failed";
-      return {
-        id: `failed:${run.id}`,
-        kind: "failed_run",
-        mark: (taskTitle(run.goalPreview)[0] ?? "F").toUpperCase(),
-        tool: taskTitle(run.goalPreview),
-        impact: firstLine(reason, 48),
-        context: `${taskTitle(run.goalPreview)} · ${run.id} · ${agentLabel(run.assignee, run, agentsById)}`,
-        parkedLabel: formatCompactDurationSince(run.startedAt, now),
-        reviewHref: runDetailHref(run.id),
-        cta: { type: "retry", taskId: run.taskId },
-        ctaLabel: "Retry",
-      };
-    });
-
-  return [...approvalRows, ...failedRows];
 }
 
 export function buildHomeDigest(sources: HomeDigestSources): HomeDigest {
@@ -327,7 +301,6 @@ export function buildHomeDigest(sources: HomeDigestSources): HomeDigest {
 
   const attention = buildAttention({
     pending,
-    failed24h,
     runsById,
     agentsById,
     now,

@@ -50,7 +50,7 @@ export function TasksListView() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { data, error, isLoading } = useFetchTasks();
-  const { runs } = useRunsVisibility(true);
+  const { runs, resolveAssigneeDisplay } = useRunsVisibility(true);
   const [startingTaskIds, setStartingTaskIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -180,6 +180,7 @@ export function TasksListView() {
                     <TasksTableRow
                       key={task.id}
                       task={task}
+                      assignee={resolveAssigneeDisplay(task.assignee)}
                       isRunning={
                         runningTaskIds.has(task.id) ||
                         startingTaskIds.has(task.id)

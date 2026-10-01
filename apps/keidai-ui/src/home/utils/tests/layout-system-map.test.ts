@@ -47,6 +47,7 @@ function agent(
   return {
     id: `agt-${index}`,
     label: `agent-${index}`,
+    emoji: null,
     groupId: `grp-${groupIndex}`,
     state,
     task: state === "idle" ? "no task running" : "triage-inbox · step 5 of 12",

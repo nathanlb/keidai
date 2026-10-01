@@ -13,6 +13,7 @@ const opsBot: ManagementAgent = {
   name: "ops-bot",
   ownerId: "owner-a",
   groups: ["ops-write"],
+  emoji: "🐙",
   persona: "Keeps the ops sheet and support inbox in order.",
   currentPersonaVersion: 1,
   createdAt: "2026-08-01T00:00:00.000Z",
@@ -156,6 +157,9 @@ test.describe("Home dashboard", () => {
     await expect(page.getByTestId("home-system-map")).toBeVisible();
     await expect(page.getByText("1 agent working")).toBeVisible();
     await expect(page.getByText(/triage-inbox · step 1 of 12/)).toBeVisible();
+    await expect(page.getByTestId("system-map-agent-agt-ops")).toContainText(
+      "🐙",
+    );
     await expect(page.getByTestId("home-stat-running")).toContainText("1");
     await expect(page.getByText("Running now")).toHaveCount(0);
 

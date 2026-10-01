@@ -227,6 +227,10 @@ export function AgentDetailView() {
     if (modelId !== (loaded.defaultModelId ?? null)) {
       patch.defaultModelId = modelId;
     }
+    const emoji = values.emoji || null;
+    if (emoji !== (loaded.emoji ?? null)) {
+      patch.emoji = emoji;
+    }
     const personaChanged = values.persona !== loaded.persona;
     if (personaChanged) {
       patch.persona = values.persona;
@@ -327,6 +331,11 @@ export function AgentDetailView() {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2.5">
             <div className="text-[23px] font-bold tracking-tight">
+              {agent.emoji ? (
+                <span className="mr-2" aria-hidden>
+                  {agent.emoji}
+                </span>
+              ) : null}
               {agent.name}
             </div>
             <Tooltip>

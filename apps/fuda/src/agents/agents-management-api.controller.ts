@@ -153,6 +153,9 @@ export class AgentsManagementApiController {
           defaultModelId: parsed.data.defaultModelId,
         });
       }
+      if (parsed.data.emoji !== undefined) {
+        await this.agents.updateEmoji(agentId, { emoji: parsed.data.emoji });
+      }
 
       const updated = await this.agents.get(agentId);
       const agent = updated ? await this.toManagementAgent(updated) : null;

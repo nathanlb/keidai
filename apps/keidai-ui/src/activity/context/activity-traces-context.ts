@@ -14,6 +14,8 @@ export interface ActivityTracesContextValue {
   filters: TraceFilters;
   serverOptions: readonly string[];
   agentSlugById: ReadonlyMap<string, string>;
+  /** Only agents with an emoji set appear here. */
+  agentEmojiById: ReadonlyMap<string, string>;
   pageIndex: number;
   isLive: boolean;
   selectedTrace: TraceListItem | null;

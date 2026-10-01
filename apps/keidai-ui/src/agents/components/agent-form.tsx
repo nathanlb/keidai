@@ -32,6 +32,8 @@ import {
 import { isKnownGroup } from "../utils/collect-unknown-groups.js";
 import { slugifyAgentName } from "../utils/slugify-agent-name.js";
 import { validateAgentSlug } from "../utils/validate-agent-slug.js";
+import { deriveAgentInitials } from "../../lib/utils/derive-agent-initials.js";
+import { AgentEmojiPicker } from "./agent-emoji-picker.js";
 import { AgentGroupChip } from "./agent-group-chip.js";
 
 const SLUG_CHECK_DEBOUNCE_MS = 300;
@@ -42,6 +44,7 @@ const EMPTY_FORM_VALUES: CreateAgentFormValues = {
   groups: [],
   persona: "",
   modelId: "",
+  emoji: "",
 };
 
 type SlugStatus = "empty" | "invalid" | "checking" | "available" | "taken";
@@ -65,6 +68,7 @@ function agentFormValues(agent: ManagementAgent): CreateAgentFormValues {
     groups: agent.groups,
     persona: agent.persona,
     modelId: agent.defaultModelId ?? "",
+    emoji: agent.emoji ?? "",
   };
 }
 
@@ -129,6 +133,7 @@ export function AgentForm(props: AgentFormProps) {
   const slugValue = watch("slug");
   const groups = watch("groups");
   const modelId = watch("modelId");
+  const emoji = watch("emoji");
 
   const charsetValidity = validateAgentSlug(slugValue);
   const trimmedSlug = slugValue.trim();
@@ -272,14 +277,26 @@ export function AgentForm(props: AgentFormProps) {
           />
           <FieldHint>
             {isCreate
-              ? "Display string. Freely editable later."
-              : "Display string. The slug in traces does not change."}
+              ? "Display string and emoji. Freely editable later."
+              : "Display string and emoji. The slug in traces does not change."}
           </FieldHint>
-          <Input
-            {...register("name")}
-            placeholder="Agent Name"
-            className="h-9.5"
-          />
+          <div className="flex items-center gap-2">
+            <AgentEmojiPicker
+              value={emoji}
+              fallback={name.trim() ? deriveAgentInitials(name) : ""}
+              onChange={(next) =>
+                setValue("emoji", next, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
+            />
+            <Input
+              {...register("name")}
+              placeholder="Agent Name"
+              className="h-9.5"
+            />
+          </div>
         </section>
 
         {isCreate ? (

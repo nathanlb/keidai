@@ -9,6 +9,7 @@ export interface RunAssigneeDisplay {
   slug: string;
   displayName: string;
   initials: string;
+  emoji?: string | null;
 }
 
 export interface RunVisibilityListItem extends RunListItem {

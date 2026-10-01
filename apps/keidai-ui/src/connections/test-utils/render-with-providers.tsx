@@ -37,6 +37,7 @@ const defaultActivityTracesContext: ActivityTracesContextValue = {
   filters: EMPTY_TRACE_FILTERS,
   serverOptions: [],
   agentSlugById: new Map(),
+  agentEmojiById: new Map(),
   pageIndex: 0,
   isLive: true,
   selectedTrace: null,

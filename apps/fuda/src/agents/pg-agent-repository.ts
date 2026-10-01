@@ -6,6 +6,7 @@ import type {
   CreateAgentInput,
   PersonaVersion,
   UpdateAgentDefaultModelInput,
+  UpdateAgentEmojiInput,
   UpdateAgentGroupsInput,
   UpdateAgentNameInput,
 } from "./types/agent-repository.js";
@@ -17,13 +18,14 @@ interface AgentRow {
   owner_id: string;
   groups_json: string[] | string;
   default_model_id: string | null;
+  emoji: string | null;
   current_persona_version: number;
   created_at: Date | string;
   updated_at: Date | string;
 }
 
 const AGENT_COLUMNS = `
-  id, slug, name, owner_id, groups_json, default_model_id,
+  id, slug, name, owner_id, groups_json, default_model_id, emoji,
   current_persona_version, created_at, updated_at
 `;
 
@@ -46,6 +48,7 @@ function rowToAgent(row: AgentRow): AgentRecord {
     ownerId: row.owner_id,
     groups: parseGroups(row.groups_json),
     defaultModelId: row.default_model_id,
+    emoji: row.emoji,
     currentPersonaVersion: row.current_persona_version,
     createdAt: toIso(row.created_at),
     updatedAt: toIso(row.updated_at),
@@ -73,9 +76,9 @@ export class PgAgentRepository implements AgentRepository {
       await client.query(
         `
           INSERT INTO agents (
-            id, slug, name, owner_id, groups_json, default_model_id,
+            id, slug, name, owner_id, groups_json, default_model_id, emoji,
             current_persona_version, created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9)
+          ) VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10)
         `,
         [
           id,
@@ -84,6 +87,7 @@ export class PgAgentRepository implements AgentRepository {
           input.ownerId,
           JSON.stringify(input.groups),
           input.defaultModelId ?? null,
+          input.emoji ?? null,
           initialVersion,
           now,
           now,
@@ -105,6 +109,7 @@ export class PgAgentRepository implements AgentRepository {
       ownerId: input.ownerId,
       groups: [...input.groups],
       defaultModelId: input.defaultModelId ?? null,
+      emoji: input.emoji ?? null,
       currentPersonaVersion: initialVersion,
       createdAt: now,
       updatedAt: now,
@@ -210,6 +215,28 @@ export class PgAgentRepository implements AgentRepository {
     return {
       ...existing,
       defaultModelId: input.defaultModelId,
+      updatedAt,
+    };
+  }
+
+  async updateEmoji(
+    agentId: string,
+    input: UpdateAgentEmojiInput,
+  ): Promise<AgentRecord | null> {
+    const existing = await this.get(agentId);
+    if (!existing) {
+      return null;
+    }
+
+    const updatedAt = new Date().toISOString();
+    await this.pool.query(
+      `UPDATE agents SET emoji = $1, updated_at = $2 WHERE id = $3`,
+      [input.emoji, updatedAt, agentId],
+    );
+
+    return {
+      ...existing,
+      emoji: input.emoji,
       updatedAt,
     };
   }

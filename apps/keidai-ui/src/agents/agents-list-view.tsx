@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   CardContent,
+  cn,
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
@@ -228,12 +229,12 @@ export function AgentsListView() {
                           <div className="flex items-center gap-2.5">
                             <Avatar size="sm" className="shrink-0">
                               <AvatarFallback
-                                className="
-                                bg-secondary text-[10px]
-                                text-secondary-foreground
-                              "
+                                className={cn(
+                                  "bg-secondary text-secondary-foreground",
+                                  agent.emoji ? "text-base" : "text-[10px]",
+                                )}
                               >
-                                {deriveAgentInitials(agent.name)}
+                                {agent.emoji || deriveAgentInitials(agent.name)}
                               </AvatarFallback>
                             </Avatar>
                             <div className="min-w-0">

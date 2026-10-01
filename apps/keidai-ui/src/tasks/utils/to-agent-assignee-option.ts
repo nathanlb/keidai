@@ -5,6 +5,7 @@ export interface AgentAssigneeOption {
   agentId: string;
   displayName: string;
   initials: string;
+  emoji: string | null;
   connected: boolean;
 }
 
@@ -18,6 +19,7 @@ export function toAgentAssigneeOption(
     agentId: agent.id,
     displayName,
     initials: deriveAgentInitials(displayName),
+    emoji: agent.emoji ?? null,
     connected: runtimeReady === true,
   };
 }

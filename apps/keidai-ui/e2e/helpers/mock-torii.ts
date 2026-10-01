@@ -827,6 +827,7 @@ export async function mockToriiConfig(
         ownerId: string;
         groups?: string[];
         persona: string;
+        emoji?: string | null;
       };
       const now = new Date().toISOString();
       const agent: ManagementAgent = {
@@ -835,6 +836,7 @@ export async function mockToriiConfig(
         name: body.name,
         ownerId: body.ownerId,
         groups: body.groups ?? [],
+        emoji: body.emoji ?? null,
         persona: body.persona,
         currentPersonaVersion: 1,
         createdAt: now,
@@ -894,6 +896,7 @@ export async function mockToriiConfig(
         name?: string;
         groups?: string[];
         persona?: string;
+        emoji?: string | null;
       };
       const current = agentState[index]!;
       const updatedAt = new Date().toISOString();
@@ -901,6 +904,7 @@ export async function mockToriiConfig(
         ...current,
         name: body.name ?? current.name,
         groups: body.groups ?? current.groups,
+        emoji: body.emoji === undefined ? current.emoji : body.emoji,
         updatedAt,
       };
 

@@ -115,6 +115,43 @@ describe("agents management API", () => {
     }
   });
 
+  it("sets, clears, and validates the agent emoji", async () => {
+    const server = await createTestServer("management");
+    const handle = await server.start({ host: "127.0.0.1", port: 0 });
+    try {
+      const createResponse = await fetch(`${handle.baseUrl}/api/agents`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ...sampleAgentBody, emoji: "📰" }),
+      });
+      assert.equal(createResponse.status, 201);
+      const { agent } = (await createResponse.json()) as {
+        agent: { id: string; emoji: string | null };
+      };
+      assert.equal(agent.emoji, "📰");
+
+      const patch = (body: unknown) =>
+        fetch(`${handle.baseUrl}/api/agents/${agent.id}`, {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+      const invalid = await patch({ emoji: "news" });
+      assert.equal(invalid.status, 400);
+
+      const cleared = await patch({ emoji: null });
+      assert.equal(cleared.status, 200);
+      assert.equal(
+        ((await cleared.json()) as { agent: { emoji: string | null } }).agent
+          .emoji,
+        null,
+      );
+    } finally {
+      await handle.close();
+    }
+  });
+
   it("rejects immutable slug and ownerId updates", async () => {
     const server = await createTestServer("management");
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
