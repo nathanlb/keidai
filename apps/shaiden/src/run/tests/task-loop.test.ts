@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ConversationEntry } from "../types/conversation-history.js";
 import type { RunBudget } from "../types/task-loop.js";
-import { runGoalLoop, limits,
+import {
+  runGoalLoop,
+  limits,
   modelStep,
   runTaskLoop,
   approvalRequiredDispatch,
@@ -12,7 +14,10 @@ import { runGoalLoop, limits,
   scriptedModel,
   toolCall,
 } from "../testing/task-loop-harness.js";
-import { findUnansweredToolCalls, RUN_STOPPED_TOOL_OUTPUT } from "../pending-tool-calls.js";
+import {
+  findUnansweredToolCalls,
+  RUN_STOPPED_TOOL_OUTPUT,
+} from "../pending-tool-calls.js";
 
 describe("task loop", () => {
   it("completes a multi-step tool sequence with exactly one goal_met outcome", async () => {
@@ -205,9 +210,15 @@ describe("task loop", () => {
 
     assert.equal(result.outcome.status, "failed");
     if (result.outcome.status === "failed") {
-      assert.match(result.outcome.reason, /policy denied after approval resume/);
+      assert.match(
+        result.outcome.reason,
+        /policy denied after approval resume/,
+      );
       assert.match(result.outcome.reason, /policy_denied/);
-      assert.doesNotMatch(result.outcome.reason, /connection reset|unreachable/i);
+      assert.doesNotMatch(
+        result.outcome.reason,
+        /connection reset|unreachable/i,
+      );
     }
   });
 
@@ -598,7 +609,10 @@ describe("task loop", () => {
           modelCalls += 1;
           return modelStep({ text: "should not run", toolCalls: [] });
         },
-        dispatchToolCall: async () => ({ isError: false, text: "should not dispatch" }),
+        dispatchToolCall: async () => ({
+          isError: false,
+          text: "should not dispatch",
+        }),
         waitForApproval: approval.waitForApproval,
       },
     );
@@ -632,8 +646,12 @@ describe("task loop", () => {
         resumeParkedApproval: { approvalId: "task-1" },
       },
       {
-        callModel: async () => modelStep({ text: "should not run", toolCalls: [] }),
-        dispatchToolCall: async () => ({ isError: false, text: "should not dispatch" }),
+        callModel: async () =>
+          modelStep({ text: "should not run", toolCalls: [] }),
+        dispatchToolCall: async () => ({
+          isError: false,
+          text: "should not dispatch",
+        }),
         waitForApproval: approval.waitForApproval,
       },
     );
@@ -661,7 +679,11 @@ describe("task loop", () => {
       },
       dispatchToolCall: async () => ({ isError: false, text: "search ok" }),
       onHistoryChanged: (history) => {
-        if (history.some((entry) => entry.role === "tool" && entry.output === "search ok")) {
+        if (
+          history.some(
+            (entry) => entry.role === "tool" && entry.output === "search ok",
+          )
+        ) {
           stop.abort();
         }
       },
@@ -1093,7 +1115,8 @@ describe("task loop", () => {
     assert.ok(budgets.length > 0);
     assert.ok(
       budgets.every(
-        (budget) => budget.iterationsUsed >= 1 && budget.activeElapsedMs >= 4_000,
+        (budget) =>
+          budget.iterationsUsed >= 1 && budget.activeElapsedMs >= 4_000,
       ),
     );
   });

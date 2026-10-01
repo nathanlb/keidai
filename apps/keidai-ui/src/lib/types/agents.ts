@@ -6,6 +6,8 @@ export interface ManagementAgent {
   ownerId: string;
   /** Opaque group strings; Torii fails closed on groups it does not define. */
   groups: string[];
+  /** OpenRouter model id, or null to use the platform default. */
+  defaultModelId?: string | null;
   /** Content of the current persona version. */
   persona: string;
   currentPersonaVersion: number;
@@ -36,6 +38,7 @@ export interface CreateAgentRequest {
   ownerId: string;
   groups: string[];
   persona: string;
+  defaultModelId?: string | null;
 }
 
 export interface UpdateAgentRequest {
@@ -43,4 +46,6 @@ export interface UpdateAgentRequest {
   groups?: string[];
   /** Appends a new persona version; never mutates existing content. */
   persona?: string;
+  /** Null clears the agent default model. */
+  defaultModelId?: string | null;
 }

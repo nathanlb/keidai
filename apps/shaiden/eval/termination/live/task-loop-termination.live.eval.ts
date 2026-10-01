@@ -46,7 +46,11 @@ describe("task-loop termination live harness eval", { concurrency: 1 }, () => {
             name: "list_issues",
             handler: async () => ({
               text: JSON.stringify([
-                { id: "NAT-1", title: "Shipped feature", completedAt: "yesterday" },
+                {
+                  id: "NAT-1",
+                  title: "Shipped feature",
+                  completedAt: "yesterday",
+                },
               ]),
             }),
           },

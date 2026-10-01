@@ -32,9 +32,7 @@ export function findUnansweredToolCalls(
  * Append synthetic error results for unanswered tool calls so resume does not
  * violate "every tool call has a result."
  */
-export function closeUnansweredToolCalls(
-  history: ConversationEntry[],
-): void {
+export function closeUnansweredToolCalls(history: ConversationEntry[]): void {
   for (const call of findUnansweredToolCalls(history)) {
     history.push({
       role: "tool",

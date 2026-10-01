@@ -1,16 +1,14 @@
 import {
   isScheduleTrigger,
   oneShotMustBeFutureError,
+  openRouterModelIdSchema,
   taskSchema,
   taskTriggersEqual,
   type Logger,
   type StartTaskRunResponse,
   type Task,
 } from "@keidai/shared";
-import {
-  AgentDefinitionError,
-  type FudaClient,
-} from "@keidai/shared/clients";
+import { AgentDefinitionError, type FudaClient } from "@keidai/shared/clients";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { RunStore } from "../runs/run-store.js";
 import { TaskAlreadyRunningError } from "../runs/types/run-repository.js";
@@ -117,7 +115,10 @@ export class TasksApiController {
         return;
       }
 
-      const scheduleError = oneShotMustBeFutureError(parsed.data.trigger, new Date());
+      const scheduleError = oneShotMustBeFutureError(
+        parsed.data.trigger,
+        new Date(),
+      );
       if (scheduleError) {
         reply.code(400).send({ error: scheduleError });
         return;
@@ -151,7 +152,12 @@ export class TasksApiController {
       }
 
       const body = request.body as Record<string, unknown>;
-      const parsed = taskSchema.partial().safeParse(body);
+      const parsed = taskSchema
+        .partial()
+        .extend({
+          modelId: openRouterModelIdSchema.nullable().optional(),
+        })
+        .safeParse(body);
       if (!parsed.success) {
         reply.code(400).send({
           error: "invalid task update",
@@ -301,18 +307,19 @@ export class TasksApiController {
       trigger: Task["trigger"];
       assignee: string;
       limits?: Task["limits"];
+      modelId?: string;
     },
     taskId: string,
     options: { deleteTaskOnStartFailure?: boolean } = {},
   ): Promise<
-    | { body: StartTaskRunResponse }
-    | { error: string; status: number }
+    { body: StartTaskRunResponse } | { error: string; status: number }
   > {
     const task = taskSchema.parse({
       goal: saved.goal,
       trigger: saved.trigger,
       assignee: saved.assignee,
       limits: saved.limits,
+      ...(saved.modelId ? { modelId: saved.modelId } : {}),
     });
 
     const assigneeError = await this.validateAssignee(task.assignee);

@@ -1,8 +1,5 @@
 import type { GroupServerPolicyView } from "@keidai/shared";
-import type {
-  CatalogueTool,
-  ExplicitToolRule,
-} from "../types/group-editor.js";
+import type { CatalogueTool, ExplicitToolRule } from "../types/group-editor.js";
 import { resolveEffectivePermission } from "./resolve-tool-effect.js";
 
 const STALE_DESCRIPTION = "Not currently advertised";

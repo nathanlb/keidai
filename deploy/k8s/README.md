@@ -21,15 +21,15 @@ override that enables the tool while the pod still shares the host kernel.
 
 ## Layout
 
-| Path | Role |
-|------|------|
-| [`chart/`](chart/) | Helm chart (`values.yaml` = k3s/production) |
-| [`chart/values-kind.yaml`](chart/values-kind.yaml) | kind: `imagePullPolicy: Never`, BFF `hostPort` |
-| [`chart/values-orbstack.yaml`](chart/values-orbstack.yaml) | OrbStack: BFF `LoadBalancer` |
-| [`chart/values-secrets.example.yaml`](chart/values-secrets.example.yaml) | Shape of the uncommitted secrets values file |
-| [`kind/kind-config.yaml`](kind/kind-config.yaml) | kind cluster (port map + SA issuer) |
-| [`up.sh`](up.sh) / [`down.sh`](down.sh) | Local bring-up / teardown (`helm upgrade --install`) |
-| [`install-k3s.md`](install-k3s.md) | Host install and **[upgrade](install-k3s.md#upgrades)** from GHCR (no git clone) |
+| Path                                                                     | Role                                                                             |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| [`chart/`](chart/)                                                       | Helm chart (`values.yaml` = k3s/production)                                      |
+| [`chart/values-kind.yaml`](chart/values-kind.yaml)                       | kind: `imagePullPolicy: Never`, BFF `hostPort`                                   |
+| [`chart/values-orbstack.yaml`](chart/values-orbstack.yaml)               | OrbStack: BFF `LoadBalancer`                                                     |
+| [`chart/values-secrets.example.yaml`](chart/values-secrets.example.yaml) | Shape of the uncommitted secrets values file                                     |
+| [`kind/kind-config.yaml`](kind/kind-config.yaml)                         | kind cluster (port map + SA issuer)                                              |
+| [`up.sh`](up.sh) / [`down.sh`](down.sh)                                  | Local bring-up / teardown (`helm upgrade --install`)                             |
+| [`install-k3s.md`](install-k3s.md)                                       | Host install and **[upgrade](install-k3s.md#upgrades)** from GHCR (no git clone) |
 
 ## Prerequisites
 
@@ -84,13 +84,13 @@ Chart `version`, `appVersion`, and every image tag are the same `{semver}`
 `Chart.AppVersion`, so installing chart `0.2.0` pulls `keidai-*:0.2.0`. There is
 no `:latest`.
 
-| Artifact | Notes |
-|----------|--------|
-| `oci://ghcr.io/<owner>/keidai:<semver>` | Helm chart (OCI). Hosts install this; they do not need the git repo. |
-| `ghcr.io/<owner>/keidai-fuda:<semver>` | Also tagged with the git SHA |
-| `ghcr.io/<owner>/keidai-torii:<semver>` | |
-| `ghcr.io/<owner>/keidai-shaiden:<semver>` | |
-| `ghcr.io/<owner>/keidai-ui:<semver>` | Renamed from the old Compose artifact `keidai-keidai-ui` |
+| Artifact                                  | Notes                                                                |
+| ----------------------------------------- | -------------------------------------------------------------------- |
+| `oci://ghcr.io/<owner>/keidai:<semver>`   | Helm chart (OCI). Hosts install this; they do not need the git repo. |
+| `ghcr.io/<owner>/keidai-fuda:<semver>`    | Also tagged with the git SHA                                         |
+| `ghcr.io/<owner>/keidai-torii:<semver>`   |                                                                      |
+| `ghcr.io/<owner>/keidai-shaiden:<semver>` |                                                                      |
+| `ghcr.io/<owner>/keidai-ui:<semver>`      | Renamed from the old Compose artifact `keidai-keidai-ui`             |
 
 Remote k3s install (no git clone): **[install-k3s.md](install-k3s.md)**.
 
@@ -105,11 +105,11 @@ Air-gapped fallback (not the default path): `docker save` / `k3s ctr images impo
 
 ## Values axes
 
-| Axis | Keys |
-|------|------|
-| Image sourcing | `image.registry`, `image.tag`, `image.pullPolicy`, `imagePullSecrets` |
-| Service exposure | `keidaiUi.service.type`, `keidaiUi.hostPort`, `ingress.*` |
-| Public URL | `publicUrl` (required, no default) → `TORII_GATEWAY_BASE_URL`, `KEIDAI_GOOGLE_REDIRECT_URI`, `KEIDAI_COOKIE_SECURE` (`true` iff `https://`) |
+| Axis             | Keys                                                                                                                                        |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Image sourcing   | `image.registry`, `image.tag`, `image.pullPolicy`, `imagePullSecrets`                                                                       |
+| Service exposure | `keidaiUi.service.type`, `keidaiUi.hostPort`, `ingress.*`                                                                                   |
+| Public URL       | `publicUrl` (required, no default) → `TORII_GATEWAY_BASE_URL`, `KEIDAI_GOOGLE_REDIRECT_URI`, `KEIDAI_COOKIE_SECURE` (`true` iff `https://`) |
 
 ## Secrets
 
@@ -222,13 +222,13 @@ is still process-local.
 
 ## Auth wiring
 
-| Hop | Credential |
-|-----|------------|
-| Browser → BFF `/api/*` | Operator Google OIDC session cookie |
+| Hop                               | Credential                                       |
+| --------------------------------- | ------------------------------------------------ |
+| Browser → BFF `/api/*`            | Operator Google OIDC session cookie              |
 | Browser → BFF `/oauth/callback/*` | Proxied to Torii (provider redirect; no session) |
-| Shaiden → Fuda `POST /token` | Projected SA JWT (`SHAIDEN_SUBJECT_TOKEN_FILE`) |
-| Shaiden → Torii MCP | Fuda-minted agent JWT (`aud=torii`) |
-| Torii → Fuda JWKS | HTTP to `http://fuda:3300/.well-known/jwks.json` |
+| Shaiden → Fuda `POST /token`      | Projected SA JWT (`SHAIDEN_SUBJECT_TOKEN_FILE`)  |
+| Shaiden → Torii MCP               | Fuda-minted agent JWT (`aud=torii`)              |
+| Torii → Fuda JWKS                 | HTTP to `http://fuda:3300/.well-known/jwks.json` |
 
 Fuda allow-list (validator-private; bearer seeded as `shaiden-runner`):
 

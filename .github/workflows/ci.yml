@@ -8,6 +8,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: pnpm fmt:check
+
   versions:
     runs-on: ubuntu-latest
     steps:

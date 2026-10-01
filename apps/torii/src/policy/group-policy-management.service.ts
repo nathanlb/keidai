@@ -40,10 +40,7 @@ export class GroupPolicyManagementService {
       return toGroupView(created);
     } catch (error) {
       if (isUniqueViolation(error, "name")) {
-        throw new GroupPolicyWriteError(
-          "group name already exists",
-          409,
-        );
+        throw new GroupPolicyWriteError("group name already exists", 409);
       }
       throw error;
     }
@@ -72,11 +69,12 @@ export class GroupPolicyManagementService {
     return deleted;
   }
 
-  private assertValidServers(
-    servers: CreateGroupBody["servers"],
-  ): void {
+  private assertValidServers(servers: CreateGroupBody["servers"]): void {
     const knownServers = new Set(
-      this.configService.getRegistry().listEnabled().map((connector) => connector.slug),
+      this.configService
+        .getRegistry()
+        .listEnabled()
+        .map((connector) => connector.slug),
     );
     assertValidGroupServers(servers, knownServers);
   }

@@ -20,7 +20,9 @@ describe("resolveSandboxUrl", () => {
 
   it("accepts an http url and strips a trailing slash", () => {
     assert.equal(
-      resolveSandboxUrl({ SHAIDEN_SANDBOX_URL: "http://shaiden-sandbox:8080/" }),
+      resolveSandboxUrl({
+        SHAIDEN_SANDBOX_URL: "http://shaiden-sandbox:8080/",
+      }),
       "http://shaiden-sandbox:8080",
     );
   });

@@ -45,7 +45,9 @@ export function KeidaiLogo({
       ) : null}
       <g
         fill={glyphFill}
-        transform={variant === "mark" ? "translate(13.5 13.5) scale(0.73)" : undefined}
+        transform={
+          variant === "mark" ? "translate(13.5 13.5) scale(0.73)" : undefined
+        }
       >
         <path d={KASAGI_PATH} />
         <rect x="46.5" y="27" width="7" height="15" />

@@ -24,9 +24,12 @@ export function isForeignKeyViolation(error: unknown): boolean {
   return isPgError(error) && error.code === FOREIGN_KEY_VIOLATION;
 }
 
-function isPgError(
-  error: unknown,
-): error is { code?: string; constraint?: string; detail?: string; message: string } {
+function isPgError(error: unknown): error is {
+  code?: string;
+  constraint?: string;
+  detail?: string;
+  message: string;
+} {
   return (
     typeof error === "object" &&
     error !== null &&

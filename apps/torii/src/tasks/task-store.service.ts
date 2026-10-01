@@ -240,7 +240,11 @@ export class TaskStoreService {
    * Cooperative cancel: acknowledges even if the task is already terminal.
    * Non-terminal tasks move to `cancelled`.
    */
-  async requestCancel(agentId: string, taskId: string, now = Date.now()): Promise<void> {
+  async requestCancel(
+    agentId: string,
+    taskId: string,
+    now = Date.now(),
+  ): Promise<void> {
     const record = await this.requireOwnedTask(agentId, taskId, now);
     if (isMcpTaskTerminalStatus(record.status)) {
       return;
@@ -307,7 +311,10 @@ export class TaskStoreService {
   private async finish(
     taskId: string,
     status: "completed" | "failed",
-    payload: { result?: Record<string, unknown>; error?: Record<string, unknown> },
+    payload: {
+      result?: Record<string, unknown>;
+      error?: Record<string, unknown>;
+    },
     now: number,
   ): Promise<StoredMcpTask | undefined> {
     const record = await this.getRecord(taskId);
@@ -382,7 +389,9 @@ function rowToRecord(row: McpTaskRow): StoredMcpTask {
     ownerId: row.owner_id,
     requestMethod: row.request_method,
     status: row.status,
-    ...(row.status_message !== null ? { statusMessage: row.status_message } : {}),
+    ...(row.status_message !== null
+      ? { statusMessage: row.status_message }
+      : {}),
     createdAtMs: toEpochMs(row.created_at),
     lastUpdatedAtMs: toEpochMs(row.last_updated_at),
     ttlMs: row.ttl_ms,
@@ -393,13 +402,13 @@ function rowToRecord(row: McpTaskRow): StoredMcpTask {
       ? { inputRequests: parseJsonValue(row.input_requests) }
       : {}),
     satisfiedInputKeys: parseJsonValue(row.satisfied_input_keys),
-    ...(row.result !== null
-      ? { result: parseJsonValue(row.result) }
+    ...(row.result !== null ? { result: parseJsonValue(row.result) } : {}),
+    ...(row.error !== null ? { error: parseJsonValue(row.error) } : {}),
+    ...(row.backend_server !== null
+      ? { backendServer: row.backend_server }
       : {}),
-    ...(row.error !== null
-      ? { error: parseJsonValue(row.error) }
+    ...(row.backend_task_id !== null
+      ? { backendTaskId: row.backend_task_id }
       : {}),
-    ...(row.backend_server !== null ? { backendServer: row.backend_server } : {}),
-    ...(row.backend_task_id !== null ? { backendTaskId: row.backend_task_id } : {}),
   };
 }

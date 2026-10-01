@@ -2,7 +2,10 @@ import { useLocation } from "react-router";
 import { AppShell } from "./app-shell.js";
 import { AppProvider } from "./context/app-provider.js";
 import { OperatorAuthGate } from "./components/operator-auth-gate.js";
-import { WorkspaceSidebarNav } from "./components/sidebar/workspace-sidebar-nav.js";
+import {
+  SettingsNavLink,
+  WorkspaceSidebarNav,
+} from "./components/sidebar/workspace-sidebar-nav.js";
 import {
   resolveAppNav,
   resolveAppNavSection,
@@ -59,6 +62,7 @@ export function KeidaiLayout() {
                   }
             }
             sidebarNav={<WorkspaceSidebarNav />}
+            sidebarFooter={<SettingsNavLink />}
             sidebarSubtitle="Agent Ecosystem"
           />
         </OAuthLinkProvider>

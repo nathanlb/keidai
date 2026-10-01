@@ -16,11 +16,17 @@ import { ApprovalsEmptyState } from "./approvals-empty-state.js";
 import { RecentlyActioned } from "./recently-actioned.js";
 
 export function ApprovalsView() {
-  const { pending, recentlyActioned, bufferCount, pendingCount, isLoading, refresh } =
-    useApprovals();
+  const {
+    pending,
+    recentlyActioned,
+    bufferCount,
+    pendingCount,
+    isLoading,
+    refresh,
+  } = useApprovals();
   const [searchParams] = useSearchParams();
-  const [expandedId, setExpandedId] = useState<string | null>(
-    () => searchParams.get(APPROVAL_ID_PARAM),
+  const [expandedId, setExpandedId] = useState<string | null>(() =>
+    searchParams.get(APPROVAL_ID_PARAM),
   );
   const { pageIndex, onPageChange } = useTablePageIndex([pending.length]);
   const {

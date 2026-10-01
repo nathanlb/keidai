@@ -24,7 +24,11 @@ export const successTrace: TraceListItem = {
   timestamp: "2026-06-23T14:32:57.000Z",
   server: "github",
   tool: "search_issues",
-  principal: { agentId: "demo-agent", ownerId: "nathanlb", bearerId: "local-dev" },
+  principal: {
+    agentId: "demo-agent",
+    ownerId: "nathanlb",
+    bearerId: "local-dev",
+  },
   credentialRef: "github:nathanlb",
   policyDecision: PolicyDecision.Allowed,
   durationMs: 118,
@@ -36,7 +40,11 @@ export const deniedTrace: TraceListItem = {
   timestamp: "2026-06-23T14:32:30.000Z",
   server: "github",
   tool: "delete_repo",
-  principal: { agentId: "demo-agent", ownerId: "nathanlb", bearerId: "local-dev" },
+  principal: {
+    agentId: "demo-agent",
+    ownerId: "nathanlb",
+    bearerId: "local-dev",
+  },
   policyDecision: PolicyDecision.Denied,
   error: "policy denied",
   outcome: "denied",
@@ -47,11 +55,14 @@ export const linkingRequiredTrace: TraceListItem = {
   timestamp: "2026-06-23T14:32:49.000Z",
   server: "github",
   tool: "search_issues",
-  principal: { agentId: "triage-bot", ownerId: "nathanlb", bearerId: "local-dev" },
+  principal: {
+    agentId: "triage-bot",
+    ownerId: "nathanlb",
+    bearerId: "local-dev",
+  },
   credentialRef: "github:nathanlb",
   policyDecision: PolicyDecision.Allowed,
-  error:
-    'OAuth connection required for provider "github" (backend "github")',
+  error: 'OAuth connection required for provider "github" (backend "github")',
   outcome: "linking_required",
 };
 
@@ -60,7 +71,11 @@ export const backendErrorTrace: TraceListItem = {
   timestamp: "2026-06-23T14:32:07.000Z",
   server: "github",
   tool: "list_prs",
-  principal: { agentId: "demo-agent", ownerId: "nathanlb", bearerId: "local-dev" },
+  principal: {
+    agentId: "demo-agent",
+    ownerId: "nathanlb",
+    bearerId: "local-dev",
+  },
   credentialRef: "github:nathanlb",
   policyDecision: PolicyDecision.Allowed,
   durationMs: 1840,

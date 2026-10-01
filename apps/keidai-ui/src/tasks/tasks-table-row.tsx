@@ -37,10 +37,12 @@ export function TasksTableRow({
   onRun: () => void;
 }) {
   return (
-    <TableRow className="
+    <TableRow
+      className="
       border-border
       hover:bg-muted/30
-    ">
+    "
+    >
       <TableCell
         className={tasksTableColumns.cellClassName("goal")}
         style={tasksTableColumns.cellStyle("goal")}

@@ -6,9 +6,7 @@ import "reflect-metadata";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ToriiConfig } from "@keidai/shared";
-import {
-  createIsolatedSchema,
-} from "@keidai/postgres";
+import { createIsolatedSchema } from "@keidai/postgres";
 import { ConnectionManager } from "../connections/connection-manager.service.js";
 import { ToolCatalogService } from "../catalog/tool-catalog.service.js";
 import { createContainer } from "../container.js";

@@ -6,7 +6,9 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const ISSUER = "https://fuda.test";
-const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+const { privateKey, publicKey } = generateKeyPairSync("rsa", {
+  modulusLength: 2048,
+});
 const publicJwk = publicKey.export({ format: "jwk" }) as Record<string, string>;
 publicJwk.kid = "test";
 publicJwk.alg = "RS256";
@@ -18,7 +20,9 @@ function b64url(value: Buffer | string): string {
 
 function mintToken(): string {
   const now = Math.floor(Date.now() / 1000);
-  const header = b64url(JSON.stringify({ alg: "RS256", kid: "test", typ: "JWT" }));
+  const header = b64url(
+    JSON.stringify({ alg: "RS256", kid: "test", typ: "JWT" }),
+  );
   const payload = b64url(
     JSON.stringify({
       iss: ISSUER,
@@ -29,7 +33,10 @@ function mintToken(): string {
     }),
   );
   const signingInput = `${header}.${payload}`;
-  const signature = createSign("RSA-SHA256").update(signingInput).sign(privateKey).toString("base64url");
+  const signature = createSign("RSA-SHA256")
+    .update(signingInput)
+    .sign(privateKey)
+    .toString("base64url");
   return `${signingInput}.${signature}`;
 }
 

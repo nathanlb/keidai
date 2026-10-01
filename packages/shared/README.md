@@ -10,7 +10,7 @@ stable contract or utility genuinely shared by more than one package.
 Consumers use workspace imports:
 
 ```ts
-import { /* shared export */ } from "@keidai/shared";
+import {} from /* shared export */ "@keidai/shared";
 ```
 
 The exported API is defined by [`src/index.ts`](src/index.ts). Run the relevant

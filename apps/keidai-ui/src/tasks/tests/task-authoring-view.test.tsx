@@ -47,6 +47,14 @@ vi.mock("../hooks/use-fetch-task-runtime.js", () => ({
   }),
 }));
 
+vi.mock("../../models/hooks/use-openrouter-models.js", () => ({
+  useOpenRouterModels: () => ({
+    models: [],
+    error: null,
+    isLoading: false,
+  }),
+}));
+
 vi.mock("../../lib/hooks/use-fetch-agents.js", () => ({
   useFetchAgents: () => ({
     data: { agents: [shaidenAgent] },
@@ -202,6 +210,7 @@ describe("TaskAuthoringView edit mode", () => {
         trigger: { type: "now" },
         assignee: shaidenAgent.id,
         limits: { max_iterations: 25, timeout_seconds: 600 },
+        modelId: null,
       });
     });
     await waitFor(() => {

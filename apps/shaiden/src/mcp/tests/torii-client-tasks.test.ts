@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
 import { describe, it } from "node:test";
 import { CLIENT_CAPABILITIES_META_KEY } from "@modelcontextprotocol/client";
 import { MCP_TASKS_EXTENSION_ID } from "@keidai/shared";
@@ -88,7 +92,9 @@ async function startGatedToriiStub(options?: {
       mcpMethod: req.headers["mcp-method"] as string | undefined,
       mcpName: req.headers["mcp-name"] as string | undefined,
       capabilities: meta?.[CLIENT_CAPABILITIES_META_KEY],
-      protocolVersion: req.headers["mcp-protocol-version"] as string | undefined,
+      protocolVersion: req.headers["mcp-protocol-version"] as
+        | string
+        | undefined,
       authorization: req.headers.authorization,
     });
 
@@ -235,7 +241,9 @@ describe("connectToriiSession task-augmented tools/call", () => {
           pollIntervalMs: 20,
         });
 
-        const callTools = stub.calls.filter((call) => call.method === "tools/call");
+        const callTools = stub.calls.filter(
+          (call) => call.method === "tools/call",
+        );
         assert.equal(callTools.length, 1);
         assert.equal(callTools[0]?.mcpMethod, "tools/call");
         assert.equal(callTools[0]?.mcpName, "gmail.create_draft");
@@ -297,8 +305,14 @@ describe("connectToriiSession task-augmented tools/call", () => {
           extensions: { [MCP_TASKS_EXTENSION_ID]: {} },
         });
         assert.ok(tokenCalls > mintedBeforePoll);
-        assert.equal(gets[0]?.authorization, `Bearer token-${mintedBeforePoll + 1}`);
-        assert.equal(gets[1]?.authorization, `Bearer token-${mintedBeforePoll + 2}`);
+        assert.equal(
+          gets[0]?.authorization,
+          `Bearer token-${mintedBeforePoll + 1}`,
+        );
+        assert.equal(
+          gets[1]?.authorization,
+          `Bearer token-${mintedBeforePoll + 2}`,
+        );
       } finally {
         await session.close();
       }

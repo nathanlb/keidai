@@ -7,7 +7,10 @@ import { ConnectionManager } from "../connection-manager.service.js";
 import type { McpClientConnector } from "../types/mcp-client-connector.js";
 import { DefaultMcpClientConnector } from "../mcp-client-connector.service.js";
 import { startMockMcpServer } from "./mock-mcp-server.js";
-import { createCredentialServices, withTestAgentPrincipal } from "../../credentials/tests/test-helpers.js";
+import {
+  createCredentialServices,
+  withTestAgentPrincipal,
+} from "../../credentials/tests/test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 
 function serverConfig(
@@ -43,7 +46,11 @@ describe("ConnectionManager", () => {
       servers: [serverConfig("alpha", mockServer.url)],
     });
     const { credentialResolver } = createCredentialServices();
-    const manager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
+    const manager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
 
     try {
       await withTestAgentPrincipal(() => manager.connectAll());
@@ -65,12 +72,22 @@ describe("ConnectionManager", () => {
     const configService = new ToriiConfigService({
       oauth_providers: {},
       servers: [
-        serverConfig("good", goodServer.url, { strategy: "service_key", key: "sk_test" }),
-        serverConfig("bad", badServer.url, { strategy: "user_oauth", provider: "github" }),
+        serverConfig("good", goodServer.url, {
+          strategy: "service_key",
+          key: "sk_test",
+        }),
+        serverConfig("bad", badServer.url, {
+          strategy: "user_oauth",
+          provider: "github",
+        }),
       ],
     });
     const { credentialResolver } = createCredentialServices();
-    const manager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
+    const manager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
 
     try {
       await withTestAgentPrincipal(() => manager.connectAll());
@@ -105,13 +122,19 @@ describe("ConnectionManager", () => {
       ],
     });
     const { credentialResolver } = createCredentialServices();
-    const manager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
+    const manager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
 
     try {
       await withTestAgentPrincipal(() => manager.connectAll());
 
       const states = new Map(
-        manager.list().map((connection) => [connection.config.name, connection.state]),
+        manager
+          .list()
+          .map((connection) => [connection.config.name, connection.state]),
       );
 
       assert.equal(states.get("reachable"), "connected");
@@ -134,7 +157,11 @@ describe("ConnectionManager", () => {
         throw new Error("offline");
       },
     };
-    const manager = new ConnectionManager(configService, connector, createNoopLogger());
+    const manager = new ConnectionManager(
+      configService,
+      connector,
+      createNoopLogger(),
+    );
 
     await manager.connectAll();
 

@@ -91,10 +91,7 @@ async function signToken(privateKey: PrivateKey): Promise<string> {
     .sign(privateKey);
 }
 
-function noneServer(
-  name: string,
-  url: string,
-): ToriiConfig["servers"][number] {
+function noneServer(name: string, url: string): ToriiConfig["servers"][number] {
   return {
     name,
     transport: { type: "http", url },
@@ -123,7 +120,9 @@ describe("Gateway inbound identity", () => {
       tools: [{ name: "read_wiki_structure", description: "Read wiki" }],
     });
 
-    const groups = [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])];
+    const groups = [
+      testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }]),
+    ];
     const configService = new ToriiConfigService({
       oauth_providers: {},
       servers: [noneServer("deepwiki", backend.url)],
@@ -200,7 +199,9 @@ describe("Gateway inbound identity", () => {
       tools: [{ name: "read_wiki_structure", description: "Read wiki" }],
     });
 
-    const groups = [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])];
+    const groups = [
+      testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }]),
+    ];
     const configService = new ToriiConfigService({
       oauth_providers: {},
       servers: [noneServer("deepwiki", backend.url)],

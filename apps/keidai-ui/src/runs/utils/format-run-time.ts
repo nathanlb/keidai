@@ -4,7 +4,10 @@ import {
   formatTraceRelative,
 } from "../../activity/utils/format-trace-time.js";
 
-export { formatTraceClock as formatRunClock, formatTraceRelative as formatRunRelative };
+export {
+  formatTraceClock as formatRunClock,
+  formatTraceRelative as formatRunRelative,
+};
 
 export function resolveRunDurationMs(
   run: RunListItem,
@@ -21,9 +24,7 @@ export function resolveRunDurationMs(
   }
 
   const lastStep = steps?.[steps.length - 1];
-  const endedAt = lastStep
-    ? new Date(lastStep.timestamp).getTime()
-    : now;
+  const endedAt = lastStep ? new Date(lastStep.timestamp).getTime() : now;
 
   if (Number.isNaN(endedAt)) {
     return undefined;

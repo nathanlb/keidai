@@ -28,7 +28,10 @@ function cloneHistory(
     if (entry.role === "assistant") {
       return {
         ...entry,
-        toolCalls: entry.toolCalls.map((call) => ({ ...call, input: { ...call.input } })),
+        toolCalls: entry.toolCalls.map((call) => ({
+          ...call,
+          input: { ...call.input },
+        })),
       };
     }
     return { ...entry };

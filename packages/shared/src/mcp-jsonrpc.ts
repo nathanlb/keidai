@@ -73,7 +73,11 @@ export function mcpRoutingName(
   if (!params || typeof params !== "object") {
     return undefined;
   }
-  const addressed = params as { name?: unknown; uri?: unknown; taskId?: unknown };
+  const addressed = params as {
+    name?: unknown;
+    uri?: unknown;
+    taskId?: unknown;
+  };
   if (method === "resources/read" && typeof addressed.uri === "string") {
     return addressed.uri;
   }
@@ -163,7 +167,9 @@ async function readResponseEnvelope(
 ): Promise<JsonRpcResponseEnvelope> {
   const text = await response.text();
   if (text.length === 0) {
-    throw new Error(`MCP ${method} returned ${response.status} with an empty body`);
+    throw new Error(
+      `MCP ${method} returned ${response.status} with an empty body`,
+    );
   }
 
   const contentType = response.headers.get("content-type") ?? "";

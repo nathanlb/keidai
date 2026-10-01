@@ -33,8 +33,7 @@ export function ActivityOutcomeChips({
     <div className="flex flex-wrap gap-1.5">
       {OUTCOME_CHIP_ORDER.map((filter) => {
         const isActive = active === filter;
-        const meta =
-          filter === "all" ? undefined : TRACE_OUTCOME_META[filter];
+        const meta = filter === "all" ? undefined : TRACE_OUTCOME_META[filter];
 
         return (
           <button

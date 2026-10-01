@@ -39,9 +39,7 @@ function agentsGroup(
 describe("evaluatePolicy", () => {
   it("allows tools on the principal's group allow list", () => {
     const groups = [
-      agentsGroup([
-        serverPolicy("github", { allow: ["search_issues"] }),
-      ]),
+      agentsGroup([serverPolicy("github", { allow: ["search_issues"] })]),
     ];
     assert.equal(
       evaluatePolicy(principal, groups, "github", "search_issues").decision,
@@ -51,9 +49,7 @@ describe("evaluatePolicy", () => {
 
   it("denies tools not granted to the principal's group", () => {
     const groups = [
-      agentsGroup([
-        serverPolicy("github", { allow: ["search_issues"] }),
-      ]),
+      agentsGroup([serverPolicy("github", { allow: ["search_issues"] })]),
     ];
     const evaluation = evaluatePolicy(
       principal,
@@ -76,9 +72,7 @@ describe("evaluatePolicy", () => {
       groups: ["ghost-group"],
     };
     const groups = [
-      agentsGroup([
-        serverPolicy("github", { allow: ["search_issues"] }),
-      ]),
+      agentsGroup([serverPolicy("github", { allow: ["search_issues"] })]),
     ];
     const evaluation = evaluatePolicy(
       unknownGroupPrincipal,
@@ -93,9 +87,7 @@ describe("evaluatePolicy", () => {
   it("denies when the principal has no groups", () => {
     const noGroupsPrincipal: AgentPrincipal = { ...principal, groups: [] };
     const groups = [
-      agentsGroup([
-        serverPolicy("github", { allow: ["search_issues"] }),
-      ]),
+      agentsGroup([serverPolicy("github", { allow: ["search_issues"] })]),
     ];
     const evaluation = evaluatePolicy(
       noGroupsPrincipal,
@@ -108,9 +100,7 @@ describe("evaluatePolicy", () => {
 
   it("denies when principal is undefined", () => {
     const groups = [
-      agentsGroup([
-        serverPolicy("github", { allow: ["search_issues"] }),
-      ]),
+      agentsGroup([serverPolicy("github", { allow: ["search_issues"] })]),
     ];
     const evaluation = evaluatePolicy(
       undefined,
@@ -167,13 +157,8 @@ describe("evaluatePolicy", () => {
   it("denies the call when any membership group votes deny", () => {
     const dual: AgentPrincipal = { ...principal, groups: ["agents", "ops"] };
     const groups = [
-      agentsGroup([
-        serverPolicy("github", { allow: ["search_issues"] }),
-      ]),
-      agentsGroup(
-        [serverPolicy("github", { deny: ["search_issues"] })],
-        "ops",
-      ),
+      agentsGroup([serverPolicy("github", { allow: ["search_issues"] })]),
+      agentsGroup([serverPolicy("github", { deny: ["search_issues"] })], "ops"),
     ];
     assert.equal(
       evaluatePolicy(dual, groups, "github", "search_issues").decision,
@@ -184,9 +169,7 @@ describe("evaluatePolicy", () => {
   it("allows when any membership group votes allow and none deny", () => {
     const dual: AgentPrincipal = { ...principal, groups: ["agents", "ops"] };
     const groups = [
-      agentsGroup([
-        serverPolicy("github", { allow: ["search_issues"] }),
-      ]),
+      agentsGroup([serverPolicy("github", { allow: ["search_issues"] })]),
       agentsGroup([serverPolicy("linear", { allow: ["list_issues"] })], "ops"),
     ];
     assert.equal(
@@ -218,9 +201,7 @@ describe("isToolGrantedByAnyGroup", () => {
 
   it("grants tools on an allow list under default deny", () => {
     const groups = [
-      agentsGroup([
-        serverPolicy("github", { allow: ["search_issues"] }),
-      ]),
+      agentsGroup([serverPolicy("github", { allow: ["search_issues"] })]),
     ];
     assert.equal(
       isToolGrantedByAnyGroup(groups, "github", "search_issues"),
@@ -255,9 +236,7 @@ describe("isGatedToolForGroups", () => {
 
   it("does not treat namespaced names as gated", () => {
     const groups = [
-      agentsGroup([
-        serverPolicy("gmail", { gated: ["gmail.create_draft"] }),
-      ]),
+      agentsGroup([serverPolicy("gmail", { gated: ["gmail.create_draft"] })]),
     ];
     assert.equal(
       isGatedToolForGroups(principal, groups, "gmail", "create_draft"),
@@ -269,10 +248,7 @@ describe("isGatedToolForGroups", () => {
     const dual: AgentPrincipal = { ...principal, groups: ["agents", "ops"] };
     const groups = [
       agentsGroup([serverPolicy("gmail", { allow: ["create_draft"] })]),
-      agentsGroup(
-        [serverPolicy("gmail", { gated: ["create_draft"] })],
-        "ops",
-      ),
+      agentsGroup([serverPolicy("gmail", { gated: ["create_draft"] })], "ops"),
     ];
     assert.equal(
       isGatedToolForGroups(dual, groups, "gmail", "create_draft"),

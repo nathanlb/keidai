@@ -46,13 +46,13 @@ npx shadcn@latest add alert
 
 Gold-standard patterns in keidai-ui:
 
-| Pattern | File |
-|---------|------|
-| Page with summary tiles + Card + Table | `apps/keidai-ui/src/connections/connections-view.tsx` |
+| Pattern                                 | File                                                       |
+| --------------------------------------- | ---------------------------------------------------------- |
+| Page with summary tiles + Card + Table  | `apps/keidai-ui/src/connections/connections-view.tsx`      |
 | Table row with Badge and Button actions | `apps/keidai-ui/src/connections/connection-server-row.tsx` |
-| Grouped Card sections with nested Table | `apps/keidai-ui/src/agents/agents-list-view.tsx` |
-| Dialog multi-step flow | `apps/keidai-ui/src/oauth/oauth-link-dialog.tsx` |
-| Expandable provider Card | `apps/keidai-ui/src/oauth/oauth-provider-card.tsx` |
+| Grouped Card sections with nested Table | `apps/keidai-ui/src/agents/agents-list-view.tsx`           |
+| Dialog multi-step flow                  | `apps/keidai-ui/src/oauth/oauth-link-dialog.tsx`           |
+| Expandable provider Card                | `apps/keidai-ui/src/oauth/oauth-provider-card.tsx`         |
 
 ## Agent / contributor checklist
 

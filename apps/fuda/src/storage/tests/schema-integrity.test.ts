@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import {
-  createIsolatedSchema,
-  resolveTestDatabaseUrl,
-} from "@keidai/postgres";
+import { createIsolatedSchema, resolveTestDatabaseUrl } from "@keidai/postgres";
 import { openFudaDatabase } from "../fuda-postgres.js";
 import {
   SchemaIntegrityError,

@@ -57,7 +57,10 @@ describe("approval ledger", () => {
       }
       assert.equal(outcome.task.resultType, "task");
       assert.equal(outcome.task.status, "working");
-      assert.match(outcome.task.statusMessage ?? "", /Awaiting operator approval/);
+      assert.match(
+        outcome.task.statusMessage ?? "",
+        /Awaiting operator approval/,
+      );
       assert.equal(typeof outcome.task.ttlMs, "number");
       assert.equal(typeof outcome.task.pollIntervalMs, "number");
 
@@ -101,7 +104,9 @@ describe("approval ledger", () => {
       if (outcome.kind !== "denied") {
         return;
       }
-      const textPart = outcome.result.content?.find((part) => part.type === "text");
+      const textPart = outcome.result.content?.find(
+        (part) => part.type === "text",
+      );
       const payload = JSON.parse(
         textPart && "text" in textPart ? textPart.text : "{}",
       );

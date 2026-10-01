@@ -18,21 +18,15 @@ describe("refreshToriiConfig", () => {
 
     refreshToriiConfig(mutate);
 
-    expect(mutate).toHaveBeenCalledWith(
-      TORII_STATUS_KEY,
-      undefined,
-      { revalidate: true },
-    );
-    expect(mutate).toHaveBeenCalledWith(
-      SHAIDEN_STATUS_KEY,
-      undefined,
-      { revalidate: true },
-    );
-    expect(mutate).toHaveBeenCalledWith(
-      FUDA_STATUS_KEY,
-      undefined,
-      { revalidate: true },
-    );
+    expect(mutate).toHaveBeenCalledWith(TORII_STATUS_KEY, undefined, {
+      revalidate: true,
+    });
+    expect(mutate).toHaveBeenCalledWith(SHAIDEN_STATUS_KEY, undefined, {
+      revalidate: true,
+    });
+    expect(mutate).toHaveBeenCalledWith(FUDA_STATUS_KEY, undefined, {
+      revalidate: true,
+    });
     expect(mutate).toHaveBeenCalledWith(AGENTS_KEY, undefined, {
       revalidate: true,
     });

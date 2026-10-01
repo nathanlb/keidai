@@ -16,7 +16,10 @@ import {
   FixedIdentityResolver,
 } from "../../identity/tests/test-helpers.js";
 import { createTestGatewayHttpServer } from "../../http/tests/test-helpers.js";
-import { createPolicyEnforcement, createApprovalServices } from "../../policy/tests/test-helpers.js";
+import {
+  createPolicyEnforcement,
+  createApprovalServices,
+} from "../../policy/tests/test-helpers.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 import { testAgentsGroup } from "../../testing/test-config.js";
@@ -112,13 +115,22 @@ describe("Demo scenario — open-torii status digest", () => {
     const { tokenRepository, credentialResolver } = createCredentialServices({
       oauth_providers: DEMO_OAUTH_PROVIDERS,
     });
-    await tokenRepository.set(DEMO_OWNER, "github", { accessToken: githubToken });
-    await tokenRepository.set(DEMO_OWNER, "notion", { accessToken: notionToken });
-    await tokenRepository.set(DEMO_OWNER, "google", { accessToken: googleToken });
+    await tokenRepository.set(DEMO_OWNER, "github", {
+      accessToken: githubToken,
+    });
+    await tokenRepository.set(DEMO_OWNER, "notion", {
+      accessToken: notionToken,
+    });
+    await tokenRepository.set(DEMO_OWNER, "google", {
+      accessToken: googleToken,
+    });
 
     const groups = [
       testAgentsGroup([
-        { server: "linear", tools: ["list_issues", "get_issue", "list_projects"] },
+        {
+          server: "linear",
+          tools: ["list_issues", "get_issue", "list_projects"],
+        },
         { server: "github", tools: ["search_issues", "get_file_contents"] },
         { server: "notion", tools: ["notion-search", "notion-fetch"] },
         { server: "gmail", tools: ["create_draft"] },
@@ -152,8 +164,17 @@ describe("Demo scenario — open-torii status digest", () => {
     const approvalServices = await createApprovalServices(groups);
     const policyEnforcement = createPolicyEnforcement(groups);
 
-    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
-    const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, policyEnforcement, createNoopLogger());
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
+    const toolCatalog = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+      policyEnforcement,
+      createNoopLogger(),
+    );
     const traceEmitter = new CapturingTraceEmitter();
     const toolDispatch = new ToolDispatchService(
       toolCatalog,

@@ -7,7 +7,11 @@ import { DefaultMcpClientConnector } from "../../../connections/mcp-client-conne
 import { startMockMcpServer } from "../../../connections/tests/mock-mcp-server.js";
 import { ToriiConfigService } from "../../../config/torii-config.service.js";
 import { ToolCatalogService } from "../../../catalog/tool-catalog.service.js";
-import { bootBackends, createCredentialServices, withTestAgentPrincipal } from "../test-helpers.js";
+import {
+  bootBackends,
+  createCredentialServices,
+  withTestAgentPrincipal,
+} from "../test-helpers.js";
 import { createPolicyEnforcement } from "../../../policy/tests/test-helpers.js";
 import { createCapturingLogger } from "../../../logging/tests/test-helpers.js";
 import { testAgentsGroup } from "../../../testing/test-config.js";
@@ -47,7 +51,9 @@ describe("service_key credentials with tools/list", () => {
       tools: [{ name: "list_customers", description: "List Stripe customers" }],
     });
 
-    const groups = [testAgentsGroup([{ server: "stripe", tools: ["list_customers"] }])];
+    const groups = [
+      testAgentsGroup([{ server: "stripe", tools: ["list_customers"] }]),
+    ];
     const configService = new ToriiConfigService({
       oauth_providers: {},
       servers: [serviceKeyServer("stripe", mockServer.url, secretKey)],
@@ -72,7 +78,10 @@ describe("service_key credentials with tools/list", () => {
         catalogService.listToolsForAgent(),
       );
 
-      assert.deepEqual(tools.map((tool) => tool.name), ["stripe.list_customers"]);
+      assert.deepEqual(
+        tools.map((tool) => tool.name),
+        ["stripe.list_customers"],
+      );
       const serialized = JSON.stringify(logger.logs);
       assert.doesNotMatch(serialized, new RegExp(secretKey));
       assert.doesNotMatch(serialized, /Bearer/);
@@ -139,7 +148,9 @@ describe("service_key credentials with Stripe MCP", () => {
       return;
     }
 
-        const groups = [testAgentsGroup([{ server: "stripe", tools: ["list_customers"] }])];
+    const groups = [
+      testAgentsGroup([{ server: "stripe", tools: ["list_customers"] }]),
+    ];
     const configService = new ToriiConfigService({
       oauth_providers: {},
       servers: [

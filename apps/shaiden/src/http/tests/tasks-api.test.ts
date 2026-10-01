@@ -1,10 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Logger, Task } from "@keidai/shared";
-import {
-  AgentDefinitionError,
-  type FudaClient,
-} from "@keidai/shared/clients";
+import { AgentDefinitionError, type FudaClient } from "@keidai/shared/clients";
 import type { HarnessRunResult } from "../../run/types/harness.js";
 import type { LaunchedHarnessRun } from "../../run/types/harness.js";
 import { resumeHarnessRun } from "../../run/harness.js";
@@ -148,7 +145,8 @@ describe("tasks API", () => {
   });
 
   it("starts a run from a saved task", async () => {
-    const { server, taskRepository, launched, persistence } = await createTestServer();
+    const { server, taskRepository, launched, persistence } =
+      await createTestServer();
     const saved = await taskRepository.create({ task: sampleTask });
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
@@ -201,20 +199,26 @@ describe("tasks API", () => {
       assert.equal(fetched.task.id, taskId);
       assert.equal(fetched.task.goal, sampleTask.goal);
 
-      const patchResponse = await fetch(`${handle.baseUrl}/api/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goal: "Updated newsletter goal" }),
-      });
+      const patchResponse = await fetch(
+        `${handle.baseUrl}/api/tasks/${taskId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ goal: "Updated newsletter goal" }),
+        },
+      );
       assert.equal(patchResponse.status, 200);
       const updated = (await patchResponse.json()) as {
         task: { goal: string };
       };
       assert.equal(updated.task.goal, "Updated newsletter goal");
 
-      const archiveResponse = await fetch(`${handle.baseUrl}/api/tasks/${taskId}`, {
-        method: "DELETE",
-      });
+      const archiveResponse = await fetch(
+        `${handle.baseUrl}/api/tasks/${taskId}`,
+        {
+          method: "DELETE",
+        },
+      );
       assert.equal(archiveResponse.status, 204);
 
       const archivedListResponse = await fetch(`${handle.baseUrl}/api/tasks`);
@@ -232,9 +236,12 @@ describe("tasks API", () => {
       };
       assert.ok(archivedTask.task.archivedAt);
 
-      const rearchiveResponse = await fetch(`${handle.baseUrl}/api/tasks/${taskId}`, {
-        method: "DELETE",
-      });
+      const rearchiveResponse = await fetch(
+        `${handle.baseUrl}/api/tasks/${taskId}`,
+        {
+          method: "DELETE",
+        },
+      );
       assert.equal(rearchiveResponse.status, 404);
     } finally {
       await handle.close();
@@ -271,9 +278,13 @@ describe("tasks API", () => {
           throw new Error("unused");
         },
         getAgentDefinition: async () => {
-          throw new AgentDefinitionError("agent_not_found", "Fuda agent not found", {
-            status: 404,
-          });
+          throw new AgentDefinitionError(
+            "agent_not_found",
+            "Fuda agent not found",
+            {
+              status: 404,
+            },
+          );
         },
       },
       startTaskRun: () => {
@@ -343,10 +354,7 @@ describe("tasks API", () => {
       assert.notEqual(created.taskId, other.id);
       assert.equal(created.runId, "run-2");
       assert.equal(launched.length, 2);
-      assert.equal(
-        (await persistence.runStore.listRunningRuns()).length,
-        3,
-      );
+      assert.equal((await persistence.runStore.listRunningRuns()).length, 3);
     } finally {
       await handle.close();
       await persistence.close();
@@ -406,7 +414,10 @@ describe("tasks API", () => {
 
   it("archives a task that has runs", async () => {
     const persistence = await createTestPersistence();
-    const taskId = await createTestRun(persistence, { runId: "run-1", task: sampleTask });
+    const taskId = await createTestRun(persistence, {
+      runId: "run-1",
+      task: sampleTask,
+    });
 
     const { server } = await createTestServer({ persistence });
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
@@ -444,18 +455,24 @@ describe("tasks API", () => {
     assert.equal(await taskRepository.archive(saved.id), true);
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
-      const patchResponse = await fetch(`${handle.baseUrl}/api/tasks/${saved.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goal: "Should not apply" }),
-      });
+      const patchResponse = await fetch(
+        `${handle.baseUrl}/api/tasks/${saved.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ goal: "Should not apply" }),
+        },
+      );
       assert.equal(patchResponse.status, 409);
       const patchBody = (await patchResponse.json()) as { error: string };
       assert.equal(patchBody.error, "task is archived");
 
-      const runResponse = await fetch(`${handle.baseUrl}/api/tasks/${saved.id}/run`, {
-        method: "POST",
-      });
+      const runResponse = await fetch(
+        `${handle.baseUrl}/api/tasks/${saved.id}/run`,
+        {
+          method: "POST",
+        },
+      );
       assert.equal(runResponse.status, 409);
       const runBody = (await runResponse.json()) as { error: string };
       assert.equal(runBody.error, "task is archived");
@@ -546,9 +563,13 @@ describe("tasks API", () => {
           throw new Error("unused");
         },
         getAgentDefinition: async () => {
-          throw new AgentDefinitionError("agent_not_found", "Fuda agent not found", {
-            status: 404,
-          });
+          throw new AgentDefinitionError(
+            "agent_not_found",
+            "Fuda agent not found",
+            {
+              status: 404,
+            },
+          );
         },
       },
       startTaskRun: () => {
@@ -575,9 +596,13 @@ describe("tasks API", () => {
   it("fails task start when Fuda agent is unknown", async () => {
     const { server, persistence } = await createTestServer({
       startTaskRun: async () => {
-        throw new AgentDefinitionError("agent_not_found", "Fuda agent not found", {
-          status: 404,
-        });
+        throw new AgentDefinitionError(
+          "agent_not_found",
+          "Fuda agent not found",
+          {
+            status: 404,
+          },
+        );
       },
     });
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
@@ -648,7 +673,11 @@ describe("tasks API", () => {
       });
       assert.equal(response.status, 201);
       const body = (await response.json()) as {
-        task: { id: string; nextRunAt: string | null; trigger: { type: string } };
+        task: {
+          id: string;
+          nextRunAt: string | null;
+          trigger: { type: string };
+        };
       };
       assert.equal(body.task.trigger.type, "schedule");
       assert.ok(body.task.nextRunAt);

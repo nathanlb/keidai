@@ -43,9 +43,7 @@ export function formatLinkingReason(
   return `No grant stored for (${ownerId}, ${providerId}). The owner must link ${formatProviderLabel(providerId)} before this tool resolves.`;
 }
 
-export function formatLinkingRequiredBannerBody(
-  trace: TraceListItem,
-): string {
+export function formatLinkingRequiredBannerBody(trace: TraceListItem): string {
   const ownerId = trace.principal?.ownerId ?? "unknown";
   const gatewayResponse = trace.error?.trim();
 

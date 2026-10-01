@@ -28,14 +28,14 @@ describe("buildOAuthLinkUrl", () => {
     });
     const url = new URL(linkUrl);
 
-    assert.equal(url.origin + url.pathname, "https://github.com/login/oauth/authorize");
+    assert.equal(
+      url.origin + url.pathname,
+      "https://github.com/login/oauth/authorize",
+    );
     assert.equal(url.searchParams.get("client_id"), "test-client-id");
     assert.equal(url.searchParams.get("scope"), "repo read:user");
     assert.equal(url.searchParams.get("response_type"), "code");
-    assert.equal(
-      url.searchParams.get("redirect_uri"),
-      gatewayRedirect,
-    );
+    assert.equal(url.searchParams.get("redirect_uri"), gatewayRedirect);
     assert.ok(url.searchParams.get("state"));
 
     const state = JSON.parse(

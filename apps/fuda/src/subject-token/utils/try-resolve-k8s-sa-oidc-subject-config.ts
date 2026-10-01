@@ -1,10 +1,7 @@
 import type { K8sSaOidcSubjectConfig } from "../types/k8s-sa-oidc-subject-config.js";
 import { parseK8sSaSubjects } from "./parse-k8s-sa-subjects.js";
 
-function readEnv(
-  env: NodeJS.ProcessEnv,
-  name: string,
-): string | undefined {
+function readEnv(env: NodeJS.ProcessEnv, name: string): string | undefined {
   const value = env[name]?.trim();
   return value || undefined;
 }

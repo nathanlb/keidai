@@ -1,13 +1,13 @@
 import { Badge } from "@keidai/ui";
 import { DEFAULT_TASK_LIMITS } from "@keidai/shared";
 import { Lock, Repeat, SlidersHorizontal, Timer } from "lucide-react";
-import { FieldHeader } from "./field-header.js";
+import { FieldHeader } from "../../shell/forms/field-header.js";
 
 const WALL_CLOCK_MINUTES = DEFAULT_TASK_LIMITS.timeout_seconds / 60;
 
 export function TaskLimitsSection() {
   return (
-    <section className="py-5">
+    <section>
       <FieldHeader
         icon={<SlidersHorizontal className="size-3.5" aria-hidden />}
         label="Limits"
@@ -26,7 +26,9 @@ export function TaskLimitsSection() {
           mt-1 mb-2.5 text-[12.5px] leading-normal text-muted-foreground
         "
       >
-        A run terminates <span className="font-mono">iteration_exhausted</span>{" "}
+        A run terminates <span className="font-mono">
+          iteration_exhausted
+        </span>{" "}
         or <span className="font-mono">timeout</span> if it hits these.
       </p>
       <div className="flex gap-3">

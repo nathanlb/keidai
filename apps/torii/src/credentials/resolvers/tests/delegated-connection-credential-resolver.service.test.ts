@@ -15,7 +15,10 @@ import {
 import type { OAuthFetch } from "../../utils/oauth-token-refresh.js";
 import { runWithAgentPrincipal } from "../../../identity/agent-principal-context.js";
 import { TEST_AGENT_PRINCIPAL } from "../../../identity/tests/test-helpers.js";
-import { withMockFetch, withTestAgentPrincipal } from "../../tests/test-helpers.js";
+import {
+  withMockFetch,
+  withTestAgentPrincipal,
+} from "../../tests/test-helpers.js";
 
 const oauthProviders: ToriiConfig["oauth_providers"] = {
   github: {
@@ -26,9 +29,7 @@ const oauthProviders: ToriiConfig["oauth_providers"] = {
   },
 };
 
-function userOAuthServer(
-  name = "github",
-): ToriiConfig["servers"][number] {
+function userOAuthServer(name = "github"): ToriiConfig["servers"][number] {
   return {
     name,
     transport: { type: "http", url: "https://example.com/mcp" },
@@ -85,10 +86,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
       resolver.resolve(userOAuthServer()),
     );
 
-    assert.equal(
-      resolved.headers.Authorization,
-      "Bearer gho_secret_token",
-    );
+    assert.equal(resolved.headers.Authorization, "Bearer gho_secret_token");
     assert.equal(resolved.credentialRef, "github:test-owner");
   });
 
@@ -96,8 +94,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
     const resolver = createResolver();
 
     await assert.rejects(
-      () =>
-        withTestAgentPrincipal(() => resolver.resolve(userOAuthServer())),
+      () => withTestAgentPrincipal(() => resolver.resolve(userOAuthServer())),
       (error: unknown) => {
         assert.ok(error instanceof LinkingRequiredError);
         assert.equal(error.code, LINKING_REQUIRED_CODE);
@@ -136,8 +133,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
     const resolver = createResolver(repository);
 
     await assert.rejects(
-      () =>
-        withTestAgentPrincipal(() => resolver.resolve(userOAuthServer())),
+      () => withTestAgentPrincipal(() => resolver.resolve(userOAuthServer())),
       (error: unknown) => {
         assert.ok(error instanceof LinkingRequiredError);
         assert.equal(error.payload.code, LINKING_REQUIRED_CODE);
@@ -164,14 +160,10 @@ describe("DelegatedConnectionCredentialResolver", () => {
           token_type: "bearer",
         },
       }),
-      () =>
-        withTestAgentPrincipal(() => resolver.resolve(userOAuthServer())),
+      () => withTestAgentPrincipal(() => resolver.resolve(userOAuthServer())),
     );
 
-    assert.equal(
-      resolved.headers.Authorization,
-      "Bearer gho_refreshed",
-    );
+    assert.equal(resolved.headers.Authorization, "Bearer gho_refreshed");
     const stored = await repository.get(TEST_AGENT_PRINCIPAL.ownerId, "github");
     assert.equal(stored?.accessToken, "gho_refreshed");
     assert.equal(stored?.refreshToken, "ghr_stale");
@@ -237,14 +229,8 @@ describe("DelegatedConnectionCredentialResolver", () => {
     );
 
     assert.equal(refreshCalls, 1);
-    assert.equal(
-      first.headers.Authorization,
-      "Bearer gho_refreshed",
-    );
-    assert.equal(
-      second.headers.Authorization,
-      "Bearer gho_refreshed",
-    );
+    assert.equal(first.headers.Authorization, "Bearer gho_refreshed");
+    assert.equal(second.headers.Authorization, "Bearer gho_refreshed");
   });
 
   it("returns linking_required when refresh fails with a terminal provider error", async () => {
@@ -286,8 +272,7 @@ describe("DelegatedConnectionCredentialResolver", () => {
     const resolver = createResolver(repository);
 
     await assert.rejects(
-      () =>
-        withTestAgentPrincipal(() => resolver.resolve(userOAuthServer())),
+      () => withTestAgentPrincipal(() => resolver.resolve(userOAuthServer())),
       LinkingRequiredError,
     );
   });
@@ -300,14 +285,16 @@ describe("DelegatedConnectionCredentialResolver", () => {
     const resolver = createResolver(repository);
 
     const resolved = await runWithAgentPrincipal(
-      { agentId: "agent-1", ownerId: "context-owner", groups: [], bearerId: "test-bearer" },
+      {
+        agentId: "agent-1",
+        ownerId: "context-owner",
+        groups: [],
+        bearerId: "test-bearer",
+      },
       () => resolver.resolve(userOAuthServer()),
     );
 
-    assert.equal(
-      resolved.headers.Authorization,
-      "Bearer gho_context_owner",
-    );
+    assert.equal(resolved.headers.Authorization, "Bearer gho_context_owner");
     assert.equal(resolved.credentialRef, "github:context-owner");
   });
 });

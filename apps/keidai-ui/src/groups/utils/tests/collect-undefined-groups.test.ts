@@ -7,10 +7,7 @@ import {
 } from "../collect-undefined-groups.js";
 import { formatUndefinedGroupsCopy } from "../format-groups-copy.js";
 
-function agent(
-  id: string,
-  groups: string[],
-): ManagementAgent {
+function agent(id: string, groups: string[]): ManagementAgent {
   return {
     id,
     slug: id,
@@ -53,9 +50,9 @@ describe("formatUndefinedGroupsCopy", () => {
 describe("agentsInGroup / otherGroupNames", () => {
   it("finds members and names their other groups", () => {
     const ops = agent("ops-bot", ["ops-write", "read-only"]);
-    expect(agentsInGroup([ops, agent("solo", ["read-only"])], "ops-write")).toEqual([
-      ops,
-    ]);
+    expect(
+      agentsInGroup([ops, agent("solo", ["read-only"])], "ops-write"),
+    ).toEqual([ops]);
     expect(otherGroupNames(ops, "ops-write")).toEqual(["read-only"]);
   });
 });

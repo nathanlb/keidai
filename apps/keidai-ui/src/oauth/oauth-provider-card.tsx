@@ -8,13 +8,7 @@ import {
   CardTitle,
 } from "@keidai/ui";
 import type { OAuthLinkStatus } from "@keidai/shared";
-import {
-  ChevronDown,
-  CircleAlert,
-  EyeOff,
-  Key,
-  RefreshCw,
-} from "lucide-react";
+import { ChevronDown, CircleAlert, EyeOff, Key, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { OwnerAvatar } from "../shell/components/owner-avatar/owner-avatar.js";
 import type { OAuthProviderSummary } from "./utils/build-oauth-provider-summaries.js";
@@ -42,8 +36,7 @@ const aggregateStatusMeta: Record<
   misconfigured: {
     label: "Misconfigured",
     dotClass: "",
-    badgeClass:
-      "border-transparent bg-destructive text-destructive-foreground",
+    badgeClass: "border-transparent bg-destructive text-destructive-foreground",
   },
 };
 
@@ -72,8 +65,7 @@ const ownerStatusMeta: Record<
   failed: {
     label: "Failed",
     dotClass: "",
-    badgeClass:
-      "border-transparent bg-destructive text-destructive-foreground",
+    badgeClass: "border-transparent bg-destructive text-destructive-foreground",
     healthClass: "text-destructive",
   },
 };
@@ -90,15 +82,21 @@ function StatusBadge({
   showDot: boolean;
 }) {
   return (
-    <Badge variant="outline" className={`
+    <Badge
+      variant="outline"
+      className={`
       gap-1.5
       ${badgeClass}
-    `}>
+    `}
+    >
       {showDot ? (
-        <span className={`
+        <span
+          className={`
           size-1.5 rounded-full
           ${dotClass}
-        `} aria-hidden />
+        `}
+          aria-hidden
+        />
       ) : null}
       {label}
     </Badge>
@@ -109,18 +107,28 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-2.5 text-[12.5px]">
       <span className="text-muted-foreground">{label}</span>
-      <span title={value} className="max-w-72.5 truncate text-right font-mono">{value}</span>
+      <span title={value} className="max-w-72.5 truncate text-right font-mono">
+        {value}
+      </span>
     </div>
   );
 }
 
-function ClientIdIcon({ dynamic, missing }: { dynamic: boolean; missing: boolean }) {
+function ClientIdIcon({
+  dynamic,
+  missing,
+}: {
+  dynamic: boolean;
+  missing: boolean;
+}) {
   if (dynamic) {
     return <RefreshCw className="size-3.5 shrink-0" aria-hidden />;
   }
 
   if (missing) {
-    return <CircleAlert className="size-3.5 shrink-0 text-destructive" aria-hidden />;
+    return (
+      <CircleAlert className="size-3.5 shrink-0 text-destructive" aria-hidden />
+    );
   }
 
   return <Key className="size-3.5 shrink-0" aria-hidden />;
@@ -131,7 +139,10 @@ interface OAuthProviderCardProps {
   onLink?: (providerId: string) => void;
 }
 
-export function OAuthProviderCard({ provider, onLink }: OAuthProviderCardProps) {
+export function OAuthProviderCard({
+  provider,
+  onLink,
+}: OAuthProviderCardProps) {
   const [expanded, setExpanded] = useState(false);
   const status = aggregateStatusMeta[provider.aggregateStatus];
   const dynamicClient = Boolean(provider.config.registration_endpoint);
@@ -172,10 +183,12 @@ export function OAuthProviderCard({ provider, onLink }: OAuthProviderCardProps) 
           </div>
         </div>
 
-        <div className="
+        <div
+          className="
           text-xs text-muted-foreground
           max-lg:hidden
-        ">
+        "
+        >
           <div className="flex items-center gap-1.5">
             <ClientIdIcon
               dynamic={dynamicClient}
@@ -186,10 +199,12 @@ export function OAuthProviderCard({ provider, onLink }: OAuthProviderCardProps) 
           <div className="mt-0.5 font-mono">{provider.scopesLabel}</div>
         </div>
 
-        <div className="
+        <div
+          className="
           text-xs text-muted-foreground
           max-lg:hidden
-        ">
+        "
+        >
           {provider.ownersLabel}
         </div>
 
@@ -222,15 +237,19 @@ export function OAuthProviderCard({ provider, onLink }: OAuthProviderCardProps) 
       </CardHeader>
 
       {expanded ? (
-        <CardContent className="
+        <CardContent
+          className="
           grid gap-5.5 border-t border-border px-4.5 py-4
           lg:grid-cols-2
-        ">
+        "
+        >
           <div>
-            <p className="
+            <p
+              className="
               mb-2.5 text-[11px] font-semibold tracking-wider
               text-muted-foreground uppercase
-            ">
+            "
+            >
               Provider config
             </p>
             <div className="flex flex-col gap-2">
@@ -248,9 +267,13 @@ export function OAuthProviderCard({ provider, onLink }: OAuthProviderCardProps) 
                 <span
                   className={`
                     flex items-center gap-1.5 font-mono
-                    ${provider.secretMissing ? `text-destructive` : `
+                    ${
+                      provider.secretMissing
+                        ? `text-destructive`
+                        : `
                       text-muted-foreground
-                    `}
+                    `
+                    }
                   `}
                 >
                   {provider.secretMissing ? (
@@ -267,10 +290,12 @@ export function OAuthProviderCard({ provider, onLink }: OAuthProviderCardProps) 
 
           <div>
             <div className="mb-2.5 flex items-center justify-between">
-              <p className="
+              <p
+                className="
                 text-[11px] font-semibold tracking-wider text-muted-foreground
                 uppercase
-              ">
+              "
+              >
                 Linked owners
               </p>
               <span className="font-mono text-[11px] text-muted-foreground">
@@ -285,9 +310,11 @@ export function OAuthProviderCard({ provider, onLink }: OAuthProviderCardProps) 
 
                   return (
                     <Card key={owner.ownerId} className="shadow-none">
-                      <CardContent className="
+                      <CardContent
+                        className="
                         flex items-center gap-2.5 px-2.75 py-2.5
-                      ">
+                      "
+                      >
                         <OwnerAvatar
                           initials={owner.initials}
                           className="size-6 text-[9px]"
@@ -320,9 +347,11 @@ export function OAuthProviderCard({ provider, onLink }: OAuthProviderCardProps) 
               </div>
             ) : (
               <Card className="border-dashed shadow-none">
-                <CardContent className="
+                <CardContent
+                  className="
                   p-3.5 text-center text-[12.5px] text-muted-foreground
-                ">
+                "
+                >
                   No owner has linked this provider.
                 </CardContent>
               </Card>

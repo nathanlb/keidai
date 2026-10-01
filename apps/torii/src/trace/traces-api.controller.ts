@@ -67,7 +67,8 @@ export class TracesApiController {
         writeEvent(event.type, event.trace);
       };
 
-      for (const trace of (await this.traceRead.listTraces({ limit: 50 })).traces) {
+      for (const trace of (await this.traceRead.listTraces({ limit: 50 }))
+        .traces) {
         emit({
           type: TRACE_SSE_EVENT.traceCreated,
           trace,

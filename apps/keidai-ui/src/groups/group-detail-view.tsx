@@ -326,10 +326,12 @@ export function GroupDetailView() {
         agents={members.length}
       />
 
-      <div className="
+      <div
+        className="
         grid items-start gap-4
         xl:grid-cols-[minmax(420px,1fr)_292px]
-      ">
+      "
+      >
         <div className="flex min-w-0 flex-col gap-3">
           {draft.servers.map((policy, index) => (
             <GroupServerCard
@@ -371,10 +373,12 @@ export function GroupDetailView() {
       <GroupsToast message={message} />
 
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent className="
+        <DialogContent
+          className="
           max-w-90
           sm:rounded-xl
-        ">
+        "
+        >
           <DialogHeader>
             <DialogTitle>Delete group?</DialogTitle>
             <DialogDescription>
@@ -382,10 +386,12 @@ export function GroupDetailView() {
               {formatDeleteGroupConfirm(members.length, grants.allowed)}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="
+          <DialogFooter
+            className="
             gap-2
             sm:gap-0
-          ">
+          "
+          >
             <Button
               type="button"
               variant="outline"

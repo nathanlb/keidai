@@ -1,8 +1,7 @@
 import * as jose from "jose";
 import type { OperatorAuthConfig } from "./types.js";
 
-const DEFAULT_AUTH_ENDPOINT =
-  "https://accounts.google.com/o/oauth2/v2/auth";
+const DEFAULT_AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 const DEFAULT_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const DEFAULT_JWKS_URI = "https://www.googleapis.com/oauth2/v3/certs";
 const DEFAULT_ISSUER = "https://accounts.google.com";
@@ -11,8 +10,7 @@ export function buildGoogleAuthorizationUrl(
   config: OperatorAuthConfig,
   params: { state: string; codeChallenge: string },
 ): string {
-  const endpoint =
-    config.googleAuthorizationEndpoint ?? DEFAULT_AUTH_ENDPOINT;
+  const endpoint = config.googleAuthorizationEndpoint ?? DEFAULT_AUTH_ENDPOINT;
   const url = new URL(endpoint);
   url.searchParams.set("client_id", config.googleClientId);
   url.searchParams.set("redirect_uri", config.redirectUri);

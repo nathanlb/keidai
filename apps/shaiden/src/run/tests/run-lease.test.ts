@@ -8,7 +8,10 @@ import {
   RunNotClaimedError,
   startRunLeaseHeartbeat,
 } from "../run-lease.js";
-import { createTestPersistence, createTestRun } from "../../testing/persistence.js";
+import {
+  createTestPersistence,
+  createTestRun,
+} from "../../testing/persistence.js";
 
 const sampleTask = {
   goal: "Draft a note.",

@@ -5,7 +5,12 @@ import type { ToriiConfig } from "@keidai/shared";
 import { ServiceKeyCredentialResolver } from "../service-key-credential-resolver.service.js";
 
 function serviceKeyServer(
-  overrides: Partial<Extract<ToriiConfig["servers"][number]["credential"], { strategy: "service_key" }>> = {},
+  overrides: Partial<
+    Extract<
+      ToriiConfig["servers"][number]["credential"],
+      { strategy: "service_key" }
+    >
+  > = {},
   name = "stripe",
 ): ToriiConfig["servers"][number] {
   return {
@@ -25,10 +30,7 @@ describe("ServiceKeyCredentialResolver", () => {
   it("injects Authorization Bearer by default", () => {
     const resolved = resolver.resolve(serviceKeyServer());
 
-    assert.equal(
-      resolved.headers.Authorization,
-      "Bearer sk_test_secret_key",
-    );
+    assert.equal(resolved.headers.Authorization, "Bearer sk_test_secret_key");
     assert.equal(resolved.credentialRef, "service_key:stripe");
     assert.doesNotMatch(resolved.credentialRef ?? "", /sk_test_secret_key/);
   });

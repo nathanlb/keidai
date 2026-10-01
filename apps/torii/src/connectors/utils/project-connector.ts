@@ -7,7 +7,9 @@ import type {
 
 export function projectPublicConnector(
   connector: ConnectorRecord,
-  options: { oauthClient?: SecretHint & { issuer?: string; clientId?: string } } = {},
+  options: {
+    oauthClient?: SecretHint & { issuer?: string; clientId?: string };
+  } = {},
 ): PublicConnector {
   const serviceKey: PublicConnector["serviceKey"] =
     connector.authMode === "service_key"

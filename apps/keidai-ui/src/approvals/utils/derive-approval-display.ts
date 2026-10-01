@@ -20,7 +20,9 @@ export function deriveApprovalDisplay(
 
   if (run) {
     context.taskName = run.goalPreview;
-    context.iterationCurrent = run.steps.filter((step) => step.kind === "model").length;
+    context.iterationCurrent = run.steps.filter(
+      (step) => step.kind === "model",
+    ).length;
 
     const waitingIndex = run.steps.findIndex(
       (step) =>

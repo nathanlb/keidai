@@ -28,6 +28,7 @@ interface TaskRow {
   trigger_json: unknown;
   assignee: string;
   limits_json: unknown | null;
+  model_id: string | null;
   created_at: Date | string;
   updated_at: Date | string;
   archived_at: Date | string | null;
@@ -46,6 +47,7 @@ function rowToSavedTask(row: TaskRow): SavedTask {
     trigger: asJson(row.trigger_json),
     assignee: row.assignee,
     limits: row.limits_json == null ? undefined : asJson(row.limits_json),
+    ...(row.model_id ? { modelId: row.model_id } : {}),
   });
   return {
     id: row.id,
@@ -64,7 +66,7 @@ function rowToSavedTask(row: TaskRow): SavedTask {
 }
 
 const TASK_COLUMNS = `
-  id, goal, trigger_json, assignee, limits_json, created_at, updated_at,
+  id, goal, trigger_json, assignee, limits_json, model_id, created_at, updated_at,
   archived_at, next_run_at, schedule_failed_at, schedule_error
 `;
 
@@ -79,9 +81,9 @@ export class PgTaskRepository implements TaskRepository {
     await this.pool.query(
       `
         INSERT INTO tasks (
-          id, goal, trigger_json, assignee, limits_json, created_at, updated_at,
-          archived_at, next_run_at
-        ) VALUES ($1, $2, $3::jsonb, $4, $5::jsonb, $6, $7, NULL, $8)
+          id, goal, trigger_json, assignee, limits_json, model_id, created_at,
+          updated_at, archived_at, next_run_at
+        ) VALUES ($1, $2, $3::jsonb, $4, $5::jsonb, $6, $7, $8, NULL, $9)
       `,
       [
         id,
@@ -89,6 +91,7 @@ export class PgTaskRepository implements TaskRepository {
         JSON.stringify(input.task.trigger),
         input.task.assignee,
         input.task.limits ? JSON.stringify(input.task.limits) : null,
+        input.task.modelId ?? null,
         nowIso,
         nowIso,
         nextRunAt,
@@ -130,17 +133,25 @@ export class PgTaskRepository implements TaskRepository {
     return { tasks: result.rows.map(rowToSavedTask) };
   }
 
-  async update(taskId: string, input: UpdateTaskRequest): Promise<SavedTask | null> {
+  async update(
+    taskId: string,
+    input: UpdateTaskRequest,
+  ): Promise<SavedTask | null> {
     const existing = await this.get(taskId);
     if (!existing) {
       return null;
     }
 
+    const modelId =
+      input.modelId === undefined
+        ? existing.modelId
+        : (input.modelId ?? undefined);
     const merged = taskSchema.parse({
       goal: input.goal ?? existing.goal,
       trigger: input.trigger ?? existing.trigger,
       assignee: input.assignee ?? existing.assignee,
       limits: input.limits === undefined ? existing.limits : input.limits,
+      ...(modelId ? { modelId } : {}),
     });
     const now = new Date();
     const updatedAt = now.toISOString();
@@ -157,26 +168,33 @@ export class PgTaskRepository implements TaskRepository {
             trigger_json = $2::jsonb,
             assignee = $3,
             limits_json = $4::jsonb,
-            updated_at = $5,
-            next_run_at = $6,
-            schedule_claim_until = CASE WHEN $7 THEN NULL ELSE schedule_claim_until END,
-            schedule_start_attempts = CASE WHEN $7 THEN 0 ELSE schedule_start_attempts END,
-            schedule_failed_at = CASE WHEN $7 THEN NULL ELSE schedule_failed_at END,
-            schedule_error = CASE WHEN $7 THEN NULL ELSE schedule_error END
-        WHERE id = $8
+            model_id = $5,
+            updated_at = $6,
+            next_run_at = $7,
+            schedule_claim_until = CASE WHEN $8 THEN NULL ELSE schedule_claim_until END,
+            schedule_start_attempts = CASE WHEN $8 THEN 0 ELSE schedule_start_attempts END,
+            schedule_failed_at = CASE WHEN $8 THEN NULL ELSE schedule_failed_at END,
+            schedule_error = CASE WHEN $8 THEN NULL ELSE schedule_error END
+        WHERE id = $9
       `,
       [
         merged.goal,
         JSON.stringify(merged.trigger),
         merged.assignee,
         merged.limits ? JSON.stringify(merged.limits) : null,
+        merged.modelId ?? null,
         updatedAt,
         cursor.nextRunAt,
         cursor.resetScheduleState,
         taskId,
       ],
     );
-    const { scheduleFailedAt, scheduleError, ...existingRest } = existing;
+    const {
+      scheduleFailedAt,
+      scheduleError,
+      modelId: _previousModelId,
+      ...existingRest
+    } = existing;
     return {
       ...existingRest,
       ...merged,
@@ -238,7 +256,7 @@ export class PgTaskRepository implements TaskRepository {
         FROM due
         WHERE t.id = due.id
         RETURNING
-          t.id, t.goal, t.trigger_json, t.assignee, t.limits_json,
+          t.id, t.goal, t.trigger_json, t.assignee, t.limits_json, t.model_id,
           t.created_at, t.updated_at, t.archived_at, t.next_run_at,
           t.schedule_failed_at, t.schedule_error
       `,
@@ -247,7 +265,10 @@ export class PgTaskRepository implements TaskRepository {
     return result.rows.map(rowToSavedTask);
   }
 
-  async setNextRunAt(taskId: string, nextRunAt: string | null): Promise<boolean> {
+  async setNextRunAt(
+    taskId: string,
+    nextRunAt: string | null,
+  ): Promise<boolean> {
     const result = await this.pool.query(
       `
         UPDATE tasks

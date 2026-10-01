@@ -56,9 +56,9 @@ Environment variables load from the repo root `.env` (shared) then `apps/torii/.
 
 During normal gateway operation Torii uses two machine-readable streams:
 
-| Stream | Content | Schema |
-|--------|---------|--------|
-| **stdout** | `CallTrace` audit records (`tools/call`) only | JSON with `recordType: "call_trace"` and `traceId` |
+| Stream     | Content                                                                              | Schema                                              |
+| ---------- | ------------------------------------------------------------------------------------ | --------------------------------------------------- |
+| **stdout** | `CallTrace` audit records (`tools/call`) only                                        | JSON with `recordType: "call_trace"` and `traceId`  |
 | **stderr** | Structured operational logs (boot, connections, catalog, policy, OAuth, HTTP access) | JSON with `recordType: "log"`, `level`, and `event` |
 
 Human-readable config validation errors may still use prose on the terminal; they are not part of the operational log stream.
@@ -72,16 +72,16 @@ pnpm --filter @keidai/torii start
 
 ## Configuration
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `TORII_PORT` | `3100` (falls back to `PORT`) | HTTP listen port |
-| `TORII_HOST` | `127.0.0.1` | HTTP bind address |
-| `TORII_DATABASE_URL` | — | Required. Postgres connection string (connectors, OAuth tokens, call traces, approval ledger) |
-| `TORII_SECRET_KEY` | — | Required outside tests. Seals connector secrets at rest |
-| `TORII_OPERATORS_PATH` | — | Optional `operators.yaml`. When set, boot wipes OAuth tokens and pending links for `owner_id`s absent from the registry. Unset is a no-op (never wipe without a registry). Compose/k8s pin this to the mounted operators file |
-| `TORII_GATEWAY_BASE_URL` | — | Stable **public** base URL for OAuth callbacks (overrides per-request Host derivation). With the BFF edge, set this to the BFF origin (e.g. `http://localhost:3000`), not Torii's ClusterIP/`localhost:3100` |
-| `TORII_FUDA_ISSUER` | — | Expected `iss` on Fuda-minted agent JWTs (required) |
-| `TORII_FUDA_JWKS_URI` | — | Fuda JWKS URL, e.g. `http://127.0.0.1:3300/.well-known/jwks.json` (required) |
+| Variable                 | Default                       | Purpose                                                                                                                                                                                                                       |
+| ------------------------ | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TORII_PORT`             | `3100` (falls back to `PORT`) | HTTP listen port                                                                                                                                                                                                              |
+| `TORII_HOST`             | `127.0.0.1`                   | HTTP bind address                                                                                                                                                                                                             |
+| `TORII_DATABASE_URL`     | —                             | Required. Postgres connection string (connectors, OAuth tokens, call traces, approval ledger)                                                                                                                                 |
+| `TORII_SECRET_KEY`       | —                             | Required outside tests. Seals connector secrets at rest                                                                                                                                                                       |
+| `TORII_OPERATORS_PATH`   | —                             | Optional `operators.yaml`. When set, boot wipes OAuth tokens and pending links for `owner_id`s absent from the registry. Unset is a no-op (never wipe without a registry). Compose/k8s pin this to the mounted operators file |
+| `TORII_GATEWAY_BASE_URL` | —                             | Stable **public** base URL for OAuth callbacks (overrides per-request Host derivation). With the BFF edge, set this to the BFF origin (e.g. `http://localhost:3000`), not Torii's ClusterIP/`localhost:3100`                  |
+| `TORII_FUDA_ISSUER`      | —                             | Expected `iss` on Fuda-minted agent JWTs (required)                                                                                                                                                                           |
+| `TORII_FUDA_JWKS_URI`    | —                             | Fuda JWKS URL, e.g. `http://127.0.0.1:3300/.well-known/jwks.json` (required)                                                                                                                                                  |
 
 Connectors are stored in Postgres and authored in keidai-ui Connections (or over `/api/connectors`); group policy likewise. Fresh installs boot with zero connectors. There is no config file and no `TORII_CONFIG_PATH` — the only YAML Torii reads is the operators registry.
 
@@ -121,10 +121,10 @@ The BFF proxies `/oauth/callback/*` to Torii without an operator session. Do not
 
 For **static** providers, register these on the OAuth app (same host you use to open the UI — prefer `localhost` over `127.0.0.1`, or register both):
 
-| Field | Value |
-|-------|--------|
-| Authorized redirect / callback URI | `http://localhost:3000/oauth/callback/github` or `…/google` |
-| Authorized JavaScript origin (Google) | `http://localhost:3000` |
+| Field                                 | Value                                                       |
+| ------------------------------------- | ----------------------------------------------------------- |
+| Authorized redirect / callback URI    | `http://localhost:3000/oauth/callback/github` or `…/google` |
+| Authorized JavaScript origin (Google) | `http://localhost:3000`                                     |
 
 **Dynamic** providers (Notion MCP) register the redirect URI automatically on first link.
 

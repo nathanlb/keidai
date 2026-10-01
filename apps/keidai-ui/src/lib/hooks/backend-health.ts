@@ -1,12 +1,6 @@
 import type { ServiceHealth } from "../types/service-health.js";
-import {
-  fetchToriiHealth,
-  getToriiDisplayAddress,
-} from "../api/gateway.js";
-import {
-  fetchShaidenHealth,
-  getShaidenDisplayAddress,
-} from "../api/runs.js";
+import { fetchToriiHealth, getToriiDisplayAddress } from "../api/gateway.js";
+import { fetchShaidenHealth, getShaidenDisplayAddress } from "../api/runs.js";
 
 export interface BackendHealth {
   torii: ServiceHealth;

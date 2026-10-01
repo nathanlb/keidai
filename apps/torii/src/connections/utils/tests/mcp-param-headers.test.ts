@@ -42,10 +42,7 @@ describe("buildOutboundMcpParamHeaders", () => {
   });
 
   it("encodes values that are not safe plain ASCII header fields", () => {
-    assert.equal(
-      encodeMcpParamValue("hello"),
-      "hello",
-    );
+    assert.equal(encodeMcpParamValue("hello"), "hello");
     assert.equal(
       encodeMcpParamValue("レポート"),
       `=?base64?${Buffer.from("レポート", "utf8").toString("base64")}?=`,

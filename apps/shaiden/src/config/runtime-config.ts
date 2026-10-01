@@ -25,7 +25,13 @@ export interface RuntimeConfig {
    * `FUDA_URL`; optional on the type so evals can omit minting.
    */
   fudaBaseUrl?: string;
-  openRouterApiKey: string;
+  /**
+   * Env fallback (`OPEN_ROUTER_API_KEY`). A key saved from the UI takes
+   * precedence when `getOpenRouterApiKey` is set.
+   */
+  openRouterApiKey?: string;
+  /** Resolves the key used for a run: stored secret, then the env fallback. */
+  getOpenRouterApiKey?: () => Promise<string>;
   modelId: string;
   httpHost: string;
   httpPort: number;
@@ -61,9 +67,7 @@ export function resolveSubjectTokenReader(
     return () => {
       const value = readFileSync(tokenFile, "utf8").trim();
       if (!value) {
-        throw new Error(
-          `Subject token file is empty: ${tokenFile}`,
-        );
+        throw new Error(`Subject token file is empty: ${tokenFile}`);
       }
       return value;
     };
@@ -72,7 +76,9 @@ export function resolveSubjectTokenReader(
   return () => bearer;
 }
 
-export function resolveSandboxUrl(env: NodeJS.ProcessEnv = process.env): string | undefined {
+export function resolveSandboxUrl(
+  env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
   const raw = env.SHAIDEN_SANDBOX_URL?.trim() ?? "";
   if (!raw) {
     return undefined;
@@ -101,7 +107,7 @@ export function loadRuntimeConfig(): RuntimeConfig {
       process.env.TORII_MCP_URL?.trim() ?? "http://127.0.0.1:3100/mcp",
     getSubjectToken: resolveSubjectTokenReader(),
     fudaBaseUrl: requiredEnv("FUDA_URL"),
-    openRouterApiKey: requiredEnv("OPEN_ROUTER_API_KEY"),
+    openRouterApiKey: process.env.OPEN_ROUTER_API_KEY?.trim() || undefined,
     modelId: process.env.SHAIDEN_MODEL_ID?.trim() ?? DEFAULT_MODEL_ID,
     httpHost: process.env.SHAIDEN_HOST?.trim() ?? "127.0.0.1",
     httpPort,

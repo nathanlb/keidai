@@ -66,7 +66,9 @@ describe("Shaiden BFF service token gate", () => {
   it("rejects management API calls without a valid token", async () => {
     delete process.env.BFF_SERVICE_TOKEN_DISABLED;
     process.env.BFF_SERVICE_TOKEN = TOKEN;
-    const handle = await (await createServer()).start({ host: "127.0.0.1", port: 0 });
+    const handle = await (
+      await createServer()
+    ).start({ host: "127.0.0.1", port: 0 });
 
     try {
       const unauthorized = await fetch(`${handle.baseUrl}/api/tasks`);

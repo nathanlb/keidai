@@ -15,15 +15,13 @@ function groupDefinitionToPolicy(
     description: group.description,
     createdAt: now,
     updatedAt: now,
-    servers: group.permissions.map(
-      (permission): GroupServerPolicy => ({
-        server: permission.server,
-        default: "deny",
-        allow: [...permission.tools],
-        deny: [],
-        gated: [],
-      }),
-    ),
+    servers: group.permissions.map((permission): GroupServerPolicy => ({
+      server: permission.server,
+      default: "deny",
+      allow: [...permission.tools],
+      deny: [],
+      gated: [],
+    })),
   };
 }
 
@@ -75,7 +73,9 @@ export interface BuildGroupPoliciesInput {
 }
 
 /** Builds in-memory group policy snapshots for tests. */
-export function buildGroupPolicies(input: BuildGroupPoliciesInput = {}): GroupPolicy[] {
+export function buildGroupPolicies(
+  input: BuildGroupPoliciesInput = {},
+): GroupPolicy[] {
   const now = new Date();
   const groups = new Map<string, GroupPolicy>();
 

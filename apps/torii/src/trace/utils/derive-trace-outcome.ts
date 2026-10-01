@@ -1,4 +1,8 @@
-import { PolicyDecision, type CallTrace, type TraceOutcome } from "@keidai/shared";
+import {
+  PolicyDecision,
+  type CallTrace,
+  type TraceOutcome,
+} from "@keidai/shared";
 
 const LINKING_REQUIRED_PREFIX = "OAuth connection required";
 

@@ -4,8 +4,10 @@ import { verdictLabel } from "../../home/utils/derive-goal-verdict.js";
 
 const PILL_CLASS: Record<GoalVerdict, string> = {
   met: "bg-[color-mix(in_srgb,var(--green-600)_18%,transparent)] text-(--green-600)",
-  partial: "bg-[color-mix(in_srgb,var(--amber-500)_18%,transparent)] text-amber-500",
-  missed: "bg-[color-mix(in_srgb,var(--destructive)_16%,transparent)] text-destructive",
+  partial:
+    "bg-[color-mix(in_srgb,var(--amber-500)_18%,transparent)] text-amber-500",
+  missed:
+    "bg-[color-mix(in_srgb,var(--destructive)_16%,transparent)] text-destructive",
   awaiting: "bg-muted text-muted-foreground",
 };
 

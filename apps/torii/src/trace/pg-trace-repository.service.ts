@@ -245,8 +245,7 @@ export class PgTraceRepository implements TraceRepository {
 
     return {
       windowMs,
-      callsPerMinute:
-        windowMs > 0 ? (traces.length / windowMs) * 60_000 : 0,
+      callsPerMinute: windowMs > 0 ? (traces.length / windowMs) * 60_000 : 0,
       successRate: traces.length > 0 ? successCount / traces.length : 0,
       p50DurationMs: percentile(durations, 50),
       p95DurationMs: percentile(durations, 95),

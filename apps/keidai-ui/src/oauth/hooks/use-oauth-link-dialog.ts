@@ -13,11 +13,7 @@ import {
 } from "../utils/resolve-oauth-link-outcome.js";
 import { isToriiOAuthLinkMessage } from "../utils/torii-oauth-link-message.js";
 
-export type OAuthLinkDialogStep =
-  | "initiating"
-  | "waiting"
-  | "linked"
-  | "error";
+export type OAuthLinkDialogStep = "initiating" | "waiting" | "linked" | "error";
 
 export interface OAuthLinkDialogContext {
   providerId: string;
@@ -199,7 +195,10 @@ export function useOAuthLinkDialog() {
       );
       sawPendingRef.current = false;
 
-      const initiate = await initiateOAuthLink(context.providerId, context.ownerId);
+      const initiate = await initiateOAuthLink(
+        context.providerId,
+        context.ownerId,
+      );
       activeLinkIdRef.current = initiate.linkId;
       if (initiate.redirectUri !== context.redirectUri) {
         console.warn(
@@ -212,7 +211,9 @@ export function useOAuthLinkDialog() {
       setStep("waiting");
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Could not start authorization",
+        error instanceof Error
+          ? error.message
+          : "Could not start authorization",
       );
       setStep("error");
     } finally {
@@ -254,7 +255,10 @@ export function useOAuthLinkDialog() {
     const toriiOrigin = getToriiOrigin();
 
     const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== toriiOrigin || !isToriiOAuthLinkMessage(event.data)) {
+      if (
+        event.origin !== toriiOrigin ||
+        !isToriiOAuthLinkMessage(event.data)
+      ) {
         return;
       }
 

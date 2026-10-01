@@ -3,7 +3,9 @@ import { themeReducer } from "../theme-slice.js";
 
 describe("themeReducer", () => {
   it("sets the theme explicitly", () => {
-    expect(themeReducer({ theme: "dark" }, { type: "theme/set", theme: "light" })).toEqual({
+    expect(
+      themeReducer({ theme: "dark" }, { type: "theme/set", theme: "light" }),
+    ).toEqual({
       theme: "light",
     });
   });

@@ -14,7 +14,10 @@ import type {
   ServerToolsResponse,
 } from "@keidai/shared";
 import type { GatewayHttpServer } from "../gateway-http-server.service.js";
-import { createStubToolCatalog, createTestGatewayHttpServer } from "./test-helpers.js";
+import {
+  createStubToolCatalog,
+  createTestGatewayHttpServer,
+} from "./test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
 import {
@@ -75,7 +78,9 @@ function parseSseChunk(chunk: string): Array<{ event: string; data: string }> {
         data: dataLine.slice("data: ".length),
       };
     })
-    .filter((event): event is { event: string; data: string } => event !== null);
+    .filter(
+      (event): event is { event: string; data: string } => event !== null,
+    );
 }
 
 async function readSseEventsUntil(
@@ -144,7 +149,11 @@ describe("Gateway /api/connections endpoints", () => {
       ],
     });
     const { credentialResolver } = createCredentialServices();
-    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
     const gatewayHttpServer = await createConnectionsGateway(
       configService,
       connectionManager,
@@ -183,11 +192,11 @@ describe("Gateway /api/connections endpoints", () => {
         { name: "list_drafts", description: "List drafts" },
       ],
     });
-        const groups = [
-        testAgentsGroup([
-          { server: "gmail", tools: ["create_draft", "list_drafts"] },
-        ]),
-      ];
+    const groups = [
+      testAgentsGroup([
+        { server: "gmail", tools: ["create_draft", "list_drafts"] },
+      ]),
+    ];
     const configService = new ToriiConfigService({
       oauth_providers: {},
       servers: [serverConfig("gmail", mockServer.url)],
@@ -305,10 +314,10 @@ describe("Gateway /api/connections endpoints", () => {
           `${gateway.baseUrl}/api/connections/github/tools`,
         );
         const toolsBody = (await toolsResponse.json()) as ServerToolsResponse;
-        assert.deepEqual(
-          toolsBody.tools.map((tool) => tool.name).sort(),
-          ["merge_pull_request", "search_issues"],
-        );
+        assert.deepEqual(toolsBody.tools.map((tool) => tool.name).sort(), [
+          "merge_pull_request",
+          "search_issues",
+        ]);
       } finally {
         await gateway.close();
       }
@@ -339,9 +348,9 @@ describe("Gateway /api/connections endpoints", () => {
       accessToken: "linked-access-token",
     });
 
-        const groups = [
-        testAgentsGroup([{ server: "github", tools: ["search_issues"] }]),
-      ];
+    const groups = [
+      testAgentsGroup([{ server: "github", tools: ["search_issues"] }]),
+    ];
     const configService = new ToriiConfigService({
       oauth_providers: oauthProviders,
       servers: [
@@ -416,7 +425,11 @@ describe("Gateway /api/connections endpoints", () => {
       servers: [serverConfig("alpha", mockServer.url)],
     });
     const { credentialResolver } = createCredentialServices();
-    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
     const gatewayHttpServer = await createConnectionsGateway(
       configService,
       connectionManager,

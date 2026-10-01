@@ -25,10 +25,7 @@ export class K8sSaOidcSubjectValidator implements SubjectTokenValidator {
     this.config = config;
     this.verifyKey =
       verifyKey ??
-      createClusterRemoteJwkSet(
-        config.jwksUri,
-        config.jwksBearerTokenFile,
-      );
+      createClusterRemoteJwkSet(config.jwksUri, config.jwksBearerTokenFile);
   }
 
   async validate(subjectToken: string): Promise<string> {

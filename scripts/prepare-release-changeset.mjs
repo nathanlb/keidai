@@ -30,14 +30,14 @@ const { values, positionals } = parseArgs({
 
 const bump = values.bump ?? positionals[0];
 if (!bump || !["patch", "minor", "major"].includes(bump)) {
-  console.error("Usage: prepare-release-changeset.mjs --bump patch|minor|major");
+  console.error(
+    "Usage: prepare-release-changeset.mjs --bump patch|minor|major",
+  );
   process.exit(1);
 }
 
 const repo =
-  values.repo?.trim() ||
-  process.env.GITHUB_REPOSITORY?.trim() ||
-  DEFAULT_REPO;
+  values.repo?.trim() || process.env.GITHUB_REPOSITORY?.trim() || DEFAULT_REPO;
 
 const LOG_FORMAT = "----%ncommit %H%n subject %s%n body %b";
 
@@ -60,7 +60,9 @@ const changesetConfig = JSON.parse(
 );
 const packageNames = changesetConfig.fixed?.[0];
 if (!Array.isArray(packageNames) || packageNames.length === 0) {
-  console.error("Expected .changeset/config.json fixed[0] to list platform packages");
+  console.error(
+    "Expected .changeset/config.json fixed[0] to list platform packages",
+  );
   process.exit(1);
 }
 
@@ -74,11 +76,7 @@ if (!sinceRef) {
   }
 }
 
-const rawLog = git([
-  "log",
-  `${sinceRef}..HEAD`,
-  `--format=${LOG_FORMAT}`,
-]);
+const rawLog = git(["log", `${sinceRef}..HEAD`, `--format=${LOG_FORMAT}`]);
 
 if (!rawLog) {
   console.error(`No commits between ${sinceRef} and HEAD; nothing to release`);

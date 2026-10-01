@@ -42,7 +42,9 @@ function rowToRegistration(row: RegistrationRow): OAuthClientRegistration {
   return {
     issuer: row.issuer,
     clientId: row.client_id,
-    ...(row.client_secret_ref ? { clientSecretRef: row.client_secret_ref } : {}),
+    ...(row.client_secret_ref
+      ? { clientSecretRef: row.client_secret_ref }
+      : {}),
     ...(row.redirect_uri ? { redirectUri: row.redirect_uri } : {}),
     origin: row.origin,
     scopes: parseJsonValue<string[]>(row.scopes),
@@ -80,7 +82,9 @@ export class PgOAuthRegistrationRepository {
     return result.rows.map(rowToRegistration);
   }
 
-  async upsert(input: OAuthRegistrationWrite): Promise<OAuthClientRegistration> {
+  async upsert(
+    input: OAuthRegistrationWrite,
+  ): Promise<OAuthClientRegistration> {
     const now = new Date();
     await this.pool.query(
       `
@@ -109,7 +113,9 @@ export class PgOAuthRegistrationRepository {
     );
     const saved = await this.get(input.issuer);
     if (!saved) {
-      throw new Error(`Failed to upsert OAuth registration for ${input.issuer}`);
+      throw new Error(
+        `Failed to upsert OAuth registration for ${input.issuer}`,
+      );
     }
     return saved;
   }

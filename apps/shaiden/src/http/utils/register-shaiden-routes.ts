@@ -1,10 +1,12 @@
 import type { FastifyInstance } from "fastify";
+import type { OpenRouterApiController } from "../../openrouter/openrouter-api.controller.js";
 import type { RunsApiController } from "../runs-api.controller.js";
 import type { TasksApiController } from "../tasks-api.controller.js";
 
 export interface ShaidenRouteControllers {
   runsApi: RunsApiController;
   tasksApi: TasksApiController;
+  openRouterApi: OpenRouterApiController;
 }
 
 /** Composes HTTP route controllers onto a shared Fastify instance. */
@@ -14,4 +16,5 @@ export function registerShaidenRoutes(
 ): void {
   controllers.runsApi.registerRoutes(app);
   controllers.tasksApi.registerRoutes(app);
+  controllers.openRouterApi.registerRoutes(app);
 }

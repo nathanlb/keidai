@@ -9,7 +9,9 @@ import { generateMcpTaskId } from "../utils/generate-mcp-task-id.js";
 
 const OTHER_AGENT_ID = "other-agent";
 
-async function catchLookup(fn: () => Promise<unknown>): Promise<McpTaskLookupError> {
+async function catchLookup(
+  fn: () => Promise<unknown>,
+): Promise<McpTaskLookupError> {
   try {
     await fn();
   } catch (error) {
@@ -180,22 +182,32 @@ describe("TaskStoreService postgres persistence", () => {
         extra: { method: "elicitation/create", params: {} },
       });
 
-      await store.applyInputResponses(TEST_AGENT_PRINCIPAL.agentId, created.taskId, {
-        name: { action: "accept" },
-        unknown: { action: "accept" },
-      });
+      await store.applyInputResponses(
+        TEST_AGENT_PRINCIPAL.agentId,
+        created.taskId,
+        {
+          name: { action: "accept" },
+          unknown: { action: "accept" },
+        },
+      );
 
       const afterPartial = await store.getDetailedTask(
         TEST_AGENT_PRINCIPAL.agentId,
         created.taskId,
       );
       assert.equal(afterPartial.status, "input_required");
-      assert.deepEqual(Object.keys(afterPartial.inputRequests ?? {}), ["extra"]);
+      assert.deepEqual(Object.keys(afterPartial.inputRequests ?? {}), [
+        "extra",
+      ]);
 
-      await store.applyInputResponses(TEST_AGENT_PRINCIPAL.agentId, created.taskId, {
-        name: { action: "accept" },
-        extra: { action: "accept" },
-      });
+      await store.applyInputResponses(
+        TEST_AGENT_PRINCIPAL.agentId,
+        created.taskId,
+        {
+          name: { action: "accept" },
+          extra: { action: "accept" },
+        },
+      );
       const afterAll = await store.getDetailedTask(
         TEST_AGENT_PRINCIPAL.agentId,
         created.taskId,
@@ -222,8 +234,12 @@ describe("TaskStoreService postgres persistence", () => {
 
       await store.requestCancel(TEST_AGENT_PRINCIPAL.agentId, created.taskId);
       assert.equal(
-        (await store.getDetailedTask(TEST_AGENT_PRINCIPAL.agentId, created.taskId))
-          .status,
+        (
+          await store.getDetailedTask(
+            TEST_AGENT_PRINCIPAL.agentId,
+            created.taskId,
+          )
+        ).status,
         "cancelled",
       );
     } finally {

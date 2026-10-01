@@ -54,7 +54,10 @@ describe("canSendFollowUp", () => {
     expect(canSendFollowUp(run(), waitingSteps)).toBe(true);
     expect(
       canSendFollowUp(
-        run({ status: "completed", outcome: { status: "failed", reason: "x" } }),
+        run({
+          status: "completed",
+          outcome: { status: "failed", reason: "x" },
+        }),
         [],
       ),
     ).toBe(true);
@@ -103,10 +106,14 @@ describe("canStopRun and canResumeRun", () => {
 
   it("allows resume only for a completed stopped run", () => {
     expect(
-      canResumeRun(run({ status: "completed", outcome: { status: "stopped" } })),
+      canResumeRun(
+        run({ status: "completed", outcome: { status: "stopped" } }),
+      ),
     ).toBe(true);
     expect(
-      canResumeRun(run({ status: "completed", outcome: { status: "goal_met" } })),
+      canResumeRun(
+        run({ status: "completed", outcome: { status: "goal_met" } }),
+      ),
     ).toBe(false);
     expect(canResumeRun(run())).toBe(false);
   });

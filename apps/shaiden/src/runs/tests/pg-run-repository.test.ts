@@ -453,7 +453,10 @@ describe("PgRunRepository", () => {
         { role: "user", text: "and skip the draft" },
       ]);
       assert.deepEqual(await owner.drainParkedFollowUps("run-1"), []);
-      assert.equal((await owner.get("run-1"))?.steps.at(-1)?.kind, "user_message");
+      assert.equal(
+        (await owner.get("run-1"))?.steps.at(-1)?.kind,
+        "user_message",
+      );
     } finally {
       await isolated.close();
     }
@@ -505,25 +508,42 @@ describe("PgRunRepository", () => {
 
       const now = "2026-07-08T12:00:00.000Z";
       const leaseA = "2026-07-08T12:00:15.000Z";
-      assert.equal(await replicaA.claimRun("run-1", "replica-a", leaseA, now), true);
+      assert.equal(
+        await replicaA.claimRun("run-1", "replica-a", leaseA, now),
+        true,
+      );
 
       const replicaB = createRepository(isolated.pool);
       assert.equal(
-        await replicaB.claimRun("run-1", "replica-b", "2026-07-08T12:00:30.000Z", now),
+        await replicaB.claimRun(
+          "run-1",
+          "replica-b",
+          "2026-07-08T12:00:30.000Z",
+          now,
+        ),
         false,
       );
       assert.equal(
-        await replicaB.renewRunLease("run-1", "replica-b", "2026-07-08T12:00:30.000Z"),
+        await replicaB.renewRunLease(
+          "run-1",
+          "replica-b",
+          "2026-07-08T12:00:30.000Z",
+        ),
         false,
       );
       assert.equal(
-        await replicaA.renewRunLease("run-1", "replica-a", "2026-07-08T12:00:20.000Z"),
+        await replicaA.renewRunLease(
+          "run-1",
+          "replica-a",
+          "2026-07-08T12:00:20.000Z",
+        ),
         true,
       );
 
       assert.deepEqual(await replicaB.listClaimableParkedMcpTasks(now), []);
       assert.equal(
-        (await replicaB.listClaimableParkedMcpTasks("2026-07-08T12:00:20.001Z")).length,
+        (await replicaB.listClaimableParkedMcpTasks("2026-07-08T12:00:20.001Z"))
+          .length,
         1,
       );
       assert.equal(
@@ -535,7 +555,10 @@ describe("PgRunRepository", () => {
         ),
         true,
       );
-      assert.equal(await replicaA.renewRunLease("run-1", "replica-a", leaseA), false);
+      assert.equal(
+        await replicaA.renewRunLease("run-1", "replica-a", leaseA),
+        false,
+      );
     } finally {
       await isolated.close();
     }
@@ -557,7 +580,9 @@ describe("PgRunRepository", () => {
       await repository.setNextPollAt("run-1", "2026-07-08T12:00:10.000Z");
 
       assert.deepEqual(
-        await repository.listClaimableParkedMcpTasks("2026-07-08T12:00:00.000Z"),
+        await repository.listClaimableParkedMcpTasks(
+          "2026-07-08T12:00:00.000Z",
+        ),
         [],
       );
       assert.equal(
@@ -626,8 +651,16 @@ describe("PgRunRepository", () => {
       });
       assert.equal(otherTask.status, "running");
       assert.deepEqual(await repository.listRunningRuns(), [
-        { id: "run-1", taskId: "task-1", startedAt: "2026-07-08T12:00:00.000Z" },
-        { id: "run-2", taskId: "task-2", startedAt: "2026-07-08T12:00:02.000Z" },
+        {
+          id: "run-1",
+          taskId: "task-1",
+          startedAt: "2026-07-08T12:00:00.000Z",
+        },
+        {
+          id: "run-2",
+          taskId: "task-2",
+          startedAt: "2026-07-08T12:00:02.000Z",
+        },
       ]);
 
       await repository.complete("run-1", {
@@ -643,8 +676,16 @@ describe("PgRunRepository", () => {
       });
       assert.equal(resumed.status, "running");
       assert.deepEqual(await repository.listRunningRuns(), [
-        { id: "run-2", taskId: "task-2", startedAt: "2026-07-08T12:00:02.000Z" },
-        { id: "run-1c", taskId: "task-1", startedAt: "2026-07-08T12:02:00.000Z" },
+        {
+          id: "run-2",
+          taskId: "task-2",
+          startedAt: "2026-07-08T12:00:02.000Z",
+        },
+        {
+          id: "run-1c",
+          taskId: "task-1",
+          startedAt: "2026-07-08T12:02:00.000Z",
+        },
       ]);
     } finally {
       await isolated.close();

@@ -136,7 +136,9 @@ export async function connectToriiSession(
   const refreshTools = async (): Promise<void> => {
     const client = await openClient();
     try {
-      const listed = await client.listTools(undefined, { cacheMode: "refresh" });
+      const listed = await client.listTools(undefined, {
+        cacheMode: "refresh",
+      });
       replaceTools(listed.tools.map(toDiscoveredTool));
       toolsExpiresAtMs = listToolsExpiresAtMs(readListToolsCacheHint(listed));
     } finally {

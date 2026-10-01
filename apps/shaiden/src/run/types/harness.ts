@@ -60,6 +60,8 @@ export interface DriveHarnessRunInput {
   leaseMs: number;
   now: () => number;
   systemPrompt: string;
+  modelId: string;
+  openRouterApiKey: string;
   fudaClient?: FudaClient;
   stopController?: RunStopController;
 }

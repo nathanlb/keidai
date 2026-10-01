@@ -52,7 +52,10 @@ describe("nextTaskPollDelayMs", () => {
   });
 
   it("floors a zero interval so polling cannot busy-loop", () => {
-    assert.equal(nextTaskPollDelayMs(0, () => 0), MIN_TASK_POLL_INTERVAL_MS * 0.8);
+    assert.equal(
+      nextTaskPollDelayMs(0, () => 0),
+      MIN_TASK_POLL_INTERVAL_MS * 0.8,
+    );
   });
 
   it("caps an oversized interval", () => {
@@ -214,12 +217,18 @@ describe("pollUntilTerminalMcpTask", () => {
       { kind: "failed", reason: "Invalid params" },
     );
     assert.deepEqual(
-      parkedTaskPollFromError(new McpJsonRpcError(-32603, "Internal error"), 1_000),
+      parkedTaskPollFromError(
+        new McpJsonRpcError(-32603, "Internal error"),
+        1_000,
+      ),
       { kind: "pending", pollIntervalMs: 1_000 },
     );
-    assert.deepEqual(parkedTaskPollFromError(new Error("socket hang up"), 1_000), {
-      kind: "pending",
-      pollIntervalMs: 1_000,
-    });
+    assert.deepEqual(
+      parkedTaskPollFromError(new Error("socket hang up"), 1_000),
+      {
+        kind: "pending",
+        pollIntervalMs: 1_000,
+      },
+    );
   });
 });

@@ -7,10 +7,10 @@ import {
 describe("collectUnknownGroups", () => {
   it("returns groups not present in the known set", () => {
     expect(
-      collectUnknownGroups(["eng-platform", "mystery-group"], [
-        "eng-platform",
-        "triage",
-      ]),
+      collectUnknownGroups(
+        ["eng-platform", "mystery-group"],
+        ["eng-platform", "triage"],
+      ),
     ).toEqual(["mystery-group"]);
   });
 

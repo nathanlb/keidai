@@ -28,9 +28,9 @@ export interface ResumeParkedHarnessRun {
  */
 export async function resumeParkedHarnessRuns(input: {
   runStore: RunStore;
-  resumeHarnessRun: (args: ResumeParkedHarnessRun) =>
-    | { done: Promise<unknown> }
-    | Promise<{ done: Promise<unknown> }>;
+  resumeHarnessRun: (
+    args: ResumeParkedHarnessRun,
+  ) => { done: Promise<unknown> } | Promise<{ done: Promise<unknown> }>;
   pollParkedTask: (
     parked: ParkedMcpTask,
     task: Task,

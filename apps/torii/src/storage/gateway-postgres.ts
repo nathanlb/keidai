@@ -31,7 +31,8 @@ export async function openGatewayDatabase(
     typeof existingPoolOrOptions === "object" &&
     "query" in existingPoolOrOptions
       ? { pool: existingPoolOrOptions }
-      : ((existingPoolOrOptions as OpenGatewayDatabaseOptions | undefined) ?? {});
+      : ((existingPoolOrOptions as OpenGatewayDatabaseOptions | undefined) ??
+        {});
   const pool = options.pool ?? createPool(connectionString);
   const migrate = options.migrate ?? shouldAutoMigrate();
   const migrations = migrate

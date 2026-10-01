@@ -6,11 +6,11 @@ Agent Identity Provider (AIdP) for the Keidai ecosystem. Source of record for ag
 
 HTTP route groups are structurally separate so they can be exposed independently at the network layer:
 
-| Group | Purpose | Examples |
-|-------|---------|----------|
-| `public` | Unauthenticated discovery | JWKS (`GET /.well-known/jwks.json`) |
-| `agent` | Agent / runtime facing | Definition view (`GET /agents/{id}`), token exchange (`POST /token`) |
-| `management` | Operator / UI facing | Agent / bearer CRUD (`/api/agents`, `/api/bearers`) |
+| Group        | Purpose                   | Examples                                                             |
+| ------------ | ------------------------- | -------------------------------------------------------------------- |
+| `public`     | Unauthenticated discovery | JWKS (`GET /.well-known/jwks.json`)                                  |
+| `agent`      | Agent / runtime facing    | Definition view (`GET /agents/{id}`), token exchange (`POST /token`) |
+| `management` | Operator / UI facing      | Agent / bearer CRUD (`/api/agents`, `/api/bearers`)                  |
 
 By default one process listens on `127.0.0.1:3300` with all groups. To expose JWKS without management, run a process with `FUDA_LISTEN_GROUPS=public` (optionally on its own port). Management `/api/*` requires `BFF_SERVICE_TOKEN` (`Authorization: Bearer <token>`; keidai-ui injects it). Opt out with `BFF_SERVICE_TOKEN_DISABLED=true` for local unit tests only.
 
@@ -49,21 +49,21 @@ When `FUDA_OPERATORS_PATH` points at an `operators.yaml`, Fuda reconciles the `o
 
 Protected by `BFF_SERVICE_TOKEN` (required; Bearer on `/api/agents` and `/api/bearers`). Intended for keidai-ui; generate with `openssl rand -hex 32` and share via the root `.env`. Set `BFF_SERVICE_TOKEN_DISABLED=true` only to opt out locally.
 
-| Method | Path | Notes |
-|--------|------|-------|
-| `GET` | `/api/agents` | List agents (includes `ownerId`, `groups`, current `persona`) |
-| `POST` | `/api/agents` | Create (`slug`, `name`, `ownerId`, `groups`, `persona`; optional `id`). Auto-grants `shaiden-runner` |
-| `GET` | `/api/agents/:id` | Full management record |
-| `PATCH` | `/api/agents/:id` | Update `name`, `groups`, and/or `persona` (persona appends a version). `slug` / `ownerId` immutable |
-| `DELETE` | `/api/agents/:id` | Deletes agent, personas, and grants |
-| `GET` | `/api/agents/:id/grants` | Grants authorizing bearers for this agent |
-| `GET` | `/api/bearers` | List bearers |
-| `POST` | `/api/bearers` | Create (`bearerId`, `displayName`) |
-| `GET` | `/api/bearers/:id` | Bearer plus grants |
-| `PATCH` | `/api/bearers/:id` | Update `displayName` |
-| `DELETE` | `/api/bearers/:id` | Deletes bearer and grants. `shaiden-runner` cannot be deleted (`409`) |
-| `POST` | `/api/bearers/:id/grants` | Grant `{ agentId }` |
-| `DELETE` | `/api/bearers/:id/grants/:agentId` | Revoke grant |
+| Method   | Path                               | Notes                                                                                                |
+| -------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `GET`    | `/api/agents`                      | List agents (includes `ownerId`, `groups`, current `persona`)                                        |
+| `POST`   | `/api/agents`                      | Create (`slug`, `name`, `ownerId`, `groups`, `persona`; optional `id`). Auto-grants `shaiden-runner` |
+| `GET`    | `/api/agents/:id`                  | Full management record                                                                               |
+| `PATCH`  | `/api/agents/:id`                  | Update `name`, `groups`, and/or `persona` (persona appends a version). `slug` / `ownerId` immutable  |
+| `DELETE` | `/api/agents/:id`                  | Deletes agent, personas, and grants                                                                  |
+| `GET`    | `/api/agents/:id/grants`           | Grants authorizing bearers for this agent                                                            |
+| `GET`    | `/api/bearers`                     | List bearers                                                                                         |
+| `POST`   | `/api/bearers`                     | Create (`bearerId`, `displayName`)                                                                   |
+| `GET`    | `/api/bearers/:id`                 | Bearer plus grants                                                                                   |
+| `PATCH`  | `/api/bearers/:id`                 | Update `displayName`                                                                                 |
+| `DELETE` | `/api/bearers/:id`                 | Deletes bearer and grants. `shaiden-runner` cannot be deleted (`409`)                                |
+| `POST`   | `/api/bearers/:id/grants`          | Grant `{ agentId }`                                                                                  |
+| `DELETE` | `/api/bearers/:id/grants/:agentId` | Revoke grant                                                                                         |
 
 Duplicate `slug` → `409` `{ error: "agent slug already exists" }`. Group values are opaque strings; Fuda does not validate them against Torii.
 
@@ -89,23 +89,23 @@ Flow: validate subject → `bearer_id`, look up agent, require a `bearer_agent_g
 
 JWT claims for `aud=torii` (the default): `agent_id`, `owner_id`, `groups`, `bearer_id`, plus `iss` (`FUDA_ISSUER`), `iat`/`exp` (5 minute TTL). `audience=shaiden-sandbox` exchanges the subject token alone and pins `bearer_id` only, so a sandbox credential cannot be replayed at Torii. Signed RS256 with the current signing kid.
 
-| Status | Error | Meaning |
-|--------|-------|---------|
-| `400` | `invalid token exchange request` | Missing / malformed body |
-| `401` | `invalid subject token` | Subject validator rejected the credential |
-| `403` | `bearer not granted for agent` | Valid bearer, no grant for that agent |
-| `404` | `agent not found` | Unknown `agent_id` |
+| Status | Error                            | Meaning                                   |
+| ------ | -------------------------------- | ----------------------------------------- |
+| `400`  | `invalid token exchange request` | Missing / malformed body                  |
+| `401`  | `invalid subject token`          | Subject validator rejected the credential |
+| `403`  | `bearer not granted for agent`   | Valid bearer, no grant for that agent     |
+| `404`  | `agent not found`                | Unknown `agent_id`                        |
 
 Not an OAuth2 authorization server: no authorization code, consent, refresh tokens, or PKCE. Torii continues to broker tool credentials; Fuda mints identity only.
 
 ### Data model
 
-| Table | Notes |
-|-------|-------|
-| `agents` | `id`, unique immutable `slug`, editable `name`, `owner_id`, opaque `groups`, pointer to current persona version |
-| `persona_versions` | Append-only (`agent_id`, `version`, `content`). Edits insert a new row |
-| `bearers` | `{ bearer_id, display_name }` only — the platform runner `shaiden-runner` is seeded at boot; subject credentials stay in the validator |
-| `bearer_agent_grants` | Join table authorizing a bearer to act as an agent |
+| Table                 | Notes                                                                                                                                  |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `agents`              | `id`, unique immutable `slug`, editable `name`, `owner_id`, opaque `groups`, pointer to current persona version                        |
+| `persona_versions`    | Append-only (`agent_id`, `version`, `content`). Edits insert a new row                                                                 |
+| `bearers`             | `{ bearer_id, display_name }` only — the platform runner `shaiden-runner` is seeded at boot; subject credentials stay in the validator |
+| `bearer_agent_grants` | Join table authorizing a bearer to act as an agent                                                                                     |
 
 ## Subject token validators
 
@@ -116,12 +116,12 @@ validator (k8s SA OIDC, SPIFFE) an addition rather than a refactor.
 
 Allowed subjects always resolve to the platform bearer `shaiden-runner`.
 
-| Variable | Notes |
-|----------|-------|
-| `FUDA_STATIC_SUBJECT_TOKEN` | Shared secret (comma-list for rotation) for local/pre-cluster use. Same value as `SHAIDEN_BEARER`. |
-| `FUDA_K8S_SA_OIDC_AUDIENCE` / `_JWKS_URI` / `_SUBJECTS` | Set these three together. Audience should be `fuda` (projected volume `aud`). Subjects: `namespace/serviceAccount,...` |
-| `FUDA_K8S_SA_OIDC_ISSUER` | Optional. When omitted in-cluster, Fuda discovers the issuer from `https://kubernetes.default.svc/.well-known/openid-configuration`. |
-| `FUDA_K8S_SA_OIDC_JWKS_BEARER_TOKEN_FILE` | Optional. Defaults to the in-cluster SA token path. Required in practice on clusters that disable anonymous JWKS access (e.g. OrbStack). |
+| Variable                                                | Notes                                                                                                                                    |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `FUDA_STATIC_SUBJECT_TOKEN`                             | Shared secret (comma-list for rotation) for local/pre-cluster use. Same value as `SHAIDEN_BEARER`.                                       |
+| `FUDA_K8S_SA_OIDC_AUDIENCE` / `_JWKS_URI` / `_SUBJECTS` | Set these three together. Audience should be `fuda` (projected volume `aud`). Subjects: `namespace/serviceAccount,...`                   |
+| `FUDA_K8S_SA_OIDC_ISSUER`                               | Optional. When omitted in-cluster, Fuda discovers the issuer from `https://kubernetes.default.svc/.well-known/openid-configuration`.     |
+| `FUDA_K8S_SA_OIDC_JWKS_BEARER_TOKEN_FILE`               | Optional. Defaults to the in-cluster SA token path. Required in practice on clusters that disable anonymous JWKS access (e.g. OrbStack). |
 
 Exactly one config group may be set. Partial k8s env fails at boot; setting
 both static and k8s is ambiguous and also fails. Required when
@@ -135,10 +135,10 @@ The k8s SA OIDC validator is **unit-tested** against a mocked JWKS (optional
 
 Private signing keys are loaded at boot from files (prefer mode `0600`) or env vars — never from the database. Tokens are signed RS256 with `kid` in the JWT header. Torii validates offline against `GET /.well-known/jwks.json`.
 
-| Variable | Notes |
-|----------|-------|
+| Variable            | Notes                                                                                 |
+| ------------------- | ------------------------------------------------------------------------------------- |
 | `FUDA_SIGNING_KEYS` | Comma-separated `kid=path` or `kid=env:VAR_NAME` entries (one or two during rotation) |
-| `FUDA_SIGNING_KID` | Kid used to mint new tokens; must appear in `FUDA_SIGNING_KEYS` |
+| `FUDA_SIGNING_KID`  | Kid used to mint new tokens; must appear in `FUDA_SIGNING_KEYS`                       |
 
 ### Key rotation (manual)
 
@@ -152,20 +152,20 @@ Automated rotation scheduling is out of scope for v0.
 
 ## Config
 
-| Variable | Default | Notes |
-|----------|---------|-------|
-| `FUDA_HOST` | `127.0.0.1` | Bind address |
-| `FUDA_PORT` | `3300` | Listen port |
-| `FUDA_DATABASE_URL` | — | Required. Postgres connection string |
-| `FUDA_LISTEN_GROUPS` | `public,agent,management` | Subset of route groups this process serves |
-| `FUDA_SIGNING_KEYS` | — | Required. `kid=path` or `kid=env:VAR` list |
-| `FUDA_SIGNING_KID` | — | Required. Active signing kid |
-| `FUDA_ISSUER` | — | Required. Absolute URL used as JWT `iss` |
-| `FUDA_STATIC_SUBJECT_TOKEN` | — | Subject-validator config group (alternative: `FUDA_K8S_SA_OIDC_*`). Exactly one group required when `agent` is enabled. Shared secret, or comma-list for rotation |
-| `FUDA_K8S_SA_OIDC_ISSUER` | discovered in-cluster | Optional. K8s SA OIDC issuer; discovered from kubernetes.default.svc well-known when unset |
-| `FUDA_K8S_SA_OIDC_AUDIENCE` | — | Expected JWT audience (deploy projected volume with `aud=fuda`) |
-| `FUDA_K8S_SA_OIDC_JWKS_URI` | — | Cluster JWKS endpoint |
-| `FUDA_K8S_SA_OIDC_SUBJECTS` | — | `namespace/serviceAccount` allow-list (validator-private). Allowed SAs resolve to `shaiden-runner` |
-| `FUDA_K8S_SA_OIDC_JWKS_BEARER_TOKEN_FILE` | in-cluster SA token | Optional. Bearer used when fetching JWKS (many clusters reject anonymous JWKS with 401) |
+| Variable                                  | Default                   | Notes                                                                                                                                                             |
+| ----------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FUDA_HOST`                               | `127.0.0.1`               | Bind address                                                                                                                                                      |
+| `FUDA_PORT`                               | `3300`                    | Listen port                                                                                                                                                       |
+| `FUDA_DATABASE_URL`                       | —                         | Required. Postgres connection string                                                                                                                              |
+| `FUDA_LISTEN_GROUPS`                      | `public,agent,management` | Subset of route groups this process serves                                                                                                                        |
+| `FUDA_SIGNING_KEYS`                       | —                         | Required. `kid=path` or `kid=env:VAR` list                                                                                                                        |
+| `FUDA_SIGNING_KID`                        | —                         | Required. Active signing kid                                                                                                                                      |
+| `FUDA_ISSUER`                             | —                         | Required. Absolute URL used as JWT `iss`                                                                                                                          |
+| `FUDA_STATIC_SUBJECT_TOKEN`               | —                         | Subject-validator config group (alternative: `FUDA_K8S_SA_OIDC_*`). Exactly one group required when `agent` is enabled. Shared secret, or comma-list for rotation |
+| `FUDA_K8S_SA_OIDC_ISSUER`                 | discovered in-cluster     | Optional. K8s SA OIDC issuer; discovered from kubernetes.default.svc well-known when unset                                                                        |
+| `FUDA_K8S_SA_OIDC_AUDIENCE`               | —                         | Expected JWT audience (deploy projected volume with `aud=fuda`)                                                                                                   |
+| `FUDA_K8S_SA_OIDC_JWKS_URI`               | —                         | Cluster JWKS endpoint                                                                                                                                             |
+| `FUDA_K8S_SA_OIDC_SUBJECTS`               | —                         | `namespace/serviceAccount` allow-list (validator-private). Allowed SAs resolve to `shaiden-runner`                                                                |
+| `FUDA_K8S_SA_OIDC_JWKS_BEARER_TOKEN_FILE` | in-cluster SA token       | Optional. Bearer used when fetching JWKS (many clusters reject anonymous JWKS with 401)                                                                           |
 
 Invalid config fails fast at boot.

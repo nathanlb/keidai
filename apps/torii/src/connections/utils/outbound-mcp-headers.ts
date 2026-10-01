@@ -39,7 +39,8 @@ function readJsonRpcMessage(
     method?: unknown;
     params?: unknown;
   };
-  const method = typeof request.method === "string" ? request.method : undefined;
+  const method =
+    typeof request.method === "string" ? request.method : undefined;
   if (!method) {
     return undefined;
   }

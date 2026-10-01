@@ -25,6 +25,7 @@ describe("agent definition view", () => {
         "personaVersion",
         "slug",
       ]);
+      assert.equal(body.defaultModelId, undefined);
       assert.equal(body.name, sampleAgentBody.name);
       assert.equal(body.slug, sampleAgentBody.slug);
       assert.equal(body.persona, sampleAgentBody.persona);

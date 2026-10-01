@@ -1,8 +1,5 @@
 import type { Logger } from "@keidai/shared";
-import {
-  leaseExpiresAt,
-  RunLeaseLostError,
-} from "./run-lease.js";
+import { leaseExpiresAt, RunLeaseLostError } from "./run-lease.js";
 import type { RunReporter } from "./run-reporter.js";
 import { recordToolResult } from "./run-step-recording.js";
 import type {

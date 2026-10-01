@@ -8,12 +8,16 @@ export function extractBearerCredential(
     : authorization;
 
   if (!header?.startsWith("Bearer ")) {
-    throw new IdentityResolutionError("Missing or invalid Authorization header");
+    throw new IdentityResolutionError(
+      "Missing or invalid Authorization header",
+    );
   }
 
   const credential = header.slice("Bearer ".length).trim();
   if (!credential) {
-    throw new IdentityResolutionError("Missing or invalid Authorization header");
+    throw new IdentityResolutionError(
+      "Missing or invalid Authorization header",
+    );
   }
 
   return credential;

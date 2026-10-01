@@ -5,12 +5,15 @@ import { useEcosystemHealth } from "../../../lib/hooks/use-ecosystem-health.js";
 export interface SidebarPanelProps {
   subtitle?: string;
   children: ReactNode;
+  /** Pinned under the scrolling nav. Shared by the sidebar and the drawer. */
+  footer?: ReactNode;
   onNavInteract?: (event: MouseEvent<HTMLElement>) => void;
 }
 
 export function SidebarPanel({
   subtitle = "Agent Ecosystem",
   children,
+  footer,
   onNavInteract,
 }: SidebarPanelProps) {
   const { version } = useEcosystemHealth();
@@ -37,12 +40,23 @@ export function SidebarPanel({
         </div>
       </div>
 
-      <div
-        data-testid="sidebar-nav"
-        className="flex flex-1 flex-col gap-px overflow-y-auto p-2 pt-2.5"
-        onClick={onNavInteract}
-      >
-        {children}
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div
+          data-testid="sidebar-nav"
+          className="flex flex-1 flex-col gap-px overflow-y-auto p-2 pt-2.5"
+          onClick={onNavInteract}
+        >
+          {children}
+        </div>
+        {footer ? (
+          <div
+            data-testid="sidebar-nav-footer"
+            className="shrink-0 border-t border-sidebar-border p-2"
+            onClick={onNavInteract}
+          >
+            {footer}
+          </div>
+        ) : null}
       </div>
     </>
   );

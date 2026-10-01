@@ -110,7 +110,11 @@ function loadHttpConfig(
   const httpHost = env.FUDA_HOST?.trim() || "127.0.0.1";
   const rawPort = env.FUDA_PORT?.trim() ?? String(DEFAULT_HTTP_PORT);
   const httpPort = Number(rawPort);
-  if (!Number.isFinite(httpPort) || httpPort <= 0 || !Number.isInteger(httpPort)) {
+  if (
+    !Number.isFinite(httpPort) ||
+    httpPort <= 0 ||
+    !Number.isInteger(httpPort)
+  ) {
     errors.push(`Invalid FUDA_PORT: ${rawPort}`);
   }
   return { httpHost, httpPort };

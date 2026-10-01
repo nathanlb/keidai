@@ -8,7 +8,10 @@ import {
   type ParkedTaskPoll,
 } from "../../mcp/poll-mcp-task.js";
 import { McpJsonRpcError } from "../../mcp/post-mcp-jsonrpc.js";
-import { createTestPersistence, createTestRun } from "../../testing/persistence.js";
+import {
+  createTestPersistence,
+  createTestRun,
+} from "../../testing/persistence.js";
 import { resumeParkedHarnessRuns } from "../resume-parked-runs.js";
 import { RunNotClaimedError } from "../run-lease.js";
 
@@ -186,13 +189,17 @@ describe("resumeParkedHarnessRuns", () => {
       assert.equal(polls, 1);
       const due = await persistence.runStore.getParkedMcpTask("run-1");
       assert.equal(due?.nextPollAt, new Date(parkedAt + 5_000).toISOString());
-      assert.equal((await persistence.runStore.getRun("run-1"))?.status, "running");
+      assert.equal(
+        (await persistence.runStore.getRun("run-1"))?.status,
+        "running",
+      );
 
       assert.equal(await sweep(parkedAt + 1_000), 0);
       assert.equal(polls, 1);
-      assert.deepEqual(await persistence.runStore.getConversationHistory("run-1"), [
-        { role: "user", text: "goal" },
-      ]);
+      assert.deepEqual(
+        await persistence.runStore.getConversationHistory("run-1"),
+        [{ role: "user", text: "goal" }],
+      );
     } finally {
       await persistence.close();
     }
@@ -322,7 +329,10 @@ describe("resumeParkedHarnessRuns", () => {
       });
 
       assert.equal(count, 0);
-      assert.equal((await persistence.runStore.getRun("run-1"))?.status, "running");
+      assert.equal(
+        (await persistence.runStore.getRun("run-1"))?.status,
+        "running",
+      );
       assert.equal(
         (await persistence.runStore.getParkedMcpTask("run-1"))?.nextPollAt,
         new Date(parkedAt + 5_000).toISOString(),

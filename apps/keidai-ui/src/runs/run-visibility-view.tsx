@@ -24,10 +24,7 @@ import { useTablePageIndex } from "../shell/components/table-pagination/use-tabl
 import { useFetchRun } from "../lib/hooks/use-fetch-run.js";
 import { useRunsVisibility } from "./hooks/use-runs-visibility.js";
 import { RUN_ID_PARAM, RUNS_PATH } from "./navigation.js";
-import {
-  LEGACY_NEW_TASK_PARAM,
-  TASKS_NEW_PATH,
-} from "../tasks/navigation.js";
+import { LEGACY_NEW_TASK_PARAM, TASKS_NEW_PATH } from "../tasks/navigation.js";
 import { RunDetailDrawer } from "./run-detail-drawer.js";
 import { RunsSearchBar } from "./runs-search-bar.js";
 import { runsTableColumns } from "./runs-table-columns.js";

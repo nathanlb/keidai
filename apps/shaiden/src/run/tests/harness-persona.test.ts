@@ -62,7 +62,9 @@ function expectTokenExchangeRejected(done: Promise<unknown>): Promise<void> {
 describe("launchHarnessRun persona fetch", () => {
   it("stamps persona version onto the run before driving", async () => {
     const persistence = await createTestPersistence();
-    const taskId = (await persistence.taskRepository.create({ task: sampleTask })).id;
+    const taskId = (
+      await persistence.taskRepository.create({ task: sampleTask })
+    ).id;
     const fuda = stubFuda({
       name: "Newsletter",
       slug: "newsletter",
@@ -103,7 +105,9 @@ describe("launchHarnessRun persona fetch", () => {
       ...sampleTask,
       assignee: "other-agent-02",
     };
-    const taskId = (await persistence.taskRepository.create({ task: otherTask })).id;
+    const taskId = (
+      await persistence.taskRepository.create({ task: otherTask })
+    ).id;
     const fuda = stubFuda({
       name: "Other",
       slug: "other",
@@ -132,12 +136,18 @@ describe("launchHarnessRun persona fetch", () => {
 
   it("rejects before creating a run when the agent is unknown", async () => {
     const persistence = await createTestPersistence();
-    const taskId = (await persistence.taskRepository.create({ task: sampleTask })).id;
+    const taskId = (
+      await persistence.taskRepository.create({ task: sampleTask })
+    ).id;
     const fuda: FudaClient = {
       async getAgentDefinition() {
-        throw new AgentDefinitionError("agent_not_found", "Fuda agent not found", {
-          status: 404,
-        });
+        throw new AgentDefinitionError(
+          "agent_not_found",
+          "Fuda agent not found",
+          {
+            status: 404,
+          },
+        );
       },
       async exchangeToken() {
         throw new Error("unused");
@@ -166,7 +176,9 @@ describe("launchHarnessRun persona fetch", () => {
 
   it("rejects before creating a run when Fuda is unreachable", async () => {
     const persistence = await createTestPersistence();
-    const taskId = (await persistence.taskRepository.create({ task: sampleTask })).id;
+    const taskId = (
+      await persistence.taskRepository.create({ task: sampleTask })
+    ).id;
     const fuda: FudaClient = {
       async getAgentDefinition() {
         throw new AgentDefinitionError(
@@ -201,7 +213,9 @@ describe("launchHarnessRun persona fetch", () => {
 
   it("resume reuses the stamped persona even if Fuda returns a newer one", async () => {
     const persistence = await createTestPersistence();
-    const taskId = (await persistence.taskRepository.create({ task: sampleTask })).id;
+    const taskId = (
+      await persistence.taskRepository.create({ task: sampleTask })
+    ).id;
     const fuda = stubFuda({
       name: "Newsletter",
       slug: "newsletter",
@@ -217,7 +231,10 @@ describe("launchHarnessRun persona fetch", () => {
       options: { fudaClient: fuda },
     });
     await assert.rejects(launched.done);
-    assert.equal((await persistence.runStore.getRun(launched.runId))?.personaVersion, 4);
+    assert.equal(
+      (await persistence.runStore.getRun(launched.runId))?.personaVersion,
+      4,
+    );
 
     fuda.currentDefinition = {
       name: "Newsletter",
@@ -227,7 +244,10 @@ describe("launchHarnessRun persona fetch", () => {
     };
 
     const history = [
-      { role: "user" as const, text: "Task goal:\nDraft the weekly status note." },
+      {
+        role: "user" as const,
+        text: "Task goal:\nDraft the weekly status note.",
+      },
       {
         role: "assistant" as const,
         text: "Done.",
@@ -247,7 +267,10 @@ describe("launchHarnessRun persona fetch", () => {
 
     // Resume must not re-fetch; stamp on the run is still v4.
     assert.equal(fuda.definitionCalls, 1);
-    assert.equal((await persistence.runStore.getRun(launched.runId))?.personaVersion, 4);
+    assert.equal(
+      (await persistence.runStore.getRun(launched.runId))?.personaVersion,
+      4,
+    );
     assert.equal(
       (await persistence.runStore.getRun(launched.runId))?.persona,
       "You are a concise newsletter author.",
@@ -259,7 +282,9 @@ describe("launchHarnessRun persona fetch", () => {
 
   it("resume fails when Fuda is configured but the run has no stamped persona", async () => {
     const persistence = await createTestPersistence();
-    const taskId = (await persistence.taskRepository.create({ task: sampleTask })).id;
+    const taskId = (
+      await persistence.taskRepository.create({ task: sampleTask })
+    ).id;
     await persistence.runStore.createRun({
       id: "legacy-run",
       taskId,

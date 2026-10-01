@@ -83,10 +83,7 @@ export async function registerOperatorAuth(
   app.get("/auth/login", async (_request, reply) => {
     const { codeVerifier, codeChallenge } = createPkceChallenge();
     const state = createOAuthState();
-    const sealed = await sealOidcPendingState(
-      { state, codeVerifier },
-      config,
-    );
+    const sealed = await sealOidcPendingState({ state, codeVerifier }, config);
     appendSetCookie(reply, serializeOidcStateCookie(sealed, config));
     return reply.redirect(
       buildGoogleAuthorizationUrl(config, { state, codeChallenge }),
@@ -100,7 +97,9 @@ export async function registerOperatorAuth(
 
     if (request.query.error) {
       appendSetCookie(reply, clearOidc);
-      return reply.redirect(`/?auth_error=${encodeURIComponent(request.query.error)}`);
+      return reply.redirect(
+        `/?auth_error=${encodeURIComponent(request.query.error)}`,
+      );
     }
 
     const code = request.query.code;
@@ -134,13 +133,19 @@ export async function registerOperatorAuth(
 
     if (!isOperatorAllowed(config.operators, claims)) {
       appendSetCookie(reply, clearOidc);
-      return reply.code(403).type("text/html").send(forbiddenPage(claims.email));
+      return reply
+        .code(403)
+        .type("text/html")
+        .send(forbiddenPage(claims.email));
     }
 
     const ownerId = resolveOperatorOwnerId(config.operators, claims);
     if (!ownerId) {
       appendSetCookie(reply, clearOidc);
-      return reply.code(403).type("text/html").send(forbiddenPage(claims.email));
+      return reply
+        .code(403)
+        .type("text/html")
+        .send(forbiddenPage(claims.email));
     }
 
     const principal: OperatorPrincipal = {

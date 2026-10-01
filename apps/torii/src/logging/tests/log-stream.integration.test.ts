@@ -13,7 +13,10 @@ import {
   createCredentialServices,
   withTestAgentPrincipal,
 } from "../../credentials/tests/test-helpers.js";
-import { createPolicyEnforcement, createApprovalServices } from "../../policy/tests/test-helpers.js";
+import {
+  createPolicyEnforcement,
+  createApprovalServices,
+} from "../../policy/tests/test-helpers.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import { createCapturingLogger } from "../tests/test-helpers.js";
 import { StructuredLoggerService } from "../structured-logger.service.js";
@@ -81,7 +84,9 @@ describe("gateway log streams", () => {
       return true;
     }) as typeof process.stderr.write;
 
-    let persistence: Awaited<ReturnType<typeof createTestGatewayPersistence>> | undefined;
+    let persistence:
+      | Awaited<ReturnType<typeof createTestGatewayPersistence>>
+      | undefined;
     try {
       const structuredLogger = new StructuredLoggerService();
       structuredLogger.info("boot.config_loaded", { serverCount: 1 });

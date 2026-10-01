@@ -23,6 +23,7 @@ export interface AgentDefinition {
   slug: string;
   persona: string;
   personaVersion: number;
+  defaultModelId?: string;
 }
 
 export type TokenExchangeFailureKind =
@@ -51,7 +52,10 @@ export class TokenExchangeError extends Error {
     message: string,
     options?: { status?: number; cause?: unknown },
   ) {
-    super(message, options?.cause !== undefined ? { cause: options.cause } : undefined);
+    super(
+      message,
+      options?.cause !== undefined ? { cause: options.cause } : undefined,
+    );
     this.name = "TokenExchangeError";
     this.kind = kind;
     this.status = options?.status;
@@ -71,7 +75,10 @@ export class AgentDefinitionError extends Error {
     message: string,
     options?: { status?: number; cause?: unknown },
   ) {
-    super(message, options?.cause !== undefined ? { cause: options.cause } : undefined);
+    super(
+      message,
+      options?.cause !== undefined ? { cause: options.cause } : undefined,
+    );
     this.name = "AgentDefinitionError";
     this.kind = kind;
     this.status = options?.status;

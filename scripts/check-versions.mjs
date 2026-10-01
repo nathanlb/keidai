@@ -40,7 +40,9 @@ const chart = readFileSync(chartPath, "utf8");
 const strip = (value) => value.trim().replaceAll('"', "");
 const chartVersionMatch = chart.match(/^version:\s*(.+)$/m);
 const appVersionMatch = chart.match(/^appVersion:\s*(.+)$/m);
-const chartVersion = chartVersionMatch ? strip(chartVersionMatch[1]) : undefined;
+const chartVersion = chartVersionMatch
+  ? strip(chartVersionMatch[1])
+  : undefined;
 const appVersion = appVersionMatch ? strip(appVersionMatch[1]) : undefined;
 
 if (chartVersion !== expected || appVersion !== expected) {

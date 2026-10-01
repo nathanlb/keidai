@@ -1,5 +1,8 @@
 import useSWR from "swr";
-import { fetchAgentGrants, fetchPersonaVersions } from "../../lib/api/agents.js";
+import {
+  fetchAgentGrants,
+  fetchPersonaVersions,
+} from "../../lib/api/agents.js";
 
 export interface AgentListExtra {
   bearerCount: number;

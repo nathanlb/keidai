@@ -58,7 +58,9 @@ describe("OPERATOR_API_ROUTES", () => {
   });
 
   it("marks runs and traces for SSE hardening", () => {
-    const runs = OPERATOR_API_ROUTES.find((route) => route.prefix === "/api/runs");
+    const runs = OPERATOR_API_ROUTES.find(
+      (route) => route.prefix === "/api/runs",
+    );
     const traces = OPERATOR_API_ROUTES.find(
       (route) => route.prefix === "/api/traces",
     );
@@ -89,6 +91,9 @@ describe("rewriteOperatorApiPath", () => {
       prefix: "/api/tasks",
       backend: "shaiden",
     };
-    assert.equal(rewriteOperatorApiPath("/api/tasks/runtime", route), "/api/tasks/runtime");
+    assert.equal(
+      rewriteOperatorApiPath("/api/tasks/runtime", route),
+      "/api/tasks/runtime",
+    );
   });
 });

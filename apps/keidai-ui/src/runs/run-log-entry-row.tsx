@@ -79,7 +79,9 @@ function StepDescription({
   className?: string;
 }) {
   return (
-    <p className={cn("text-[12.5px] leading-normal wrap-break-word", className)}>
+    <p
+      className={cn("text-[12.5px] leading-normal wrap-break-word", className)}
+    >
       {children}
     </p>
   );
@@ -152,9 +154,11 @@ function PlainStepRow({ step }: { step: RunStep }) {
 
 function ToolCallPendingStatus() {
   return (
-    <span className="
+    <span
+      className="
       ml-auto inline-flex items-center gap-2 text-[11px] text-muted-foreground
-    ">
+    "
+    >
       <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
       <span className="run-log-breathe">running</span>
     </span>
@@ -169,9 +173,11 @@ function ToolCallSettledStatus({
   isError: boolean;
 }) {
   return (
-    <span className="
+    <span
+      className="
       ml-auto inline-flex items-center gap-3.5 font-mono text-[11px]
-    ">
+    "
+    >
       {entry.durationMs !== undefined ? (
         <span className="text-muted-foreground">
           {formatToolCallDuration(entry.durationMs)}
@@ -272,9 +278,11 @@ function ToolCallStepRow({ entry }: { entry: GroupedToolCallEntry }) {
             )}
           </div>
 
-          <StepDescription className="
+          <StepDescription
+            className="
             line-clamp-3 break-all text-muted-foreground
-          ">
+          "
+          >
             {argumentsLine}
           </StepDescription>
 

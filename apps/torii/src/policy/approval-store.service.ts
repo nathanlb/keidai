@@ -11,10 +11,7 @@ import type {
   ApprovalRecordView,
 } from "@keidai/shared";
 import { injectable } from "tsyringe";
-import {
-  parseJsonValue,
-  toEpochMs,
-} from "../storage/pg-values.js";
+import { parseJsonValue, toEpochMs } from "../storage/pg-values.js";
 import {
   resolveQueryable,
   runWithQueryable,
@@ -189,7 +186,9 @@ export class ApprovalStoreService {
     return row ? rowToApproval(row) : undefined;
   }
 
-  async getApprovalByTaskId(taskId: string): Promise<ApprovalRecord | undefined> {
+  async getApprovalByTaskId(
+    taskId: string,
+  ): Promise<ApprovalRecord | undefined> {
     const result = await this.queryable.query<ApprovalRow>(
       `
         SELECT ${APPROVAL_SELECT}
@@ -214,10 +213,7 @@ export class ApprovalStoreService {
     status?: ApprovalRecordStatus,
     limit = DEFAULT_APPROVAL_LIST_LIMIT,
   ): Promise<ApprovalRecordView[]> {
-    const boundedLimit = Math.min(
-      Math.max(1, limit),
-      MAX_APPROVAL_LIST_LIMIT,
-    );
+    const boundedLimit = Math.min(Math.max(1, limit), MAX_APPROVAL_LIST_LIMIT);
     const result = status
       ? await this.queryable.query<ApprovalRow>(
           `
@@ -242,7 +238,10 @@ export class ApprovalStoreService {
     return result.rows.map((row) => toApprovalView(rowToApproval(row)));
   }
 
-  async approve(id: string, now = Date.now()): Promise<ApprovalRecord | undefined> {
+  async approve(
+    id: string,
+    now = Date.now(),
+  ): Promise<ApprovalRecord | undefined> {
     return this.decidePending(id, "approved", undefined, now);
   }
 
@@ -276,11 +275,17 @@ export class ApprovalStoreService {
     return record;
   }
 
-  async cancel(id: string, now = Date.now()): Promise<ApprovalRecord | undefined> {
+  async cancel(
+    id: string,
+    now = Date.now(),
+  ): Promise<ApprovalRecord | undefined> {
     return this.decidePending(id, "cancelled", undefined, now);
   }
 
-  async markUsed(id: string, now = Date.now()): Promise<ApprovalRecord | undefined> {
+  async markUsed(
+    id: string,
+    now = Date.now(),
+  ): Promise<ApprovalRecord | undefined> {
     const result = await this.queryable.query(
       `
         UPDATE approvals
@@ -319,7 +324,12 @@ export class ApprovalStoreService {
           AND params_hash = $3
           AND rejected_at >= $4
       `,
-      [input.agentId, input.toolName, input.paramsHash, now - REJECTION_SUPPRESSION_TTL_MS],
+      [
+        input.agentId,
+        input.toolName,
+        input.paramsHash,
+        now - REJECTION_SUPPRESSION_TTL_MS,
+      ],
     );
     const row = result.rows[0];
     if (!row) {
@@ -396,7 +406,9 @@ function rowToApproval(row: ApprovalRow): ApprovalRecord {
       : {}),
     createdAt: toEpochMs(row.created_at),
     expiresAt: toEpochMs(row.expires_at),
-    ...(row.decided_at !== null ? { decidedAt: toEpochMs(row.decided_at) } : {}),
+    ...(row.decided_at !== null
+      ? { decidedAt: toEpochMs(row.decided_at) }
+      : {}),
     ...(row.used_at !== null ? { usedAt: toEpochMs(row.used_at) } : {}),
   };
 }

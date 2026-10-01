@@ -81,9 +81,7 @@ function resolveBackends(
   };
 }
 
-function hardenSseHeaders(
-  headers: IncomingHttpHeaders,
-): IncomingHttpHeaders {
+function hardenSseHeaders(headers: IncomingHttpHeaders): IncomingHttpHeaders {
   const next: IncomingHttpHeaders = { ...headers };
   next["cache-control"] = "no-cache, no-transform";
   next["x-accel-buffering"] = "no";

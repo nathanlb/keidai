@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import {
-  createIsolatedSchema,
-  resolveTestDatabaseUrl,
-} from "@keidai/postgres";
+import { createIsolatedSchema, resolveTestDatabaseUrl } from "@keidai/postgres";
 import { openFudaDatabase } from "../fuda-postgres.js";
 
 describe("001_baseline schema", () => {
@@ -14,7 +11,10 @@ describe("001_baseline schema", () => {
         resolveTestDatabaseUrl(),
         isolated.pool,
       );
-      assert.deepEqual(migrations.applied, ["001_baseline"]);
+      assert.deepEqual(migrations.applied, [
+        "001_baseline",
+        "002_agent_default_model",
+      ]);
 
       const tables = await isolated.pool.query<{ tablename: string }>(
         `
@@ -73,13 +73,19 @@ describe("001_baseline schema", () => {
         resolveTestDatabaseUrl(),
         isolated.pool,
       );
-      assert.deepEqual(first.migrations.applied, ["001_baseline"]);
+      assert.deepEqual(first.migrations.applied, [
+        "001_baseline",
+        "002_agent_default_model",
+      ]);
       const second = await openFudaDatabase(
         resolveTestDatabaseUrl(),
         isolated.pool,
       );
       assert.deepEqual(second.migrations.applied, []);
-      assert.deepEqual(second.migrations.alreadyApplied, ["001_baseline"]);
+      assert.deepEqual(second.migrations.alreadyApplied, [
+        "001_baseline",
+        "002_agent_default_model",
+      ]);
     } finally {
       await isolated.close();
     }

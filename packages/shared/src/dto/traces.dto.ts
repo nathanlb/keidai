@@ -1,11 +1,7 @@
 import type { CallTrace } from "../call-trace.js";
 
 /** Derived outcome for activity feed filters and summary tiles. */
-export type TraceOutcome =
-  | "success"
-  | "error"
-  | "denied"
-  | "linking_required";
+export type TraceOutcome = "success" | "error" | "denied" | "linking_required";
 
 /** Call trace with a derived outcome for API consumers. */
 export interface TraceListItem extends CallTrace {

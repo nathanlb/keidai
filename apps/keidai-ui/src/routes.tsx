@@ -10,6 +10,7 @@ import {
   GROUPS_PATH,
   HOME_PATH,
   RUNS_PATH,
+  SETTINGS_PATH,
   TASKS_PATH,
 } from "./shell/navigation.js";
 
@@ -164,6 +165,18 @@ export const router = createBrowserRouter([
           const { RunsPage } = await import("./runs/pages/runs-page.js");
           return { Component: RunsPage };
         },
+      },
+      {
+        path: "settings",
+        lazy: async () => {
+          const { SettingsPage } =
+            await import("./settings/pages/settings-page.js");
+          return { Component: SettingsPage };
+        },
+      },
+      {
+        path: "models",
+        element: <Navigate to={SETTINGS_PATH} replace />,
       },
       {
         path: "runs/:runId",

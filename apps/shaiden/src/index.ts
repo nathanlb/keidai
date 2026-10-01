@@ -5,6 +5,8 @@ loadEnvForPackage(import.meta.url);
 import { createHttpFudaClient } from "@keidai/shared/clients";
 import { getShaidenPersistence } from "./boot/persistence.js";
 import { loadRuntimeConfig } from "./config/runtime-config.js";
+import { PgOpenRouterCredentialRepository } from "./openrouter/pg-openrouter-credential-repository.js";
+import { resolveOpenRouterApiKey } from "./openrouter/resolve-api-key.js";
 import { ShaidenHttpServer } from "./http/shaiden-http-server.js";
 import { defaultLogger } from "./logging/logger.js";
 import { pollAssigneeMcpTask } from "./mcp/torii-client.js";
@@ -35,6 +37,12 @@ function waitForShutdown(): Promise<void> {
 async function main(): Promise<void> {
   const config = loadRuntimeConfig();
   const { runStore, taskRepository, pool } = await getShaidenPersistence();
+  const openRouterCredentials = new PgOpenRouterCredentialRepository(pool);
+  config.getOpenRouterApiKey = () =>
+    resolveOpenRouterApiKey({
+      credentials: openRouterCredentials,
+      envFallback: config.openRouterApiKey,
+    });
   // `loadRuntimeConfig` requires FUDA_URL; optional on the type for evals/tests.
   const fudaClient = createHttpFudaClient({ baseUrl: config.fudaBaseUrl! });
   const replicaId = resolveReplicaId();

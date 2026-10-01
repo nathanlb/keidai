@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
 import { describe, it } from "node:test";
 import { connectToriiSession } from "../torii-client.js";
 

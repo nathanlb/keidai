@@ -54,7 +54,9 @@ export class PgChannelListener {
       return;
     }
 
-    const client = new Client({ connectionString: this.options.connectionString });
+    const client = new Client({
+      connectionString: this.options.connectionString,
+    });
     this.client = client;
     client.on("notification", (message) => {
       if (message.channel !== this.options.channel) {

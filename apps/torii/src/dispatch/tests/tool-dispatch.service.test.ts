@@ -3,21 +3,33 @@ import assert from "node:assert/strict";
 import type { IncomingHttpHeaders } from "node:http";
 import { describe, it } from "node:test";
 import type { GroupDefinitionConfig, ToriiConfig } from "@keidai/shared";
-import { PolicyDecision, TORII_RUN_ID_ARG, TORII_STEP_ID_ARG, TORII_CALL_META_KEY } from "@keidai/shared";
+import {
+  PolicyDecision,
+  TORII_RUN_ID_ARG,
+  TORII_STEP_ID_ARG,
+  TORII_CALL_META_KEY,
+} from "@keidai/shared";
 import { ConnectionManager } from "../../connections/connection-manager.service.js";
 import { DefaultMcpClientConnector } from "../../connections/mcp-client-connector.service.js";
 import { startMockMcpServer } from "../../connections/tests/mock-mcp-server.js";
 import type { MockJsonRpcMessage } from "../../connections/tests/mock-mcp-server.js";
 import { ToriiConfigService } from "../../config/torii-config.service.js";
 import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
-import { createCredentialServices, bootBackends, withTestAgentPrincipal } from "../../credentials/tests/test-helpers.js";
+import {
+  createCredentialServices,
+  bootBackends,
+  withTestAgentPrincipal,
+} from "../../credentials/tests/test-helpers.js";
 import { LINKING_REQUIRED_CODE } from "../../credentials/types/credential-resolution.js";
 import { runWithAgentPrincipal } from "../../identity/agent-principal-context.js";
 import { TEST_AGENT_PRINCIPAL } from "../../identity/tests/test-helpers.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
 import type { CapturingTraceEmitter as CapturingTraceEmitterType } from "../../trace/tests/capturing-trace-emitter.js";
 import { PolicyDeniedError } from "../../policy/types/policy-denied.js";
-import { createPolicyEnforcement, createApprovalServices } from "../../policy/tests/test-helpers.js";
+import {
+  createPolicyEnforcement,
+  createApprovalServices,
+} from "../../policy/tests/test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 import { testAgentsGroup } from "../../testing/test-config.js";
 import { ToolDispatchService } from "../tool-dispatch.service.js";
@@ -41,10 +53,7 @@ function expectCallToolResult(
   return result;
 }
 
-function noneServer(
-  name: string,
-  url: string,
-): ToriiConfig["servers"][number] {
+function noneServer(name: string, url: string): ToriiConfig["servers"][number] {
   return {
     name,
     transport: { type: "http", url },
@@ -117,10 +126,24 @@ async function createDispatchStack(
     },
     servers,
   });
-  const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
-  const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(groups, gatedTools), createNoopLogger());
+  const connectionManager = new ConnectionManager(
+    configService,
+    new DefaultMcpClientConnector(credentialResolver),
+    createNoopLogger(),
+  );
+  const toolCatalog = new ToolCatalogService(
+    connectionManager,
+    credentialResolver,
+    createPolicyEnforcement(groups, gatedTools),
+    createNoopLogger(),
+  );
   const traceEmitter = new CapturingTraceEmitter();
-  const services = await createApprovalServices(groups, undefined, undefined, gatedTools);
+  const services = await createApprovalServices(
+    groups,
+    undefined,
+    undefined,
+    gatedTools,
+  );
   const { approvalGate, taskStore } = services;
   const toolDispatch = new ToolDispatchService(
     toolCatalog,
@@ -153,7 +176,9 @@ const BACKEND_TASK_TIMESTAMPS = {
 } as const;
 
 interface BackendTaskStub {
-  onJsonRpc: (message: MockJsonRpcMessage) => Record<string, unknown> | undefined;
+  onJsonRpc: (
+    message: MockJsonRpcMessage,
+  ) => Record<string, unknown> | undefined;
   /** Every `tasks/*` request the backend received, in order. */
   taskCalls: Array<{ method: string; taskId?: unknown }>;
 }
@@ -235,7 +260,11 @@ describe("ToolDispatchService", () => {
     });
     const stack = await createDispatchStack(
       [noneServer("deepwiki", mockServer.url)],
-      [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])],
+      [
+        testAgentsGroup([
+          { server: "deepwiki", tools: ["read_wiki_structure"] },
+        ]),
+      ],
     );
 
     try {
@@ -426,7 +455,11 @@ describe("ToolDispatchService", () => {
     });
     const stack = await createDispatchStack(
       [noneServer("deepwiki", mockServer.url)],
-      [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])],
+      [
+        testAgentsGroup([
+          { server: "deepwiki", tools: ["read_wiki_structure"] },
+        ]),
+      ],
     );
 
     try {
@@ -515,13 +548,24 @@ describe("ToolDispatchService", () => {
     const { tokenRepository, credentialResolver } = createCredentialServices({
       oauth_providers: oauthProviders,
     });
-    const groups = [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])];
+    const groups = [
+      testAgentsGroup([{ server: "github", tools: ["search_issues"] }]),
+    ];
     const configService = new ToriiConfigService({
       oauth_providers: oauthProviders,
       servers: [userOAuthServer("github", mockServer.url)],
     });
-    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
-    const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(groups), createNoopLogger());
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
+    const toolCatalog = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+      createPolicyEnforcement(groups),
+      createNoopLogger(),
+    );
     const traceEmitter = new CapturingTraceEmitter();
     const { approvalGate, taskStore } = await createApprovalServices(groups);
     const toolDispatch = new ToolDispatchService(
@@ -604,7 +648,11 @@ describe("ToolDispatchService", () => {
     });
     const stack = await createDispatchStack(
       [noneServer("deepwiki", mockServer.url)],
-      [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])],
+      [
+        testAgentsGroup([
+          { server: "deepwiki", tools: ["read_wiki_structure"] },
+        ]),
+      ],
     );
 
     try {
@@ -613,13 +661,10 @@ describe("ToolDispatchService", () => {
         await stack.toolCatalog.refresh();
 
         const result = expectCallToolResult(
-          await stack.toolDispatch.callTool(
-            "deepwiki.read_wiki_structure",
-            {
-              [TORII_RUN_ID_ARG]: "run-123",
-              [TORII_STEP_ID_ARG]: "step-456",
-            },
-          ),
+          await stack.toolDispatch.callTool("deepwiki.read_wiki_structure", {
+            [TORII_RUN_ID_ARG]: "run-123",
+            [TORII_STEP_ID_ARG]: "step-456",
+          }),
         );
 
         assert.equal(stack.traceEmitter.traces.length, 1);
@@ -642,7 +687,11 @@ describe("ToolDispatchService", () => {
     });
     const stack = await createDispatchStack(
       [noneServer("deepwiki", mockServer.url)],
-      [testAgentsGroup([{ server: "deepwiki", tools: ["read_wiki_structure"] }])],
+      [
+        testAgentsGroup([
+          { server: "deepwiki", tools: ["read_wiki_structure"] },
+        ]),
+      ],
     );
 
     try {
@@ -651,10 +700,7 @@ describe("ToolDispatchService", () => {
         await stack.toolCatalog.refresh();
 
         const result = expectCallToolResult(
-          await stack.toolDispatch.callTool(
-            "deepwiki.read_wiki_structure",
-            {},
-          ),
+          await stack.toolDispatch.callTool("deepwiki.read_wiki_structure", {}),
         );
 
         const trace = stack.traceEmitter.traces[0]!;
@@ -674,7 +720,8 @@ describe("ToolDispatchService", () => {
     const backendTaskId = "shared-backend-id";
     const mockServer = await startMockMcpServer({
       tools: [{ name: "search_issues", description: "Search issues" }],
-      onJsonRpc: backendTaskStub(backendTaskId, { status: "working" }).onJsonRpc,
+      onJsonRpc: backendTaskStub(backendTaskId, { status: "working" })
+        .onJsonRpc,
     });
     const stack = await createDispatchStack(
       [noneServer("github", mockServer.url)],
@@ -869,11 +916,11 @@ describe("ToolDispatchService", () => {
       );
 
       assert.equal(result.isError, true);
-      assert.match(
-        formatBackendToolErrorForTest(result),
-        /input_required/,
+      assert.match(formatBackendToolErrorForTest(result), /input_required/);
+      assert.equal(
+        stack.traceEmitter.traces[0]?.error,
+        BACKEND_INPUT_REQUIRED_MESSAGE,
       );
-      assert.equal(stack.traceEmitter.traces[0]?.error, BACKEND_INPUT_REQUIRED_MESSAGE);
     } finally {
       await stack.close();
       await mockServer.close();

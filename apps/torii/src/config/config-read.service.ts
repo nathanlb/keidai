@@ -24,9 +24,9 @@ export class ConfigReadService {
   listServers(): ConfigServersResponse {
     const groups = this.groupPolicies.get();
     return {
-      servers: this.configService.get().servers.map((server) =>
-        projectPublicServer(server, groups),
-      ),
+      servers: this.configService
+        .get()
+        .servers.map((server) => projectPublicServer(server, groups)),
     };
   }
 

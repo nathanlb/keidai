@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { createTestPersistence, createTestRun } from "../../testing/persistence.js";
+import {
+  createTestPersistence,
+  createTestRun,
+} from "../../testing/persistence.js";
 import { completeRunWithOutcomeStep } from "../../run/run-completion.js";
 import { sweepSandboxWorkspaces } from "../sweep-sandbox-workspaces.js";
 import type { SandboxClient } from "../sandbox-client.js";
@@ -11,7 +14,9 @@ const sampleTask = {
   assignee: "shaiden-newsletter-01",
 };
 
-function memorySandbox(runIds: string[]): SandboxClient & { deleted: string[] } {
+function memorySandbox(
+  runIds: string[],
+): SandboxClient & { deleted: string[] } {
   const deleted: string[] = [];
   return {
     deleted,
@@ -44,7 +49,10 @@ describe("sandbox workspace lifecycle", () => {
         sandbox,
       );
       assert.deepEqual(sandbox.deleted, ["run-1"]);
-      assert.equal((await persistence.runStore.getRun("run-1"))?.status, "completed");
+      assert.equal(
+        (await persistence.runStore.getRun("run-1"))?.status,
+        "completed",
+      );
     } finally {
       await persistence.close();
     }
@@ -53,7 +61,10 @@ describe("sandbox workspace lifecycle", () => {
   it("sweeps terminal and missing workspaces and keeps a running run", async () => {
     const persistence = await createTestPersistence();
     try {
-      await createTestRun(persistence, { runId: "running-1", task: sampleTask });
+      await createTestRun(persistence, {
+        runId: "running-1",
+        task: sampleTask,
+      });
       await createTestRun(persistence, { runId: "done-1", task: sampleTask });
       await persistence.runStore.completeRun("done-1", {
         outcome: { status: "stopped" },

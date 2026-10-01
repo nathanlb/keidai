@@ -5,7 +5,10 @@ import {
   ProtocolErrorCode,
   type McpHttpHandler,
 } from "@modelcontextprotocol/server";
-import { toNodeHandler, type NodeMcpRequestHandler } from "@modelcontextprotocol/node";
+import {
+  toNodeHandler,
+  type NodeMcpRequestHandler,
+} from "@modelcontextprotocol/node";
 import {
   MCP_TASKS_EXTENSION_ID,
   PolicyDecision,
@@ -52,7 +55,11 @@ import {
   resolveInboundMcpRequest,
   type InboundMcpRequestContext,
 } from "./utils/parse-inbound-mcp-request.js";
-import { dispatchMcpTasksMethod, readClientCapabilities, MISSING_TASKS_EXTENSION_ERROR } from "./utils/dispatch-mcp-tasks.js";
+import {
+  dispatchMcpTasksMethod,
+  readClientCapabilities,
+  MISSING_TASKS_EXTENSION_ERROR,
+} from "./utils/dispatch-mcp-tasks.js";
 import { TaskStoreService } from "../tasks/task-store.service.js";
 
 const GATEWAY_SERVER_INFO = {
@@ -179,13 +186,13 @@ export class GatewayMcpServer {
   private async resolvePrincipal(
     request: FastifyRequest,
   ): Promise<
-    | { ok: true; principal: AgentPrincipal }
-    | { ok: false; message: string }
+    { ok: true; principal: AgentPrincipal } | { ok: false; message: string }
   > {
     try {
-      const principal = await this.inboundIdentity.resolveFromAuthorizationHeader(
-        request.headers.authorization,
-      );
+      const principal =
+        await this.inboundIdentity.resolveFromAuthorizationHeader(
+          request.headers.authorization,
+        );
       return { ok: true, principal };
     } catch (error) {
       const message =

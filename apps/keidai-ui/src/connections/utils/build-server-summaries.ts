@@ -133,7 +133,12 @@ export function buildServerSummaries(
             ? connection.toolCount
             : null,
         state,
-        error: formatConnectionError(server, state, connection, oauthConnection),
+        error: formatConnectionError(
+          server,
+          state,
+          connection,
+          oauthConnection,
+        ),
         ...rowAction,
       };
     });

@@ -41,6 +41,7 @@ export const OPERATOR_API_ROUTES: readonly OperatorApiRoute[] = [
   },
   { prefix: "/api/tasks", backend: "shaiden" },
   { prefix: "/api/runs", backend: "shaiden", sse: true },
+  { prefix: "/api/openrouter", backend: "shaiden" },
   {
     prefix: "/api/fuda/health",
     backend: "fuda",

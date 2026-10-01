@@ -14,7 +14,10 @@ import { DefaultMcpClientConnector } from "../../connections/mcp-client-connecto
 import { startMockMcpServer } from "../../connections/tests/mock-mcp-server.js";
 import type { MockJsonRpcMessage } from "../../connections/tests/mock-mcp-server.js";
 import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
-import { createCredentialServices, withTestAgentPrincipal } from "../../credentials/tests/test-helpers.js";
+import {
+  createCredentialServices,
+  withTestAgentPrincipal,
+} from "../../credentials/tests/test-helpers.js";
 import { createTestGatewayHttpServer } from "../../http/tests/test-helpers.js";
 import {
   TEST_AGENT_BEARER,
@@ -130,7 +133,9 @@ describe("Gateway backend-originated tasks", () => {
       tools: [{ name: "search_issues", description: "Search issues" }],
       onJsonRpc: backendTaskJsonRpc,
     });
-    const groups = [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])];
+    const groups = [
+      testAgentsGroup([{ server: "github", tools: ["search_issues"] }]),
+    ];
     const configService = new ToriiConfigService({
       oauth_providers: {},
       servers: [
@@ -206,9 +211,8 @@ describe("Gateway backend-originated tasks", () => {
         );
         assert.equal(polled.taskId, created.taskId);
         assert.equal(polled.status, "completed");
-        const text = (
-          polled.result as { content?: Array<{ text?: string }> }
-        ).content?.[0]?.text;
+        const text = (polled.result as { content?: Array<{ text?: string }> })
+          .content?.[0]?.text;
         assert.equal(text, "backend-done");
       } finally {
         await gateway.close();
@@ -226,7 +230,9 @@ describe("Gateway backend-originated tasks", () => {
       tools: [{ name: "create_draft", description: "Create a draft email" }],
       onJsonRpc: backendTaskJsonRpc,
     });
-    const groups = [testAgentsGroup([{ server: "gmail", tools: ["create_draft"] }])];
+    const groups = [
+      testAgentsGroup([{ server: "gmail", tools: ["create_draft"] }]),
+    ];
     const gatedTools = {
       [TEST_AGENT_PRINCIPAL.agentId]: ["gmail.create_draft"],
     };
@@ -240,7 +246,12 @@ describe("Gateway backend-originated tasks", () => {
         },
       ],
     });
-    const approvalServices = await createApprovalServices(groups, persistence, undefined, gatedTools);
+    const approvalServices = await createApprovalServices(
+      groups,
+      persistence,
+      undefined,
+      gatedTools,
+    );
     const policyEnforcement = createPolicyEnforcement(groups, gatedTools);
     const { credentialResolver } = createCredentialServices();
     const connectionManager = new ConnectionManager(
@@ -293,7 +304,9 @@ describe("Gateway backend-originated tasks", () => {
         assert.equal(created.resultType, "task");
         const gatewayTaskId = String(created.taskId);
 
-        const listed = await fetch(`${gateway.baseUrl}/api/approvals?status=pending`);
+        const listed = await fetch(
+          `${gateway.baseUrl}/api/approvals?status=pending`,
+        );
         const pending = (await listed.json()) as Array<{ id: string }>;
         assert.equal(pending.length, 1);
         const approve = await fetch(
@@ -319,9 +332,8 @@ describe("Gateway backend-originated tasks", () => {
         assert.equal(polled.taskId, gatewayTaskId);
         assert.notEqual(polled.taskId, BACKEND_TASK_ID);
         assert.equal(polled.status, "completed");
-        const text = (
-          polled.result as { content?: Array<{ text?: string }> }
-        ).content?.[0]?.text;
+        const text = (polled.result as { content?: Array<{ text?: string }> })
+          .content?.[0]?.text;
         assert.equal(text, "backend-done");
       } finally {
         await gateway.close();

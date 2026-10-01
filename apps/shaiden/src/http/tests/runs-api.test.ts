@@ -107,7 +107,9 @@ describe("runs follow-up API", () => {
     const { app } = await createServer(persistence);
     try {
       await createTestRun(persistence, { runId: "run-1", task: sampleTask });
-      await persistence.runStore.setParkedMcpTask("run-1", { mcpTaskId: "parked-1" });
+      await persistence.runStore.setParkedMcpTask("run-1", {
+        mcpTaskId: "parked-1",
+      });
 
       const response = await app.inject({
         method: "POST",
@@ -116,9 +118,10 @@ describe("runs follow-up API", () => {
       });
 
       assert.equal(response.statusCode, 202);
-      assert.deepEqual(await persistence.runStore.drainParkedFollowUps("run-1"), [
-        { role: "user", text: "use the backup path" },
-      ]);
+      assert.deepEqual(
+        await persistence.runStore.drainParkedFollowUps("run-1"),
+        [{ role: "user", text: "use the backup path" }],
+      );
       assert.equal(
         (await persistence.runStore.getRun("run-1"))?.steps.at(-1)?.kind,
         "user_message",
@@ -133,7 +136,9 @@ describe("runs follow-up API", () => {
     const { app } = await createServer(persistence);
     try {
       await createTestRun(persistence, { runId: "run-1", task: sampleTask });
-      await persistence.runStore.completeRun("run-1", { outcome: { status: "goal_met" } });
+      await persistence.runStore.completeRun("run-1", {
+        outcome: { status: "goal_met" },
+      });
 
       const response = await app.inject({
         method: "POST",
@@ -175,7 +180,9 @@ describe("runs follow-up API", () => {
         { role: "user", text: "goal" },
         { role: "assistant", text: "rejected", toolCalls: [] },
       ]);
-      await persistence.runStore.completeRun("run-1", { outcome: { status: "human_reject" } });
+      await persistence.runStore.completeRun("run-1", {
+        outcome: { status: "human_reject" },
+      });
 
       const response = await app.inject({
         method: "POST",
@@ -198,7 +205,9 @@ describe("runs follow-up API", () => {
       await persistence.runStore.setConversationHistory("run-1", [
         { role: "user", text: "goal" },
       ]);
-      await persistence.runStore.completeRun("run-1", { outcome: { status: "goal_met" } });
+      await persistence.runStore.completeRun("run-1", {
+        outcome: { status: "goal_met" },
+      });
 
       const empty = await app.inject({
         method: "POST",

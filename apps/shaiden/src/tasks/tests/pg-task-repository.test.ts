@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import {
-  createIsolatedSchema,
-  resolveTestDatabaseUrl,
-} from "@keidai/postgres";
+import { createIsolatedSchema, resolveTestDatabaseUrl } from "@keidai/postgres";
 import { openShaidenDatabase } from "../../storage/shaiden-postgres.js";
 import { PgTaskRepository } from "../pg-task-repository.js";
 
@@ -183,7 +180,10 @@ describe("PgTaskRepository", () => {
       const created = await firstRepository.create({ task: sampleTask });
 
       const secondRepository = new PgTaskRepository(isolated.pool);
-      assert.equal((await secondRepository.get(created.id))?.goal, sampleTask.goal);
+      assert.equal(
+        (await secondRepository.get(created.id))?.goal,
+        sampleTask.goal,
+      );
     } finally {
       await isolated.close();
     }

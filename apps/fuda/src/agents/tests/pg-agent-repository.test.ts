@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import {
-  createIsolatedSchema,
-  resolveTestDatabaseUrl,
-} from "@keidai/postgres";
+import { createIsolatedSchema, resolveTestDatabaseUrl } from "@keidai/postgres";
 import { openFudaDatabase } from "../../storage/fuda-postgres.js";
 import { PgAgentRepository } from "../pg-agent-repository.js";
 
@@ -31,6 +28,7 @@ describe("PgAgentRepository", () => {
     try {
       const created = await repository.create(sample);
       assert.equal(created.slug, sample.slug);
+      assert.equal(created.defaultModelId, null);
       assert.equal(created.currentPersonaVersion, 1);
       assert.deepEqual(created.groups, ["editors"]);
       const persona = await repository.getCurrentPersona(created.id);
@@ -60,12 +58,16 @@ describe("PgAgentRepository", () => {
         [created.id],
       );
       assert.deepEqual(
-        rows.rows.map((row) => ({ version: row.version, content: row.content })),
+        rows.rows.map((row) => ({
+          version: row.version,
+          content: row.content,
+        })),
         [
           { version: 1, content: sample.persona },
           {
             version: 2,
-            content: "You draft the weekly newsletter. Keep it under 500 words.",
+            content:
+              "You draft the weekly newsletter. Keep it under 500 words.",
           },
         ],
       );
@@ -160,6 +162,27 @@ describe("PgAgentRepository", () => {
       assert.equal(personas.length, 2);
       assert.equal(personas[0]?.version, 2);
       assert.equal(personas[1]?.version, 1);
+    } finally {
+      await close();
+    }
+  });
+
+  it("stores and clears a default model id", async () => {
+    const { repository, close } = await createRepository();
+    try {
+      const created = await repository.create({
+        ...sample,
+        defaultModelId: "google/gemini-2.5-flash",
+      });
+      assert.equal(created.defaultModelId, "google/gemini-2.5-flash");
+      const loaded = await repository.get(created.id);
+      assert.equal(loaded?.defaultModelId, "google/gemini-2.5-flash");
+
+      const cleared = await repository.updateDefaultModel(created.id, {
+        defaultModelId: null,
+      });
+      assert.equal(cleared?.defaultModelId, null);
+      assert.equal((await repository.get(created.id))?.defaultModelId, null);
     } finally {
       await close();
     }

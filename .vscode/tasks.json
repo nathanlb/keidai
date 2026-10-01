@@ -5,6 +5,7 @@
       "label": "services:dev (fuda)",
       "type": "shell",
       "command": "pnpm fuda:dev",
+      "dependsOn": ["services:dev (postgres)"],
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -30,6 +31,7 @@
       "label": "services:dev (torii)",
       "type": "shell",
       "command": "pnpm torii:dev",
+      "dependsOn": ["services:dev (postgres)"],
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -55,6 +57,7 @@
       "label": "services:dev (shaiden)",
       "type": "shell",
       "command": "pnpm shaiden:dev",
+      "dependsOn": ["services:dev (postgres)"],
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -80,6 +83,7 @@
       "label": "services:dev (keidai-ui)",
       "type": "shell",
       "command": "pnpm ui:dev",
+      "dependsOn": ["services:dev (postgres)"],
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -102,8 +106,23 @@
       }
     },
     {
+      "label": "services:dev (postgres)",
+      "type": "shell",
+      "command": "docker compose up postgres -d --wait",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "services"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "services:dev",
       "dependsOn": [
+        "services:dev (postgres)",
         "services:dev (fuda)",
         "services:dev (torii)",
         "services:dev (shaiden)",

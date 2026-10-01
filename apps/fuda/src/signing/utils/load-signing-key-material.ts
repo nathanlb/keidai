@@ -11,9 +11,7 @@ export function loadSigningKeyMaterial(
   if (source.kind === "env") {
     const pem = env[source.name];
     if (pem === undefined || pem.trim() === "") {
-      throw new Error(
-        `Signing key env ${source.name} is missing or empty`,
-      );
+      throw new Error(`Signing key env ${source.name} is missing or empty`);
     }
     return pem;
   }

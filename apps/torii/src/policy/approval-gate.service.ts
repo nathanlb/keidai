@@ -6,7 +6,10 @@ import { parseNamespacedTool } from "../catalog/utils/namespacing.js";
 import { TaskStoreService } from "../tasks/task-store.service.js";
 import { DEFAULT_MCP_TASK_TTL_MS } from "../tasks/types/mcp-task.js";
 import { GroupPolicyCache } from "./group-policy-cache.service.js";
-import { ApprovalStoreService, type ApprovalRecord } from "./approval-store.service.js";
+import {
+  ApprovalStoreService,
+  type ApprovalRecord,
+} from "./approval-store.service.js";
 import { hashToolParams } from "./utils/approval-tool-args.js";
 import { isGatedToolForGroups } from "./utils/evaluate-policy.js";
 import { toApprovalDeniedToolResult } from "./utils/approval-tool-results.js";

@@ -1,7 +1,4 @@
-import type {
-  GroupDefinitionConfig,
-  PolicyConfig,
-} from "../config.js";
+import type { GroupDefinitionConfig, PolicyConfig } from "../config.js";
 
 /** Credential metadata exposed to the UI — no secret values. */
 export type PublicCredentialConfig =

@@ -6,7 +6,7 @@ services:
       POSTGRES_DB: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-keidai-local}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./deploy/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
@@ -90,7 +90,7 @@ services:
           "CMD",
           "node",
           "-e",
-            "fetch('http://127.0.0.1:' + (process.env.TORII_PORT || 3100) + '/api/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+          "fetch('http://127.0.0.1:' + (process.env.TORII_PORT || 3100) + '/api/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
         ]
       interval: 10s
       timeout: 3s
@@ -112,7 +112,7 @@ services:
       SHAIDEN_HOST: 0.0.0.0
       SHAIDEN_PORT: "3200"
       SHAIDEN_DATABASE_URL: postgres://shaiden:${POSTGRES_PASSWORD:-keidai-local}@postgres:5432/shaiden
-      # Local only. The cluster leaves this unset until gVisor (NAT-195).
+      SHAIDEN_SECRET_KEY: ${SHAIDEN_SECRET_KEY:-local-dev-shaiden-secret-key}
       SHAIDEN_SANDBOX_URL: http://shaiden-sandbox:8080
       SHAIDEN_MODEL_ID: deepseek/deepseek-v4.1-flash
     depends_on:

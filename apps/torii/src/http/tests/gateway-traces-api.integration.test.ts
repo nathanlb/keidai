@@ -39,12 +39,16 @@ function parseSseChunk(chunk: string): Array<{ event: string; data: string }> {
         data: dataLine.slice("data: ".length),
       };
     })
-    .filter((event): event is { event: string; data: string } => event !== null);
+    .filter(
+      (event): event is { event: string; data: string } => event !== null,
+    );
 }
 
 async function readSseEventsUntil(
   url: string,
-  predicate: (events: Array<{ event: string; trace: TraceListItem }>) => boolean,
+  predicate: (
+    events: Array<{ event: string; trace: TraceListItem }>,
+  ) => boolean,
   timeoutMs = 5_000,
 ): Promise<Array<{ event: string; trace: TraceListItem }>> {
   return new Promise((resolve, reject) => {
@@ -124,7 +128,10 @@ describe("Gateway /api/traces endpoints", () => {
           policyDecision: PolicyDecision.Allowed,
           durationMs: 10,
         },
-        { traceId: "trace-1", timestamp: new Date(Date.now() - 1000).toISOString() },
+        {
+          traceId: "trace-1",
+          timestamp: new Date(Date.now() - 1000).toISOString(),
+        },
       ),
     );
     await traceEmitter.emit(
@@ -196,9 +203,7 @@ describe("Gateway /api/traces endpoints", () => {
 
     const gateway = await gatewayHttpServer.start();
     try {
-      const detail = await fetch(
-        `${gateway.baseUrl}/api/traces/detail-trace`,
-      );
+      const detail = await fetch(`${gateway.baseUrl}/api/traces/detail-trace`);
       assert.equal(detail.status, 200);
       const trace = (await detail.json()) as TraceListItem;
       assert.equal(trace.outcome, "denied");

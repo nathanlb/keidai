@@ -204,10 +204,7 @@ describe("operator auth", () => {
     assert.equal(response.status, 200);
     assert.ok(lastUpstream);
     assert.equal(lastUpstream.method, "POST");
-    assert.equal(
-      lastUpstream.url,
-      "/api/oauth/initiate/github?owner=nathanlb",
-    );
+    assert.equal(lastUpstream.url, "/api/oauth/initiate/github?owner=nathanlb");
   });
 
   it("starts login with a Google authorize redirect and PKCE cookie", async () => {
@@ -370,4 +367,3 @@ describe("operator auth", () => {
     assert.equal(stillAuthed.status, 200);
   });
 });
-

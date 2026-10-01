@@ -1,7 +1,5 @@
 import type { ApprovalRecordView, RunReport } from "@keidai/shared";
-import type {
-  HomeDigestSourcesResponse,
-} from "./home-digest.dto.js";
+import type { HomeDigestSourcesResponse } from "./home-digest.dto.js";
 import type { RunVisibilityListItem } from "../runs/runs-visibility.dto.js";
 
 export function collectRunningRunIds(

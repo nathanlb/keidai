@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ConversationEntry } from "../types/conversation-history.js";
-import { closeUnansweredToolCalls, findUnansweredToolCalls, RUN_STOPPED_TOOL_OUTPUT } from "../pending-tool-calls.js";
+import {
+  closeUnansweredToolCalls,
+  findUnansweredToolCalls,
+  RUN_STOPPED_TOOL_OUTPUT,
+} from "../pending-tool-calls.js";
 import { toolCall } from "../testing/task-loop-harness.js";
 
 describe("findUnansweredToolCalls", () => {

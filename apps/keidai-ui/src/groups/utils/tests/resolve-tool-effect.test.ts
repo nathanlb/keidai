@@ -5,7 +5,9 @@ import {
   resolveToolEffect,
 } from "../resolve-tool-effect.js";
 
-const policy = (overrides: Partial<GroupServerPolicyView> = {}): GroupServerPolicyView => ({
+const policy = (
+  overrides: Partial<GroupServerPolicyView> = {},
+): GroupServerPolicyView => ({
   server: "gmail",
   default: "deny",
   allow: ["messages.list"],

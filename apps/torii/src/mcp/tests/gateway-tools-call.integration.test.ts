@@ -7,13 +7,19 @@ import { ConnectionManager } from "../../connections/connection-manager.service.
 import { DefaultMcpClientConnector } from "../../connections/mcp-client-connector.service.js";
 import { startMockMcpServer } from "../../connections/tests/mock-mcp-server.js";
 import { ToolCatalogService } from "../../catalog/tool-catalog.service.js";
-import { createCredentialServices, withTestAgentPrincipal } from "../../credentials/tests/test-helpers.js";
+import {
+  createCredentialServices,
+  withTestAgentPrincipal,
+} from "../../credentials/tests/test-helpers.js";
 import { createTestGatewayHttpServer } from "../../http/tests/test-helpers.js";
 import { connectAgentToGateway } from "../../identity/tests/test-helpers.js";
 import { TEST_AGENT_PRINCIPAL } from "../../identity/tests/test-helpers.js";
 import { ToolDispatchService } from "../../dispatch/tool-dispatch.service.js";
 import { CapturingTraceEmitter } from "../../trace/tests/capturing-trace-emitter.js";
-import { createPolicyEnforcement, createApprovalServices } from "../../policy/tests/test-helpers.js";
+import {
+  createPolicyEnforcement,
+  createApprovalServices,
+} from "../../policy/tests/test-helpers.js";
 import { createNoopLogger } from "../../logging/tests/test-helpers.js";
 import { testAgentsGroup } from "../../testing/test-config.js";
 
@@ -46,10 +52,7 @@ function serviceKeyServer(
   };
 }
 
-function noneServer(
-  name: string,
-  url: string,
-): ToriiConfig["servers"][number] {
+function noneServer(name: string, url: string): ToriiConfig["servers"][number] {
   return {
     name,
     transport: { type: "http", url },
@@ -91,13 +94,13 @@ describe("Gateway MCP tools/call", () => {
       accessToken: githubToken,
     });
 
-        const groups = [
-        testAgentsGroup([
-          { server: "github", tools: ["search_issues"] },
-          { server: "stripe", tools: ["list_customers"] },
-          { server: "deepwiki", tools: ["read_wiki_structure"] },
-        ]),
-      ];
+    const groups = [
+      testAgentsGroup([
+        { server: "github", tools: ["search_issues"] },
+        { server: "stripe", tools: ["list_customers"] },
+        { server: "deepwiki", tools: ["read_wiki_structure"] },
+      ]),
+    ];
     const configService = new ToriiConfigService({
       oauth_providers: {
         github: {
@@ -113,10 +116,19 @@ describe("Gateway MCP tools/call", () => {
         noneServer("deepwiki", deepwikiBackend.url),
       ],
     });
-    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
     const approvalServices = await createApprovalServices(groups);
     const policyEnforcement = createPolicyEnforcement(groups);
-    const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, policyEnforcement, createNoopLogger());
+    const toolCatalog = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+      policyEnforcement,
+      createNoopLogger(),
+    );
     const toolDispatch = new ToolDispatchService(
       toolCatalog,
       connectionManager,
@@ -126,7 +138,11 @@ describe("Gateway MCP tools/call", () => {
       approvalServices.approvalGate,
       approvalServices.taskStore,
     );
-    const gatewayHttpServer = await createTestGatewayHttpServer(toolCatalog, toolDispatch, { groups });
+    const gatewayHttpServer = await createTestGatewayHttpServer(
+      toolCatalog,
+      toolDispatch,
+      { groups },
+    );
 
     try {
       await withTestAgentPrincipal(async () => {
@@ -177,7 +193,9 @@ describe("Gateway MCP tools/call", () => {
       ],
     });
 
-        const groups = [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])];
+    const groups = [
+      testAgentsGroup([{ server: "github", tools: ["search_issues"] }]),
+    ];
     const configService = new ToriiConfigService({
       oauth_providers: {},
       servers: [
@@ -189,10 +207,19 @@ describe("Gateway MCP tools/call", () => {
       ],
     });
     const { credentialResolver } = createCredentialServices();
-    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
     const approvalServices = await createApprovalServices(groups);
     const policyEnforcement = createPolicyEnforcement(groups);
-    const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, policyEnforcement, createNoopLogger());
+    const toolCatalog = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+      policyEnforcement,
+      createNoopLogger(),
+    );
     const toolDispatch = new ToolDispatchService(
       toolCatalog,
       connectionManager,
@@ -202,7 +229,11 @@ describe("Gateway MCP tools/call", () => {
       approvalServices.approvalGate,
       approvalServices.taskStore,
     );
-    const gatewayHttpServer = await createTestGatewayHttpServer(toolCatalog, toolDispatch, { groups });
+    const gatewayHttpServer = await createTestGatewayHttpServer(
+      toolCatalog,
+      toolDispatch,
+      { groups },
+    );
 
     try {
       await connectionManager.connectAll();
@@ -211,9 +242,10 @@ describe("Gateway MCP tools/call", () => {
 
       try {
         const tools = await agent.client.listTools();
-        assert.deepEqual(tools.tools.map((tool) => tool.name), [
-          "github.search_issues",
-        ]);
+        assert.deepEqual(
+          tools.tools.map((tool) => tool.name),
+          ["github.search_issues"],
+        );
 
         const allowed = await agent.client.callTool({
           name: "github.search_issues",
@@ -244,11 +276,11 @@ describe("Gateway MCP tools/call", () => {
       tools: [{ name: "search_issues", description: "Search GitHub issues" }],
     });
 
-        const groups = [
-        testAgentsGroup([
-          { server: "github", tools: ["search_issues", "missing_tool"] },
-        ]),
-      ];
+    const groups = [
+      testAgentsGroup([
+        { server: "github", tools: ["search_issues", "missing_tool"] },
+      ]),
+    ];
     const configService = new ToriiConfigService({
       oauth_providers: {},
       servers: [
@@ -258,10 +290,19 @@ describe("Gateway MCP tools/call", () => {
       ],
     });
     const { credentialResolver } = createCredentialServices();
-    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
     const approvalServices = await createApprovalServices(groups);
     const policyEnforcement = createPolicyEnforcement(groups);
-    const toolCatalog = new ToolCatalogService(connectionManager, credentialResolver, policyEnforcement, createNoopLogger());
+    const toolCatalog = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+      policyEnforcement,
+      createNoopLogger(),
+    );
     const toolDispatch = new ToolDispatchService(
       toolCatalog,
       connectionManager,
@@ -271,7 +312,11 @@ describe("Gateway MCP tools/call", () => {
       approvalServices.approvalGate,
       approvalServices.taskStore,
     );
-    const gatewayHttpServer = await createTestGatewayHttpServer(toolCatalog, toolDispatch, { groups });
+    const gatewayHttpServer = await createTestGatewayHttpServer(
+      toolCatalog,
+      toolDispatch,
+      { groups },
+    );
 
     try {
       await connectionManager.connectAll();

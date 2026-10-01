@@ -15,7 +15,10 @@ describe("StaticSubjectValidator", () => {
   });
 
   it("trims surrounding whitespace on the subject token", async () => {
-    assert.equal(await validator.validate("  dev-secret  "), PLATFORM_BEARER_ID);
+    assert.equal(
+      await validator.validate("  dev-secret  "),
+      PLATFORM_BEARER_ID,
+    );
   });
 
   it("rejects unknown credentials without echoing the subject", async () => {

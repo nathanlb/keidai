@@ -45,9 +45,7 @@ const groupDefinitions = [
   {
     name: "agents",
     description: "Full access agents group",
-    permissions: [
-      { server: "linear", tools: ["list_issues", "get_issue"] },
-    ],
+    permissions: [{ server: "linear", tools: ["list_issues", "get_issue"] }],
   },
 ];
 

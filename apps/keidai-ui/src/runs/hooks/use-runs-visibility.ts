@@ -3,7 +3,13 @@ import {
   type RunListItem,
   type RunReport,
 } from "@keidai/shared";
-import { useCallback, useEffect, useRef, useState, startTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  startTransition,
+} from "react";
 import useSWR, { mutate as globalMutate } from "swr";
 import { getRunsEventsUrl } from "../../lib/api/runs.js";
 import {
@@ -100,9 +106,7 @@ export function useRunsVisibility(isLive: boolean) {
       agentsByIdRef.current = data.agentsById;
       setAgentsById(data.agentsById);
       setRuns(data.runs);
-      setSuspendedRunIds(
-        suspendedIdsFromList(data.runs, fullRunsRef.current),
-      );
+      setSuspendedRunIds(suspendedIdsFromList(data.runs, fullRunsRef.current));
     });
   }, [data]);
 
@@ -125,7 +129,9 @@ export function useRunsVisibility(isLive: boolean) {
         agentsByIdRef.current,
       );
       setRuns((current) => mergeRunListItem(current, visibilityItem));
-      setSuspendedRunIds(deriveSuspendedRunIds([...fullRunsRef.current.values()]));
+      setSuspendedRunIds(
+        deriveSuspendedRunIds([...fullRunsRef.current.values()]),
+      );
     };
 
     eventSource.addEventListener(RUN_SSE_EVENT.runUpdated, handleRunUpdated);

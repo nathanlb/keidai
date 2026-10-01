@@ -22,11 +22,17 @@ describe("resolveBffServiceToken", () => {
       }),
       null,
     );
-    assert.equal(isBffServiceTokenDisabled({ BFF_SERVICE_TOKEN_DISABLED: "yes" }), true);
+    assert.equal(
+      isBffServiceTokenDisabled({ BFF_SERVICE_TOKEN_DISABLED: "yes" }),
+      true,
+    );
   });
 
   it("throws when the token is missing and not disabled", () => {
-    assert.throws(() => resolveBffServiceToken({}), /BFF_SERVICE_TOKEN is required/);
+    assert.throws(
+      () => resolveBffServiceToken({}),
+      /BFF_SERVICE_TOKEN is required/,
+    );
     assert.throws(
       () => resolveBffServiceToken({ BFF_SERVICE_TOKEN: "" }),
       /BFF_SERVICE_TOKEN is required/,
@@ -55,8 +61,14 @@ describe("isBffServiceTokenProtectedPath", () => {
     assert.equal(isBffServiceTokenProtectedPath("/mcp"), false);
     assert.equal(isBffServiceTokenProtectedPath("/token"), false);
     assert.equal(isBffServiceTokenProtectedPath("/agents/a1"), false);
-    assert.equal(isBffServiceTokenProtectedPath("/.well-known/jwks.json"), false);
-    assert.equal(isBffServiceTokenProtectedPath("/oauth/callback/github"), false);
+    assert.equal(
+      isBffServiceTokenProtectedPath("/.well-known/jwks.json"),
+      false,
+    );
+    assert.equal(
+      isBffServiceTokenProtectedPath("/oauth/callback/github"),
+      false,
+    );
   });
 });
 

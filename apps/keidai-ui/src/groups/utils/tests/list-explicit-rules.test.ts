@@ -54,9 +54,9 @@ describe("listExplicitRules", () => {
 
 describe("listUnruledTools", () => {
   it("returns catalogue tools the policy does not name", () => {
-    expect(listUnruledTools(gmailPolicy, catalogue).map((tool) => tool.name)).toEqual([
-      "messages.get",
-    ]);
+    expect(
+      listUnruledTools(gmailPolicy, catalogue).map((tool) => tool.name),
+    ).toEqual(["messages.get"]);
   });
 });
 

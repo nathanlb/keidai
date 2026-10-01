@@ -58,9 +58,7 @@ export function connectorsFromConfig(config: ToriiConfig): ConnectorRecord[] {
       server.credential.strategy === "user_oauth"
         ? server.credential.provider
         : undefined;
-    const oauth = providerKey
-      ? config.oauth_providers[providerKey]
-      : undefined;
+    const oauth = providerKey ? config.oauth_providers[providerKey] : undefined;
     return {
       slug: server.name,
       displayName: server.name,

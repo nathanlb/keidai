@@ -27,7 +27,9 @@ const betaAgent: ManagementAgent = {
 };
 
 test.describe("Agents page", () => {
-  test("shows the empty state when no agents are registered", async ({ page }) => {
+  test("shows the empty state when no agents are registered", async ({
+    page,
+  }) => {
     await mockToriiConfig(page, { fudaAgents: [] });
 
     await page.goto("/agents");
@@ -38,7 +40,9 @@ test.describe("Agents page", () => {
     ).toBeVisible();
   });
 
-  test("lists registered agents with slug, groups, and owner", async ({ page }) => {
+  test("lists registered agents with slug, groups, and owner", async ({
+    page,
+  }) => {
     await mockToriiConfig(page, {
       fudaAgents: [alphaAgent, betaAgent],
     });
@@ -63,9 +67,7 @@ test.describe("Agents page", () => {
 
     await page.goto("/agents");
 
-    await expect(
-      page.getByText(/not defined in Torii: ops/i),
-    ).toBeVisible();
+    await expect(page.getByText(/not defined in Torii: ops/i)).toBeVisible();
   });
 
   test("opens an agent's detail page and switches tabs", async ({ page }) => {
@@ -92,10 +94,36 @@ test.describe("Agents page", () => {
     await expect(page.getByText("Goal met", { exact: true })).toBeVisible();
   });
 
+  test("edits an agent with the authoring form minus create-only fields", async ({
+    page,
+  }) => {
+    await mockToriiConfig(page, { fudaAgents: [alphaAgent] });
+
+    await page.goto(`/agents/${alphaAgent.id}`);
+
+    await expect(page.getByPlaceholder("agent-slug")).toHaveCount(0);
+    await expect(page.getByText("assigned automatically")).toHaveCount(0);
+    const save = page.getByRole("button", { name: "Save changes" });
+    await expect(save).toBeDisabled();
+
+    await page.getByPlaceholder("Agent Name").fill("Alpha Prime");
+    await page
+      .getByPlaceholder("Describe how this agent should behave…")
+      .fill("You are Alpha Prime.");
+    await expect(save).toBeEnabled();
+    await save.click();
+
+    await expect(page.getByText(/Persona is now v2/)).toBeVisible();
+    await expect(page.getByText("Alpha Prime", { exact: true })).toBeVisible();
+    await expect(save).toBeDisabled();
+  });
+
   test("creates a new agent and lands on its detail", async ({ page }) => {
     await mockToriiConfig(page, {
       fudaAgents: [],
-      fudaBearers: [{ bearerId: "shaiden-runner", displayName: "shaiden-runner" }],
+      fudaBearers: [
+        { bearerId: "shaiden-runner", displayName: "shaiden-runner" },
+      ],
     });
 
     await page.goto("/agents/new");
@@ -113,7 +141,9 @@ test.describe("Agents page", () => {
     await createButton.click();
 
     await expect(page).toHaveURL(/\/agents\/agt-1$/);
-    await expect(page.getByText("Newsletter Bot", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("Newsletter Bot", { exact: true }),
+    ).toBeVisible();
     await expect(
       page.getByText("Agent created. Shaiden can run it."),
     ).toBeVisible();

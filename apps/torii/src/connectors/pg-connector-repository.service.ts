@@ -194,9 +194,7 @@ export class PgConnectorRepository {
   }
 }
 
-function stripSecret(
-  oauth: ConnectorOAuthOverride,
-): ConnectorOAuthOverride {
+function stripSecret(oauth: ConnectorOAuthOverride): ConnectorOAuthOverride {
   const { clientSecret: _secret, ...rest } = oauth;
   return rest;
 }

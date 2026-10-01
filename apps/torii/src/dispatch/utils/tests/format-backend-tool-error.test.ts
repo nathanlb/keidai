@@ -22,6 +22,9 @@ describe("formatBackendToolError", () => {
       content: [],
     };
 
-    assert.equal(formatBackendToolError(result), "backend returned error result");
+    assert.equal(
+      formatBackendToolError(result),
+      "backend returned error result",
+    );
   });
 });

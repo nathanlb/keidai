@@ -1,7 +1,4 @@
-import {
-  TokenExchangeError,
-  type FudaClient,
-} from "@keidai/shared/clients";
+import { TokenExchangeError, type FudaClient } from "@keidai/shared/clients";
 
 /** Refresh a bit before wall-clock expiry so mid-call expiry is unlikely. */
 const DEFAULT_REFRESH_SKEW_MS = 30_000;
@@ -46,7 +43,10 @@ export function createAgentTokenProvider(
   const isUsable = (token: CachedToken, at: number): boolean =>
     at < token.expiresAtMs;
 
-  const needsRefresh = (token: CachedToken | undefined, at: number): boolean => {
+  const needsRefresh = (
+    token: CachedToken | undefined,
+    at: number,
+  ): boolean => {
     if (!token) {
       return true;
     }

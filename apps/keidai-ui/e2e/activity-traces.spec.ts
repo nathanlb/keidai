@@ -9,7 +9,11 @@ const sampleTraces: TraceListItem[] = [
     timestamp: new Date().toISOString(),
     server: "github",
     tool: "search_issues",
-    principal: { agentId: "cursor-agent", ownerId: "nathan", bearerId: "local-dev" },
+    principal: {
+      agentId: "cursor-agent",
+      ownerId: "nathan",
+      bearerId: "local-dev",
+    },
     policyDecision: PolicyDecision.Allowed,
     durationMs: 210,
     outcome: "success",
@@ -19,7 +23,11 @@ const sampleTraces: TraceListItem[] = [
     timestamp: new Date(Date.now() - 60_000).toISOString(),
     server: "stripe",
     tool: "list_customers",
-    principal: { agentId: "cursor-agent", ownerId: "nathan", bearerId: "local-dev" },
+    principal: {
+      agentId: "cursor-agent",
+      ownerId: "nathan",
+      bearerId: "local-dev",
+    },
     policyDecision: PolicyDecision.Denied,
     error: "policy denied",
     outcome: "denied",
@@ -68,12 +76,16 @@ test.describe("Activity & traces", () => {
     await expect(drawer).toBeVisible();
     await expect(drawer.getByText("trace-denied")).toBeVisible();
     await expect(drawer.getByText("Trace timeline")).toBeVisible();
-    await expect(drawer.getByText("Policy decision", { exact: true })).toBeVisible();
+    await expect(
+      drawer.getByText("Policy decision", { exact: true }),
+    ).toBeVisible();
     await expect(drawer.getByText("Denied by policy")).toBeVisible();
     await expect(drawer.getByText("Credential resolution")).toBeVisible();
   });
 
-  test("opens the trace drawer from a trace_id query param", async ({ page }) => {
+  test("opens the trace drawer from a trace_id query param", async ({
+    page,
+  }) => {
     await mockToriiConfig(page, {
       traces: { traces: sampleTraces },
       traceStats: {
@@ -116,9 +128,7 @@ test.describe("Activity & traces", () => {
 
     await page.goto("/activity");
     await page.getByLabel("Filter traces").fill("no-such-trace");
-    await expect(
-      page.getByText("No traces match these filters"),
-    ).toBeVisible();
+    await expect(page.getByText("No traces match these filters")).toBeVisible();
 
     await page.getByRole("button", { name: "Clear filters" }).click();
     await expect(page.getByText("search_issues")).toBeVisible();

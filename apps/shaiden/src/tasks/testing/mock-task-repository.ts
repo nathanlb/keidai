@@ -90,17 +90,25 @@ export class MockTaskRepository implements TaskRepository {
     return { tasks };
   }
 
-  async update(taskId: string, input: UpdateTaskRequest): Promise<SavedTask | null> {
+  async update(
+    taskId: string,
+    input: UpdateTaskRequest,
+  ): Promise<SavedTask | null> {
     const existing = this.tasks.get(taskId);
     if (!existing) {
       return null;
     }
 
+    const modelId =
+      input.modelId === undefined
+        ? existing.modelId
+        : (input.modelId ?? undefined);
     const merged = taskSchema.parse({
       goal: input.goal ?? existing.goal,
       trigger: input.trigger ?? existing.trigger,
       assignee: input.assignee ?? existing.assignee,
       limits: input.limits === undefined ? existing.limits : input.limits,
+      ...(modelId ? { modelId } : {}),
     });
 
     const now = new Date();
@@ -113,8 +121,12 @@ export class MockTaskRepository implements TaskRepository {
     if (cursor.resetScheduleState) {
       this.locks.set(taskId, { claimUntil: null, attempts: 0 });
     }
+    const base = cursor.resetScheduleState
+      ? withoutFailure(existing)
+      : existing;
+    const { modelId: _previousModelId, ...baseWithoutModel } = base;
     const updated: SavedTask = {
-      ...(cursor.resetScheduleState ? withoutFailure(existing) : existing),
+      ...baseWithoutModel,
       ...merged,
       updatedAt: now.toISOString(),
       nextRunAt: cursor.nextRunAt,
@@ -163,7 +175,9 @@ export class MockTaskRepository implements TaskRepository {
         return true;
       })
       .sort((left, right) => {
-        const byTime = (left.nextRunAt ?? "").localeCompare(right.nextRunAt ?? "");
+        const byTime = (left.nextRunAt ?? "").localeCompare(
+          right.nextRunAt ?? "",
+        );
         return byTime !== 0 ? byTime : left.id.localeCompare(right.id);
       })
       .slice(0, limit);
@@ -176,7 +190,10 @@ export class MockTaskRepository implements TaskRepository {
     });
   }
 
-  async setNextRunAt(taskId: string, nextRunAt: string | null): Promise<boolean> {
+  async setNextRunAt(
+    taskId: string,
+    nextRunAt: string | null,
+  ): Promise<boolean> {
     const existing = this.tasks.get(taskId);
     if (!existing) {
       return false;

@@ -33,22 +33,24 @@ export class OAuthConnectionReadService {
     );
 
     const connections = await Promise.all(
-      Object.entries(config.oauth_providers).map(async ([provider, providerConfig]) => {
-        const latestLink = await this.pendingLinkStore.getLatest(
-          resolvedOwnerId,
-          provider,
-        );
-        const activeLink =
-          latestLink?.status === "completed" ? null : latestLink;
+      Object.entries(config.oauth_providers).map(
+        async ([provider, providerConfig]) => {
+          const latestLink = await this.pendingLinkStore.getLatest(
+            resolvedOwnerId,
+            provider,
+          );
+          const activeLink =
+            latestLink?.status === "completed" ? null : latestLink;
 
-        return projectOAuthConnectionStatus(
-          resolvedOwnerId,
-          provider,
-          providerConfig.scopes,
-          grantsByProvider.get(provider) ?? null,
-          activeLink,
-        );
-      }),
+          return projectOAuthConnectionStatus(
+            resolvedOwnerId,
+            provider,
+            providerConfig.scopes,
+            grantsByProvider.get(provider) ?? null,
+            activeLink,
+          );
+        },
+      ),
     );
 
     return { connections };

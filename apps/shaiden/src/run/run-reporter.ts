@@ -11,6 +11,7 @@ export interface RunReporter {
     startedAt: string;
     personaVersion?: number;
     persona?: string;
+    modelId?: string;
   }): Promise<void>;
   recordStep(step: {
     id?: string;

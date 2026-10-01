@@ -52,9 +52,11 @@ export function OperatorAuthGate({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="
+    <div
+      className="
       flex h-screen items-center justify-center bg-background px-5
-    ">
+    "
+    >
       <div className="w-full max-w-md">
         <PageEmptyState
           icon={<LogIn className="size-5" />}

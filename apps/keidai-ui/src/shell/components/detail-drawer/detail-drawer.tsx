@@ -105,9 +105,11 @@ export function DetailDrawer({
             onPointerDown={startResize}
           />
 
-          <SheetHeader className="
+          <SheetHeader
+            className="
             space-y-0 border-b border-border px-5 py-4.5 text-left
-          ">
+          "
+          >
             <div className="flex items-start gap-3 pr-8">
               {headerBadge}
               <div className="min-w-0 flex-1">
@@ -118,13 +120,15 @@ export function DetailDrawer({
                   </div>
                 ) : null}
               </div>
-              <SheetClose className="
+              <SheetClose
+                className="
                 absolute top-4 right-4 rounded-sm opacity-70
                 ring-offset-background transition-opacity
                 hover:opacity-100
                 focus:ring-2 focus:ring-ring focus:ring-offset-2
                 focus:outline-none
-              ">
+              "
+              >
                 <X className="size-4" />
                 <span className="sr-only">Close</span>
               </SheetClose>
@@ -171,15 +175,19 @@ export function DetailDrawerSectionLabel({
   hint?: string;
 }) {
   return (
-    <div className="
+    <div
+      className="
       mb-2.5 text-[11px] font-semibold tracking-wider text-muted-foreground
       uppercase
-    ">
+    "
+    >
       {children}
       {hint ? (
-        <span className="
+        <span
+          className="
           ml-1 font-medium tracking-normal text-muted-foreground normal-case
-        ">
+        "
+        >
           · {hint}
         </span>
       ) : null}

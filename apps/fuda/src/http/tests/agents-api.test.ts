@@ -124,7 +124,9 @@ describe("agents management API", () => {
         headers: { "content-type": "application/json" },
         body: JSON.stringify(sampleAgentBody),
       });
-      const { agent } = (await createResponse.json()) as { agent: { id: string } };
+      const { agent } = (await createResponse.json()) as {
+        agent: { id: string };
+      };
 
       const slugPatch = await fetch(
         `${handle.baseUrl}/api/agents/${agent.id}`,
@@ -267,7 +269,9 @@ describe("agents management API", () => {
         headers: { "content-type": "application/json" },
         body: JSON.stringify(sampleAgentBody),
       });
-      const { agent } = (await createResponse.json()) as { agent: { id: string } };
+      const { agent } = (await createResponse.json()) as {
+        agent: { id: string };
+      };
       const grants = await fetch(
         `${handle.baseUrl}/api/agents/${agent.id}/grants`,
       );

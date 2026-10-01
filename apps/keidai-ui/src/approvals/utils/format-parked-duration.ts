@@ -1,4 +1,7 @@
-export function formatParkedDuration(parkedAtIso: string, now = Date.now()): string {
+export function formatParkedDuration(
+  parkedAtIso: string,
+  now = Date.now(),
+): string {
   const parkedAt = Date.parse(parkedAtIso);
   if (Number.isNaN(parkedAt)) {
     return "—";

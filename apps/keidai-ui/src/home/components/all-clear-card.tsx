@@ -3,18 +3,19 @@ import { CheckCheck } from "lucide-react";
 
 export function AllClearCard() {
   return (
-    <Card
-      data-testid="home-all-clear"
-      className="py-0 shadow-none"
-    >
-      <CardContent className="
+    <Card data-testid="home-all-clear" className="py-0 shadow-none">
+      <CardContent
+        className="
         flex items-center justify-center gap-3.25 px-4 py-5.5
-      ">
-        <div className="
+      "
+      >
+        <div
+          className="
           flex size-9.5 shrink-0 items-center justify-center rounded-[10px]
           bg-[color-mix(in_srgb,var(--green-600)_16%,transparent)]
           text-(--green-600)
-        ">
+        "
+        >
           <CheckCheck className="size-4.75" aria-hidden />
         </div>
         <div>

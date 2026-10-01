@@ -27,11 +27,11 @@ src/shell/utils/
     derive-owner-initials.test.ts
 ```
 
-| Test type | Location / suffix | Runner |
-| -- | -- | -- |
-| Pure logic / hooks | `tests/*.test.ts(x)` | Vitest (jsdom) |
+| Test type                     | Location / suffix          | Runner              |
+| ----------------------------- | -------------------------- | ------------------- |
+| Pure logic / hooks            | `tests/*.test.ts(x)`       | Vitest (jsdom)      |
 | Component with real DOM needs | `tests/*.browser.test.tsx` | Vitest browser mode |
-| Full user flows | `e2e/*.spec.ts` | Playwright |
+| Full user flows               | `e2e/*.spec.ts`            | Playwright          |
 
 Server-side Fastify tests live under `server/tests/` and run with Node's built-in test runner via `pnpm test:server`.
 

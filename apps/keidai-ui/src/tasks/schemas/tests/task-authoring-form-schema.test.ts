@@ -18,6 +18,7 @@ describe("taskFromFormValues", () => {
         freq: "daily",
         days: ["mon"],
         paused: false,
+        modelId: "",
       }).trigger,
     ).toEqual({ type: "now" });
   });
@@ -33,7 +34,9 @@ describe("taskFromFormValues", () => {
       freq: "weekly",
       days: ["mon"],
       paused: false,
+      modelId: "openai/gpt-4o",
     });
+    expect(task.modelId).toBe("openai/gpt-4o");
     expect(task.trigger).toEqual({
       type: "schedule",
       timezone: "America/New_York",

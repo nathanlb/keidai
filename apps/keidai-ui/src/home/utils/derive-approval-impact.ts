@@ -14,9 +14,7 @@ function withHash(channel: string): string {
  * Best-effort impact line from captured approval params. Unknown tools fall
  * back to an empty string so the row still reads on the tool name alone.
  */
-export function deriveApprovalImpact(
-  params: Record<string, unknown>,
-): string {
+export function deriveApprovalImpact(params: Record<string, unknown>): string {
   const to = asNonEmptyString(params.to) ?? asNonEmptyString(params.recipient);
   if (to) {
     return `Sends to ${to}`;

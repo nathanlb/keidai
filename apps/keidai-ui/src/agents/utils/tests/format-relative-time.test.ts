@@ -15,15 +15,11 @@ describe("formatRelativeTime", () => {
   });
 
   it("returns days ago under a month", () => {
-    expect(formatRelativeTime("2026-07-14T12:00:00.000Z", NOW)).toBe(
-      "15d ago",
-    );
+    expect(formatRelativeTime("2026-07-14T12:00:00.000Z", NOW)).toBe("15d ago");
   });
 
   it("returns months ago at or beyond 30 days", () => {
-    expect(formatRelativeTime("2026-06-02T12:00:00.000Z", NOW)).toBe(
-      "2mo ago",
-    );
+    expect(formatRelativeTime("2026-06-02T12:00:00.000Z", NOW)).toBe("2mo ago");
   });
 
   it("returns an em dash for an unparseable timestamp", () => {

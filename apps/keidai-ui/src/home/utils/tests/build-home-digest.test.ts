@@ -52,9 +52,7 @@ function run(
   };
 }
 
-function agent(
-  overrides: Partial<ManagementAgent> = {},
-): ManagementAgent {
+function agent(overrides: Partial<ManagementAgent> = {}): ManagementAgent {
   return {
     id: "agt-ops",
     slug: "ops-bot",

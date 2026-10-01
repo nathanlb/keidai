@@ -93,6 +93,11 @@ export interface RunListItem {
    * mid-flight continuation reuse this without re-fetching from Fuda.
    */
   persona?: string;
+  /**
+   * Model resolved at run start (task override, agent default, or platform).
+   * Resume keeps this model for the life of the run.
+   */
+  modelId?: string;
 }
 
 export interface RunReport extends RunListItem {
@@ -113,6 +118,7 @@ export interface CreateRunRequest {
   startedAt?: string;
   personaVersion?: number;
   persona?: string;
+  modelId?: string;
 }
 
 export interface AppendRunStepRequest {

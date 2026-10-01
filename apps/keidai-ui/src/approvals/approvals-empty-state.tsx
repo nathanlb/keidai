@@ -1,4 +1,12 @@
-import { Button, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@keidai/ui";
+import {
+  Button,
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@keidai/ui";
 import { CheckCheck, Play } from "lucide-react";
 import { Link } from "react-router";
 import { RUNS_PATH } from "../runs/navigation.js";
@@ -7,9 +15,11 @@ export function ApprovalsEmptyState() {
   return (
     <Empty className="px-4 py-16">
       <EmptyHeader>
-        <EmptyMedia className="
+        <EmptyMedia
+          className="
           mb-0 size-15 rounded-2xl bg-success/15 text-success
-        ">
+        "
+        >
           <CheckCheck className="size-7" strokeWidth={2} />
         </EmptyMedia>
         <EmptyTitle className="text-[19px] font-bold">

@@ -8,7 +8,9 @@ import { fetchConnections } from "../api/gateway.js";
 function toConnectionMap(
   connections: readonly ConnectionStatus[],
 ): Map<string, ConnectionStatus> {
-  return new Map(connections.map((connection) => [connection.name, connection]));
+  return new Map(
+    connections.map((connection) => [connection.name, connection]),
+  );
 }
 
 export function useLiveConnections() {

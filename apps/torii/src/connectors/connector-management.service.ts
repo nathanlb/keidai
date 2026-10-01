@@ -104,7 +104,9 @@ export class ConnectorManagementService {
     }
   }
 
-  async installFromCatalog(input: InstallCatalogBody): Promise<PublicConnector> {
+  async installFromCatalog(
+    input: InstallCatalogBody,
+  ): Promise<PublicConnector> {
     const entry = getCatalogEntry(input.catalogId);
     if (!entry) {
       throw new ConnectorWriteError(
@@ -199,9 +201,7 @@ export class ConnectorManagementService {
 
   async loadIntoRegistry(): Promise<void> {
     const rows = await this.repository.list();
-    const hydrated = await Promise.all(
-      rows.map((row) => this.hydrate(row)),
-    );
+    const hydrated = await Promise.all(rows.map((row) => this.hydrate(row)));
     this.registry.replace(hydrated);
   }
 
@@ -238,16 +238,12 @@ export class ConnectorManagementService {
       const cached = await this.discoveryCache.get(connector.url);
       issuer = cached?.issuer;
     }
-    const registration = issuer
-      ? await this.registrations.get(issuer)
-      : null;
+    const registration = issuer ? await this.registrations.get(issuer) : null;
     return projectPublicConnector(connector, {
       oauthClient:
         connector.authMode === "user_oauth"
           ? {
-              set: Boolean(
-                connector.oauth?.clientId || registration?.clientId,
-              ),
+              set: Boolean(connector.oauth?.clientId || registration?.clientId),
               ...(registration?.issuer
                 ? { issuer: registration.issuer }
                 : issuer

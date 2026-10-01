@@ -12,11 +12,7 @@ function requestSessionOwnerId(request: FastifyRequest): string | undefined {
  */
 function isAgentCreatePath(url: string): boolean {
   const pathname = url.split("?")[0] ?? url;
-  return (
-    pathname === "/" ||
-    pathname === "" ||
-    pathname === "/api/agents"
-  );
+  return pathname === "/" || pathname === "" || pathname === "/api/agents";
 }
 
 /**
@@ -57,10 +53,7 @@ export function forceSessionOwnerOnAgentCreateBody(
  * Forces `?owner=` to the session principal.
  * Returns the rewritten path+query (no origin).
  */
-export function forceSessionOwnerQuery(
-  url: string,
-  ownerId: string,
-): string {
+export function forceSessionOwnerQuery(url: string, ownerId: string): string {
   const parsed = new URL(url, "http://keidai.local");
   parsed.searchParams.set("owner", ownerId);
   return `${parsed.pathname}${parsed.search}`;
@@ -86,7 +79,11 @@ export async function enforceSessionOwnerOnAgentProxy(
     return;
   }
 
-  if (!request.body || typeof request.body !== "object" || Array.isArray(request.body)) {
+  if (
+    !request.body ||
+    typeof request.body !== "object" ||
+    Array.isArray(request.body)
+  ) {
     return reply.code(400).send({ error: "Invalid JSON body" });
   }
 

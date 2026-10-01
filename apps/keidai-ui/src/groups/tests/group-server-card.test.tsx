@@ -41,15 +41,17 @@ describe("GroupServerCard", () => {
     expect(screen.getByText("messages.send")).toBeInTheDocument();
     expect(screen.getByText("messages.list")).toBeInTheDocument();
     expect(screen.queryByText("messages.get")).not.toBeInTheDocument();
-    expect(screen.getByText("2 of 3 tools reachable · 1 needs approval")).toBeInTheDocument();
+    expect(
+      screen.getByText("2 of 3 tools reachable · 1 needs approval"),
+    ).toBeInTheDocument();
     expect(screen.getByText("Add a tool rule")).toBeInTheDocument();
     expect(screen.getByText("1 left")).toBeInTheDocument();
 
-    const listRow = screen.getByText("messages.list").closest("div")?.parentElement;
+    const listRow = screen
+      .getByText("messages.list")
+      .closest("div")?.parentElement;
     expect(listRow).toBeTruthy();
-    await user.click(
-      screen.getAllByRole("radio", { name: "Deny" })[0]!,
-    );
+    await user.click(screen.getAllByRole("radio", { name: "Deny" })[0]!);
     expect(onChange).toHaveBeenCalled();
     const next = onChange.mock.calls[0]![0] as GroupServerPolicyView;
     expect(next.deny).toContain("messages.send");

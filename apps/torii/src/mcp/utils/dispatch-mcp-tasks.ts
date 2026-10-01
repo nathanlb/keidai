@@ -80,9 +80,14 @@ export async function dispatchMcpTasksMethod(input: {
         }
         return {
           ok: true,
-          result: { ...toGetTaskResult(
-            await input.taskStore.getDetailedTask(input.principal.agentId, taskId),
-          ) },
+          result: {
+            ...toGetTaskResult(
+              await input.taskStore.getDetailedTask(
+                input.principal.agentId,
+                taskId,
+              ),
+            ),
+          },
         };
       }
       case MCP_TASKS_UPDATE_METHOD: {

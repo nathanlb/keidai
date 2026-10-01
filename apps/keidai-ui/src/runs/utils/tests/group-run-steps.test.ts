@@ -72,7 +72,9 @@ describe("groupRunSteps", () => {
       type: "tool_call",
       status: "pending",
     });
-    expect(entry?.type === "tool_call" ? entry.result : undefined).toBeUndefined();
+    expect(
+      entry?.type === "tool_call" ? entry.result : undefined,
+    ).toBeUndefined();
   });
 
   it("resolves orphaned calls to error when the run has ended", () => {

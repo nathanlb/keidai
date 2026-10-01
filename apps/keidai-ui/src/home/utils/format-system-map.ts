@@ -32,10 +32,7 @@ export function formatRuntimeNote(
   return `agents execute here · ${formatAgentCount(agentCount)}, ${workingCount} working`;
 }
 
-export function formatGroupScope(
-  toolCount: number,
-  allGated: boolean,
-): string {
+export function formatGroupScope(toolCount: number, allGated: boolean): string {
   const tools = toolCount === 1 ? "1 tool" : `${toolCount} tools`;
   return allGated ? `${tools}, all gated` : tools;
 }

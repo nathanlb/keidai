@@ -105,6 +105,9 @@ operators: ""
 secrets:
   postgresPassword: ""
   openRouterApiKey: ""
+  # Encrypts an OpenRouter key saved from the Models page. Optional while
+  # OPEN_ROUTER_API_KEY remains the fallback.
+  shaidenSecretKey: ""
   keidaiGoogleClientId: ""
   keidaiGoogleClientSecret: ""
   keidaiSessionSecret: ""

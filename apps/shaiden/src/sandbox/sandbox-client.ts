@@ -41,7 +41,9 @@ export function createSandboxClient(
 ): SandboxClient {
   const root = baseUrl.replace(/\/$/, "");
 
-  async function headers(extra?: Record<string, string>): Promise<Record<string, string>> {
+  async function headers(
+    extra?: Record<string, string>,
+  ): Promise<Record<string, string>> {
     const token = await options?.getAccessToken?.();
     return {
       ...(extra ?? {}),
@@ -51,11 +53,14 @@ export function createSandboxClient(
 
   return {
     async exec(runId, request) {
-      const response = await fetch(`${root}/runs/${encodeURIComponent(runId)}/exec`, {
-        method: "POST",
-        headers: await headers({ "content-type": "application/json" }),
-        body: JSON.stringify(request),
-      });
+      const response = await fetch(
+        `${root}/runs/${encodeURIComponent(runId)}/exec`,
+        {
+          method: "POST",
+          headers: await headers({ "content-type": "application/json" }),
+          body: JSON.stringify(request),
+        },
+      );
       if (!response.ok) {
         const detail = await response.text();
         throw new Error(
@@ -66,17 +71,22 @@ export function createSandboxClient(
     },
 
     async deleteRun(runId) {
-      const response = await fetch(`${root}/runs/${encodeURIComponent(runId)}`, {
-        method: "DELETE",
-        headers: await headers(),
-      });
+      const response = await fetch(
+        `${root}/runs/${encodeURIComponent(runId)}`,
+        {
+          method: "DELETE",
+          headers: await headers(),
+        },
+      );
       if (!response.ok && response.status !== 404) {
         throw new Error(`sandbox delete failed: ${response.status}`);
       }
     },
 
     async listRuns() {
-      const response = await fetch(`${root}/runs`, { headers: await headers() });
+      const response = await fetch(`${root}/runs`, {
+        headers: await headers(),
+      });
       if (!response.ok) {
         throw new Error(`sandbox list failed: ${response.status}`);
       }

@@ -11,17 +11,21 @@ export function GoalCompletionCard({
   return (
     <Card className="flex h-full flex-col overflow-hidden py-0 shadow-none">
       <CardContent className="flex h-full flex-col p-0">
-        <div className="
+        <div
+          className="
           flex shrink-0 items-center gap-2 border-b border-border px-4 py-3.25
-        ">
+        "
+        >
           <span className="text-[13.5px] font-semibold">Goal completion</span>
           <span className="text-xs text-muted-foreground">last 7 days</span>
         </div>
         <div className="flex flex-1 flex-col px-4 pt-3.75 pb-4">
           <div className="flex items-baseline gap-2">
-            <span className="
+            <span
+              className="
               text-[28px] leading-none font-bold tracking-[-0.02em]
-            ">
+            "
+            >
               {rateLabel}
             </span>
             <span className="text-[12.5px] text-muted-foreground">
@@ -66,12 +70,17 @@ export function GoalCompletionCard({
               </span>
             ))}
           </div>
-          <div className="
+          <div
+            className="
             mt-3.5 flex gap-3.5 border-t border-border pt-3.25 text-[11.5px]
             text-muted-foreground
-          ">
+          "
+          >
             <span className="flex items-center gap-1.25">
-              <span className="size-2 rounded-sm bg-(--green-600)" aria-hidden />
+              <span
+                className="size-2 rounded-sm bg-(--green-600)"
+                aria-hidden
+              />
               Met
             </span>
             <span className="flex items-center gap-1.25">

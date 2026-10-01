@@ -14,13 +14,13 @@ import { MockPendingLinkStore } from "../../testing/mocks/mock-pending-link-stor
 import { MockTokenRepository } from "../../testing/mocks/mock-token-repository.js";
 import { MockTraceRepository } from "../../testing/mocks/mock-trace-repository.js";
 import { MockGroupPolicyRepository } from "../../testing/mocks/mock-group-policy-repository.js";
-import {
-  type TestGatewayPersistence,
-} from "../../testing/gateway-persistence.js";
+import { type TestGatewayPersistence } from "../../testing/gateway-persistence.js";
 
 export function withTestAgentPrincipal<T>(fn: () => T): T;
 export function withTestAgentPrincipal<T>(fn: () => Promise<T>): Promise<T>;
-export function withTestAgentPrincipal<T>(fn: () => T | Promise<T>): T | Promise<T> {
+export function withTestAgentPrincipal<T>(
+  fn: () => T | Promise<T>,
+): T | Promise<T> {
   return runWithAgentPrincipal(TEST_AGENT_PRINCIPAL, fn);
 }
 

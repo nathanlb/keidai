@@ -38,11 +38,13 @@ import { useFetchTasks } from "../tasks/hooks/use-fetch-tasks.js";
 import { taskCreateHref, taskEditHref } from "../tasks/navigation.js";
 import { useSWRConfig } from "swr";
 import { AgentEffectiveToolsPanel } from "./agent-effective-tools-panel.js";
-import { AgentGroupsPanel } from "./agent-groups-panel.js";
-import { AgentPersonaPanel } from "./agent-persona-panel.js";
+import { AgentPersonaHistoryPanel } from "./agent-persona-history-panel.js";
 import { AgentRunsPanel } from "./agent-runs-panel.js";
 import { AgentTasksPanel } from "./agent-tasks-panel.js";
+import { AgentForm } from "./components/agent-form.js";
 import { AgentsToast } from "./components/agents-toast.js";
+import type { CreateAgentFormValues } from "./schemas/create-agent-form-schema.js";
+import type { UpdateAgentRequest } from "../lib/types/agents.js";
 import { agentGrantsKey } from "./hooks/use-fetch-agent-grants.js";
 import { useFetchAgent } from "./hooks/use-fetch-agent.js";
 import {
@@ -95,7 +97,7 @@ export function AgentDetailView() {
     isLoading: personasLoading,
     refresh: refreshPersonas,
   } = useFetchPersonaVersions(agentId);
-  const { data: groupsData, isLoading: groupsLoading } = useFetchGroups();
+  const { data: groupsData } = useFetchGroups();
   const { data: tasksData, isLoading: tasksLoading } = useFetchTasks();
   const {
     runs: visibilityRuns,
@@ -209,13 +211,39 @@ export function AgentDetailView() {
   const loaded = agent;
   const versions = personaData?.personas ?? [];
 
-  async function handleSavePersona(content: string) {
-    const nextVersion = loaded.currentPersonaVersion + 1;
-    await updateAgent(loaded.id, { persona: content });
-    await Promise.all([refresh(), refreshPersonas()]);
+  async function handleSaveAgent(values: CreateAgentFormValues) {
+    const patch: UpdateAgentRequest = {};
+    const name = values.name.trim() || loaded.slug;
+    if (name !== loaded.name) {
+      patch.name = name;
+    }
+    if (
+      values.groups.length !== loaded.groups.length ||
+      values.groups.some((group, index) => group !== loaded.groups[index])
+    ) {
+      patch.groups = values.groups;
+    }
+    const modelId = values.modelId.trim() || null;
+    if (modelId !== (loaded.defaultModelId ?? null)) {
+      patch.defaultModelId = modelId;
+    }
+    const personaChanged = values.persona !== loaded.persona;
+    if (personaChanged) {
+      patch.persona = values.persona;
+    }
+    if (Object.keys(patch).length === 0) {
+      return;
+    }
+    await updateAgent(loaded.id, patch);
+    await Promise.all([
+      refresh(),
+      personaChanged ? refreshPersonas() : Promise.resolve(),
+    ]);
     await mutate(AGENTS_KEY);
     showToast(
-      `Persona saved as v${nextVersion}. v${loaded.currentPersonaVersion} stays pinned to past runs.`,
+      personaChanged
+        ? `Saved. Persona is now v${loaded.currentPersonaVersion + 1}; v${loaded.currentPersonaVersion} stays pinned to past runs.`
+        : "Agent saved.",
     );
   }
 
@@ -228,12 +256,6 @@ export function AgentDetailView() {
     await Promise.all([refresh(), refreshPersonas()]);
     await mutate(AGENTS_KEY);
     showToast(`v${version.version} restored as v${nextVersion}.`);
-  }
-
-  async function handleChangeGroups(nextGroups: string[]) {
-    await updateAgent(loaded.id, { groups: nextGroups });
-    await refresh();
-    await mutate(AGENTS_KEY);
   }
 
   async function handleDeleteConfirm() {
@@ -422,20 +444,20 @@ export function AgentDetailView() {
 
       {tab === "config" ? (
         <div className="flex flex-col gap-4">
-          <AgentPersonaPanel
-            agent={agent}
-            versions={versions}
-            versionsLoading={personasLoading}
-            onSave={handleSavePersona}
-            onRestore={handleRestorePersona}
-          />
-          <AgentGroupsPanel
-            agent={agent}
-            definedGroups={groups ?? []}
-            groupsLoading={groupsLoading}
-            onChangeGroups={handleChangeGroups}
-            onNotify={showToast}
-          />
+          <div
+            className="
+            grid items-start gap-5
+            lg:grid-cols-[minmax(0,42.5rem)_18.5rem]
+          "
+          >
+            <AgentForm mode="edit" agent={agent} onSubmit={handleSaveAgent} />
+            <AgentPersonaHistoryPanel
+              agent={agent}
+              versions={versions}
+              versionsLoading={personasLoading}
+              onRestore={handleRestorePersona}
+            />
+          </div>
           <AgentEffectiveToolsPanel
             membership={agent.groups}
             groups={groups ?? []}

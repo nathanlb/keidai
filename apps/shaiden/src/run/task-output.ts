@@ -44,5 +44,7 @@ export function clipTaskOutput(text: string): string {
 }
 
 export function isHarnessLocalTool(toolName: string): boolean {
-  return toolName === REPORT_TASK_OUTPUT_TOOL || toolName === EXECUTE_PYTHON_TOOL;
+  return (
+    toolName === REPORT_TASK_OUTPUT_TOOL || toolName === EXECUTE_PYTHON_TOOL
+  );
 }

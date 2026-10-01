@@ -39,10 +39,7 @@ function rowToServerPolicy(row: ServerPolicyRow): GroupServerPolicy {
   };
 }
 
-function rowToGroup(
-  row: GroupRow,
-  servers: GroupServerPolicy[],
-): GroupPolicy {
+function rowToGroup(row: GroupRow, servers: GroupServerPolicy[]): GroupPolicy {
   return {
     id: row.id,
     name: row.name,
@@ -206,10 +203,9 @@ export class PgGroupPolicyRepository implements GroupPolicyRepository {
   }
 
   async delete(id: string): Promise<boolean> {
-    const result = await this.pool.query(
-      `DELETE FROM groups WHERE id = $1`,
-      [id],
-    );
+    const result = await this.pool.query(`DELETE FROM groups WHERE id = $1`, [
+      id,
+    ]);
     return (result.rowCount ?? 0) > 0;
   }
 

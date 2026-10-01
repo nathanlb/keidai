@@ -57,7 +57,9 @@ export class GatewayHttpServer {
     private readonly pool: Pool,
   ) {}
 
-  async createApp(options: Pick<GatewayHttpServerOptions, "host"> = {}): Promise<FastifyInstance> {
+  async createApp(
+    options: Pick<GatewayHttpServerOptions, "host"> = {},
+  ): Promise<FastifyInstance> {
     const host = options.host ?? "127.0.0.1";
     // MCP Fastify defaults (JSON body parsing + localhost DNS-rebinding guards).
     const app = createMcpFastifyApp({ host });

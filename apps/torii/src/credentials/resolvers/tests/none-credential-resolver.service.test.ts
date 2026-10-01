@@ -11,9 +11,7 @@ import { NoneCredentialResolver } from "../none-credential-resolver.service.js";
 import { UserOAuthCredentialResolver } from "../user_oauth_credential-resolver.service.js";
 import { ServiceKeyCredentialResolver } from "../service-key-credential-resolver.service.js";
 
-function noneServer(
-  name = "deepwiki",
-): ToriiConfig["servers"][number] {
+function noneServer(name = "deepwiki"): ToriiConfig["servers"][number] {
   return {
     name,
     transport: { type: "http", url: "https://mcp.deepwiki.com/mcp" },

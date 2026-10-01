@@ -7,10 +7,16 @@ import { DefaultMcpClientConnector } from "../../../connections/mcp-client-conne
 import { startMockMcpServer } from "../../../connections/tests/mock-mcp-server.js";
 import { ToriiConfigService } from "../../../config/torii-config.service.js";
 import { ToolCatalogService } from "../../../catalog/tool-catalog.service.js";
-import { createCredentialServices, withTestAgentPrincipal } from "../test-helpers.js";
+import {
+  createCredentialServices,
+  withTestAgentPrincipal,
+} from "../test-helpers.js";
 import { createPolicyEnforcement } from "../../../policy/tests/test-helpers.js";
 import { TEST_AGENT_PRINCIPAL } from "../../../identity/tests/test-helpers.js";
-import { createCapturingLogger, createNoopLogger } from "../../../logging/tests/test-helpers.js";
+import {
+  createCapturingLogger,
+  createNoopLogger,
+} from "../../../logging/tests/test-helpers.js";
 import { testAgentsGroup } from "../../../testing/test-config.js";
 
 function userOAuthServer(
@@ -50,7 +56,9 @@ describe("user_oauth credentials with tools/list", () => {
       tools: [{ name: "search_issues", description: "Search GitHub issues" }],
     });
 
-        const groups = [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])];
+    const groups = [
+      testAgentsGroup([{ server: "github", tools: ["search_issues"] }]),
+    ];
     const configService = new ToriiConfigService({
       oauth_providers: {
         github: {
@@ -62,15 +70,27 @@ describe("user_oauth credentials with tools/list", () => {
       },
       servers: [userOAuthServer("github", mockServer.url)],
     });
-    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), createNoopLogger());
-    const catalogService = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(groups), createNoopLogger());
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
+    const catalogService = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+      createPolicyEnforcement(groups),
+      createNoopLogger(),
+    );
 
     try {
       await withTestAgentPrincipal(async () => {
         await connectionManager.connectAll();
         const { tools } = await catalogService.listToolsForAgent();
 
-        assert.deepEqual(tools.map((tool) => tool.name), ["github.search_issues"]);
+        assert.deepEqual(
+          tools.map((tool) => tool.name),
+          ["github.search_issues"],
+        );
       });
     } finally {
       await closeManagerConnections(connectionManager);
@@ -84,7 +104,9 @@ describe("user_oauth credentials with tools/list", () => {
       tools: [{ name: "search_issues", description: "Search GitHub issues" }],
     });
 
-        const groups = [testAgentsGroup([{ server: "github", tools: ["search_issues"] }])];
+    const groups = [
+      testAgentsGroup([{ server: "github", tools: ["search_issues"] }]),
+    ];
     const configService = new ToriiConfigService({
       oauth_providers: {
         github: {
@@ -97,8 +119,17 @@ describe("user_oauth credentials with tools/list", () => {
       servers: [userOAuthServer("github", mockServer.url)],
     });
     const logger = createCapturingLogger();
-    const connectionManager = new ConnectionManager(configService, new DefaultMcpClientConnector(credentialResolver), logger);
-    const catalogService = new ToolCatalogService(connectionManager, credentialResolver, createPolicyEnforcement(groups), logger);
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      logger,
+    );
+    const catalogService = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+      createPolicyEnforcement(groups),
+      logger,
+    );
 
     try {
       await withTestAgentPrincipal(async () => {

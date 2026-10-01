@@ -23,8 +23,7 @@ export const TRACE_OUTCOME_META: Record<TraceOutcome, TraceOutcomeMeta> = {
   denied: {
     label: "denied",
     accentClass: "bg-destructive",
-    badgeClass:
-      "border-transparent bg-destructive text-destructive-foreground",
+    badgeClass: "border-transparent bg-destructive text-destructive-foreground",
     dotClass: "bg-destructive",
   },
   linking_required: {

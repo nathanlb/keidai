@@ -60,11 +60,7 @@ function formatPercent(rate: number): string {
   return `${(rate * 100).toFixed(1)}%`;
 }
 
-export function ActivitySummaryTiles({
-  stats,
-}: {
-  stats: TraceStatsResponse;
-}) {
+export function ActivitySummaryTiles({ stats }: { stats: TraceStatsResponse }) {
   const callsInWindow = Math.round(
     (stats.callsPerMinute * stats.windowMs) / 60_000,
   );
@@ -72,10 +68,12 @@ export function ActivitySummaryTiles({
   const deniedTotal = stats.deniedCount + stats.linkingRequiredCount;
 
   return (
-    <div className="
+    <div
+      className="
       grid grid-cols-2 gap-3
       md:grid-cols-4
-    ">
+    "
+    >
       <SummaryTile
         label="Calls · last 15 min"
         value={callsInWindow.toLocaleString()}

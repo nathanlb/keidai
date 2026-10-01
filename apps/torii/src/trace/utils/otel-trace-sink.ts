@@ -1,9 +1,5 @@
 import type { CallTrace } from "@keidai/shared";
-import {
-  trace,
-  type Span,
-  type Tracer,
-} from "@opentelemetry/api";
+import { trace, type Span, type Tracer } from "@opentelemetry/api";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import {

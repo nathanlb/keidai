@@ -51,7 +51,9 @@ export class TraceReadService {
     return trace ? projectTraceItem(trace) : null;
   }
 
-  async getStats(windowMs = DEFAULT_TRACE_STATS_WINDOW_MS): Promise<TraceStatsResponse> {
+  async getStats(
+    windowMs = DEFAULT_TRACE_STATS_WINDOW_MS,
+  ): Promise<TraceStatsResponse> {
     return this.repository.getStats(windowMs);
   }
 

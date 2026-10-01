@@ -1,6 +1,9 @@
 import type { GroupServerPolicyView } from "@keidai/shared";
 import type { CatalogueTool, ServerCatalogue } from "../types/group-editor.js";
-import { isPermitted, resolveEffectivePermission } from "./resolve-tool-effect.js";
+import {
+  isPermitted,
+  resolveEffectivePermission,
+} from "./resolve-tool-effect.js";
 import { listUnruledTools } from "./list-explicit-rules.js";
 
 export interface GroupGrantCounts {

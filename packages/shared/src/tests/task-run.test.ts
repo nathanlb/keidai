@@ -84,10 +84,7 @@ describe("task schema", () => {
 
   it("preserves explicit limits when provided", () => {
     const limits = { max_iterations: 10, timeout_seconds: 120 };
-    assert.deepEqual(
-      resolveTaskLimits({ ...sampleTask, limits }),
-      limits,
-    );
+    assert.deepEqual(resolveTaskLimits({ ...sampleTask, limits }), limits);
   });
 });
 
@@ -159,11 +156,9 @@ describe("nextRunAt", () => {
       at: "2026-01-31T09:00",
       recurrence: { freq: "monthly" },
     });
-    const next = nextRunAt(
-      trigger,
-      new Date("2026-01-31T15:00:00.000Z"),
-      { after: true },
-    );
+    const next = nextRunAt(trigger, new Date("2026-01-31T15:00:00.000Z"), {
+      after: true,
+    });
     assert.equal(next?.toISOString(), "2026-02-28T14:00:00.000Z");
   });
 
@@ -173,10 +168,7 @@ describe("nextRunAt", () => {
       recurrence: { freq: "daily" },
     });
     const before = nextRunAt(trigger, new Date("2026-03-07T00:00:00.000Z"));
-    const after = nextRunAt(
-      trigger,
-      new Date("2026-03-08T00:00:00.000Z"),
-    );
+    const after = nextRunAt(trigger, new Date("2026-03-08T00:00:00.000Z"));
     // EST (UTC-5) then EDT (UTC-4)
     assert.equal(before?.toISOString(), "2026-03-07T14:00:00.000Z");
     assert.equal(after?.toISOString(), "2026-03-08T13:00:00.000Z");
@@ -188,10 +180,7 @@ describe("nextRunAt", () => {
       recurrence: { freq: "daily" },
     });
     const before = nextRunAt(trigger, new Date("2026-10-31T00:00:00.000Z"));
-    const after = nextRunAt(
-      trigger,
-      new Date("2026-11-01T00:00:00.000Z"),
-    );
+    const after = nextRunAt(trigger, new Date("2026-11-01T00:00:00.000Z"));
     // EDT (UTC-4) then EST (UTC-5)
     assert.equal(before?.toISOString(), "2026-10-31T13:00:00.000Z");
     assert.equal(after?.toISOString(), "2026-11-01T14:00:00.000Z");

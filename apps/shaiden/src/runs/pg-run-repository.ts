@@ -50,6 +50,7 @@ interface RunRow {
   conversation_history_json: unknown | null;
   persona_version: number | null;
   persona: string | null;
+  model_id: string | null;
 }
 
 interface RunStepRow {
@@ -67,7 +68,9 @@ function asJson<T>(value: T | string): T {
 }
 
 function parseTaskSnapshot(value: unknown): Task {
-  return taskSchema.parse(typeof value === "string" ? JSON.parse(value) : value);
+  return taskSchema.parse(
+    typeof value === "string" ? JSON.parse(value) : value,
+  );
 }
 
 function serializeOutcome(outcome: TerminationOutcome): string {
@@ -97,12 +100,16 @@ function parkedMcpTaskFromRow(row: {
     ...(row.mcp_task_poll_interval_ms != null
       ? { pollIntervalMs: row.mcp_task_poll_interval_ms }
       : {}),
-    ...(row.next_poll_at != null ? { nextPollAt: toIso(row.next_poll_at) } : {}),
+    ...(row.next_poll_at != null
+      ? { nextPollAt: toIso(row.next_poll_at) }
+      : {}),
   };
 }
 
 function stepPayloadFromRow(row: RunStepRow): RunStep {
-  const payload = asJson<RunStepPayload>(row.payload_json as RunStepPayload | string);
+  const payload = asJson<RunStepPayload>(
+    row.payload_json as RunStepPayload | string,
+  );
   return {
     id: row.id,
     timestamp: toIso(row.timestamp),
@@ -119,7 +126,7 @@ function stepPayloadToJson(step: RunStep): string {
 const RUN_COLUMNS = `
   id, task_id, task_snapshot_json, started_at, assignee, goal_preview,
   status, outcome_json, step_count, conversation_history_json,
-  persona_version, persona
+  persona_version, persona, model_id
 `;
 
 export class PgRunRepository implements RunRepository {
@@ -132,17 +139,18 @@ export class PgRunRepository implements RunRepository {
     const startedAt = input.startedAt ?? new Date().toISOString();
     const personaVersion = input.personaVersion ?? null;
     const persona = input.persona ?? null;
+    const modelId = input.modelId ?? null;
     try {
       await this.pool.query(
         `
           INSERT INTO runs (
             id, task_id, task_snapshot_json, started_at, assignee, goal_preview,
             status, outcome_json, step_count, conversation_history_json,
-            persona_version, persona, updated_at
+            persona_version, persona, model_id, updated_at
           ) VALUES (
             $1, $2, $3::jsonb, $4, $5, $6,
             $7, $8::jsonb, $9, $10::jsonb,
-            $11, $12, $13
+            $11, $12, $13, $14
           )
         `,
         [
@@ -158,6 +166,7 @@ export class PgRunRepository implements RunRepository {
           null,
           personaVersion,
           persona,
+          modelId,
           startedAt,
         ],
       );
@@ -182,6 +191,7 @@ export class PgRunRepository implements RunRepository {
         conversation_history_json: null,
         persona_version: personaVersion,
         persona,
+        model_id: modelId,
       },
       [],
     );
@@ -193,7 +203,9 @@ export class PgRunRepository implements RunRepository {
       return null;
     }
 
-    const normalized = createRunStep(step as Parameters<typeof createRunStep>[0]);
+    const normalized = createRunStep(
+      step as Parameters<typeof createRunStep>[0],
+    );
     await this.ensureStepPartition(normalized.timestamp);
     await withTransaction(this.pool, async (client) => {
       await this.insertStep(client, runId, normalized);
@@ -275,6 +287,7 @@ export class PgRunRepository implements RunRepository {
         ? { personaVersion: row.persona_version }
         : {}),
       ...(row.persona != null ? { persona: row.persona } : {}),
+      ...(row.model_id != null ? { modelId: row.model_id } : {}),
     }));
     return { runs };
   }
@@ -443,7 +456,9 @@ export class PgRunRepository implements RunRepository {
     return result.rows.map(parkedMcpTaskFromRow);
   }
 
-  async listClaimableParkedMcpTasks(nowIsoValue: string): Promise<ParkedMcpTask[]> {
+  async listClaimableParkedMcpTasks(
+    nowIsoValue: string,
+  ): Promise<ParkedMcpTask[]> {
     const result = await this.pool.query<{
       id: string;
       mcp_task_id: string;
@@ -521,7 +536,10 @@ export class PgRunRepository implements RunRepository {
           runId,
         ]);
       }
-      return result.rows.map((row) => ({ role: "user" as const, text: row.text }));
+      return result.rows.map((row) => ({
+        role: "user" as const,
+        text: row.text,
+      }));
     });
   }
 
@@ -630,7 +648,9 @@ export class PgRunRepository implements RunRepository {
       hasMessage && userMessageStep
         ? userMessageStep.id
           ? userMessageStep
-          : createRunStep(userMessageStep as Parameters<typeof createRunStep>[0])
+          : createRunStep(
+              userMessageStep as Parameters<typeof createRunStep>[0],
+            )
         : undefined;
 
     if (normalizedStep) {
@@ -718,7 +738,12 @@ export class PgRunRepository implements RunRepository {
   }
 
   private async ensureStepPartition(timestamp: string): Promise<void> {
-    await ensureWeeklyPartitions(this.pool, "run_steps", new Date(timestamp), 0);
+    await ensureWeeklyPartitions(
+      this.pool,
+      "run_steps",
+      new Date(timestamp),
+      0,
+    );
   }
 
   private rowToRunReport(row: RunRow, steps: RunStep[]): RunReport {
@@ -737,6 +762,7 @@ export class PgRunRepository implements RunRepository {
         ? { personaVersion: row.persona_version }
         : {}),
       ...(row.persona != null ? { persona: row.persona } : {}),
+      ...(row.model_id != null ? { modelId: row.model_id } : {}),
     };
   }
 
@@ -755,7 +781,9 @@ export class PgRunRepository implements RunRepository {
     }
 
     for (const row of excess.rows) {
-      await this.pool.query("DELETE FROM run_steps WHERE run_id = $1", [row.id]);
+      await this.pool.query("DELETE FROM run_steps WHERE run_id = $1", [
+        row.id,
+      ]);
       await this.pool.query("DELETE FROM runs WHERE id = $1", [row.id]);
     }
   }

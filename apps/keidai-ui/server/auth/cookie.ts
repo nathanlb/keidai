@@ -55,9 +55,7 @@ export function serializeCookie(
   value: string,
   options: SetCookieOptions = {},
 ): string {
-  const parts = [
-    `${name}=${options.clear ? "" : encodeURIComponent(value)}`,
-  ];
+  const parts = [`${name}=${options.clear ? "" : encodeURIComponent(value)}`];
 
   parts.push(`Path=${options.path ?? "/"}`);
 

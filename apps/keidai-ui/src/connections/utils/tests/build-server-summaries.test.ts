@@ -1,7 +1,4 @@
-import type {
-  ConnectionStatus,
-  PublicServerConfig,
-} from "@keidai/shared";
+import type { ConnectionStatus, PublicServerConfig } from "@keidai/shared";
 import { describe, expect, it } from "vitest";
 import {
   buildServerSummaries,
@@ -102,27 +99,34 @@ describe("buildServerSummaries", () => {
   it("merges config, live connection state, and oauth link status", () => {
     const connections = new Map<string, ConnectionStatus>([
       ["github", { name: "github", state: "connected", toolCount: 4 }],
-      ["linear", { name: "linear", state: "failed", error: "connection refused" }],
+      [
+        "linear",
+        { name: "linear", state: "failed", error: "connection refused" },
+      ],
     ]);
 
-    const summaries = buildServerSummaries([githubServer, linearServer], connections, {
-      ownerId: "demo-owner",
-      oauthProviders: {
-        github: {
-          token_url: "https://github.com/login/oauth/access_token",
-          client_id: "gh-client",
-          scopes: ["repo"],
+    const summaries = buildServerSummaries(
+      [githubServer, linearServer],
+      connections,
+      {
+        ownerId: "demo-owner",
+        oauthProviders: {
+          github: {
+            token_url: "https://github.com/login/oauth/access_token",
+            client_id: "gh-client",
+            scopes: ["repo"],
+          },
         },
+        oauthConnections: [
+          {
+            provider: "github",
+            ownerId: "demo-owner",
+            status: "linked",
+            scopes: ["repo"],
+          },
+        ],
       },
-      oauthConnections: [
-        {
-          provider: "github",
-          ownerId: "demo-owner",
-          status: "linked",
-          scopes: ["repo"],
-        },
-      ],
-    });
+    );
 
     expect(summaries).toHaveLength(2);
     expect(summaries[0]).toMatchObject({
