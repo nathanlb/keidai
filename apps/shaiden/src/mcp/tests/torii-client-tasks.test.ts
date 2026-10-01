@@ -7,7 +7,7 @@ import {
 import { describe, it } from "node:test";
 import { CLIENT_CAPABILITIES_META_KEY } from "@modelcontextprotocol/client";
 import { MCP_TASKS_EXTENSION_ID } from "@keidai/shared";
-import { connectToriiSession } from "../torii-client.js";
+import { connectToriiSession, getMcpTask } from "../torii-client.js";
 
 type JsonRpc = {
   jsonrpc: "2.0";
@@ -257,6 +257,24 @@ describe("connectToriiSession task-augmented tools/call", () => {
       } finally {
         await session.close();
       }
+    } finally {
+      await stub.close();
+    }
+  });
+
+  it("reads one tasks/get without polling", async () => {
+    const stub = await startGatedToriiStub();
+    try {
+      const task = await getMcpTask({
+        toriiMcpUrl: stub.url,
+        credential: { ensureToken: async () => "test-token" },
+        taskId: TASK_ID,
+      });
+      assert.equal(task.status, "working");
+      assert.equal(
+        stub.calls.filter((call) => call.method === "tasks/get").length,
+        1,
+      );
     } finally {
       await stub.close();
     }

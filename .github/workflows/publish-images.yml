@@ -33,6 +33,9 @@ jobs:
           - image: keidai-shaiden
             dockerfile: apps/shaiden/Dockerfile
             package: apps/shaiden/package.json
+          - image: keidai-shaiden-sandbox
+            dockerfile: apps/shaiden-sandbox/Dockerfile
+            package: apps/shaiden-sandbox/package.json
           - image: keidai-ui
             dockerfile: apps/keidai-ui/Dockerfile
             package: apps/keidai-ui/package.json

@@ -40,6 +40,11 @@ export interface ToolDispatchResult {
   policyDenied?: boolean;
   /** Out-of-band Torii metadata from MCP `_meta` (never model-facing). */
   meta?: ToriiCallMeta;
+  /**
+   * The gated call was checkpointed and the process should exit. Not a tool
+   * result and not a run status.
+   */
+  hibernated?: boolean;
 }
 
 export interface ToolDispatchOptions {
@@ -53,6 +58,17 @@ export interface ApprovalWaitContext {
   stepId?: string;
   pollIntervalMs?: number;
   call?: ModelToolCall;
+  /**
+   * Persist the park and return without polling. The reclaim sweep polls.
+   * Resume omits this and waits for the terminal tool result.
+   */
+  hibernate?: boolean;
+}
+
+/** Iterations and active time already consumed by this run. */
+export interface RunBudget {
+  iterationsUsed: number;
+  activeElapsedMs: number;
 }
 
 export interface TaskLoopDeps {
@@ -62,8 +78,8 @@ export interface TaskLoopDeps {
     options?: ToolDispatchOptions,
   ) => Promise<ToolDispatchResult>;
   /**
-   * Parks until a gated tool's MCP task is terminal, then returns that tool
-   * result. Wall-clock pause is handled by the task loop.
+   * Live parks pass `hibernate` and return immediately. Resume polls until
+   * the MCP task is terminal. Active-time pause is handled by the task loop.
    */
   waitForApproval?: (
     approvalId: string,
@@ -79,6 +95,8 @@ export interface TaskLoopDeps {
   onHistoryChanged?: (
     history: readonly ConversationEntry[],
   ) => void | Promise<void>;
+  /** Persists remaining-budget progress at each checkpoint and on exit. */
+  onBudgetChanged?: (budget: RunBudget) => void | Promise<void>;
   /** Cooperative operator stop; checked at loop boundaries and after in-flight tools. */
   stopSignal?: AbortSignal;
 }
@@ -86,12 +104,21 @@ export interface TaskLoopDeps {
 export interface TaskLoopStart {
   initialHistory: ConversationEntry[];
   limits: TaskLimits;
+  /**
+   * Budget already consumed. Omitted means a fresh segment (zeros).
+   * Lease reclaim and stop/resume pass the stored counters; a follow-up
+   * message passes zeros.
+   */
+  budget?: RunBudget;
   /** Durable MCP task handle for a tool call parked when this process died. */
   resumeParkedApproval?: { approvalId: string };
 }
 
+/** In-memory unwind. The run row stays `running` with `mcp_task_id` set. */
+export type TaskLoopOutcome = TerminationOutcome | { status: "parked" };
+
 export interface TaskLoopResult {
-  outcome: TerminationOutcome;
+  outcome: TaskLoopOutcome;
   history: ConversationEntry[];
   iterations: number;
 }

@@ -5,6 +5,36 @@ import {
 } from "@keidai/shared";
 import { McpJsonRpcError } from "./post-mcp-jsonrpc.js";
 
+export const MCP_INPUT_REQUIRED_FAILURE_REASON =
+  "MCP task requires client input, which Shaiden does not support";
+
+/** One reclaim-sweep look at a parked Torii task. */
+export type ParkedTaskPoll =
+  | { kind: "terminal" }
+  | { kind: "pending"; pollIntervalMs?: number }
+  | { kind: "failed"; reason: string };
+
+export function parkedTaskPollFromGet(task: McpGetTaskResult): ParkedTaskPoll {
+  if (task.status === "input_required") {
+    return { kind: "failed", reason: MCP_INPUT_REQUIRED_FAILURE_REASON };
+  }
+  if (isMcpTaskTerminalStatus(task.status)) {
+    return { kind: "terminal" };
+  }
+  return { kind: "pending", pollIntervalMs: task.pollIntervalMs };
+}
+
+export function parkedTaskPollFromError(
+  error: unknown,
+  pollIntervalMs?: number,
+): ParkedTaskPoll {
+  if (isFatalMcpPollError(error)) {
+    const reason = error instanceof Error ? error.message : String(error);
+    return { kind: "failed", reason };
+  }
+  return { kind: "pending", pollIntervalMs };
+}
+
 export const DEFAULT_TASK_POLL_INTERVAL_MS = 5_000;
 export const MAX_TASK_POLL_INTERVAL_MS = 30_000;
 export const MIN_TASK_POLL_INTERVAL_MS = 50;
@@ -73,9 +103,7 @@ export async function pollUntilTerminalMcpTask(input: {
       return task;
     }
     if (task.status === "input_required") {
-      throw new Error(
-        "MCP task requires client input, which Shaiden does not support",
-      );
+      throw new Error(MCP_INPUT_REQUIRED_FAILURE_REASON);
     }
     intervalMs = task.pollIntervalMs ?? intervalMs;
     await sleep(nextTaskPollDelayMs(intervalMs, input.random));

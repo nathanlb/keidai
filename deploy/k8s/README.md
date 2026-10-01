@@ -10,7 +10,14 @@ Browser → keidai-ui:3000 (SPA, /auth/*, /api/*, /oauth/callback/*)
             ├─ Torii   :3100  (2 replicas, ClusterIP round-robin)
             ├─ Fuda    :3300
             └─ Shaiden :3200  ──SA JWT──▶ Fuda /token ──JWT──▶ Torii /mcp
+                              └──▶ shaiden-sandbox:8080
 ```
+
+Compose turns the sandbox tool on against a runc container. kind and OrbStack
+leave the tool off and schedule that Deployment on runc. k3s turns the tool on
+only with `shaiden.sandbox.gvisor`, after `runsc` is registered. The exec
+server image is the same on every path. `shaiden.sandbox.allowRunc` is the
+override that enables the tool while the pod still shares the host kernel.
 
 ## Layout
 

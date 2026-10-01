@@ -4,8 +4,8 @@ import type { Migration } from "@keidai/postgres";
  * Task-level model override, the model stamped on a run, and the sealed
  * OpenRouter API key set from the operator UI.
  */
-export const migration004ModelAndOpenRouter: Migration = {
-  id: "004_model_and_openrouter",
+export const migration006ModelAndOpenRouter: Migration = {
+  id: "006_model_and_openrouter",
   async up(queryable) {
     await queryable.query(`
       ALTER TABLE tasks

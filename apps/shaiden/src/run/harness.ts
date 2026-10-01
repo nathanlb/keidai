@@ -35,6 +35,11 @@ import { previewOf } from "./run-step-recording.js";
 import { createLocalRunReporter } from "./run-reporter.js";
 import { completeRun, createRun } from "./run-lifecycle.js";
 import { createParkedMcpTaskWaiter } from "./parked-mcp-task-waiter.js";
+import { EXECUTE_PYTHON_PROTOCOL_NOTE } from "../sandbox/execute-python.js";
+import {
+  createRuntimeSandboxClient,
+  type SandboxClient,
+} from "../sandbox/sandbox-client.js";
 import type {
   DriveHarnessRunInput,
   HarnessRunOptions,
@@ -46,6 +51,23 @@ import type {
 import type { ConversationEntry } from "./types/conversation-history.js";
 import { runTaskLoop } from "./task-loop.js";
 import type { RunStore } from "../runs/run-store.js";
+
+function sandboxClientFor(
+  config: RuntimeConfig,
+  fudaClient: FudaClient | undefined,
+): SandboxClient | undefined {
+  if (!config.sandboxUrl) {
+    return undefined;
+  }
+  if (!fudaClient) {
+    throw new Error("SHAIDEN_SANDBOX_URL requires Fuda (FUDA_URL)");
+  }
+  return createRuntimeSandboxClient({
+    baseUrl: config.sandboxUrl,
+    fuda: fudaClient,
+    getSubjectToken: config.getSubjectToken,
+  });
+}
 
 function resolveFudaClient(
   config: RuntimeConfig,
@@ -60,7 +82,7 @@ function resolveFudaClient(
   return createHttpFudaClient({ baseUrl: config.fudaBaseUrl });
 }
 
-function createToriiCredential(
+export function createToriiCredential(
   config: RuntimeConfig,
   fudaClient: FudaClient | undefined,
   agentId: string,
@@ -150,6 +172,16 @@ async function resolveSystemPromptForResume(input: {
   return taskSystemPrompt(input.task.assignee);
 }
 
+function withSandboxProtocol(
+  systemPrompt: string,
+  sandboxUrl: string | undefined,
+): string {
+  if (!sandboxUrl) {
+    return systemPrompt;
+  }
+  return `${systemPrompt}\n\n${EXECUTE_PYTHON_PROTOCOL_NOTE}`;
+}
+
 /**
  * Registers a run in the store after fetching the agent definition, then
  * drives the harness in the background. Definition fetch failures reject
@@ -210,7 +242,7 @@ export async function launchHarnessRun({
     replicaId: options.replicaId ?? resolveReplicaId(),
     leaseMs: options.leaseMs ?? DEFAULT_RUN_LEASE_MS,
     now: options.now ?? Date.now,
-    systemPrompt,
+    systemPrompt: withSandboxProtocol(systemPrompt, config.sandboxUrl),
     modelId,
     openRouterApiKey,
     fudaClient,
@@ -274,7 +306,7 @@ export async function resumeHarnessRun({
     replicaId: options.replicaId ?? resolveReplicaId(),
     leaseMs: options.leaseMs ?? DEFAULT_RUN_LEASE_MS,
     now: options.now ?? Date.now,
-    systemPrompt,
+    systemPrompt: withSandboxProtocol(systemPrompt, config.sandboxUrl),
     modelId,
     openRouterApiKey,
     fudaClient,
@@ -286,10 +318,15 @@ export async function resumeHarnessRun({
     const reason = error instanceof Error ? error.message : String(error);
     const existing = await runStore.getRun(runId);
     if (existing?.status === "running") {
-      await completeRunWithOutcomeStep(runStore, runId, {
-        status: "failed",
-        reason: `resume failed: ${reason}`,
-      });
+      await completeRunWithOutcomeStep(
+        runStore,
+        runId,
+        {
+          status: "failed",
+          reason: `resume failed: ${reason}`,
+        },
+        sandboxClientFor(config, fudaClient),
+      );
     }
     throw error;
   });
@@ -315,6 +352,7 @@ async function driveHarnessRun({
   stopController,
 }: DriveHarnessRunInput): Promise<HarnessRunResult> {
   const limits = resolveTaskLimits(task);
+  const sandbox = sandboxClientFor(config, fudaClient);
   const parked = await runStore.getParkedMcpTask(runId);
   const nowIso = () => new Date(now()).toISOString();
   if (
@@ -374,13 +412,18 @@ async function driveHarnessRun({
         reporter,
         availableToolNames,
         callTool: (toolName, args) => session.callTool(toolName, args),
+        ...(sandbox
+          ? {
+              executePython: (request) => sandbox.exec(runId, request),
+            }
+          : {}),
         logger,
       });
 
       const baseCallModel = createModelStepCaller(
         createOpenRouterModel(openRouterApiKey, modelId),
         systemPrompt,
-        buildToolSet(session.tools),
+        buildToolSet(session.tools, { sandbox: Boolean(config.sandboxUrl) }),
       );
 
       const callModel = async (
@@ -413,10 +456,13 @@ async function driveHarnessRun({
         assignee: task.assignee,
       });
 
+      const budget = (await runStore.getRunBudget(runId)) ?? undefined;
+
       const { outcome, iterations, history } = await runTaskLoop(
         {
           initialHistory,
           limits,
+          ...(budget ? { budget } : {}),
           ...(parked
             ? {
                 resumeParkedApproval: {
@@ -433,12 +479,29 @@ async function driveHarnessRun({
           onHistoryChanged: async (updatedHistory) => {
             await runStore.setConversationHistory(runId, updatedHistory);
           },
+          onBudgetChanged: async (updatedBudget) => {
+            await runStore.setRunBudget(runId, updatedBudget);
+          },
           stopSignal,
         },
       );
 
       if (lostLease) {
         throw new RunLeaseLostError(runId);
+      }
+
+      if (outcome.status === "parked") {
+        await runStore.setConversationHistory(runId, history);
+        logger.info("run.hibernated", { runId });
+        return {
+          run: {
+            id: runId,
+            task,
+            startedAt: runDraft.startedAt,
+          },
+          discoveredTools: session.tools,
+          iterations,
+        };
       }
 
       if (outcome.status === "goal_met") {
@@ -454,7 +517,7 @@ async function driveHarnessRun({
 
       await runStore.setConversationHistory(runId, history);
       const run = completeRun(runDraft, outcome);
-      await completeRunWithOutcomeStep(runStore, runId, outcome);
+      await completeRunWithOutcomeStep(runStore, runId, outcome, sandbox);
       logger.info("run.completed", {
         runId: run.id,
         iterations,
@@ -485,10 +548,15 @@ async function driveHarnessRun({
           : String(error);
     const existing = await runStore.getRun(runId);
     if (existing?.status === "running") {
-      await completeRunWithOutcomeStep(runStore, runId, {
-        status: "failed",
-        reason,
-      });
+      await completeRunWithOutcomeStep(
+        runStore,
+        runId,
+        {
+          status: "failed",
+          reason,
+        },
+        sandbox,
+      );
     }
     throw error;
   } finally {

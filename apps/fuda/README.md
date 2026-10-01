@@ -87,7 +87,7 @@ Consumed by Shaiden at task start (`FUDA_LISTEN_GROUPS` must include `agent`):
 
 Flow: validate subject → `bearer_id`, look up agent, require a `bearer_agent_grants` row, mint JWT.
 
-JWT claims (pinned at mint): `agent_id`, `owner_id`, `groups`, `bearer_id`, plus `iss` (`FUDA_ISSUER`), `aud=torii`, `iat`/`exp` (5 minute TTL). Signed RS256 with the current signing kid.
+JWT claims for `aud=torii` (the default): `agent_id`, `owner_id`, `groups`, `bearer_id`, plus `iss` (`FUDA_ISSUER`), `iat`/`exp` (5 minute TTL). `audience=shaiden-sandbox` exchanges the subject token alone and pins `bearer_id` only, so a sandbox credential cannot be replayed at Torii. Signed RS256 with the current signing kid.
 
 | Status | Error                            | Meaning                                   |
 | ------ | -------------------------------- | ----------------------------------------- |

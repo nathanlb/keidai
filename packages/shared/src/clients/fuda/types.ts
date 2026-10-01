@@ -5,9 +5,16 @@ export interface ExchangedAgentToken {
   expiresIn: number;
 }
 
+export type TokenExchangeAudience = "torii" | "shaiden-sandbox";
+
 export interface ExchangeTokenInput {
   subjectToken: string;
-  agentId: string;
+  /**
+   * Required for `torii` (the default). Rejected for `shaiden-sandbox`,
+   * which identifies the platform bearer rather than an acting agent.
+   */
+  agentId?: string;
+  audience?: TokenExchangeAudience;
 }
 
 /** Shaiden-facing agent definition from `GET /agents/{id}` (no identity fields). */

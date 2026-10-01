@@ -16,8 +16,14 @@ import {
   stepAssessmentSchema,
 } from "./step-assessment.js";
 import {
+  EXECUTE_PYTHON_DESCRIPTION,
+  EXECUTE_PYTHON_TOOL,
+  executePythonSchema,
+} from "../sandbox/execute-python.js";
+import {
   REPORT_TASK_OUTPUT_DESCRIPTION,
   REPORT_TASK_OUTPUT_TOOL,
+  isHarnessLocalTool,
   taskOutputSchema,
 } from "./task-output.js";
 import type { ConversationEntry, ModelStep } from "./types/task-loop.js";
@@ -29,7 +35,10 @@ const EMPTY_INPUT_SCHEMA: JSONSchema7 = { type: "object", properties: {} };
  * `execute` function, so the model emits tool calls but the loop owns
  * dispatching them to Torii.
  */
-export function buildToolSet(tools: DiscoveredTool[]): ToolSet {
+export function buildToolSet(
+  tools: DiscoveredTool[],
+  options?: { sandbox?: boolean },
+): ToolSet {
   const toolSet: ToolSet = {
     [REPORT_STEP_ASSESSMENT_TOOL]: {
       description: REPORT_STEP_ASSESSMENT_DESCRIPTION,
@@ -40,6 +49,12 @@ export function buildToolSet(tools: DiscoveredTool[]): ToolSet {
       inputSchema: zodSchema(taskOutputSchema),
     },
   };
+  if (options?.sandbox) {
+    toolSet[EXECUTE_PYTHON_TOOL] = {
+      description: EXECUTE_PYTHON_DESCRIPTION,
+      inputSchema: zodSchema(executePythonSchema),
+    };
+  }
 
   for (const tool of tools) {
     toolSet[tool.name] = {
@@ -119,7 +134,7 @@ export function createModelStepCaller(
     // share a turn with report_step_assessment. Output alone must continue —
     // do not invent cannot_complete from accompanying narration.
     const toriiToolCalls = toolCalls.filter(
-      (call) => call.toolName !== REPORT_TASK_OUTPUT_TOOL,
+      (call) => !isHarnessLocalTool(call.toolName),
     );
 
     const assessment = resolveModelStepAssessment(

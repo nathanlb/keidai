@@ -43,17 +43,19 @@ and records call traces.
 Shaiden runs saved tasks through a model and Torii's discovered tools. It
 persists tasks and runs in Postgres. When Torii returns a gated MCP task,
 Shaiden parks and later resumes the run; Torii remains responsible for the
-approval decision and ledger.
+approval decision and ledger. Model-written Python runs in a separate
+container; see [Sandboxing](sandboxing.md).
 
 ## Credential boundaries
 
-| Hop                         | Credential                                | Owner                  |
-| --------------------------- | ----------------------------------------- | ---------------------- |
-| Browser → keidai-ui         | Google OIDC session                       | keidai-ui              |
-| keidai-ui → management APIs | `BFF_SERVICE_TOKEN`                       | deployment operator    |
-| Shaiden → Fuda `/token`     | local shared secret or projected SA token | Fuda subject validator |
-| Shaiden → Torii             | short-lived Fuda JWT                      | Fuda                   |
-| Torii → backend MCP server  | `user_oauth`, `service_key`, or `none`    | Torii                  |
+| Hop                         | Credential                                   | Owner                  |
+| --------------------------- | -------------------------------------------- | ---------------------- |
+| Browser → keidai-ui         | Google OIDC session                          | keidai-ui              |
+| keidai-ui → management APIs | `BFF_SERVICE_TOKEN`                          | deployment operator    |
+| Shaiden → Fuda `/token`     | local shared secret or projected SA token    | Fuda subject validator |
+| Shaiden → Torii             | short-lived Fuda JWT                         | Fuda                   |
+| Shaiden → sandbox           | short-lived Fuda JWT (`aud=shaiden-sandbox`) | Fuda                   |
+| Torii → backend MCP server  | `user_oauth`, `service_key`, or `none`       | Torii                  |
 
 Backend credentials are never sent to Shaiden or the browser. Unknown agent
 groups fail closed in Torii.

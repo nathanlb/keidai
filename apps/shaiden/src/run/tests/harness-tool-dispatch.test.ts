@@ -298,4 +298,36 @@ describe("harness tool dispatch", () => {
       await close();
     }
   });
+
+  it("returns a tool error when the sandbox is down so the loop can continue", async () => {
+    const { store, reporter, close } = await createHarnessReporter();
+    try {
+      const dispatch = createHarnessToolDispatcher({
+        runId: "run-1",
+        reporter,
+        availableToolNames: new Set(),
+        callTool: async () => {
+          throw new Error("should not call Torii");
+        },
+        executePython: async () => {
+          throw new Error("sandbox unreachable");
+        },
+      });
+
+      const result = await dispatch({
+        toolCallId: "call-1",
+        toolName: "execute_python",
+        input: { source: "print(1)" },
+      });
+      assert.equal(result.isError, true);
+      assert.match(result.text, /sandbox unreachable/);
+      const steps = await latestSteps(store);
+      assert.equal(
+        steps.some((step) => step.kind === "tool_result"),
+        true,
+      );
+    } finally {
+      await close();
+    }
+  });
 });

@@ -15,7 +15,16 @@ import {
   recordToolDispatch,
   recordToolResult,
 } from "./run-step-recording.js";
-import { parseTaskOutput, REPORT_TASK_OUTPUT_TOOL } from "./task-output.js";
+import {
+  parseTaskOutput,
+  REPORT_TASK_OUTPUT_TOOL,
+} from "./task-output.js";
+import {
+  EXECUTE_PYTHON_TOOL,
+  formatSandboxExecResult,
+  parseExecutePython,
+} from "../sandbox/execute-python.js";
+import type { SandboxExecRequest, SandboxExecResult } from "../sandbox/sandbox-client.js";
 import type {
   ModelToolCall,
   ToolDispatchOptions,
@@ -30,6 +39,7 @@ export interface HarnessToolDispatcherDeps {
     toolName: string,
     args: Record<string, unknown>,
   ) => Promise<ToolDispatchResult>;
+  executePython?: (request: SandboxExecRequest) => Promise<SandboxExecResult>;
   logger?: Logger;
 }
 
@@ -38,8 +48,12 @@ export function createHarnessToolDispatcher({
   reporter,
   availableToolNames,
   callTool,
+  executePython,
   logger,
-}: HarnessToolDispatcherDeps) {
+}: HarnessToolDispatcherDeps): (
+  call: ModelToolCall,
+  options?: ToolDispatchOptions,
+) => Promise<ToolDispatchResult> {
   return async (call: ModelToolCall, options?: ToolDispatchOptions) => {
     const correlationStepId = options?.stepId ?? randomUUID();
 
@@ -65,6 +79,58 @@ export function createHarnessToolDispatcher({
         isError: false,
         text: "Output recorded for the operator.",
       };
+    }
+
+    if (call.toolName === EXECUTE_PYTHON_TOOL) {
+      const parsed = parseExecutePython(call.input);
+      if (!parsed || !executePython) {
+        const errorMessage = parsed
+          ? "execute_python is not configured"
+          : "invalid execute_python input";
+        await recordToolDispatch(reporter, call);
+        await recordToolResult(reporter, call, {
+          isError: true,
+          text: errorMessage,
+        });
+        return { isError: true, text: errorMessage };
+      }
+
+      logger?.info("run.tool_dispatch", {
+        runId,
+        toolName: call.toolName,
+        inputPreview: previewOf(parsed.source, 200),
+      });
+      await recordToolDispatch(reporter, call);
+      try {
+        const execResult = await executePython({
+          source: parsed.source,
+          ...(parsed.timeoutSeconds != null
+            ? { timeoutSeconds: parsed.timeoutSeconds }
+            : {}),
+        });
+        const formatted = formatSandboxExecResult(execResult);
+        logger?.info("run.tool_result", {
+          runId,
+          toolName: call.toolName,
+          status: formatted.isError ? "error" : "ok",
+          charCount: formatted.text.length,
+          exitCode: execResult.exitCode,
+          timedOut: execResult.timedOut,
+        });
+        await recordToolResult(reporter, call, formatted);
+        return formatted;
+      } catch (error) {
+        const errorMessage = describeError(error);
+        const errorResult = { isError: true as const, text: errorMessage };
+        logger?.info("run.tool_result", {
+          runId,
+          toolName: call.toolName,
+          status: "error",
+          error: errorMessage,
+        });
+        await recordToolResult(reporter, call, errorResult);
+        return errorResult;
+      }
     }
 
     if (!availableToolNames.has(call.toolName)) {
