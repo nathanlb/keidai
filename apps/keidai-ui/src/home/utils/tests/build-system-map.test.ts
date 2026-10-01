@@ -174,6 +174,7 @@ describe("buildSystemMap", () => {
     expect(map.agents[0]).toMatchObject({
       id: "agt-ops",
       label: "ops-bot",
+      emoji: null,
       state: "working",
       task: "triage-inbox · step 1 of 12",
       meta: "2m",

@@ -11,6 +11,22 @@ import { useTaskAuthoringForm } from "../hooks/use-task-authoring-form.js";
 import type { AgentAssigneeOption } from "../utils/to-agent-assignee-option.js";
 import { FieldHeader } from "../../shell/forms/field-header.js";
 
+function AssigneeMark({ option }: { option: AgentAssigneeOption }) {
+  return (
+    <span
+      className={cn(
+        `
+          inline-flex size-7 shrink-0 items-center justify-center rounded-md
+          bg-secondary text-secondary-foreground
+        `,
+        option.emoji ? "text-base" : "text-[11px] font-medium",
+      )}
+    >
+      {option.emoji || option.initials}
+    </span>
+  );
+}
+
 function AssigneeTriggerContent({
   option,
 }: {
@@ -36,14 +52,7 @@ function AssigneeTriggerContent({
 
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2.5">
-      <span
-        className="
-          inline-flex size-7 shrink-0 items-center justify-center rounded-md
-          bg-secondary text-[11px] font-medium text-secondary-foreground
-        "
-      >
-        {option.initials}
-      </span>
+      <AssigneeMark option={option} />
       <span className="flex min-w-0 items-center gap-2">
         <span className="truncate text-[13px] font-semibold text-foreground">
           {option.displayName}
@@ -149,15 +158,7 @@ export function TaskAssigneeSection({
                     disabled={!option.connected}
                   >
                     <span className="flex items-center gap-2.5">
-                      <span
-                        className="
-                          inline-flex size-7 items-center justify-center
-                          rounded-md bg-secondary text-[11px] font-medium
-                          text-secondary-foreground
-                        "
-                      >
-                        {option.initials}
-                      </span>
+                      <AssigneeMark option={option} />
                       <span className="flex flex-row items-center gap-2">
                         <span className="text-[13px] font-semibold">
                           {option.displayName}

@@ -30,6 +30,7 @@ export function toRunAssigneeDisplay(
     slug: agent.slug,
     displayName,
     initials: deriveAgentInitials(displayName),
+    emoji: agent.emoji ?? null,
   };
 }
 

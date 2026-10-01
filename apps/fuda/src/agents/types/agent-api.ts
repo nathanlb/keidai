@@ -1,4 +1,4 @@
-import { openRouterModelIdSchema } from "@keidai/shared";
+import { agentEmojiSchema, openRouterModelIdSchema } from "@keidai/shared";
 import { z } from "zod";
 import type { AgentRecord } from "./agent-repository.js";
 
@@ -23,6 +23,7 @@ export const createAgentBodySchema = z.object({
   groups: z.array(z.string().min(1)).default([]),
   persona: z.string().min(1),
   defaultModelId: openRouterModelIdSchema.nullable().optional(),
+  emoji: agentEmojiSchema.nullable().optional(),
 });
 
 export const updateAgentBodySchema = z
@@ -32,6 +33,8 @@ export const updateAgentBodySchema = z
     persona: z.string().min(1).optional(),
     /** Null clears the agent default model. */
     defaultModelId: openRouterModelIdSchema.nullable().optional(),
+    /** Null clears the agent emoji. */
+    emoji: agentEmojiSchema.nullable().optional(),
     /** Rejected — slug is immutable after creation. */
     slug: z.unknown().optional(),
     /** Rejected — owner is fixed at registration. */

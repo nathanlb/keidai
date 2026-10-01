@@ -6,6 +6,8 @@ export interface AgentRecord {
   groups: string[];
   /** OpenRouter model id, or null to use the platform default at run time. */
   defaultModelId: string | null;
+  /** Single emoji shown in operator surfaces, or null for initials. */
+  emoji: string | null;
   currentPersonaVersion: number;
   createdAt: string;
   updatedAt: string;
@@ -30,6 +32,8 @@ export interface CreateAgentInput {
   persona: string;
   /** Omit or null to leave the agent on the platform default model. */
   defaultModelId?: string | null;
+  /** Omit or null to show initials instead. */
+  emoji?: string | null;
 }
 
 export interface UpdateAgentNameInput {
@@ -44,6 +48,11 @@ export interface UpdateAgentGroupsInput {
 export interface UpdateAgentDefaultModelInput {
   /** Null clears the agent default so runs use the platform model. */
   defaultModelId: string | null;
+}
+
+export interface UpdateAgentEmojiInput {
+  /** Null clears the emoji so surfaces fall back to initials. */
+  emoji: string | null;
 }
 
 export interface AgentRepository {
@@ -65,6 +74,11 @@ export interface AgentRepository {
   updateDefaultModel(
     agentId: string,
     input: UpdateAgentDefaultModelInput,
+  ): Promise<AgentRecord | null>;
+  /** Replace or clear the agent's display emoji. */
+  updateEmoji(
+    agentId: string,
+    input: UpdateAgentEmojiInput,
   ): Promise<AgentRecord | null>;
   /**
    * Append-only persona edit. Inserts a new version row and advances

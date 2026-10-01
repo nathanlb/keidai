@@ -28,7 +28,16 @@ describe("buildRunsVisibilityResponse", () => {
 
     assert.equal(response.runs[0]?.assigneeDisplay?.displayName, "Demo Agent");
     assert.equal(response.runs[0]?.assigneeDisplay?.initials, "DA");
+    assert.equal(response.runs[0]?.assigneeDisplay?.emoji, null);
     assert.equal(response.agentsById["agent-1"]?.slug, "demo-agent");
+  });
+
+  it("carries the agent emoji when set", () => {
+    const response = buildRunsVisibilityResponse({ runs: [makeRun()] }, [
+      { id: "agent-1", name: "Demo Agent", slug: "demo-agent", emoji: "🦊" },
+    ]);
+
+    assert.equal(response.runs[0]?.assigneeDisplay?.emoji, "🦊");
   });
 
   it("falls back to slug when agent name is empty", () => {

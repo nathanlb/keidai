@@ -21,7 +21,7 @@ export function AllClearCard() {
         <div>
           <div className="text-[14px] font-semibold">Nothing needs you</div>
           <div className="mt-0.5 text-[12.5px] text-muted-foreground">
-            No approvals parked, no failures in the last 24 hours.
+            No approvals parked.
           </div>
         </div>
       </CardContent>

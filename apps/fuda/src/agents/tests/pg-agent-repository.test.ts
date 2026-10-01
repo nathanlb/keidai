@@ -187,4 +187,22 @@ describe("PgAgentRepository", () => {
       await close();
     }
   });
+
+  it("stores, replaces, and clears an emoji", async () => {
+    const { repository, close } = await createRepository();
+    try {
+      const created = await repository.create({ ...sample, emoji: "🦊" });
+      assert.equal(created.emoji, "🦊");
+      assert.equal((await repository.get(created.id))?.emoji, "🦊");
+
+      await repository.updateEmoji(created.id, { emoji: "👩‍💻" });
+      assert.equal((await repository.get(created.id))?.emoji, "👩‍💻");
+
+      const cleared = await repository.updateEmoji(created.id, { emoji: null });
+      assert.equal(cleared?.emoji, null);
+      assert.equal((await repository.get(created.id))?.emoji, null);
+    } finally {
+      await close();
+    }
+  });
 });

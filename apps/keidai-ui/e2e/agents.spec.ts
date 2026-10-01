@@ -118,6 +118,36 @@ test.describe("Agents page", () => {
     await expect(save).toBeDisabled();
   });
 
+  test("picks, replaces, and clears the agent emoji", async ({ page }) => {
+    await mockToriiConfig(page, { fudaAgents: [alphaAgent] });
+
+    await page.goto(`/agents/${alphaAgent.id}`);
+    const save = page.getByRole("button", { name: "Save changes" });
+
+    await page.getByRole("button", { name: "Choose agent emoji" }).click();
+    await page.getByRole("button", { name: "🦊", exact: true }).click();
+    await save.click();
+    await expect(page.getByText("Agent saved.")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Agent emoji 🦊" }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Agent emoji 🦊" }).click();
+    await page.getByLabel("Custom emoji").fill("👩‍💻");
+    await page.getByRole("button", { name: "Use", exact: true }).click();
+    await expect(
+      page.getByRole("button", { name: "Agent emoji 👩‍💻" }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Agent emoji 👩‍💻" }).click();
+    await page.getByRole("button", { name: "Use initials instead" }).click();
+    await save.click();
+    await expect(
+      page.getByRole("button", { name: "Choose agent emoji" }),
+    ).toBeVisible();
+    await expect(save).toBeDisabled();
+  });
+
   test("creates a new agent and lands on its detail", async ({ page }) => {
     await mockToriiConfig(page, {
       fudaAgents: [],

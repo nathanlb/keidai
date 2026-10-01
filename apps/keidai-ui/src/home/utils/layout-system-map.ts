@@ -155,6 +155,7 @@ export interface LaidOutAgent {
   key: string;
   x: number;
   label: string;
+  emoji?: string | null;
   task: string;
   meta: string;
   href: string;
@@ -414,6 +415,7 @@ export function layoutSystemMap(
     key: entry.item.id,
     x: agentXs[slot] ?? 0,
     label: entry.item.label,
+    emoji: entry.item.emoji,
     task: entry.item.task,
     meta: entry.item.meta,
     href: agentHref(entry.item.id),

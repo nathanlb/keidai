@@ -1,7 +1,8 @@
-import { Button, TableCell, TableRow } from "@keidai/ui";
+import { Button, cn, TableCell, TableRow } from "@keidai/ui";
 import type { SavedTask } from "@keidai/shared";
 import { Loader2, Pencil, Play } from "lucide-react";
-import { OwnerAvatar } from "../shell/components/owner-avatar/owner-avatar.js";
+import type { RunAssigneeDisplay } from "../lib/api/runs.js";
+import { AgentAvatar } from "../lib/components/agent-avatar.js";
 import { tasksTableColumns } from "./tasks-table-columns.js";
 
 function agentInitials(agentId: string): string {
@@ -27,11 +28,14 @@ function formatUpdatedAt(value: string): string {
 
 export function TasksTableRow({
   task,
+  assignee,
   isRunning,
   onEdit,
   onRun,
 }: {
   task: SavedTask;
+  /** Null when the assignee is not a known Fuda agent. */
+  assignee: RunAssigneeDisplay | null;
   isRunning: boolean;
   onEdit: () => void;
   onRun: () => void;
@@ -64,15 +68,15 @@ export function TasksTableRow({
         style={tasksTableColumns.cellStyle("assignee")}
       >
         <div className="flex min-w-0 items-center gap-2">
-          <OwnerAvatar
-            initials={agentInitials(task.assignee)}
-            className="
-              size-5.5 shrink-0 bg-secondary text-[9px]
-              text-secondary-foreground
-            "
+          <AgentAvatar
+            emoji={assignee?.emoji}
+            initials={assignee?.initials ?? agentInitials(task.assignee)}
           />
-          <span className="truncate font-mono text-xs" title={task.assignee}>
-            {task.assignee}
+          <span
+            className={cn("truncate text-xs", !assignee && "font-mono")}
+            title={task.assignee}
+          >
+            {assignee?.displayName ?? task.assignee}
           </span>
         </div>
       </TableCell>

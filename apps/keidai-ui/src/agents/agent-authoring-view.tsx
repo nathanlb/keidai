@@ -26,6 +26,7 @@ export function AgentAuthoringView() {
       ...(values.modelId.trim()
         ? { defaultModelId: values.modelId.trim() }
         : {}),
+      ...(values.emoji ? { emoji: values.emoji } : {}),
     });
     await mutate(AGENTS_KEY);
     navigate(`/agents/${agent.id}`, {

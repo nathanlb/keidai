@@ -1,10 +1,8 @@
 export type GoalVerdict = "met" | "partial" | "missed" | "awaiting";
 
-export type HomeAttentionKind = "approval" | "failed_run";
+export type HomeAttentionKind = "approval";
 
-export type HomeAttentionCta =
-  | { type: "approve"; approvalId: string }
-  | { type: "retry"; taskId: string };
+export type HomeAttentionCta = { type: "approve"; approvalId: string };
 
 export interface HomeAttentionItem {
   id: string;
@@ -16,7 +14,7 @@ export interface HomeAttentionItem {
   parkedLabel: string;
   reviewHref: string;
   cta: HomeAttentionCta;
-  ctaLabel: "Approve" | "Retry";
+  ctaLabel: "Approve";
 }
 
 export interface HomeLiveRun {
@@ -91,6 +89,7 @@ export interface SystemMapGroup {
 export interface SystemMapAgent {
   id: string;
   label: string;
+  emoji: string | null;
   groupId: string | null;
   state: SystemMapAgentState;
   task: string;

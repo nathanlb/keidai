@@ -95,6 +95,7 @@ const digest: HomeDigest = {
       {
         id: "agt-ops",
         label: "ops-bot",
+        emoji: null,
         groupId: "grp-inbox",
         state: "working",
         task: "triage-inbox · step 5 of 12",

@@ -1,3 +1,4 @@
+export * from "./agent-emoji.js";
 export * from "./agent-identity.js";
 export * from "./approval.js";
 export * from "./call-trace.js";

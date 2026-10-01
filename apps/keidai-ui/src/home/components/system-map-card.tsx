@@ -222,6 +222,11 @@ function AgentChip({ node }: { node: LaidOutAgent }) {
             muted ? "text-muted-foreground" : "text-foreground",
           )}
         >
+          {node.emoji ? (
+            <span className="mr-1 font-sans" aria-hidden>
+              {node.emoji}
+            </span>
+          ) : null}
           {node.label}
         </span>
         {node.meta ? (

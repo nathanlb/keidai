@@ -34,6 +34,19 @@ describe("TraceDetailDrawer", () => {
     expect(screen.getByText("demo-agent")).toBeInTheDocument();
   });
 
+  it("shows the agent emoji in place of initials when set", () => {
+    renderWithActivityTracesPage(<TraceDetailDrawer />, {
+      selectedTrace: deniedTrace,
+      selectedTraceServer: githubServer,
+      drawerOpen: true,
+      agentSlugById: new Map([["demo-agent", "demo"]]),
+      agentEmojiById: new Map([["demo-agent", "🦊"]]),
+    });
+
+    expect(screen.getByText("🦊")).toBeInTheDocument();
+    expect(screen.queryByText("DE")).not.toBeInTheDocument();
+  });
+
   it("invokes linkProvider for linking_required traces", async () => {
     const user = userEvent.setup();
     const linkProvider = createMockLinkProvider();

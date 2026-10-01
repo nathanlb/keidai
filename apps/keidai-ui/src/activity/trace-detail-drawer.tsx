@@ -9,6 +9,7 @@ import { useActivityTracesPage } from "./context/use-activity-traces.js";
 import { buildLinkingResolutionKey } from "../connections/linking/format-linking-required-prompt.js";
 import { deriveAgentInitials } from "../lib/utils/derive-agent-initials.js";
 import { deriveOwnerInitials } from "../shell/utils/derive-owner-initials.js";
+import { AgentAvatar } from "../lib/components/agent-avatar.js";
 import { OwnerAvatar } from "../shell/components/owner-avatar/owner-avatar.js";
 import { buildTraceSpans } from "./utils/build-trace-spans.js";
 import {
@@ -46,6 +47,7 @@ export function TraceDetailDrawer() {
     linkProvider,
     linkingResolvedKeys,
     agentSlugById,
+    agentEmojiById,
   } = useActivityTracesPage();
   const [copiedTraceId, setCopiedTraceId] = useState<string | null>(null);
   const copied = trace?.traceId === copiedTraceId;
@@ -204,11 +206,9 @@ export function TraceDetailDrawer() {
               agent
             </div>
             <div className="mt-1.5 flex items-center gap-2">
-              <OwnerAvatar
+              <AgentAvatar
+                emoji={agentId ? agentEmojiById.get(agentId) : undefined}
                 initials={agentLabel ? deriveAgentInitials(agentLabel) : "—"}
-                className="
-                  size-5.5 bg-secondary text-[9px] text-secondary-foreground
-                "
               />
               <div className="min-w-0 leading-tight">
                 <div className="font-mono text-[13px] font-semibold">

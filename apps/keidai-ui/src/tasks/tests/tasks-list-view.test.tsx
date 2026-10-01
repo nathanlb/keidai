@@ -73,6 +73,17 @@ vi.mock("../../runs/hooks/use-runs-visibility.js", () => ({
         assigneeDisplay: null,
       },
     ],
+    resolveAssigneeDisplay: (assigneeId: string) =>
+      assigneeId === "agent-1"
+        ? {
+            id: "agent-1",
+            name: "Status Bot",
+            slug: "status-bot",
+            displayName: "Status Bot",
+            initials: "SB",
+            emoji: "📊",
+          }
+        : null,
     error: undefined,
     isLoading: false,
   }),
@@ -101,6 +112,17 @@ function renderList() {
     </MemoryRouter>,
   );
 }
+
+describe("TasksListView assignee column", () => {
+  it("shows the assignee's name and emoji instead of the agent id", () => {
+    renderList();
+
+    const row = screen.getByRole("row", { name: new RegExp(taskA.goal) });
+    expect(within(row).getByText("📊")).toBeInTheDocument();
+    expect(within(row).getByText("Status Bot")).toBeInTheDocument();
+    expect(within(row).queryByText("agent-1")).not.toBeInTheDocument();
+  });
+});
 
 describe("TasksListView concurrent runs", () => {
   beforeEach(() => {

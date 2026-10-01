@@ -6,6 +6,7 @@ export interface RunAssigneeDisplay {
   slug: string;
   displayName: string;
   initials: string;
+  emoji: string | null;
 }
 
 export interface RunVisibilityListItem extends RunListItem {
@@ -21,4 +22,5 @@ export interface FudaManagementAgent {
   id: string;
   slug: string;
   name: string;
+  emoji?: string | null;
 }

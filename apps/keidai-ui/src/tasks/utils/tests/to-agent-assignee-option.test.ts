@@ -20,8 +20,13 @@ describe("toAgentAssigneeOption", () => {
       agentId: "shaiden-newsletter-01",
       displayName: "Newsletter Writer",
       initials: "NW",
+      emoji: null,
       connected: true,
     });
+  });
+
+  it("carries the agent emoji when set", () => {
+    expect(toAgentAssigneeOption({ ...agent, emoji: "📰" }).emoji).toBe("📰");
   });
 
   it("falls back to the slug when name is empty", () => {
