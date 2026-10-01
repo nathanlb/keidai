@@ -1,5 +1,19 @@
 # @keidai/torii
 
+## 0.7.0
+
+### Minor Changes
+
+- Add emoji avatar to agents and deps upgrade ([#152](https://github.com/nathanlb/keidai/pull/152))
+- Ui improvements, openrouter config and model selection ([#149](https://github.com/nathanlb/keidai/pull/149))
+- Add agent hibernation and python execution sandbox ([#146](https://github.com/nathanlb/keidai/pull/146))
+
+### Patch Changes
+
+- Updated dependencies:
+  - @keidai/shared@0.7.0
+  - @keidai/postgres@0.7.0
+
 ## 0.6.0
 
 ### Minor Changes
