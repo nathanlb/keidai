@@ -22,9 +22,9 @@
   },
   "devDependencies": {
     "@keidai/shared": "workspace:*",
-    "@types/node": "^24.13.3",
+    "@types/node": "^24.19.0",
     "@types/pg": "^8.23.1",
-    "tsx": "^4.23.12",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.3"
   }
 }
