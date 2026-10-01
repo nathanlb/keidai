@@ -267,7 +267,7 @@ importers:
         specifier: 5.12.1
         version: 5.12.1
       jose:
-        specifier: ^6.2.12
+        specifier: ^6.2.10
         version: 6.2.12
       reflect-metadata:
         specifier: ^0.2.2
