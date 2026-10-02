@@ -1,5 +1,14 @@
 # @keidai/torii
 
+## 0.7.1
+
+### Patch Changes
+
+- Update shaiden-sandbox to version 0.7.0 and add it to changeset config ([#154](https://github.com/nathanlb/keidai/pull/154))
+- Updated dependencies:
+  - @keidai/shared@0.7.1
+  - @keidai/postgres@0.7.1
+
 ## 0.7.0
 
 ### Minor Changes
