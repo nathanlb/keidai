@@ -11,12 +11,14 @@ minimumReleaseAgeExclude:
 # thread-stream@4.2.0 ships package/.claude/settings.local.json which Cursor's
 # agent sandbox blocks during pnpm install (EPERM on .claude paths).
 overrides:
-  fastify: 5.12.1
+  # Fastify advisories through GHSA-4mh8-r7rc-xpvc are fixed in 5.12.5.
+  # Direct deps pin the same version; this keeps transitive copies on it too.
+  fastify: 5.12.5
   thread-stream: 4.1.0
   brace-expansion@1: 1.1.18
-  # CVE-2026-76172 / GHSA-jqff-g426-hqxp: host confusion via percent-encoded
-  # scheme. Pin 3.x only — ajv@8 still depends on fast-uri^3; 4.1.3 is patched.
-  fast-uri@3: 3.1.6
+  # CVE-2026-86472 / GHSA-hrr3-gc8f-f4qj: host case normalization via
+  # percent-encoded octets. Pin 3.x only — ajv@8 still depends on fast-uri^3.
+  fast-uri@3: 3.1.8
   # CVE floor from #71. Cap at 7.x: jsdom@29 deep-imports
   # undici/lib/handler/wrap-handler.js, which undici 8 removed.
   undici: "^7.24.0"
