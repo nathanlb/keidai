@@ -222,13 +222,14 @@ is still process-local.
 
 ## Auth wiring
 
-| Hop                               | Credential                                       |
-| --------------------------------- | ------------------------------------------------ |
-| Browser → BFF `/api/*`            | Operator Google OIDC session cookie              |
-| Browser → BFF `/oauth/callback/*` | Proxied to Torii (provider redirect; no session) |
-| Shaiden → Fuda `POST /token`      | Projected SA JWT (`SHAIDEN_SUBJECT_TOKEN_FILE`)  |
-| Shaiden → Torii MCP               | Fuda-minted agent JWT (`aud=torii`)              |
-| Torii → Fuda JWKS                 | HTTP to `http://fuda:3300/.well-known/jwks.json` |
+| Hop                               | Credential                                                                                                |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Browser → BFF `/api/*`            | Operator Google OIDC session cookie                                                                       |
+| Browser → BFF `/oauth/callback/*` | Proxied to Torii (provider redirect; no session)                                                          |
+| Shaiden → Fuda `POST /token`      | Projected SA JWT (`SHAIDEN_SUBJECT_TOKEN_FILE`)                                                           |
+| Shaiden → Torii MCP               | Fuda-minted agent JWT (`aud=torii`)                                                                       |
+| Torii → Fuda JWKS                 | HTTP to `http://fuda:3300/.well-known/jwks.json`                                                          |
+| Sandbox → Fuda JWKS               | HTTP to `http://fuda:3300/.well-known/jwks.json` at startup. NetworkPolicy allows DNS and that port only. |
 
 Fuda allow-list (validator-private; bearer seeded as `shaiden-runner`):
 

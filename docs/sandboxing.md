@@ -43,7 +43,7 @@ flowchart TB
   shaiden --> pg
 
   pvc["PVC shaiden-sandbox-workspaces<br/>ReadWriteOnce"] --> sandbox
-  policy["NetworkPolicy shaiden-sandbox<br/>ingress TCP :8080 from app=shaiden<br/>egress denied"] -.-> sandbox
+  policy["NetworkPolicy shaiden-sandbox<br/>ingress TCP :8080 from app=shaiden<br/>egress DNS and fuda:3300"] -.-> sandbox
 ```
 
 Compose turns the tool on against a runc container. kind and OrbStack leave
@@ -76,15 +76,15 @@ flowchart TB
 gVisor, when enabled, wraps this pod. It gives the sandbox a user-space kernel
 so a bug in that kernel stays off the node that runs Torii and Fuda.
 
-| Fence                                  | Effect                                                                                                                        |
-| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| NetworkPolicy                          | Ingress is TCP :8080 from pods labeled `app=shaiden`. Egress is empty.                                                        |
-| Packet filter                          | The supervisor (uid 0) may fetch Fuda's JWKS. The interpreter may not open a connection, including to `127.0.0.1`.            |
-| gVisor `runsc`                         | On k3s with `shaiden.sandbox.gvisor`, this pod's kernel is gVisor's. Platform is systrap.                                     |
-| Per-run uid, mode `0700`               | One run cannot read another's workspace. Uids come from a fixed pool, `20000`–`20099`.                                        |
-| `python -I` and a stripped environment | No user site, no bytecode, `HOME` and temp dirs are the workspace. `/tmp` and `/dev/shm` are not writable by the interpreter. |
-| seccomp                                | `AF_UNIX` `socket` and `socketpair` return `EPERM`.                                                                           |
-| Process-group kill                     | Children are reaped before the HTTP call returns, then any leftover pid of that uid is scanned and killed.                    |
+| Fence                                  | Effect                                                                                                                                                                                                         |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| NetworkPolicy                          | Ingress is TCP :8080 from pods labeled `app=shaiden`. Egress is DNS (UDP/TCP 53 to `kube-dns` in `kube-system`) and TCP 3300 to pods labeled `app=fuda`, so the supervisor can resolve Fuda and load its JWKS. |
+| Packet filter                          | The supervisor (uid 0) may fetch Fuda's JWKS. The interpreter may not open a connection, including to `127.0.0.1`.                                                                                             |
+| gVisor `runsc`                         | On k3s with `shaiden.sandbox.gvisor`, this pod's kernel is gVisor's. Platform is systrap.                                                                                                                      |
+| Per-run uid, mode `0700`               | One run cannot read another's workspace. Uids come from a fixed pool, `20000`–`20099`.                                                                                                                         |
+| `python -I` and a stripped environment | No user site, no bytecode, `HOME` and temp dirs are the workspace. `/tmp` and `/dev/shm` are not writable by the interpreter.                                                                                  |
+| seccomp                                | `AF_UNIX` `socket` and `socketpair` return `EPERM`.                                                                                                                                                            |
+| Process-group kill                     | Children are reaped before the HTTP call returns, then any leftover pid of that uid is scanned and killed.                                                                                                     |
 
 The supervisor's added capabilities are `SETUID`, `SETGID`, `CHOWN`, `FOWNER`,
 `DAC_OVERRIDE`, and `NET_ADMIN`. `allowPrivilegeEscalation` is false and the

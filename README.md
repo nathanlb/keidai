@@ -22,6 +22,7 @@ apps/
   keidai-ui/        # Operator BFF + SPA (sole published HTTP edge)
   fuda/             # Fuda - Agent Identity Provider (AIdP)
   shaiden/          # Shaiden - Agent runtime for the ecosystem
+  shaiden-sandbox/  # Python exec sandbox for Shaiden (separate container)
   torii/            # Torii - MCP gateway (see apps/torii/README.md)
 packages/
   shared/           # @keidai/shared - Torii config, catalog, trace types, loadEnv
@@ -33,7 +34,7 @@ deploy/
   k8s/              # In-cluster bring-up (kind / OrbStack; single Postgres)
 docs/
   README.md         # public documentation index
-docker-compose.yml  # Fuda + Torii + Shaiden + keidai-ui (publishes :3000 only)
+docker-compose.yml  # Fuda + Torii + Shaiden + shaiden-sandbox + keidai-ui (publishes :3000 only)
 ```
 
 ## Getting started
