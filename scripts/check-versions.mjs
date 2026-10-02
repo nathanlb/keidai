@@ -1,54 +1,89 @@
 #!/usr/bin/env node
 /**
- * Assert all workspace package versions and Chart.yaml version + appVersion match.
- * Chart.version is the GHCR OCI tag; appVersion is the default image tag.
+ * Assert the platform semver is one version.
+ *
+ * The changesets fixed group is what prepare-release bumps. Every workspace
+ * package with a Dockerfile must be in that group, and every package in the
+ * group must share Chart.yaml's version and appVersion.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-const packagePaths = [
-  "apps/fuda/package.json",
-  "apps/torii/package.json",
-  "apps/shaiden/package.json",
-  "apps/keidai-ui/package.json",
-  "packages/shared/package.json",
-  "packages/ui/package.json",
-  "packages/postgres/package.json",
-];
-
-const versions = packagePaths.map((rel) => {
-  const version = JSON.parse(readFileSync(join(root, rel), "utf8")).version;
-  return { rel, version };
-});
-
-const expected = versions[0].version;
-const mismatches = versions.filter((p) => p.version !== expected);
-
-if (mismatches.length > 0) {
-  console.error("Package version mismatch:");
-  for (const { rel, version } of versions) {
-    console.error(`  ${rel}: ${version}`);
-  }
+const changesetConfig = JSON.parse(
+  readFileSync(join(root, ".changeset/config.json"), "utf8"),
+);
+const fixed = changesetConfig.fixed?.[0];
+if (!Array.isArray(fixed) || fixed.length === 0) {
+  console.error(
+    "Expected .changeset/config.json fixed[0] to list platform packages",
+  );
   process.exit(1);
 }
 
-const chartPath = join(root, "deploy/k8s/chart/Chart.yaml");
-const chart = readFileSync(chartPath, "utf8");
-const strip = (value) => value.trim().replaceAll('"', "");
-const chartVersionMatch = chart.match(/^version:\s*(.+)$/m);
-const appVersionMatch = chart.match(/^appVersion:\s*(.+)$/m);
-const chartVersion = chartVersionMatch
-  ? strip(chartVersionMatch[1])
-  : undefined;
-const appVersion = appVersionMatch ? strip(appVersionMatch[1]) : undefined;
+const packages = [];
+for (const dir of ["apps", "packages"]) {
+  for (const name of readdirSync(join(root, dir))) {
+    const rel = join(dir, name);
+    const pkgPath = join(root, rel, "package.json");
+    if (!existsSync(pkgPath)) continue;
+    const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+    packages.push({
+      name: pkg.name,
+      version: pkg.version,
+      rel: `${rel}/package.json`,
+      hasDockerfile: existsSync(join(root, rel, "Dockerfile")),
+    });
+  }
+}
 
-if (chartVersion !== expected || appVersion !== expected) {
+const byName = new Map(packages.map((pkg) => [pkg.name, pkg]));
+let failed = false;
+
+for (const name of fixed) {
+  if (!byName.has(name)) {
+    console.error(`Fixed-group package ${name} has no workspace package.json`);
+    failed = true;
+  }
+}
+
+for (const pkg of packages) {
+  if (pkg.hasDockerfile && !fixed.includes(pkg.name)) {
+    console.error(
+      `${pkg.rel} ships a Dockerfile but ${pkg.name} is not in .changeset/config.json fixed[0], so prepare-release will not bump it`,
+    );
+    failed = true;
+  }
+}
+
+const versioned = fixed
+  .map((name) => byName.get(name))
+  .filter((pkg) => pkg !== undefined);
+const expected = versioned[0]?.version;
+for (const pkg of versioned) {
+  if (pkg.version !== expected) {
+    console.error(`${pkg.rel}: ${pkg.version} (expected ${expected})`);
+    failed = true;
+  }
+}
+
+const chart = readFileSync(join(root, "deploy/k8s/chart/Chart.yaml"), "utf8");
+const strip = (value) => value.trim().replaceAll('"', "");
+const chartVersion = chart.match(/^version:\s*(.+)$/m)?.[1];
+const appVersion = chart.match(/^appVersion:\s*(.+)$/m)?.[1];
+const chartVersionValue = chartVersion ? strip(chartVersion) : undefined;
+const appVersionValue = appVersion ? strip(appVersion) : undefined;
+
+if (chartVersionValue !== expected || appVersionValue !== expected) {
   console.error(
-    `Chart.yaml version (${chartVersion ?? "missing"}) / appVersion (${appVersion ?? "missing"}) does not match package version (${expected})`,
+    `Chart.yaml version (${chartVersionValue ?? "missing"}) / appVersion (${appVersionValue ?? "missing"}) does not match package version (${expected})`,
   );
+  failed = true;
+}
+
+if (failed) {
   process.exit(1);
 }
 
