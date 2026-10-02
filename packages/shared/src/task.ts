@@ -156,14 +156,17 @@ export const DEFAULT_TASK_LIMITS: TaskLimits = {
   timeout_seconds: 600,
 };
 
-/** OpenRouter model ids are `author/slug` with no whitespace. */
+/**
+ * OpenRouter model ids are `author/slug`. A leading `~` marks a latest-family
+ * alias such as `~anthropic/claude-haiku-latest`.
+ */
 export const openRouterModelIdSchema = z
   .string()
   .trim()
   .min(3)
   .max(200)
   .regex(
-    /^[A-Za-z0-9][A-Za-z0-9._:-]*\/[A-Za-z0-9][A-Za-z0-9._:@/-]*$/,
+    /^~?[A-Za-z0-9][A-Za-z0-9._:-]*\/[A-Za-z0-9][A-Za-z0-9._:@/-]*$/,
     "expected an OpenRouter model id (author/slug)",
   );
 

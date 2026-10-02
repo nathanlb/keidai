@@ -141,4 +141,25 @@ spec:
       ports:
         - protocol: TCP
           port: {{ .Values.shaiden.sandbox.port }}
-  egress: []
+  # Startup resolves `fuda` and loads its JWKS. An empty egress list drops
+  # those DNS queries on k3s, and the process exits after 60 seconds.
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - podSelector:
+            matchLabels:
+              app: fuda
+      ports:
+        - protocol: TCP
+          port: 3300

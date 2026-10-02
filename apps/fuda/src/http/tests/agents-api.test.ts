@@ -152,6 +152,55 @@ describe("agents management API", () => {
     }
   });
 
+  it("sets and clears an OpenRouter latest-family model alias", async () => {
+    const server = await createTestServer("management");
+    const handle = await server.start({ host: "127.0.0.1", port: 0 });
+    try {
+      const createResponse = await fetch(`${handle.baseUrl}/api/agents`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(sampleAgentBody),
+      });
+      assert.equal(createResponse.status, 201);
+      const { agent } = (await createResponse.json()) as {
+        agent: { id: string };
+      };
+
+      const modelId = "~anthropic/claude-haiku-latest";
+      const patched = await fetch(`${handle.baseUrl}/api/agents/${agent.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ defaultModelId: modelId }),
+      });
+      assert.equal(patched.status, 200);
+      assert.equal(
+        (
+          (await patched.json()) as {
+            agent: { defaultModelId: string | null };
+          }
+        ).agent.defaultModelId,
+        modelId,
+      );
+
+      const cleared = await fetch(`${handle.baseUrl}/api/agents/${agent.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ defaultModelId: null }),
+      });
+      assert.equal(cleared.status, 200);
+      assert.equal(
+        (
+          (await cleared.json()) as {
+            agent: { defaultModelId: string | null };
+          }
+        ).agent.defaultModelId,
+        null,
+      );
+    } finally {
+      await handle.close();
+    }
+  });
+
   it("rejects immutable slug and ownerId updates", async () => {
     const server = await createTestServer("management");
     const handle = await server.start({ host: "127.0.0.1", port: 0 });

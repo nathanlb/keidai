@@ -7,6 +7,9 @@ Keidai (境内) is a self-hostable ecosystem for securely configuring, running, 
 - **Shaiden** - the agent runtime and orchestration
 - **Keidai-UI** - the operator BFF + SPA
 
+![Keidai trust boundaries: identity is short-lived, authorisation is external to the agent, and credentials stay behind the gate.](docs/images/trust-boundaries-light.gif#gh-light-mode-only)
+![Keidai trust boundaries: identity is short-lived, authorisation is external to the agent, and credentials stay behind the gate.](docs/images/trust-boundaries-dark.gif#gh-dark-mode-only)
+
 ## Stack
 
 - **Runtime:** Node.js 24 (LTS)
@@ -22,6 +25,7 @@ apps/
   keidai-ui/        # Operator BFF + SPA (sole published HTTP edge)
   fuda/             # Fuda - Agent Identity Provider (AIdP)
   shaiden/          # Shaiden - Agent runtime for the ecosystem
+  shaiden-sandbox/  # Python exec sandbox for Shaiden (separate container)
   torii/            # Torii - MCP gateway (see apps/torii/README.md)
 packages/
   shared/           # @keidai/shared - Torii config, catalog, trace types, loadEnv
@@ -33,7 +37,7 @@ deploy/
   k8s/              # In-cluster bring-up (kind / OrbStack; single Postgres)
 docs/
   README.md         # public documentation index
-docker-compose.yml  # Fuda + Torii + Shaiden + keidai-ui (publishes :3000 only)
+docker-compose.yml  # Fuda + Torii + Shaiden + shaiden-sandbox + keidai-ui (publishes :3000 only)
 ```
 
 ## Getting started
