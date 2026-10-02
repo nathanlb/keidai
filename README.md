@@ -7,6 +7,9 @@ Keidai (境内) is a self-hostable ecosystem for securely configuring, running, 
 - **Shaiden** - the agent runtime and orchestration
 - **Keidai-UI** - the operator BFF + SPA
 
+![Keidai trust boundaries: identity is short-lived, authorisation is external to the agent, and credentials stay behind the gate.](docs/images/trust-boundaries-light.gif#gh-light-mode-only)
+![Keidai trust boundaries: identity is short-lived, authorisation is external to the agent, and credentials stay behind the gate.](docs/images/trust-boundaries-dark.gif#gh-dark-mode-only)
+
 ## Stack
 
 - **Runtime:** Node.js 24 (LTS)
