@@ -19,7 +19,7 @@
   "dependencies": {
     "@keidai/postgres": "workspace:*",
     "@keidai/shared": "workspace:*",
-    "@modelcontextprotocol/client": "^2.1.0",
+    "@modelcontextprotocol/client": "^2.2.0",
     "@modelcontextprotocol/fastify": "^2.0.0",
     "@modelcontextprotocol/node": "^2.1.0",
     "@modelcontextprotocol/server": "^2.1.0",
