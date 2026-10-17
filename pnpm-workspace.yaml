@@ -22,3 +22,9 @@ overrides:
   # CVE floor from #71. Cap at 7.x: jsdom@29 deep-imports
   # undici/lib/handler/wrap-handler.js, which undici 8 removed.
   undici: "^7.24.0"
+  # CVE-2026-90711 / GHSA-jqcg-44mw-7w3h: IPv4-mapped IPv6 trust bypass.
+  # express@5.2.1 allows ^2.0.7; 2.0.8 is the fix.
+  proxy-addr: 2.0.8
+  # CVE-2026-82562 / GHSA-x5fp-wj9c-mxmx and CVE-2026-82417 / GHSA-4mjr-xmp4-gh2g.
+  # 6.16.1 is inside minimumReleaseAge; 6.16.0 is the first patched release.
+  qs: 6.16.0
