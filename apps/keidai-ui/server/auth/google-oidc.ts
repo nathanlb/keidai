@@ -6,6 +6,42 @@ const DEFAULT_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const DEFAULT_JWKS_URI = "https://www.googleapis.com/oauth2/v3/certs";
 const DEFAULT_ISSUER = "https://accounts.google.com";
 
+const remoteJwksCache = new Map<
+  string,
+  ReturnType<typeof jose.createRemoteJWKSet>
+>();
+
+function getRemoteJwks(
+  jwksUri: string,
+): ReturnType<typeof jose.createRemoteJWKSet> {
+  let jwks = remoteJwksCache.get(jwksUri);
+  if (!jwks) {
+    jwks = jose.createRemoteJWKSet(new URL(jwksUri));
+    remoteJwksCache.set(jwksUri, jwks);
+  }
+  return jwks;
+}
+
+export function isGoogleIssuer(issuer: string): boolean {
+  try {
+    return new URL(issuer).hostname === "accounts.google.com";
+  } catch {
+    return issuer === "accounts.google.com";
+  }
+}
+
+export function oidcIssuer(config: OperatorAuthConfig): string {
+  return config.issuer ?? config.googleIssuer ?? DEFAULT_ISSUER;
+}
+
+export interface OidcIdentityClaims {
+  googleSub: string;
+  email: string;
+  name?: string;
+  picture?: string;
+  hd?: string;
+}
+
 export function buildGoogleAuthorizationUrl(
   config: OperatorAuthConfig,
   params: { state: string; codeChallenge: string },
@@ -19,8 +55,10 @@ export function buildGoogleAuthorizationUrl(
   url.searchParams.set("state", params.state);
   url.searchParams.set("code_challenge", params.codeChallenge);
   url.searchParams.set("code_challenge_method", "S256");
-  url.searchParams.set("access_type", "online");
-  url.searchParams.set("prompt", "select_account");
+  if (isGoogleIssuer(oidcIssuer(config))) {
+    url.searchParams.set("access_type", "online");
+    url.searchParams.set("prompt", "select_account");
+  }
   return url.toString();
 }
 
@@ -33,12 +71,7 @@ interface GoogleTokenResponse {
 export async function exchangeGoogleAuthorizationCode(
   config: OperatorAuthConfig,
   params: { code: string; codeVerifier: string },
-): Promise<{
-  googleSub: string;
-  email: string;
-  name?: string;
-  picture?: string;
-}> {
+): Promise<OidcIdentityClaims> {
   if (config.exchangeAuthorizationCode) {
     return config.exchangeAuthorizationCode(params.code, params.codeVerifier);
   }
@@ -71,39 +104,40 @@ export async function exchangeGoogleAuthorizationCode(
 export async function verifyGoogleIdToken(
   config: OperatorAuthConfig,
   idToken: string,
-): Promise<{
-  googleSub: string;
-  email: string;
-  name?: string;
-  picture?: string;
-}> {
+): Promise<OidcIdentityClaims> {
   const jwksUri = config.googleJwksUri ?? DEFAULT_JWKS_URI;
-  const issuer = config.googleIssuer ?? DEFAULT_ISSUER;
-  const jwks = jose.createRemoteJWKSet(new URL(jwksUri));
+  const issuer = oidcIssuer(config);
+  const jwks = getRemoteJwks(jwksUri);
 
   const { payload } = await jose.jwtVerify(idToken, jwks, {
-    issuer: [issuer, "accounts.google.com"],
+    issuer: isGoogleIssuer(issuer) ? [issuer, "accounts.google.com"] : issuer,
     audience: config.googleClientId,
   });
 
   const googleSub = typeof payload.sub === "string" ? payload.sub : "";
   const email = typeof payload.email === "string" ? payload.email : "";
   if (!googleSub || !email) {
-    throw new Error("Google ID token missing sub or email");
+    throw new Error("ID token missing sub or email");
   }
 
   if (payload.email_verified !== true) {
-    throw new Error("Google email is not verified");
+    throw new Error(
+      isGoogleIssuer(issuer)
+        ? "Google email is not verified"
+        : "email is not verified",
+    );
   }
 
   const name = typeof payload.name === "string" ? payload.name : undefined;
   const picture =
     typeof payload.picture === "string" ? payload.picture : undefined;
+  const hd = typeof payload.hd === "string" ? payload.hd : undefined;
 
   return {
     googleSub,
     email,
     ...(name ? { name } : {}),
     ...(picture ? { picture } : {}),
+    ...(hd ? { hd } : {}),
   };
 }

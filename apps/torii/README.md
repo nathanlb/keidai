@@ -72,16 +72,16 @@ pnpm --filter @keidai/torii start
 
 ## Configuration
 
-| Variable                 | Default                       | Purpose                                                                                                                                                                                                                       |
-| ------------------------ | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TORII_PORT`             | `3100` (falls back to `PORT`) | HTTP listen port                                                                                                                                                                                                              |
-| `TORII_HOST`             | `127.0.0.1`                   | HTTP bind address                                                                                                                                                                                                             |
-| `TORII_DATABASE_URL`     | —                             | Required. Postgres connection string (connectors, OAuth tokens, call traces, approval ledger)                                                                                                                                 |
-| `TORII_SECRET_KEY`       | —                             | Required outside tests. Seals connector secrets at rest                                                                                                                                                                       |
-| `TORII_OPERATORS_PATH`   | —                             | Optional `operators.yaml`. When set, boot wipes OAuth tokens and pending links for `owner_id`s absent from the registry. Unset is a no-op (never wipe without a registry). Compose/k8s pin this to the mounted operators file |
-| `TORII_GATEWAY_BASE_URL` | —                             | Stable **public** base URL for OAuth callbacks (overrides per-request Host derivation). With the BFF edge, set this to the BFF origin (e.g. `http://localhost:3000`), not Torii's ClusterIP/`localhost:3100`                  |
-| `TORII_FUDA_ISSUER`      | —                             | Expected `iss` on Fuda-minted agent JWTs (required)                                                                                                                                                                           |
-| `TORII_FUDA_JWKS_URI`    | —                             | Fuda JWKS URL, e.g. `http://127.0.0.1:3300/.well-known/jwks.json` (required)                                                                                                                                                  |
+| Variable                 | Default                       | Purpose                                                                                                                                                                                                      |
+| ------------------------ | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `TORII_PORT`             | `3100` (falls back to `PORT`) | HTTP listen port                                                                                                                                                                                             |
+| `TORII_HOST`             | `127.0.0.1`                   | HTTP bind address                                                                                                                                                                                            |
+| `TORII_DATABASE_URL`     | —                             | Required. Postgres connection string (connectors, OAuth tokens, call traces, approval ledger)                                                                                                                |
+| `TORII_SECRET_KEY`       | —                             | Required outside tests. Seals connector secrets at rest                                                                                                                                                      |
+| `TORII_OPERATORS_PATH`   | —                             | Optional `operators.yaml`. When set, the file is validated at boot. Grants are wiped for absent owners only when `TORII_OPERATORS_RECONCILE=strict`. Unset is a no-op                                        |
+| `TORII_GATEWAY_BASE_URL` | —                             | Stable **public** base URL for OAuth callbacks (overrides per-request Host derivation). With the BFF edge, set this to the BFF origin (e.g. `http://localhost:3000`), not Torii's ClusterIP/`localhost:3100` |
+| `TORII_FUDA_ISSUER`      | —                             | Expected `iss` on Fuda-minted agent JWTs (required)                                                                                                                                                          |
+| `TORII_FUDA_JWKS_URI`    | —                             | Fuda JWKS URL, e.g. `http://127.0.0.1:3300/.well-known/jwks.json` (required)                                                                                                                                 |
 
 Connectors are stored in Postgres and authored in keidai-ui Connections (or over `/api/connectors`); group policy likewise. Fresh installs boot with zero connectors. There is no config file and no `TORII_CONFIG_PATH` — the only YAML Torii reads is the operators registry.
 
@@ -132,7 +132,7 @@ Operator Google login (`KEIDAI_GOOGLE_*` on keidai-ui) is a separate client: red
 
 The `owner_id` must match the registered agent's owner — tokens linked for a different owner will not resolve at call time.
 
-Removing an operator from `operators.yaml` does not revoke IdP tokens by itself. Restart Torii (or roll the Deployment) so boot can wipe that `owner_id`'s rows from `oauth_tokens` and `pending_oauth_links`. Fuda's owner reconcile is separate and does not touch Torii's database. Compose and kind set `TORII_OPERATORS_PATH` to the mounted registry; a missing or invalid file fails boot rather than wiping grants. Unset `TORII_OPERATORS_PATH` skips the wipe.
+Removing an operator from `operators.yaml` does not revoke IdP tokens by itself. Delete the owner through Fuda (`DELETE /api/owners/:ownerId` with `FUDA_TORII_URL` set) or call Torii `DELETE /api/oauth/grants/:ownerId`. `TORII_OPERATORS_RECONCILE=strict` still wipes grants for owners absent from the file on boot. Unset `TORII_OPERATORS_PATH` skips that check. A missing or invalid file fails boot rather than wiping grants.
 
 In-cluster wiring: [`deploy/k8s/README.md`](../../deploy/k8s/README.md).
 

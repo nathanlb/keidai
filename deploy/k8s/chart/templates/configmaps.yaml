@@ -24,6 +24,7 @@ data:
   FUDA_K8S_SA_OIDC_JWKS_URI: {{ .Values.fuda.k8sSaOidc.jwksUri | quote }}
   FUDA_K8S_SA_OIDC_SUBJECTS: {{ $subjects | quote }}
   FUDA_OPERATORS_PATH: /app/operators/operators.yaml
+  FUDA_TORII_URL: http://torii:3100
   NODE_EXTRA_CA_CERTS: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
   KEIDAI_AUTO_MIGRATE: "false"
 ---

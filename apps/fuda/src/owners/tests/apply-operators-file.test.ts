@@ -41,11 +41,48 @@ describe("applyOperatorsFile", () => {
       const agents = new PgAgentRepository(isolated.pool);
       await owners.upsert("stale");
 
-      const result = await applyOperatorsFile(owners, agents, operatorsPath);
+      const result = await applyOperatorsFile(
+        owners,
+        agents,
+        operatorsPath,
+        "strict",
+      );
       assert.ok(result);
       assert.equal(result.ownersDeleted, 1);
       assert.ok(await owners.get("demo-owner"));
       assert.equal(await owners.get("stale"), null);
+    } finally {
+      await isolated.close();
+    }
+  });
+
+  it("keeps owners that are not listed when reconcile mode is additive", async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), "fuda-ops-"));
+    const operatorsPath = path.join(dir, "operators.yaml");
+    await writeFile(
+      operatorsPath,
+      `operators:\n  - owner_id: demo-owner\n    google_email: ops@example.com\n`,
+      "utf8",
+    );
+
+    const isolated = await createIsolatedSchema();
+    try {
+      await openFudaDatabase(resolveTestDatabaseUrl(), isolated.pool);
+      const owners = new PgOwnerRepository(isolated.pool);
+      const agents = new PgAgentRepository(isolated.pool);
+      await owners.upsert("jit-owner");
+
+      const result = await applyOperatorsFile(
+        owners,
+        agents,
+        operatorsPath,
+        "additive",
+      );
+      assert.ok(result);
+      assert.equal(result.mode, "additive");
+      assert.equal(result.ownersDeleted, 0);
+      assert.ok(await owners.get("jit-owner"));
+      assert.equal((await owners.get("demo-owner"))?.email, "ops@example.com");
     } finally {
       await isolated.close();
     }

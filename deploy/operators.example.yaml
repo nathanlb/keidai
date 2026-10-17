@@ -1,12 +1,16 @@
-# Platform operators — source of truth for Google identity ↔ opaque owner_id.
+# Platform operators — optional allowlist and boot seed.
 #
-# Consumed by:
-#   - keidai-ui BFF at boot (KEIDAI_OPERATORS_PATH) for login allowlist + mapping
-#   - Fuda at boot (FUDA_OPERATORS_PATH) to reconcile the owners table
-#   - Torii at boot (TORII_OPERATORS_PATH) to wipe OAuth grants for removed owners
+# When KEIDAI_OPERATORS_PATH points at this file, only these Google identities
+# can sign in, and each keeps its owner_id. Omit the file to provision any
+# account the configured OIDC issuer accepts.
 #
-# Invariant: one google_sub (and/or google_email) ↔ one owner_id.
-# Display name/avatar come from Google IdP claims at login, not from this file.
+# Fuda (FUDA_OPERATORS_PATH) upserts these owner ids at boot and does not
+# delete anyone else unless FUDA_OPERATORS_RECONCILE=strict.
+# Torii (TORII_OPERATORS_PATH) validates the file and leaves OAuth grants in
+# place unless TORII_OPERATORS_RECONCILE=strict.
+#
+# Invariant when the file is used: one google_sub (and/or google_email) ↔ one owner_id.
+# Display name/avatar come from the IdP at login, not from this file.
 
 operators:
   - owner_id: nathan-lafranceb

@@ -2,14 +2,28 @@
 
 ## Operator registry
 
-`deploy/operators.example.yaml` is the source of truth for mapping a Google
-operator identity to Keidai's opaque `owner_id`. Configure it before the first
-login and mount the same file into Fuda, Torii, and keidai-ui.
+Human login is OpenID Connect at the keidai-ui BFF. Set `OIDC_ISSUER_URL`,
+`OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and `OIDC_REDIRECT_URI` for any
+standard provider (Google Workspace, Okta, Entra ID, Keycloak). When
+`OIDC_ISSUER_URL` is unset, the BFF keeps the Google defaults and the
+`KEIDAI_GOOGLE_*` client settings.
 
-At boot, Fuda reconciles its owners against this registry. When
-`TORII_OPERATORS_PATH` is set, Torii removes OAuth rows for owners removed from
-the registry. Restart Torii after changing the file so that reconciliation
-runs.
+The first successful login creates an owner row in Fuda. Later logins for the
+same IdP subject keep that `owner_id` and refresh email and display name.
+`OIDC_ALLOWED_EMAIL_DOMAINS` optionally restricts email domains. For Google,
+that list also requires the `hd` claim.
+
+`deploy/operators.example.yaml` is optional. When `KEIDAI_OPERATORS_PATH` is
+set, the file is an allowlist: only those Google identities can sign in, and
+their `owner_id` is reused. Fuda and Torii still read the file at boot, but
+the default reconcile is additive — listed owners are upserted, and owners
+created at login are left in place, including their OAuth grants. Set
+`FUDA_OPERATORS_RECONCILE=strict` or `TORII_OPERATORS_RECONCILE=strict` to
+restore the old boot-time delete.
+
+Disable or delete an owner through Fuda (`PATCH` or `DELETE /api/owners/:ownerId`).
+Delete cascades that owner's agents. When `FUDA_TORII_URL` is set, Fuda also
+asks Torii to wipe that owner's OAuth grants before the row is removed.
 
 ## OAuth
 

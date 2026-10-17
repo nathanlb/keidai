@@ -4,6 +4,10 @@ import { ToriiConfigService } from "../config/torii-config.service.js";
 import { resolveGatewayBaseUrl } from "../config/utils/resolve-gateway-base-url.js";
 import { OAuthConnectionReadService } from "./oauth-connection-read.service.js";
 import { OAuthLinkService } from "./oauth-link.service.js";
+import type { PendingOAuthLinkStore } from "./types/pending-oauth-link-store.js";
+import { PENDING_OAUTH_LINK_STORE } from "./types/pending-oauth-link-store.js";
+import type { TokenRepository } from "./types/token-repository.js";
+import { TOKEN_REPOSITORY } from "./types/token-repository.js";
 import {
   oauthCallbackErrorHtml,
   oauthCallbackSuccessHtml,
@@ -35,6 +39,10 @@ export class OAuthApiController {
     private readonly oauthLink: OAuthLinkService,
     @inject(OAuthConnectionReadService)
     private readonly oauthConnections: OAuthConnectionReadService,
+    @inject(TOKEN_REPOSITORY)
+    private readonly tokens: TokenRepository,
+    @inject(PENDING_OAUTH_LINK_STORE)
+    private readonly pendingLinks: PendingOAuthLinkStore,
   ) {}
 
   registerRoutes(app: FastifyInstance): void {
@@ -54,6 +62,21 @@ export class OAuthApiController {
             error: error instanceof Error ? error.message : String(error),
           });
         }
+      },
+    );
+
+    app.delete<{ Params: { ownerId: string } }>(
+      "/api/oauth/grants/:ownerId",
+      async (request, reply) => {
+        const ownerId = request.params.ownerId.trim();
+        if (!ownerId) {
+          reply.code(400).send({ error: "ownerId is required" });
+          return;
+        }
+        const tokensDeleted = await this.tokens.deleteByOwner(ownerId);
+        const pendingLinksDeleted =
+          await this.pendingLinks.deleteByOwner(ownerId);
+        reply.send({ ownerId, tokensDeleted, pendingLinksDeleted });
       },
     );
 

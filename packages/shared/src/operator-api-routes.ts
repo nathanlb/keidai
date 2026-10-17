@@ -49,6 +49,7 @@ export const OPERATOR_API_ROUTES: readonly OperatorApiRoute[] = [
   },
   { prefix: "/api/agents", backend: "fuda" },
   { prefix: "/api/bearers", backend: "fuda" },
+  { prefix: "/api/owners", backend: "fuda" },
   { prefix: "/api/traces", backend: "torii", sse: true },
   { prefix: "/api", backend: "torii" },
 ];

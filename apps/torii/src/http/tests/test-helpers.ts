@@ -120,6 +120,8 @@ export function createOAuthApiController(
       tokenRepository,
       pendingLinkStore,
     ),
+    tokenRepository,
+    pendingLinkStore,
   );
 }
 

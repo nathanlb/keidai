@@ -43,6 +43,7 @@ services:
       # Pin container path so host-relative FUDA_OPERATORS_PATH from apps/fuda/.env
       # cannot break in-container boot (mirrors k8s ConfigMap mount).
       FUDA_OPERATORS_PATH: /app/operators/operators.yaml
+      FUDA_TORII_URL: http://torii:3100
     volumes:
       - ./apps/fuda/keys:/app/keys:ro
       - ./deploy/operators.example.yaml:/app/operators/operators.yaml:ro

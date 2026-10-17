@@ -1,10 +1,12 @@
 import type { FastifyInstance } from "fastify";
 import type { AgentsManagementApiController } from "../../agents/agents-management-api.controller.js";
 import type { BearersManagementApiController } from "../../bearers/bearers-management-api.controller.js";
+import type { OwnersManagementApiController } from "../../owners/owners-management-api.controller.js";
 
 export interface ManagementRouteControllers {
   agentsManagement: AgentsManagementApiController;
   bearersManagement: BearersManagementApiController;
+  ownersManagement: OwnersManagementApiController;
 }
 
 /**
@@ -17,4 +19,5 @@ export function registerManagementRoutes(
 ): void {
   controllers.agentsManagement.registerRoutes(app);
   controllers.bearersManagement.registerRoutes(app);
+  controllers.ownersManagement.registerRoutes(app);
 }

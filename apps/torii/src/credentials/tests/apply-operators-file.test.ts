@@ -62,6 +62,7 @@ describe("applyOperatorsFile", () => {
         persistence.tokenRepository,
         persistence.pendingLinkStore,
         operatorsPath,
+        "strict",
       );
 
       assert.ok(result);
@@ -77,6 +78,41 @@ describe("applyOperatorsFile", () => {
         "keep-token",
       );
       assert.equal(await persistence.pendingLinkStore.get("link-stale"), null);
+    } finally {
+      await persistence.close();
+    }
+  });
+
+  it("leaves grants in place unless reconcile mode is strict", async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), "torii-ops-"));
+    const operatorsPath = path.join(dir, "operators.yaml");
+    await writeFile(
+      operatorsPath,
+      `operators:\n  - owner_id: demo-owner\n    google_email: ops@example.com\n`,
+      "utf8",
+    );
+
+    const persistence = await createTestGatewayPersistence("memory");
+    try {
+      await persistence.tokenRepository.set("jit-owner", "github", {
+        accessToken: "jit-token",
+      });
+
+      const result = await applyOperatorsFile(
+        persistence.tokenRepository,
+        persistence.pendingLinkStore,
+        operatorsPath,
+        "additive",
+      );
+
+      assert.ok(result);
+      assert.equal(result.mode, "additive");
+      assert.equal(result.ownersWiped, 0);
+      assert.equal(
+        (await persistence.tokenRepository.get("jit-owner", "github"))
+          ?.accessToken,
+        "jit-token",
+      );
     } finally {
       await persistence.close();
     }

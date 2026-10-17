@@ -43,4 +43,34 @@ describe("resolveOperatorAuthConfigFromEnv", () => {
     assert.equal(config.operators[0]?.owner_id, "demo-owner");
     assert.equal(config.operators[0]?.google_email, "ops@example.com");
   });
+
+  it("discovers an OIDC issuer without an operators file", async () => {
+    const config = await resolveOperatorAuthConfigFromEnv(
+      {
+        OIDC_ISSUER_URL: "https://acme.okta.com",
+        OIDC_CLIENT_ID: "oidc-client",
+        OIDC_CLIENT_SECRET: "oidc-secret",
+        OIDC_REDIRECT_URI: "https://keidai.acme.com/auth/callback",
+        KEIDAI_SESSION_SECRET: "x".repeat(32),
+        OIDC_ALLOWED_EMAIL_DOMAINS: "Acme.com, Example.com",
+        KEIDAI_COOKIE_SECURE: "false",
+        NODE_ENV: "test",
+      },
+      async () => ({
+        issuer: "https://acme.okta.com",
+        authorizationEndpoint: "https://acme.okta.com/oauth2/v1/authorize",
+        tokenEndpoint: "https://acme.okta.com/oauth2/v1/token",
+        jwksUri: "https://acme.okta.com/oauth2/v1/keys",
+      }),
+    );
+
+    assert.equal(config.operators.length, 0);
+    assert.equal(config.issuer, "https://acme.okta.com");
+    assert.equal(
+      config.googleAuthorizationEndpoint,
+      "https://acme.okta.com/oauth2/v1/authorize",
+    );
+    assert.deepEqual(config.allowedEmailDomains, ["acme.com", "example.com"]);
+    assert.equal(config.googleClientId, "oidc-client");
+  });
 });

@@ -259,4 +259,56 @@ describe("Gateway OAuth linking API", () => {
       await persistence.close();
     }
   });
+
+  it("deletes oauth grants for one owner", async () => {
+    const persistence = await createTestGatewayPersistence();
+    const configService = new ToriiConfigService(sampleConfig);
+    const gatewayHttpServer = await createTestGatewayHttpServer(
+      {} as never,
+      {} as never,
+      {
+        configService,
+        persistence,
+        oauthApi: createOAuthApiController(configService, { persistence }),
+      },
+    );
+    await persistence.tokenRepository.set("ada", "github", {
+      accessToken: "ada-token",
+    });
+    await persistence.tokenRepository.set("keep", "github", {
+      accessToken: "keep-token",
+    });
+    await persistence.pendingLinkStore.create({
+      linkId: "link-ada",
+      ownerId: "ada",
+      provider: "github",
+      redirectUri: "http://localhost/callback/github",
+      status: "pending",
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    });
+
+    const gateway = await gatewayHttpServer.start();
+    try {
+      const response = await fetch(`${gateway.baseUrl}/api/oauth/grants/ada`, {
+        method: "DELETE",
+      });
+      assert.equal(response.status, 200);
+      assert.deepEqual(await response.json(), {
+        ownerId: "ada",
+        tokensDeleted: 1,
+        pendingLinksDeleted: 1,
+      });
+      assert.equal(
+        await persistence.tokenRepository.get("ada", "github"),
+        null,
+      );
+      assert.equal(
+        (await persistence.tokenRepository.get("keep", "github"))?.accessToken,
+        "keep-token",
+      );
+    } finally {
+      await gateway.close();
+      await persistence.close();
+    }
+  });
 });

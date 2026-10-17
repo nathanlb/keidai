@@ -50,6 +50,7 @@ export async function startServer(): Promise<void> {
   if (oauthReconcile) {
     logger.info("boot.operators_oauth_reconciled", {
       path: process.env.TORII_OPERATORS_PATH,
+      mode: oauthReconcile.mode,
       tokensDeleted: oauthReconcile.tokensDeleted,
       pendingLinksDeleted: oauthReconcile.pendingLinksDeleted,
       ownersWiped: oauthReconcile.ownersWiped,

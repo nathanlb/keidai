@@ -75,7 +75,10 @@ export async function startServer(): Promise<void> {
   if (ownersReconcile) {
     logger.info("boot.operators_reconciled", {
       path: process.env.FUDA_OPERATORS_PATH,
-      ...ownersReconcile,
+      mode: ownersReconcile.mode,
+      ownersUpserted: ownersReconcile.ownersUpserted,
+      ownersDeleted: ownersReconcile.ownersDeleted,
+      agentsDeleted: ownersReconcile.agentsDeleted,
     });
   }
 
