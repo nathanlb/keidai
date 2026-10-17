@@ -289,17 +289,19 @@ describe("Gateway OAuth linking API", () => {
 
     const gateway = await gatewayHttpServer.start();
     try {
-      const response = await fetch(
-        `${gateway.baseUrl}/api/oauth/grants/ada`,
-        { method: "DELETE" },
-      );
+      const response = await fetch(`${gateway.baseUrl}/api/oauth/grants/ada`, {
+        method: "DELETE",
+      });
       assert.equal(response.status, 200);
       assert.deepEqual(await response.json(), {
         ownerId: "ada",
         tokensDeleted: 1,
         pendingLinksDeleted: 1,
       });
-      assert.equal(await persistence.tokenRepository.get("ada", "github"), null);
+      assert.equal(
+        await persistence.tokenRepository.get("ada", "github"),
+        null,
+      );
       assert.equal(
         (await persistence.tokenRepository.get("keep", "github"))?.accessToken,
         "keep-token",

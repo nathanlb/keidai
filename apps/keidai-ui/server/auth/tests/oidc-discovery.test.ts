@@ -36,7 +36,10 @@ describe("discoverOidcProvider", () => {
   it("reads the discovery document", async () => {
     const metadata = await discoverOidcProvider(`${issuer}/`);
     assert.equal(metadata.issuer, "https://idp.example");
-    assert.equal(metadata.authorizationEndpoint, "https://idp.example/authorize");
+    assert.equal(
+      metadata.authorizationEndpoint,
+      "https://idp.example/authorize",
+    );
     assert.equal(metadata.tokenEndpoint, "https://idp.example/token");
     assert.equal(metadata.jwksUri, "https://idp.example/keys");
   });

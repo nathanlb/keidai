@@ -150,9 +150,7 @@ export async function resolveOperatorAuthConfigFromEnv(
   const cookieSecure =
     env.KEIDAI_COOKIE_SECURE === "true" ||
     (env.KEIDAI_COOKIE_SECURE !== "false" && env.NODE_ENV === "production");
-  const allowedEmailDomains = parseEmailDomains(
-    env.OIDC_ALLOWED_EMAIL_DOMAINS,
-  );
+  const allowedEmailDomains = parseEmailDomains(env.OIDC_ALLOWED_EMAIL_DOMAINS);
 
   return {
     googleClientId: clientId.value,

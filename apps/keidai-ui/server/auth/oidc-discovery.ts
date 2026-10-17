@@ -35,9 +35,7 @@ export async function discoverOidcProvider(
   const tokenEndpoint = stringField(json, "token_endpoint");
   const jwksUri = stringField(json, "jwks_uri");
   if (!authorizationEndpoint || !tokenEndpoint || !jwksUri) {
-    throw new Error(
-      `OIDC discovery document at ${url} is missing endpoints`,
-    );
+    throw new Error(`OIDC discovery document at ${url} is missing endpoints`);
   }
 
   return {

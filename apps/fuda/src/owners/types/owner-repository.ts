@@ -41,10 +41,7 @@ export interface OwnerRepository {
     ownerId: string,
     identity: OwnerIdentityInput,
   ): Promise<OwnerRecord | null>;
-  setStatus(
-    ownerId: string,
-    status: OwnerStatus,
-  ): Promise<OwnerRecord | null>;
+  setStatus(ownerId: string, status: OwnerStatus): Promise<OwnerRecord | null>;
   /**
    * Deletes the owner. Caller is responsible for cascading dependents
    * (or using deleteOwner which deletes agents first).

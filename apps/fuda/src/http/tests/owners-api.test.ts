@@ -99,7 +99,9 @@ describe("owners management API", () => {
         body: JSON.stringify(sampleAgentBody),
       });
       assert.equal(agent.status, 201);
-      const { agent: created } = (await agent.json()) as { agent: { id: string } };
+      const { agent: created } = (await agent.json()) as {
+        agent: { id: string };
+      };
 
       const deleted = await fetch(
         `${handle.baseUrl}/api/owners/${sampleAgentBody.ownerId}`,

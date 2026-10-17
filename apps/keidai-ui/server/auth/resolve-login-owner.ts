@@ -1,12 +1,10 @@
+import { isOperatorAllowed, resolveOperatorOwnerId } from "./allowlist.js";
 import {
-  isOperatorAllowed,
-  resolveOperatorOwnerId,
-} from "./allowlist.js";
-import { isGoogleIssuer, oidcIssuer, type OidcIdentityClaims } from "./google-oidc.js";
-import type {
-  OperatorAuthConfig,
-  ProvisionOwnerRequest,
-} from "./types.js";
+  isGoogleIssuer,
+  oidcIssuer,
+  type OidcIdentityClaims,
+} from "./google-oidc.js";
+import type { OperatorAuthConfig, ProvisionOwnerRequest } from "./types.js";
 
 export type LoginOwnerResolution =
   | {

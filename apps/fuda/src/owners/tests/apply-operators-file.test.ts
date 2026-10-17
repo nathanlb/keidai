@@ -41,7 +41,12 @@ describe("applyOperatorsFile", () => {
       const agents = new PgAgentRepository(isolated.pool);
       await owners.upsert("stale");
 
-      const result = await applyOperatorsFile(owners, agents, operatorsPath, "strict");
+      const result = await applyOperatorsFile(
+        owners,
+        agents,
+        operatorsPath,
+        "strict",
+      );
       assert.ok(result);
       assert.equal(result.ownersDeleted, 1);
       assert.ok(await owners.get("demo-owner"));
