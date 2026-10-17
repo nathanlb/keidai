@@ -10,6 +10,7 @@ type PrivateKey = Awaited<ReturnType<typeof generateKeyPair>>["privateKey"];
 describe("verifyGoogleIdToken", () => {
   let jwksServer: ReturnType<typeof createServer>;
   let jwksUri = "";
+  let jwksHits = 0;
   let privateKey: PrivateKey;
   let config: OperatorAuthConfig;
 
@@ -22,6 +23,7 @@ describe("verifyGoogleIdToken", () => {
     publicJwk.use = "sig";
 
     jwksServer = createServer((_req, res) => {
+      jwksHits += 1;
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify({ keys: [publicJwk] }));
     });
@@ -54,6 +56,7 @@ describe("verifyGoogleIdToken", () => {
     email_verified?: boolean;
     email?: string;
     sub?: string;
+    issuer?: string;
   }): Promise<string> {
     return new SignJWT({
       email: claims.email ?? "ops@example.com",
@@ -63,20 +66,26 @@ describe("verifyGoogleIdToken", () => {
     })
       .setProtectedHeader({ alg: "RS256", kid: "test-key" })
       .setSubject(claims.sub ?? "sub-1")
-      .setIssuer("https://accounts.google.com")
+      .setIssuer(claims.issuer ?? "https://accounts.google.com")
       .setAudience("test-client-id")
       .setIssuedAt()
       .setExpirationTime("5m")
       .sign(privateKey);
   }
 
-  it("accepts a token with email_verified true", async () => {
+  it("accepts a token with email_verified true and reuses cached JWKS", async () => {
+    const beforeHits = jwksHits;
     const token = await signIdToken({ email_verified: true });
     const claims = await verifyGoogleIdToken(config, token);
     assert.deepEqual(claims, {
       googleSub: "sub-1",
       email: "ops@example.com",
     });
+    const afterFirst = jwksHits;
+    assert.equal(afterFirst - beforeHits, 1);
+
+    await verifyGoogleIdToken(config, token);
+    assert.equal(jwksHits, afterFirst);
   });
 
   it("rejects a token with email_verified false", async () => {
@@ -87,10 +96,20 @@ describe("verifyGoogleIdToken", () => {
     );
   });
 
-  it("rejects a token missing email_verified", async () => {
-    const token = await signIdToken({});
+  it("rejects a token missing email_verified across Google and generic OIDC", async () => {
+    const googleToken = await signIdToken({});
     await assert.rejects(
-      () => verifyGoogleIdToken(config, token),
+      () => verifyGoogleIdToken(config, googleToken),
+      /not verified/,
+    );
+
+    const oktaToken = await signIdToken({ issuer: "https://acme.okta.com" });
+    await assert.rejects(
+      () =>
+        verifyGoogleIdToken(
+          { ...config, issuer: "https://acme.okta.com" },
+          oktaToken,
+        ),
       /not verified/,
     );
   });

@@ -2,6 +2,20 @@ import type { OperatorEntry, OperatorPrincipal } from "@keidai/shared";
 
 export type { OperatorPrincipal };
 
+export interface ProvisionOwnerRequest {
+  idpIssuer: string;
+  idpSub: string;
+  email: string;
+  displayName?: string;
+  pictureUrl?: string;
+  /** Pre-seeded owner id from operators.yaml, when the account is allowlisted. */
+  ownerId?: string;
+}
+
+export type ProvisionOwnerResult =
+  | { ok: true; ownerId: string }
+  | { ok: false; reason: "disabled" };
+
 declare module "fastify" {
   interface FastifyRequest {
     /** Set by operator auth `onRequest` after a valid session cookie. */
@@ -15,17 +29,36 @@ export interface OperatorAuthConfig {
   redirectUri: string;
   /** Symmetric secret used to seal session / OIDC state cookies (≥32 chars). */
   sessionSecret: string;
-  /** Google ↔ owner_id registry (from operators.yaml). */
+  /**
+   * Optional Google ↔ owner_id allowlist (from operators.yaml).
+   * Empty means any account the IdP accepts may be provisioned.
+   */
   operators: readonly OperatorEntry[];
   cookieSecure: boolean;
   /** Cookie max-age for the sealed operator session (seconds). Default 7d. */
   sessionMaxAgeSeconds?: number;
+  /** OIDC issuer. Defaults to Google when unset. */
+  issuer?: string;
   googleAuthorizationEndpoint?: string;
   googleTokenEndpoint?: string;
   googleJwksUri?: string;
   googleIssuer?: string;
+  /** Lowercased email domains. Empty or unset means no domain check. */
+  allowedEmailDomains?: readonly string[];
   /**
-   * Test seam: skip the live Google token + JWKS round-trip and return claims
+   * Creates or resolves the Fuda owner for this login.
+   * When omitted, login uses the operators allowlist only.
+   */
+  provisionOwner?: (
+    input: ProvisionOwnerRequest,
+  ) => Promise<ProvisionOwnerResult>;
+  /**
+   * Session re-check. Disabled or missing owners fail closed.
+   * When omitted, only the operators allowlist is re-checked.
+   */
+  isOwnerActive?: (ownerId: string) => Promise<boolean>;
+  /**
+   * Test seam: skip the live IdP token + JWKS round-trip and return claims
    * directly from the authorization code (or a canned principal).
    */
   exchangeAuthorizationCode?: (
@@ -36,6 +69,7 @@ export interface OperatorAuthConfig {
     email: string;
     name?: string;
     picture?: string;
+    hd?: string;
   }>;
 }
 

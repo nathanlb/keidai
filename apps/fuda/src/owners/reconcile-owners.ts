@@ -1,5 +1,12 @@
+import {
+  resolveOperatorsReconcileMode,
+  type OperatorsReconcileMode,
+} from "@keidai/shared";
 import type { AgentRepository } from "../agents/types/agent-repository.js";
+import { deleteOwner } from "./delete-owner.js";
 import type { OwnerRepository } from "./types/owner-repository.js";
+
+export { resolveOperatorsReconcileMode, type OperatorsReconcileMode };
 
 export interface ReconcileOwnersResult {
   ownersUpserted: number;
@@ -9,8 +16,7 @@ export interface ReconcileOwnersResult {
 
 /**
  * Strict reconcile: owners table matches desiredOwnerIds exactly.
- * Deletes absent owners and cascades their agents (personas/grants via
- * AgentRepository.delete).
+ * Deletes absent owners and cascades their agents.
  */
 export async function reconcileOwners(
   owners: OwnerRepository,
@@ -34,19 +40,12 @@ export async function reconcileOwners(
     if (desired.has(existing.ownerId)) {
       continue;
     }
-
-    for (const agent of await agents.list()) {
-      if (agent.ownerId !== existing.ownerId) {
-        continue;
-      }
-      if (await agents.delete(agent.id)) {
-        agentsDeleted += 1;
-      }
+    const deleted = await deleteOwner(owners, agents, existing.ownerId);
+    if (!deleted) {
+      continue;
     }
-
-    if (await owners.delete(existing.ownerId)) {
-      ownersDeleted += 1;
-    }
+    ownersDeleted += 1;
+    agentsDeleted += deleted.agentsDeleted;
   }
 
   return { ownersUpserted, ownersDeleted, agentsDeleted };

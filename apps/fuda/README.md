@@ -43,27 +43,31 @@ JWKS: `GET /.well-known/jwks.json` → `{ keys: [...] }` (unauthenticated; publi
 
 `FUDA_DATABASE_URL` is required (fail closed). Migrations run at boot before the HTTP server starts, then structural integrity is checked (duplicate slugs, orphan grants). Local Postgres: `docker compose up postgres -d`.
 
-When `FUDA_OPERATORS_PATH` points at an `operators.yaml`, Fuda reconciles the `owners` table at boot (upsert listed owners; delete absent ones and cascade their agents). Torii separately wipes that `owner_id`'s OAuth tokens when `TORII_OPERATORS_PATH` is set — restart Torii after editing the registry. Fuda also upserts the platform bearer `shaiden-runner` at boot and grants it to every agent. Create agents through the management API / keidai-ui.
+When `FUDA_OPERATORS_PATH` points at an `operators.yaml`, Fuda upserts those owner ids at boot and leaves every other owner in place. Set `FUDA_OPERATORS_RECONCILE=strict` to delete owners missing from the file and cascade their agents. Login provisioning is `POST /api/owners/resolve-or-provision`. `DELETE /api/owners/:ownerId` removes the owner and agents; when `FUDA_TORII_URL` is set it first asks Torii to wipe that owner's OAuth grants. Fuda also upserts the platform bearer `shaiden-runner` at boot and grants it to every agent. Create agents through the management API / keidai-ui.
 
 ### Management API
 
-Protected by `BFF_SERVICE_TOKEN` (required; Bearer on `/api/agents` and `/api/bearers`). Intended for keidai-ui; generate with `openssl rand -hex 32` and share via the root `.env`. Set `BFF_SERVICE_TOKEN_DISABLED=true` only to opt out locally.
+Protected by `BFF_SERVICE_TOKEN` (required; Bearer on `/api/agents`, `/api/bearers`, and `/api/owners`). Intended for keidai-ui; generate with `openssl rand -hex 32` and share via the root `.env`. Set `BFF_SERVICE_TOKEN_DISABLED=true` only to opt out locally.
 
-| Method   | Path                               | Notes                                                                                                |
-| -------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `GET`    | `/api/agents`                      | List agents (includes `ownerId`, `groups`, current `persona`)                                        |
-| `POST`   | `/api/agents`                      | Create (`slug`, `name`, `ownerId`, `groups`, `persona`; optional `id`). Auto-grants `shaiden-runner` |
-| `GET`    | `/api/agents/:id`                  | Full management record                                                                               |
-| `PATCH`  | `/api/agents/:id`                  | Update `name`, `groups`, and/or `persona` (persona appends a version). `slug` / `ownerId` immutable  |
-| `DELETE` | `/api/agents/:id`                  | Deletes agent, personas, and grants                                                                  |
-| `GET`    | `/api/agents/:id/grants`           | Grants authorizing bearers for this agent                                                            |
-| `GET`    | `/api/bearers`                     | List bearers                                                                                         |
-| `POST`   | `/api/bearers`                     | Create (`bearerId`, `displayName`)                                                                   |
-| `GET`    | `/api/bearers/:id`                 | Bearer plus grants                                                                                   |
-| `PATCH`  | `/api/bearers/:id`                 | Update `displayName`                                                                                 |
-| `DELETE` | `/api/bearers/:id`                 | Deletes bearer and grants. `shaiden-runner` cannot be deleted (`409`)                                |
-| `POST`   | `/api/bearers/:id/grants`          | Grant `{ agentId }`                                                                                  |
-| `DELETE` | `/api/bearers/:id/grants/:agentId` | Revoke grant                                                                                         |
+| Method   | Path                               | Notes                                                                                                                          |
+| -------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `GET`    | `/api/agents`                      | List agents (includes `ownerId`, `groups`, current `persona`)                                                                  |
+| `POST`   | `/api/agents`                      | Create (`slug`, `name`, `ownerId`, `groups`, `persona`; optional `id`). Auto-grants `shaiden-runner`                           |
+| `GET`    | `/api/agents/:id`                  | Full management record                                                                                                         |
+| `PATCH`  | `/api/agents/:id`                  | Update `name`, `groups`, and/or `persona` (persona appends a version). `slug` / `ownerId` immutable                            |
+| `DELETE` | `/api/agents/:id`                  | Deletes agent, personas, and grants                                                                                            |
+| `GET`    | `/api/agents/:id/grants`           | Grants authorizing bearers for this agent                                                                                      |
+| `GET`    | `/api/bearers`                     | List bearers                                                                                                                   |
+| `POST`   | `/api/bearers`                     | Create (`bearerId`, `displayName`)                                                                                             |
+| `GET`    | `/api/bearers/:id`                 | Bearer plus grants                                                                                                             |
+| `PATCH`  | `/api/bearers/:id`                 | Update `displayName`                                                                                                           |
+| `DELETE` | `/api/bearers/:id`                 | Deletes bearer and grants. `shaiden-runner` cannot be deleted (`409`)                                                          |
+| `POST`   | `/api/bearers/:id/grants`          | Grant `{ agentId }`                                                                                                            |
+| `DELETE` | `/api/bearers/:id/grants/:agentId` | Revoke grant                                                                                                                   |
+| `POST`   | `/api/owners/resolve-or-provision` | JIT login. Body: `idpIssuer`, `idpSub`, `email`, optional `displayName`, `pictureUrl`, `ownerId`. Disabled owners return `403` |
+| `GET`    | `/api/owners/:ownerId`             | Owner profile and status                                                                                                       |
+| `PATCH`  | `/api/owners/:ownerId`             | `{ status: "active" \| "disabled" }`                                                                                           |
+| `DELETE` | `/api/owners/:ownerId`             | Deletes the owner and their agents. Wipes Torii OAuth grants when `FUDA_TORII_URL` is set                                      |
 
 Duplicate `slug` → `409` `{ error: "agent slug already exists" }`. Group values are opaque strings; Fuda does not validate them against Torii.
 

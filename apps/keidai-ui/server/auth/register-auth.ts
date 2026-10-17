@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply } from "fastify";
 import type { OperatorPrincipal } from "@keidai/shared";
-import { isOperatorAllowed, resolveOperatorOwnerId } from "./allowlist.js";
+import { resolveLoginOwner } from "./resolve-login-owner.js";
 import {
   buildGoogleAuthorizationUrl,
   exchangeGoogleAuthorizationCode,
@@ -131,29 +131,31 @@ export async function registerOperatorAuth(
       return reply.redirect("/?auth_error=token_exchange");
     }
 
-    if (!isOperatorAllowed(config.operators, claims)) {
+    let resolved: Awaited<ReturnType<typeof resolveLoginOwner>>;
+    try {
+      resolved = await resolveLoginOwner(config, claims);
+    } catch {
       appendSetCookie(reply, clearOidc);
-      return reply
-        .code(403)
-        .type("text/html")
-        .send(forbiddenPage(claims.email));
+      return reply.redirect("/?auth_error=owner_provision");
     }
-
-    const ownerId = resolveOperatorOwnerId(config.operators, claims);
-    if (!ownerId) {
+    if (!resolved.ok) {
       appendSetCookie(reply, clearOidc);
       return reply
         .code(403)
         .type("text/html")
-        .send(forbiddenPage(claims.email));
+        .send(
+          resolved.reason === "disabled"
+            ? disabledPage(claims.email)
+            : forbiddenPage(claims.email),
+        );
     }
 
     const principal: OperatorPrincipal = {
       googleSub: claims.googleSub,
       email: claims.email,
-      ownerId,
-      ...(claims.name ? { name: claims.name } : {}),
-      ...(claims.picture ? { picture: claims.picture } : {}),
+      ownerId: resolved.ownerId,
+      ...(resolved.name ? { name: resolved.name } : {}),
+      ...(resolved.picture ? { picture: resolved.picture } : {}),
     };
     const sealedSession = await sealOperatorSession(principal, config);
     appendSetCookie(reply, clearOidc);
@@ -184,7 +186,29 @@ function forbiddenPage(email: string): string {
   </head>
   <body>
     <h1>Access denied</h1>
-    <p>The Google account <strong>${safeEmail}</strong> is not an allowlisted Keidai operator.</p>
+    <p>The account <strong>${safeEmail}</strong> is not allowed to sign in to this Keidai install.</p>
+    <form method="post" action="/auth/logout">
+      <button type="submit">Try another account</button>
+    </form>
+  </body>
+</html>`;
+}
+
+function disabledPage(email: string): string {
+  const safeEmail = email
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Access denied</title>
+  </head>
+  <body>
+    <h1>Access denied</h1>
+    <p>The Keidai owner for <strong>${safeEmail}</strong> is disabled.</p>
     <form method="post" action="/auth/logout">
       <button type="submit">Try another account</button>
     </form>

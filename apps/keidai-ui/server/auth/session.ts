@@ -63,15 +63,27 @@ export async function readOperatorSession(
     return null;
   }
 
-  // Re-check operators registry on every unseal so removals take effect
-  // on the next /api/session or gated /api/* request (not only at login).
+  // Re-check the operators allowlist when one is configured, so a removed
+  // row takes effect on the next request. An empty list is JIT mode: the
+  // IdP already admitted the account, and Fuda's owner status is the gate.
   if (
+    config.operators.length > 0 &&
     !isOperatorAllowed(config.operators, {
       googleSub: payload.googleSub,
       email: payload.email,
     })
   ) {
     return null;
+  }
+
+  if (config.isOwnerActive) {
+    try {
+      if (!(await config.isOwnerActive(payload.ownerId))) {
+        return null;
+      }
+    } catch {
+      return null;
+    }
   }
 
   return {

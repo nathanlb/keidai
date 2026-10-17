@@ -15,6 +15,7 @@ import type { IncomingHttpHeaders } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveOperatorAuthConfigFromEnv } from "./auth/config.js";
+import { createFudaOwnerClient } from "./auth/fuda-owner-client.js";
 import {
   enforceSessionOwnerOnAgentProxy,
   enforceSessionOwnerOnToriiApiProxy,
@@ -249,10 +250,22 @@ export async function createServer(
       ? options.bffServiceToken
       : resolveBffServiceToken();
 
-  const authConfig =
+  const authFromEnv = options.auth === undefined;
+  const resolvedAuth =
     options.auth === false
       ? null
       : (options.auth ?? (await resolveOperatorAuthConfigFromEnv()));
+  const authConfig = resolvedAuth
+    ? authFromEnv
+      ? {
+          ...resolvedAuth,
+          ...createFudaOwnerClient({
+            fudaBaseUrl: backends.fuda,
+            serviceToken: bffServiceToken,
+          }),
+        }
+      : resolvedAuth
+    : null;
 
   if (authConfig) {
     await registerOperatorAuth(app, authConfig);

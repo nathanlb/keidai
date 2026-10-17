@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import { container, type DependencyContainer, Lifecycle } from "tsyringe";
 import type { Pool } from "@keidai/postgres";
+import { resolveBffServiceToken } from "@keidai/shared/bff-service-token";
 import type { RuntimeConfig } from "./config/runtime-config.js";
 import { FudaConfigService } from "./config/fuda-config.service.js";
 import { AgentDefinitionApiController } from "./agents/agent-definition-api.controller.js";
@@ -17,7 +18,13 @@ import { SigningKeyService } from "./signing/signing-key.service.js";
 import type { SubjectTokenValidatorConfig } from "./subject-token/types/subject-token-validator-config.js";
 import { SUBJECT_TOKEN_VALIDATOR } from "./subject-token/types/subject-token-validator.js";
 import { createSubjectTokenValidator } from "./subject-token/utils/create-subject-token-validator.js";
+import { OwnersManagementApiController } from "./owners/owners-management-api.controller.js";
+import { OWNER_GRANT_CLEANER } from "./owners/delete-owner.js";
 import { PgOwnerRepository } from "./owners/pg-owner-repository.js";
+import {
+  createToriiGrantCleaner,
+  toriiGrantCleanerAuthorization,
+} from "./owners/torii-grant-cleaner.js";
 import { OWNER_REPOSITORY } from "./owners/types/owner-repository.js";
 import { FUDA_DATABASE, openFudaDatabase } from "./storage/fuda-postgres.js";
 import { TokenExchangeApiController } from "./token-exchange/token-exchange-api.controller.js";
@@ -82,6 +89,20 @@ export async function createContainer(
     { useClass: BearersManagementApiController },
     SINGLETON,
   );
+  appContainer.register(
+    OwnersManagementApiController,
+    { useClass: OwnersManagementApiController },
+    SINGLETON,
+  );
+  const toriiBaseUrl = process.env.FUDA_TORII_URL?.trim();
+  if (toriiBaseUrl) {
+    appContainer.register(OWNER_GRANT_CLEANER, {
+      useValue: createToriiGrantCleaner({
+        toriiBaseUrl,
+        authorization: toriiGrantCleanerAuthorization(resolveBffServiceToken()),
+      }),
+    });
+  }
   appContainer.register(
     AgentDefinitionApiController,
     { useClass: AgentDefinitionApiController },

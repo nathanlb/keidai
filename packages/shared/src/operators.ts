@@ -1,9 +1,10 @@
 import { z } from "zod";
 
 /**
- * Single source of truth for platform operators: opaque owner_id ↔ Google identity.
- * Loaded by the keidai-ui BFF at boot, reconciled into Fuda's owners table,
- * and used by Torii to wipe OAuth grants for removed operators.
+ * Optional operator allowlist: opaque owner_id ↔ Google identity.
+ * When loaded by the keidai-ui BFF, only listed accounts can sign in.
+ * Fuda uses the same file as an additive boot seed unless
+ * FUDA_OPERATORS_RECONCILE=strict.
  */
 export const operatorEntrySchema = z
   .object({
@@ -145,4 +146,13 @@ export function ownerIdsFromOperators(
   operators: readonly OperatorEntry[],
 ): string[] {
   return operators.map((entry) => entry.owner_id);
+}
+
+export type OperatorsReconcileMode = "additive" | "strict";
+
+/** `strict` is the only value that deletes data absent from operators.yaml. */
+export function resolveOperatorsReconcileMode(
+  envValue: string | undefined,
+): OperatorsReconcileMode {
+  return envValue?.trim().toLowerCase() === "strict" ? "strict" : "additive";
 }

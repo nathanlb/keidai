@@ -10,6 +10,7 @@ import { AgentDefinitionApiController } from "../agents/agent-definition-api.con
 import { AgentsManagementApiController } from "../agents/agents-management-api.controller.js";
 import { BearersManagementApiController } from "../bearers/bearers-management-api.controller.js";
 import { FudaConfigService } from "../config/fuda-config.service.js";
+import { OwnersManagementApiController } from "../owners/owners-management-api.controller.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
 import { JwksApiController } from "../signing/jwks-api.controller.js";
 import { FUDA_DATABASE } from "../storage/fuda-postgres.js";
@@ -43,6 +44,8 @@ export class FudaHttpServer {
     private readonly agentsManagement: AgentsManagementApiController,
     @inject(BearersManagementApiController)
     private readonly bearersManagement: BearersManagementApiController,
+    @inject(OwnersManagementApiController)
+    private readonly ownersManagement: OwnersManagementApiController,
     @inject(AgentDefinitionApiController)
     private readonly agentDefinition: AgentDefinitionApiController,
     @inject(TokenExchangeApiController)
@@ -96,6 +99,7 @@ export class FudaHttpServer {
       jwks: this.jwks,
       agentsManagement: this.agentsManagement,
       bearersManagement: this.bearersManagement,
+      ownersManagement: this.ownersManagement,
       agentDefinition: this.agentDefinition,
       tokenExchange: this.tokenExchange,
     });
