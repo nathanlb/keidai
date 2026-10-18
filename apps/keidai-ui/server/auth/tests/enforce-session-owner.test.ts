@@ -3,6 +3,8 @@ import { describe, it } from "node:test";
 import {
   forceSessionOwnerOnAgentCreateBody,
   forceSessionOwnerQuery,
+  isInternalOnlyToriiPath,
+  isSessionOwnerQueryRequest,
 } from "../enforce-session-owner.js";
 
 describe("forceSessionOwnerOnAgentCreateBody", () => {
@@ -69,5 +71,76 @@ describe("forceSessionOwnerQuery", () => {
       forceSessionOwnerQuery("/connections/reconnect", "demo-owner"),
       "/connections/reconnect?owner=demo-owner",
     );
+  });
+});
+
+describe("isSessionOwnerQueryRequest", () => {
+  it("matches POST OAuth initiate and connection reconnect routes", () => {
+    assert.equal(
+      isSessionOwnerQueryRequest("POST", "/api/oauth/initiate/github"),
+      true,
+    );
+    assert.equal(
+      isSessionOwnerQueryRequest("POST", "/oauth/initiate/github?owner=other"),
+      true,
+    );
+    assert.equal(
+      isSessionOwnerQueryRequest("POST", "/api/connections/reconnect"),
+      true,
+    );
+    assert.equal(
+      isSessionOwnerQueryRequest("POST", "/api/connections/github/reconnect"),
+      true,
+    );
+    assert.equal(
+      isSessionOwnerQueryRequest("GET", "/api/oauth/initiate/github"),
+      false,
+    );
+  });
+
+  it("matches GET OAuth connections, connections, and SSE events routes", () => {
+    assert.equal(
+      isSessionOwnerQueryRequest("GET", "/api/oauth/connections?owner=other"),
+      true,
+    );
+    assert.equal(isSessionOwnerQueryRequest("GET", "/oauth/connections"), true);
+    assert.equal(isSessionOwnerQueryRequest("GET", "/api/connections"), true);
+    assert.equal(isSessionOwnerQueryRequest("GET", "/connections"), true);
+    assert.equal(
+      isSessionOwnerQueryRequest("GET", "/api/connections/events"),
+      true,
+    );
+    assert.equal(
+      isSessionOwnerQueryRequest("GET", "/connections/events"),
+      true,
+    );
+    assert.equal(isSessionOwnerQueryRequest("GET", "/api/groups"), false);
+  });
+
+  it("matches DELETE OAuth connection unlink routes", () => {
+    assert.equal(
+      isSessionOwnerQueryRequest(
+        "DELETE",
+        "/api/oauth/connections/github?owner=other",
+      ),
+      true,
+    );
+    assert.equal(
+      isSessionOwnerQueryRequest("DELETE", "/oauth/connections/github"),
+      true,
+    );
+    assert.equal(
+      isSessionOwnerQueryRequest("DELETE", "/api/oauth/connections"),
+      false,
+    );
+  });
+});
+
+describe("isInternalOnlyToriiPath", () => {
+  it("flags internal /api/oauth/grants and /oauth/grants routes", () => {
+    assert.equal(isInternalOnlyToriiPath("/api/oauth/grants/alice"), true);
+    assert.equal(isInternalOnlyToriiPath("/oauth/grants/alice"), true);
+    assert.equal(isInternalOnlyToriiPath("/api/oauth/grants"), true);
+    assert.equal(isInternalOnlyToriiPath("/api/oauth/connections"), false);
   });
 });

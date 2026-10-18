@@ -182,7 +182,7 @@ describe("operator auth", () => {
     });
   });
 
-  it("rewrites OAuth initiate ?owner= to the session owner", async () => {
+  it("rewrites OAuth and connection ?owner= queries to the session owner and blocks /api/oauth/grants/*", async () => {
     const principal = {
       googleSub: "allowlisted-sub",
       email: "allow@example.com",
@@ -205,6 +205,83 @@ describe("operator auth", () => {
     assert.ok(lastUpstream);
     assert.equal(lastUpstream.method, "POST");
     assert.equal(lastUpstream.url, "/api/oauth/initiate/github?owner=nathanlb");
+
+    lastUpstream = null;
+    const reconnectRes = await fetch(
+      `${baseUrl()}/api/connections/github/reconnect?owner=attacker-owner`,
+      {
+        method: "POST",
+        headers: { cookie: cookieHeader },
+      },
+    );
+    assert.equal(reconnectRes.status, 200);
+    assert.ok(lastUpstream);
+    assert.equal(lastUpstream.method, "POST");
+    assert.equal(
+      lastUpstream.url,
+      "/api/connections/github/reconnect?owner=nathanlb",
+    );
+
+    lastUpstream = null;
+    const listOAuthRes = await fetch(
+      `${baseUrl()}/api/oauth/connections?owner=attacker-owner`,
+      {
+        headers: { cookie: cookieHeader },
+      },
+    );
+    assert.equal(listOAuthRes.status, 200);
+    assert.ok(lastUpstream);
+    assert.equal(lastUpstream.method, "GET");
+    assert.equal(lastUpstream.url, "/api/oauth/connections?owner=nathanlb");
+
+    lastUpstream = null;
+    const unlinkRes = await fetch(
+      `${baseUrl()}/api/oauth/connections/github?owner=attacker-owner`,
+      {
+        method: "DELETE",
+        headers: { cookie: cookieHeader },
+      },
+    );
+    assert.equal(unlinkRes.status, 200);
+    assert.ok(lastUpstream);
+    assert.equal(lastUpstream.method, "DELETE");
+    assert.equal(
+      lastUpstream.url,
+      "/api/oauth/connections/github?owner=nathanlb",
+    );
+
+    lastUpstream = null;
+    const listConnRes = await fetch(
+      `${baseUrl()}/api/connections?owner=attacker-owner`,
+      {
+        headers: { cookie: cookieHeader },
+      },
+    );
+    assert.equal(listConnRes.status, 200);
+    assert.ok(lastUpstream);
+    assert.equal(lastUpstream.method, "GET");
+    assert.equal(lastUpstream.url, "/api/connections?owner=nathanlb");
+
+    lastUpstream = null;
+    const eventsRes = await fetch(`${baseUrl()}/api/connections/events`, {
+      headers: { cookie: cookieHeader },
+    });
+    assert.equal(eventsRes.status, 200);
+    assert.ok(lastUpstream);
+    assert.equal(lastUpstream.method, "GET");
+    assert.equal(lastUpstream.url, "/api/connections/events?owner=nathanlb");
+
+    lastUpstream = null;
+    const blockedGrantsRes = await fetch(
+      `${baseUrl()}/api/oauth/grants/other-owner`,
+      {
+        method: "DELETE",
+        headers: { cookie: cookieHeader },
+      },
+    );
+    assert.equal(blockedGrantsRes.status, 403);
+    assert.deepEqual(await blockedGrantsRes.json(), { error: "Forbidden" });
+    assert.equal(lastUpstream, null);
   });
 
   it("starts login with a Google authorize redirect and PKCE cookie", async () => {
