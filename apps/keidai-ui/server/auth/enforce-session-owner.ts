@@ -16,19 +16,56 @@ function isAgentCreatePath(url: string): boolean {
 }
 
 /**
- * Path for posts that must bind `?owner=` to the session principal —
- * OAuth initiate and connection reconnect (user_oauth credentials).
- * May be full `/api/...` (raw) or prefix-stripped by http-proxy.
+ * Internal-only Torii routes that must never be reachable through the browser
+ * BFF proxy (invoked service-to-service by Fuda directly against Torii).
  */
-function isSessionOwnerQueryPath(url: string): boolean {
+export function isInternalOnlyToriiPath(url: string): boolean {
   const pathname = url.split("?")[0] ?? url;
   return (
-    pathname.startsWith("/oauth/initiate/") ||
-    pathname.startsWith("/api/oauth/initiate/") ||
-    pathname === "/connections/reconnect" ||
-    pathname === "/api/connections/reconnect" ||
-    /(?:^|\/)connections\/[^/]+\/reconnect$/.test(pathname)
+    pathname === "/oauth/grants" ||
+    pathname.startsWith("/oauth/grants/") ||
+    pathname === "/api/oauth/grants" ||
+    pathname.startsWith("/api/oauth/grants/")
   );
+}
+
+/**
+ * Checks whether a Torii API request must bind `?owner=` to the session
+ * principal. `url` may be full (`/api/...`) or prefix-stripped (`/...`).
+ */
+export function isSessionOwnerQueryRequest(
+  method: string,
+  url: string,
+): boolean {
+  const pathname = url.split("?")[0] ?? url;
+  const upperMethod = method.toUpperCase();
+
+  if (upperMethod === "POST") {
+    return (
+      pathname.startsWith("/oauth/initiate/") ||
+      pathname.startsWith("/api/oauth/initiate/") ||
+      pathname === "/connections/reconnect" ||
+      pathname === "/api/connections/reconnect" ||
+      /(?:^|\/)connections\/[^/]+\/reconnect$/.test(pathname)
+    );
+  }
+
+  if (upperMethod === "GET") {
+    return (
+      pathname === "/oauth/connections" ||
+      pathname === "/api/oauth/connections" ||
+      pathname === "/connections" ||
+      pathname === "/api/connections" ||
+      pathname === "/connections/events" ||
+      pathname === "/api/connections/events"
+    );
+  }
+
+  if (upperMethod === "DELETE") {
+    return /(?:^|\/)oauth\/connections\/[^/]+$/.test(pathname);
+  }
+
+  return false;
 }
 
 /**
@@ -92,17 +129,21 @@ export async function enforceSessionOwnerOnAgentProxy(
 
 /**
  * `@fastify/http-proxy` preHandler for the Torii `/api` mount.
- * Rewrites OAuth initiate and connection reconnect `?owner=` to the session
- * principal before proxying.
+ * Blocks internal-only grant wipe routes and rewrites OAuth / connection
+ * `?owner=` queries to the session principal before proxying.
  *
  * Mutates `request.raw.url` (Fastify's `request.url` is a read-only getter over
  * it) so `@fastify/http-proxy` forwards the forced query string.
  */
 export async function enforceSessionOwnerOnToriiApiProxy(
   request: FastifyRequest,
-  _reply: FastifyReply,
+  reply: FastifyReply,
 ): Promise<void> {
-  if (request.method !== "POST" || !isSessionOwnerQueryPath(request.url)) {
+  if (isInternalOnlyToriiPath(request.url)) {
+    return reply.code(403).send({ error: "Forbidden" });
+  }
+
+  if (!isSessionOwnerQueryRequest(request.method, request.url)) {
     return;
   }
 

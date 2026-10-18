@@ -98,11 +98,15 @@ async function fetchServersOrEmpty(
 async function fetchConnectionsOrEmpty(
   backends: OperatorApiBackends,
   bffServiceToken: string | null,
+  ownerId?: string,
 ): Promise<ConnectionStatus[]> {
   try {
+    const path = ownerId
+      ? `/api/connections?owner=${encodeURIComponent(ownerId)}`
+      : "/api/connections";
     const response = await fetchManagementApiJson<ConnectionsResponse>(
       backends.torii,
-      "/api/connections",
+      path,
       { bffServiceToken },
     );
     return response.connections;
@@ -154,7 +158,11 @@ export async function registerHomeDigestRoute(
         ),
         fetchGroupsOrEmpty(backends, bffServiceToken),
         fetchServersOrEmpty(backends, bffServiceToken),
-        fetchConnectionsOrEmpty(backends, bffServiceToken),
+        fetchConnectionsOrEmpty(
+          backends,
+          bffServiceToken,
+          request.operatorPrincipal?.ownerId,
+        ),
       ]);
 
       const runsResponse = buildRunsVisibilityResponse(

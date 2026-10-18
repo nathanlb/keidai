@@ -189,7 +189,7 @@ export async function registerApiProxy(
             preHandler: enforceSessionOwnerOnAgentProxy,
           }
         : {}),
-      ...(enforceSessionOwner && isToriiApiCatchAll
+      ...(isToriiApiCatchAll
         ? { preHandler: enforceSessionOwnerOnToriiApiProxy }
         : {}),
       ...bffUpstreamAgentOptions(),
