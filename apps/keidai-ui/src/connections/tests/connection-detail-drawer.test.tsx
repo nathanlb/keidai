@@ -96,6 +96,29 @@ describe("ConnectionDetailDrawer", () => {
     expect(onLink).toHaveBeenCalledWith("github");
   });
 
+  it("renders Unlink and invokes onUnlink when the signed-in operator's user_oauth account is linked", async () => {
+    const user = userEvent.setup();
+    const onUnlink = vi.fn().mockResolvedValue(undefined);
+
+    renderWithConnectionsPage(<ConnectionDetailDrawer />, {
+      selectedSummary: {
+        ...githubSummary,
+        credentialSubStatus: { label: "→ GitHub", warning: false },
+        rowAction: "none",
+        linkProviderId: "github",
+      },
+      selectedServer: githubServer,
+      drawerOpen: true,
+      onUnlink,
+    });
+
+    expect(
+      screen.getByText("Your personal OAuth account is linked."),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Unlink" }));
+    expect(onUnlink).toHaveBeenCalledWith("github");
+  });
+
   it("invokes onReconnect from the footer", async () => {
     const user = userEvent.setup();
     const onReconnect = createMockReconnect();

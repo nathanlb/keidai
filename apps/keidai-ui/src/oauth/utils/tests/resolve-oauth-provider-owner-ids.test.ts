@@ -9,19 +9,17 @@ describe("resolveOAuthProviderOwnerIds", () => {
     ]);
   });
 
-  it("unions acting owner with agent owners without duplicates", () => {
+  it("scopes strictly to the acting owner and ignores other agent owners", () => {
     expect(
       resolveOAuthProviderOwnerIds("nathan-lafranceb", [
         "team-a",
         "nathan-lafranceb",
       ]),
-    ).toEqual(["nathan-lafranceb", "team-a"]);
+    ).toEqual(["nathan-lafranceb"]);
   });
 
-  it("returns only agent owners when there is no acting owner", () => {
-    expect(resolveOAuthProviderOwnerIds(undefined, ["team-a"])).toEqual([
-      "team-a",
-    ]);
+  it("returns an empty list when there is no acting owner", () => {
+    expect(resolveOAuthProviderOwnerIds(undefined, ["team-a"])).toEqual([]);
   });
 });
 

@@ -243,19 +243,43 @@ export function ConnectionsPageProvider({
   });
 
   useEffect(() => {
-    if (!ownerId) {
+    if (!ownerId || !serversData || !connectionsByOwner) {
       return;
     }
 
+    const linkedProviders = new Set(
+      (connectionsByOwner.get(ownerId) ?? [])
+        .filter((connection) => connection.status === "linked")
+        .map((connection) => connection.provider),
+    );
+    const hasUnlinkedUserOAuth = serversData.servers.some(
+      (server) =>
+        server.credential.strategy === "user_oauth" &&
+        !linkedProviders.has(server.credential.provider),
+    );
+
     // Visiting Connections is the operator's refresh signal — backends often
     // sit idle until the next agent tools/list. Reconnect so the table matches
-    // what Torii currently sees. The timeout collapses React Strict Mode's
-    // double-invoke into a single request.
+    // what Torii currently sees, skipping unlinked user_oauth servers so they
+    // do not fire failing handshakes on mount.
     const handle = window.setTimeout(() => {
-      void onReconnectAllRef.current();
+      if (!hasUnlinkedUserOAuth) {
+        void onReconnectAllRef.current();
+        return;
+      }
+      const eligibleServers = serversData.servers.filter(
+        (server) =>
+          server.credential.strategy !== "user_oauth" ||
+          linkedProviders.has(server.credential.provider),
+      );
+      void Promise.all(
+        eligibleServers.map((server) =>
+          reconnectConnection(server.name, ownerId).catch(() => undefined),
+        ),
+      );
     }, 0);
     return () => window.clearTimeout(handle);
-  }, [ownerId]);
+  }, [connectionsByOwner, ownerId, serversData]);
 
   const openLinkDialog = useCallback(
     (providerId: string, ownerId: string) => {

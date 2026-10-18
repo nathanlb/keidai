@@ -39,12 +39,10 @@ function deriveRowAction(
       !oauthConnection ||
       oauthConnection.status === "not_linked" ||
       oauthConnection.status === "expired";
-    if (needsLink) {
-      return {
-        rowAction: "link",
-        linkProviderId: server.credential.provider,
-      };
-    }
+    return {
+      rowAction: needsLink ? "link" : "none",
+      linkProviderId: server.credential.provider,
+    };
   }
 
   return { rowAction: "none" };
@@ -79,14 +77,19 @@ function formatConnectionError(
   connection: ConnectionStatus | undefined,
   oauthConnection: OAuthConnectionStatus | undefined,
 ): string | undefined {
-  if (
-    server.credential.strategy === "user_oauth" &&
-    oauthConnection?.status === "linked" &&
-    state === "failed"
-  ) {
-    // Boot/reconnect without an agent principal cannot attach Authorization.
-    // Grant is linked; the next agent tools/list or tools/call reconnects.
-    return "Owner linked — MCP connects on the next agent session";
+  if (server.credential.strategy === "user_oauth" && state === "failed") {
+    if (oauthConnection?.status === "linked") {
+      // Boot/reconnect without an agent principal cannot attach Authorization.
+      // Grant is linked; the next agent tools/list or tools/call reconnects.
+      return "Owner linked — MCP connects on the next agent session";
+    }
+    const needsLink =
+      !oauthConnection ||
+      oauthConnection.status === "not_linked" ||
+      oauthConnection.status === "expired";
+    if (needsLink) {
+      return "Link your account to connect this MCP server";
+    }
   }
 
   return connection?.error;

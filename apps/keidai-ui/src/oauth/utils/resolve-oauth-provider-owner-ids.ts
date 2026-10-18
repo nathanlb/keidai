@@ -1,15 +1,12 @@
 /**
  * Owner IDs whose OAuth grants should appear on the providers page.
  *
- * Always includes the acting operator (links are stored under that owner even
- * when they have no agents yet). Agent owners are unioned so multi-owner
- * fleets stay visible.
+ * Scopes strictly to the signed-in operator's personal grants so cards never
+ * display or fan out across other operators' agent owners.
  */
 export function resolveOAuthProviderOwnerIds(
   actingOwnerId: string | undefined,
-  agentOwnerIds: readonly string[],
+  _agentOwnerIds?: readonly string[],
 ): string[] {
-  return [
-    ...new Set([...(actingOwnerId ? [actingOwnerId] : []), ...agentOwnerIds]),
-  ];
+  return actingOwnerId ? [actingOwnerId] : [];
 }

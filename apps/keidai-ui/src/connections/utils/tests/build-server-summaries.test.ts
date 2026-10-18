@@ -133,6 +133,7 @@ describe("buildServerSummaries", () => {
       name: "github",
       toolCount: 4,
       rowAction: "none",
+      linkProviderId: "github",
       credentialSubStatus: { label: "→ GitHub", warning: false },
     });
     expect(summaries[1]).toMatchObject({
@@ -143,9 +144,20 @@ describe("buildServerSummaries", () => {
     });
   });
 
-  it("offers Link for unlinked user_oauth servers", () => {
-    const summaries = buildServerSummaries([githubServer], new Map(), {
-      ownerId: "demo-owner",
+  it("offers Link for unlinked user_oauth servers and shows personal link guidance when failed", () => {
+    const connections = new Map<string, ConnectionStatus>([
+      [
+        "github",
+        {
+          name: "github",
+          state: "failed",
+          error: 'No OAuth token linked for provider "github" (owner "user-b")',
+        },
+      ],
+    ]);
+
+    const summaries = buildServerSummaries([githubServer], connections, {
+      ownerId: "user-b",
       oauthProviders: {
         github: {
           token_url: "https://github.com/login/oauth/access_token",
@@ -158,6 +170,9 @@ describe("buildServerSummaries", () => {
 
     expect(summaries[0]?.rowAction).toBe("link");
     expect(summaries[0]?.linkProviderId).toBe("github");
+    expect(summaries[0]?.error).toBe(
+      "Link your account to connect this MCP server",
+    );
   });
 
   it("softens boot auth failures when the acting owner is already linked", () => {
@@ -198,6 +213,38 @@ describe("buildServerSummaries", () => {
     });
     expect(summaries[0]?.error).toBe(
       "Owner linked — MCP connects on the next agent session",
+    );
+  });
+
+  it("replaces raw boot auth errors with a friendly link prompt when unlinked", () => {
+    const connections = new Map<string, ConnectionStatus>([
+      [
+        "github",
+        {
+          name: "github",
+          state: "failed",
+          error:
+            "Could not resolve OAuth credentials for gateway connections",
+        },
+      ],
+    ]);
+
+    const summaries = buildServerSummaries([githubServer], connections, {
+      ownerId: "demo-owner",
+      oauthProviders: {
+        github: {
+          token_url: "https://github.com/login/oauth/access_token",
+          client_id: "gh-client",
+          scopes: ["repo"],
+        },
+      },
+      oauthConnections: [],
+    });
+
+    expect(summaries[0]?.rowAction).toBe("link");
+    expect(summaries[0]?.linkProviderId).toBe("github");
+    expect(summaries[0]?.error).toBe(
+      "Link your account to connect this MCP server",
     );
   });
 });

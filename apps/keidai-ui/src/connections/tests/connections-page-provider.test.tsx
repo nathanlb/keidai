@@ -3,31 +3,61 @@ import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConnectionsPageProvider } from "../context/connections-page-provider.js";
 
-const { reconnectAllConnections, liveConnections } = vi.hoisted(() => ({
+const {
+  reconnectAllConnections,
+  reconnectConnection,
+  liveConnections,
+  serversState,
+  oauthConnectionsState,
+} = vi.hoisted(() => ({
   reconnectAllConnections: vi.fn(async () => undefined),
+  reconnectConnection: vi.fn(async () => undefined),
   liveConnections: {
     connections: new Map(),
     error: undefined as Error | undefined,
     isLoading: false,
   },
+  serversState: {
+    servers: [] as Array<{
+      name: string;
+      transport: { type: "http"; url: string };
+      credential:
+        | { strategy: "none" }
+        | { strategy: "user_oauth"; provider: string };
+      policy: { default: "allow" };
+    }>,
+  },
+  oauthConnectionsState: {
+    byOwner: new Map<
+      string,
+      Array<{
+        provider: string;
+        ownerId: string;
+        status: "linked" | "not_linked";
+        scopes: string[];
+      }>
+    >(),
+  },
 }));
 
 vi.mock("../../lib/api/gateway.js", () => ({
   reconnectAllConnections,
-  reconnectConnection: vi.fn(async () => undefined),
+  reconnectConnection,
   deleteConnector: vi.fn(async () => undefined),
   unlinkOAuthConnection: vi.fn(async () => undefined),
 }));
 
 vi.mock("../../lib/hooks/use-fetch-servers.js", () => ({
+  SERVERS_KEY: "torii-servers",
   useFetchServers: () => ({
-    data: { servers: [] },
+    data: { servers: serversState.servers },
     error: undefined,
     isLoading: false,
   }),
 }));
 
 vi.mock("../../lib/hooks/use-fetch-oauth-providers.js", () => ({
+  OAUTH_PROVIDERS_KEY: "torii-oauth-providers",
   useFetchOAuthProviders: () => ({
     data: { providers: {} },
     error: undefined,
@@ -58,7 +88,7 @@ vi.mock("../../shell/hooks/use-acting-owner.js", () => ({
 
 vi.mock("../../lib/hooks/use-fetch-oauth-connections.js", () => ({
   useFetchOAuthConnections: () => ({
-    data: new Map(),
+    data: oauthConnectionsState.byOwner,
     error: undefined,
     isLoading: false,
     patchOwnerConnections: vi.fn(),
@@ -86,9 +116,12 @@ vi.mock("../../oauth/context/use-oauth-link.js", () => ({
 describe("ConnectionsPageProvider", () => {
   beforeEach(() => {
     reconnectAllConnections.mockClear();
+    reconnectConnection.mockClear();
     liveConnections.connections = new Map();
     liveConnections.error = undefined;
     liveConnections.isLoading = false;
+    serversState.servers = [];
+    oauthConnectionsState.byOwner = new Map();
   });
 
   it("reconnects all backends when the page is visited", async () => {
@@ -104,6 +137,53 @@ describe("ConnectionsPageProvider", () => {
       expect(reconnectAllConnections).toHaveBeenCalledWith("demo-owner");
     });
     expect(reconnectAllConnections).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips unlinked user_oauth servers on mount so they do not fire failing handshakes", async () => {
+    serversState.servers = [
+      {
+        name: "deepwiki",
+        transport: { type: "http", url: "https://mcp.deepwiki.com/mcp" },
+        credential: { strategy: "none" },
+        policy: { default: "allow" },
+      },
+      {
+        name: "github",
+        transport: { type: "http", url: "https://api.githubcopilot.com/mcp/" },
+        credential: { strategy: "user_oauth", provider: "github" },
+        policy: { default: "allow" },
+      },
+    ];
+    oauthConnectionsState.byOwner = new Map([
+      [
+        "demo-owner",
+        [
+          {
+            provider: "github",
+            ownerId: "demo-owner",
+            status: "not_linked",
+            scopes: ["repo"],
+          },
+        ],
+      ],
+    ]);
+
+    render(
+      <MemoryRouter>
+        <ConnectionsPageProvider>
+          <div />
+        </ConnectionsPageProvider>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(reconnectConnection).toHaveBeenCalledWith("deepwiki", "demo-owner");
+    });
+    expect(reconnectAllConnections).not.toHaveBeenCalled();
+    expect(reconnectConnection).not.toHaveBeenCalledWith(
+      "github",
+      "demo-owner",
+    );
   });
 
   it("still renders children when the live connection stream errors", () => {

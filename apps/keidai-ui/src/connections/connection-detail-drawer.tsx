@@ -238,6 +238,7 @@ export function ConnectionDetailDrawer() {
             type="button"
             variant="ghost"
             className="gap-1.5 text-destructive hover:text-destructive"
+            title="Remove connector from workspace for all operators"
             disabled={isDeleting}
             onClick={() => {
               setIsDeleting(true);
@@ -302,7 +303,10 @@ export function ConnectionDetailDrawer() {
         ) : summary.credentialStrategy === "user_oauth" &&
           summary.linkProviderId &&
           !needsLink ? (
-          <div className="mt-2.5 flex justify-end">
+          <div className="mt-2.5 flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+            <span className="text-[12px] text-muted-foreground">
+              Your personal OAuth account is linked.
+            </span>
             <Button
               type="button"
               variant="ghost"
