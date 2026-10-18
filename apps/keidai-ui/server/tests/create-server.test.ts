@@ -204,10 +204,9 @@ describe("createServer", () => {
     assert.equal(response.status, 302);
     assert.equal(response.headers.get("location"), "/?oauth=linked");
 
-    const blockedGrantsRes = await fetch(
-      `${base}/api/oauth/grants/any-owner`,
-      { method: "DELETE" },
-    );
+    const blockedGrantsRes = await fetch(`${base}/api/oauth/grants/any-owner`, {
+      method: "DELETE",
+    });
     assert.equal(blockedGrantsRes.status, 403);
     assert.deepEqual(await blockedGrantsRes.json(), { error: "Forbidden" });
   });

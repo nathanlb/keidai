@@ -103,10 +103,7 @@ describe("isSessionOwnerQueryRequest", () => {
       isSessionOwnerQueryRequest("GET", "/api/oauth/connections?owner=other"),
       true,
     );
-    assert.equal(
-      isSessionOwnerQueryRequest("GET", "/oauth/connections"),
-      true,
-    );
+    assert.equal(isSessionOwnerQueryRequest("GET", "/oauth/connections"), true);
     assert.equal(isSessionOwnerQueryRequest("GET", "/api/connections"), true);
     assert.equal(isSessionOwnerQueryRequest("GET", "/connections"), true);
     assert.equal(
