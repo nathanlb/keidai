@@ -393,7 +393,12 @@ describe("Gateway /api/connections endpoints", () => {
           { method: "POST" },
         );
         assert.equal(withOwner.status, 200);
-        assert.equal(connectionManager.get("github")?.state, "connected");
+        assert.equal(
+          connectionManager.get("github", "demo-owner")?.state,
+          "connected",
+        );
+        assert.equal(connectionManager.get("github")?.state, "failed");
+        assert.equal(connectionManager.get("github")?.client, null);
 
         const toolsResponse = await fetch(
           `${gateway.baseUrl}/api/connections/github/tools`,

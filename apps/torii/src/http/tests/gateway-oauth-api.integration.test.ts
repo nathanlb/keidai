@@ -326,15 +326,12 @@ describe("Gateway OAuth linking API", () => {
     };
     const configService = new ToriiConfigService(configWithServer);
     const closedClients: string[] = [];
-    const { ConnectionManager } = await import(
-      "../../connections/connection-manager.service.js"
-    );
-    const { tryGetAgentPrincipal } = await import(
-      "../../identity/agent-principal-context.js"
-    );
-    const { createNoopLogger } = await import(
-      "../../logging/tests/test-helpers.js"
-    );
+    const { ConnectionManager } =
+      await import("../../connections/connection-manager.service.js");
+    const { tryGetAgentPrincipal } =
+      await import("../../identity/agent-principal-context.js");
+    const { createNoopLogger } =
+      await import("../../logging/tests/test-helpers.js");
     const connectionManager = new ConnectionManager(
       configService,
       {

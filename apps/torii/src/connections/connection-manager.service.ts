@@ -272,35 +272,37 @@ export class ConnectionManager {
       if (userConn) {
         return userConn;
       }
-      if (base?.state === "connected" && base.client) {
-        return base;
-      }
       return {
         config,
-        state: base?.state === "connecting" ? "connecting" : "failed",
+        state: base?.state ?? "failed",
         client: null,
         error:
-          base?.error ??
-          new Error("AgentPrincipal not set on request context"),
+          base?.state === "connected"
+            ? undefined
+            : (base?.error ??
+              new Error("AgentPrincipal not set on request context")),
       };
     }
 
-    if (base?.state === "connected" && base.client) {
-      return base;
+    if (base) {
+      return {
+        config: base.config,
+        state: base.state,
+        client: null,
+        error: base.error,
+      };
     }
 
-    if (ownerMap) {
-      for (const conn of ownerMap.values()) {
-        if (conn.state === "connected" && conn.client) {
-          return conn;
-        }
-      }
-      if (!base) {
-        return ownerMap.values().next().value;
-      }
+    if (ownerMap && ownerMap.size > 0) {
+      return {
+        config,
+        state: "failed",
+        client: null,
+        error: new Error("AgentPrincipal not set on request context"),
+      };
     }
 
-    return base;
+    return undefined;
   }
 
   list(ownerId?: string): BackendConnection[] {
@@ -428,8 +430,8 @@ export class ConnectionManager {
     server: ServerConfig,
     ownerId?: string,
   ): Promise<void> {
-    const isScopedUserOAuth =
-      server.credential.strategy === "user_oauth" && ownerId !== undefined;
+    const isUserOAuth = server.credential.strategy === "user_oauth";
+    const isScopedUserOAuth = isUserOAuth && ownerId !== undefined;
 
     try {
       const connectFn = () => this.connector.connect(server);
@@ -441,15 +443,27 @@ export class ConnectionManager {
             )
           : await connectFn();
 
-      const connected: BackendConnection = {
-        config: server,
-        state: "connected",
-        client,
-      };
       if (isScopedUserOAuth) {
-        this.setUserConnection(server.name, ownerId, connected);
+        this.setUserConnection(server.name, ownerId, {
+          config: server,
+          state: "connected",
+          client,
+        });
+      } else if (isUserOAuth) {
+        // Record unauthenticated reachability on the baseline without storing
+        // a shared MCP Client that could be borrowed across owners.
+        await client.close().catch(() => {});
+        this.setConnection(server.name, {
+          config: server,
+          state: "connected",
+          client: null,
+        });
       } else {
-        this.setConnection(server.name, connected);
+        this.setConnection(server.name, {
+          config: server,
+          state: "connected",
+          client,
+        });
       }
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));

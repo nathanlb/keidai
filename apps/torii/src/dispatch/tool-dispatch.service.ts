@@ -695,7 +695,11 @@ export class ToolDispatchService {
       stored.taskId,
       callToolResultToRecord(unsupportedBackendResultToolResult(message)),
     );
-    await this.postBackendCancel(stored.backendServer, stored.backendTaskId);
+    await this.postBackendCancel(
+      stored.backendServer,
+      stored.backendTaskId,
+      stored.ownerId,
+    );
   }
 
   private async forwardBackendCancel(taskId: string): Promise<void> {
@@ -703,7 +707,11 @@ export class ToolDispatchService {
     if (!stored) {
       return;
     }
-    await this.postBackendCancel(stored.backendServer, stored.backendTaskId);
+    await this.postBackendCancel(
+      stored.backendServer,
+      stored.backendTaskId,
+      stored.ownerId,
+    );
   }
 
   /**
@@ -713,9 +721,13 @@ export class ToolDispatchService {
   private async postBackendCancel(
     server: string,
     backendTaskId: string,
+    ownerId?: string,
   ): Promise<void> {
     try {
-      const connection = await this.connectionManager.ensureConnected(server);
+      const connection = await this.connectionManager.ensureConnected(
+        server,
+        ownerId,
+      );
       if (connection.config.transport.type !== "http" || !connection.client) {
         return;
       }

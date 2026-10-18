@@ -30,7 +30,9 @@ export class ConnectionsApiController {
     app.get<{ Querystring: { owner?: string } }>(
       "/api/connections",
       async (request, reply) => {
-        reply.send(this.connectionRead.listConnections(readOwnerQuery(request)));
+        reply.send(
+          this.connectionRead.listConnections(readOwnerQuery(request)),
+        );
       },
     );
 

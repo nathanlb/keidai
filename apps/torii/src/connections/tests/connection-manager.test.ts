@@ -194,10 +194,22 @@ describe("ConnectionManager", () => {
     try {
       await manager.connectAll();
       assert.equal(manager.get("github")?.state, "connected");
+      assert.equal(manager.get("github")?.client, null);
 
       await manager.reconnect("github");
       assert.equal(manager.get("github")?.state, "connected");
+      assert.equal(manager.get("github")?.client, null);
       assert.equal(manager.get("github")?.error, undefined);
+
+      // Even when the unscoped reachability baseline is connected, each owner
+      // opens their own isolated MCP client via ensureConnected and unscoped
+      // get() never returns another owner's client.
+      const ownerAConn = await manager.ensureConnected("github", "owner-a");
+      const ownerBConn = await manager.ensureConnected("github", "owner-b");
+      assert.ok(ownerAConn.client);
+      assert.ok(ownerBConn.client);
+      assert.notStrictEqual(ownerAConn.client, ownerBConn.client);
+      assert.equal(manager.get("github")?.client, null);
     } finally {
       await closeManagerConnections(manager);
       await mockServer.close();
@@ -241,8 +253,10 @@ describe("ConnectionManager", () => {
       assert.equal(manager.get("github")?.state, "failed");
 
       await withTestAgentPrincipal(() => manager.ensureUserOAuthConnected());
-      assert.equal(manager.get("github")?.state, "connected");
-      assert.ok(manager.get("github")?.client);
+      assert.equal(manager.get("github", "test-owner")?.state, "connected");
+      assert.ok(manager.get("github", "test-owner")?.client);
+      assert.equal(manager.get("github")?.state, "failed");
+      assert.equal(manager.get("github")?.client, null);
     } finally {
       await closeManagerConnections(manager);
       await mockServer.close();
@@ -306,7 +320,10 @@ describe("ConnectionManager", () => {
       assert.equal(manager.get("github", "owner-c")?.state, "failed");
       assert.equal(manager.get("github", "owner-c")?.client, null);
       assert.equal(manager.get("github", "owner-a")?.state, "connected");
-      assert.strictEqual(manager.get("github", "owner-a")?.client, ownerAConn?.client);
+      assert.strictEqual(
+        manager.get("github", "owner-a")?.client,
+        ownerAConn?.client,
+      );
 
       // Linked owner-b gets a distinct MCP client with their own token.
       await manager.reconnect("github", "owner-b");
@@ -322,7 +339,10 @@ describe("ConnectionManager", () => {
       assert.equal(manager.get("github", "owner-a")?.state, "failed");
       assert.equal(manager.get("github", "owner-a")?.client, null);
       assert.equal(manager.get("github", "owner-b")?.state, "connected");
-      assert.strictEqual(manager.get("github", "owner-b")?.client, ownerBConn?.client);
+      assert.strictEqual(
+        manager.get("github", "owner-b")?.client,
+        ownerBConn?.client,
+      );
     } finally {
       await closeManagerConnections(manager);
       await mockServer.close();
