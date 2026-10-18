@@ -6,7 +6,10 @@ import {
   CredentialResolutionError,
   LinkingRequiredError,
 } from "../credentials/types/credential-resolution.js";
-import { getAgentPrincipal } from "../identity/agent-principal-context.js";
+import {
+  getAgentPrincipal,
+  tryGetAgentPrincipal,
+} from "../identity/agent-principal-context.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
 import type { Logger } from "@keidai/shared";
 import { PolicyEnforcementService } from "../policy/policy-enforcement.service.js";
@@ -60,7 +63,8 @@ export class ToolCatalogService {
   async refresh(): Promise<CatalogTool[]> {
     const catalog: CatalogTool[] = [];
     const serverTools = new Map<string, ServerToolView[]>();
-    const allConnections = this.connectionManager.list();
+    const ambientOwnerId = tryGetAgentPrincipal()?.ownerId;
+    const allConnections = this.connectionManager.list(ambientOwnerId);
     const activeServers = new Set(
       allConnections.map((connection) => connection.config.name),
     );
@@ -74,10 +78,17 @@ export class ToolCatalogService {
       (connection) => connection.state === "connected",
     );
     const refreshedServers = new Set<string>();
+    const hardFailedServers = new Set<string>();
 
     await Promise.all(
       connected.map(async (connection) => {
         if (!connection.client) {
+          return;
+        }
+        if (
+          connection.config.credential.strategy === "user_oauth" &&
+          !ambientOwnerId
+        ) {
           return;
         }
 
@@ -105,6 +116,11 @@ export class ToolCatalogService {
             return;
           }
 
+          if (!(error instanceof CredentialResolutionError)) {
+            hardFailedServers.add(connection.config.name);
+            this.discoveredToolsByServer.delete(connection.config.name);
+          }
+
           const err = error instanceof Error ? error : new Error(String(error));
           const message =
             error instanceof CredentialResolutionError
@@ -122,6 +138,7 @@ export class ToolCatalogService {
       const serverName = connection.config.name;
       if (
         refreshedServers.has(serverName) ||
+        hardFailedServers.has(serverName) ||
         connection.config.credential.strategy !== "user_oauth"
       ) {
         continue;

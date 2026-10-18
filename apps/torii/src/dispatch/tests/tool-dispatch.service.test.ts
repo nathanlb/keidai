@@ -1166,8 +1166,11 @@ describe("ToolDispatchService", () => {
       createNoopLogger(),
     );
     const traceEmitter = new CapturingTraceEmitter();
-    const { approvalGate, taskStore, close: closeApprovals } =
-      await createApprovalServices(groups);
+    const {
+      approvalGate,
+      taskStore,
+      close: closeApprovals,
+    } = await createApprovalServices(groups);
     const toolDispatch = new ToolDispatchService(
       toolCatalog,
       connectionManager,
