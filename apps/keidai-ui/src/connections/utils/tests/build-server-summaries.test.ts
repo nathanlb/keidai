@@ -144,7 +144,7 @@ describe("buildServerSummaries", () => {
     });
   });
 
-  it("offers Link for unlinked user_oauth servers and shows personal link guidance when failed", () => {
+  it("projects not_linked state and offers Link for unlinked user_oauth servers without a transport Failed badge", () => {
     const connections = new Map<string, ConnectionStatus>([
       [
         "github",
@@ -168,11 +168,11 @@ describe("buildServerSummaries", () => {
       oauthConnections: [],
     });
 
+    expect(summaries[0]?.state).toBe("not_linked");
     expect(summaries[0]?.rowAction).toBe("link");
     expect(summaries[0]?.linkProviderId).toBe("github");
-    expect(summaries[0]?.error).toBe(
-      "Link your account to connect this MCP server",
-    );
+    expect(summaries[0]?.error).toBeUndefined();
+    expect(summarizeConnectionCounts(summaries).failed).toBe(0);
   });
 
   it("softens boot auth failures when the acting owner is already linked", () => {
@@ -216,15 +216,14 @@ describe("buildServerSummaries", () => {
     );
   });
 
-  it("replaces raw boot auth errors with a friendly link prompt when unlinked", () => {
+  it("clears raw boot auth errors and projects not_linked when unlinked", () => {
     const connections = new Map<string, ConnectionStatus>([
       [
         "github",
         {
           name: "github",
           state: "failed",
-          error:
-            "Could not resolve OAuth credentials for gateway connections",
+          error: "Could not resolve OAuth credentials for gateway connections",
         },
       ],
     ]);
@@ -241,11 +240,10 @@ describe("buildServerSummaries", () => {
       oauthConnections: [],
     });
 
+    expect(summaries[0]?.state).toBe("not_linked");
     expect(summaries[0]?.rowAction).toBe("link");
     expect(summaries[0]?.linkProviderId).toBe("github");
-    expect(summaries[0]?.error).toBe(
-      "Link your account to connect this MCP server",
-    );
+    expect(summaries[0]?.error).toBeUndefined();
   });
 });
 

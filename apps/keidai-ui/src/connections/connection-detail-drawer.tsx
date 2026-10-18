@@ -25,38 +25,45 @@ import { CONNECTORS_KEY } from "../lib/hooks/use-fetch-connectors.js";
 import { mutate } from "swr";
 import { useState } from "react";
 
-function ConnectionStatusBadge({
-  state,
-}: {
-  state: "connected" | "connecting" | "failed";
-}) {
+import type { ServerSummaryState } from "./utils/build-server-summaries.js";
+
+function ConnectionStatusBadge({ state }: { state: ServerSummaryState }) {
   const meta =
     state === "connected"
       ? {
           label: "Connected",
           badgeClass:
             "border-transparent bg-secondary text-secondary-foreground",
-          showDot: true,
+          dotClass: "bg-success",
         }
       : state === "connecting"
         ? {
             label: "Connecting",
             badgeClass: "border-border bg-background text-foreground",
-            showDot: false,
+            dotClass: "",
           }
-        : {
-            label: "Failed",
-            badgeClass:
-              "border-transparent bg-destructive text-destructive-foreground",
-            showDot: false,
-          };
+        : state === "not_linked"
+          ? {
+              label: "Not linked",
+              badgeClass: "border-border bg-background text-foreground",
+              dotClass: "bg-muted-foreground",
+            }
+          : {
+              label: "Failed",
+              badgeClass:
+                "border-transparent bg-destructive text-destructive-foreground",
+              dotClass: "",
+            };
 
   return (
     <Badge variant="outline" className={cn("gap-1.5", meta.badgeClass)}>
       {state === "connecting" ? (
         <Loader2 className="size-3 animate-spin" aria-hidden />
-      ) : meta.showDot ? (
-        <span className="size-1.5 rounded-full bg-success" aria-hidden />
+      ) : meta.dotClass ? (
+        <span
+          className={cn("size-1.5 rounded-full", meta.dotClass)}
+          aria-hidden
+        />
       ) : null}
       {meta.label}
     </Badge>
@@ -220,40 +227,45 @@ export function ConnectionDetailDrawer() {
       }
       bodyClassName="space-y-[22px]"
       footerLeading={
-        <div className="flex w-full items-center justify-between gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            className="gap-1.5"
-            disabled={isReconnecting}
-            onClick={() => onReconnect(summary.name)}
-          >
-            <RefreshCw
-              className={cn("size-3.5", isReconnecting && "animate-spin")}
-              aria-hidden
-            />
-            Reconnect
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            className="gap-1.5 text-destructive hover:text-destructive"
-            title="Remove connector from workspace for all operators"
-            disabled={isDeleting}
-            onClick={() => {
-              setIsDeleting(true);
-              void onDeleteConnector(summary.name).finally(() =>
-                setIsDeleting(false),
-              );
-            }}
-          >
-            {isDeleting ? (
-              <Loader2 className="size-3.5 animate-spin" aria-hidden />
-            ) : (
-              <Trash2 className="size-3.5" aria-hidden />
-            )}
-            Remove
-          </Button>
+        <div className="flex w-full flex-col gap-1.5">
+          <div className="flex w-full items-center justify-between gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-1.5"
+              disabled={isReconnecting}
+              onClick={() => onReconnect(summary.name)}
+            >
+              <RefreshCw
+                className={cn("size-3.5", isReconnecting && "animate-spin")}
+                aria-hidden
+              />
+              Reconnect
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="gap-1.5 text-destructive hover:text-destructive"
+              title="Remove connector from workspace for all operators"
+              disabled={isDeleting}
+              onClick={() => {
+                setIsDeleting(true);
+                void onDeleteConnector(summary.name).finally(() =>
+                  setIsDeleting(false),
+                );
+              }}
+            >
+              {isDeleting ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              ) : (
+                <Trash2 className="size-3.5" aria-hidden />
+              )}
+              Remove connector
+            </Button>
+          </div>
+          <p className="text-right text-[11.5px] text-muted-foreground">
+            Removing a connector deletes it for the whole workspace.
+          </p>
         </div>
       }
     >

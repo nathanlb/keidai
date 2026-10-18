@@ -177,7 +177,10 @@ describe("ConnectionsPageProvider", () => {
     );
 
     await waitFor(() => {
-      expect(reconnectConnection).toHaveBeenCalledWith("deepwiki", "demo-owner");
+      expect(reconnectConnection).toHaveBeenCalledWith(
+        "deepwiki",
+        "demo-owner",
+      );
     });
     expect(reconnectAllConnections).not.toHaveBeenCalled();
     expect(reconnectConnection).not.toHaveBeenCalledWith(

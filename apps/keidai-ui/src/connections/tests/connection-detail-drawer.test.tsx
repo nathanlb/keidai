@@ -66,7 +66,14 @@ describe("ConnectionDetailDrawer", () => {
       screen.queryByText("Policy", { exact: true }),
     ).not.toBeInTheDocument();
     expect(screen.getByText("Tools", { exact: true })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Remove" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Remove connector" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Removing a connector deletes it for the whole workspace.",
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Allowed")).not.toBeInTheDocument();
     expect(screen.queryByText("Blocked")).not.toBeInTheDocument();
     expect(screen.getByText("Search GitHub issues")).toBeInTheDocument();

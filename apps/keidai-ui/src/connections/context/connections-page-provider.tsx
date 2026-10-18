@@ -237,49 +237,105 @@ export function ConnectionsPageProvider({
 
   const onReconnectAllRef = useRef(onReconnectAll);
   const ownerId = owner?.ownerId;
+  const serversRef = useRef(serversData?.servers);
+  const connectionsByOwnerRef = useRef(connectionsByOwner);
 
   useEffect(() => {
     onReconnectAllRef.current = onReconnectAll;
+    serversRef.current = serversData?.servers;
+    connectionsByOwnerRef.current = connectionsByOwner;
   });
 
+  const mountReconnectSignature = useMemo(() => {
+    if (!ownerId) {
+      return null;
+    }
+    const servers = serversData?.servers ?? [];
+    const hasUserOAuthServer = servers.some(
+      (server) => server.credential.strategy === "user_oauth",
+    );
+    if (
+      hasUserOAuthServer &&
+      oauthConnectionsLoading &&
+      !connectionsByOwner &&
+      !oauthConnectionsError
+    ) {
+      return null;
+    }
+    const linkedIds = (connectionsByOwner?.get(ownerId) ?? [])
+      .filter((connection) => connection.status === "linked")
+      .map((connection) => connection.provider)
+      .sort()
+      .join(",");
+    const serverKey = servers
+      .map((server) =>
+        server.credential.strategy === "user_oauth"
+          ? `${server.name}:user_oauth:${server.credential.provider}`
+          : `${server.name}:${server.credential.strategy}`,
+      )
+      .sort()
+      .join(",");
+    return `${ownerId}|${linkedIds}|${serverKey}`;
+  }, [
+    connectionsByOwner,
+    oauthConnectionsError,
+    oauthConnectionsLoading,
+    ownerId,
+    serversData?.servers,
+  ]);
+
   useEffect(() => {
-    if (!ownerId || !serversData || !connectionsByOwner) {
+    if (!mountReconnectSignature || !ownerId) {
       return;
     }
-
-    const linkedProviders = new Set(
-      (connectionsByOwner.get(ownerId) ?? [])
-        .filter((connection) => connection.status === "linked")
-        .map((connection) => connection.provider),
-    );
-    const hasUnlinkedUserOAuth = serversData.servers.some(
-      (server) =>
-        server.credential.strategy === "user_oauth" &&
-        !linkedProviders.has(server.credential.provider),
-    );
 
     // Visiting Connections is the operator's refresh signal — backends often
     // sit idle until the next agent tools/list. Reconnect so the table matches
     // what Torii currently sees, skipping unlinked user_oauth servers so they
     // do not fire failing handshakes on mount.
     const handle = window.setTimeout(() => {
+      const servers = serversRef.current ?? [];
+      const linkedProviders = new Set(
+        (connectionsByOwnerRef.current?.get(ownerId) ?? [])
+          .filter((connection) => connection.status === "linked")
+          .map((connection) => connection.provider),
+      );
+      const hasUnlinkedUserOAuth = servers.some(
+        (server) =>
+          server.credential.strategy === "user_oauth" &&
+          !linkedProviders.has(server.credential.provider),
+      );
+
       if (!hasUnlinkedUserOAuth) {
         void onReconnectAllRef.current();
         return;
       }
-      const eligibleServers = serversData.servers.filter(
+
+      const eligibleServers = servers.filter(
         (server) =>
           server.credential.strategy !== "user_oauth" ||
           linkedProviders.has(server.credential.provider),
       );
-      void Promise.all(
-        eligibleServers.map((server) =>
-          reconnectConnection(server.name, ownerId).catch(() => undefined),
-        ),
-      );
+      void (async () => {
+        setIsReconnectingAll(true);
+        try {
+          await Promise.all(
+            eligibleServers.map((server) =>
+              reconnectConnection(server.name, ownerId).catch(() => undefined),
+            ),
+          );
+          await mutate(
+            (key) => Array.isArray(key) && key[0] === SERVER_TOOLS_KEY,
+            undefined,
+            { revalidate: true },
+          );
+        } finally {
+          setIsReconnectingAll(false);
+        }
+      })();
     }, 0);
     return () => window.clearTimeout(handle);
-  }, [connectionsByOwner, ownerId, serversData]);
+  }, [mountReconnectSignature, ownerId]);
 
   const openLinkDialog = useCallback(
     (providerId: string, ownerId: string) => {

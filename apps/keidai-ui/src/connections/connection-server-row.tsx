@@ -1,5 +1,4 @@
 import { Badge, Button, cn, TableCell, TableRow } from "@keidai/ui";
-import type { ConnectionState } from "@keidai/shared";
 import {
   ChevronRight,
   CircleAlert,
@@ -10,10 +9,13 @@ import {
 import { ConnectorIcon } from "../lib/components/connector-icon.js";
 import { useConnectionsPage } from "./context/use-connections-page.js";
 import { CredentialStrategyBadge } from "./connections-summary-tiles.js";
-import type { ServerConnectionSummary } from "./utils/build-server-summaries.js";
+import type {
+  ServerConnectionSummary,
+  ServerSummaryState,
+} from "./utils/build-server-summaries.js";
 
 const connectionStateMeta: Record<
-  ConnectionState,
+  ServerSummaryState,
   { label: string; dotClass: string; badgeClass: string }
 > = {
   connected: {
@@ -26,6 +28,11 @@ const connectionStateMeta: Record<
     dotClass: "bg-muted-foreground",
     badgeClass: "border-border bg-background text-foreground",
   },
+  not_linked: {
+    label: "Not linked",
+    dotClass: "bg-muted-foreground",
+    badgeClass: "border-border bg-background text-foreground",
+  },
   failed: {
     label: "Failed",
     dotClass: "",
@@ -33,7 +40,7 @@ const connectionStateMeta: Record<
   },
 };
 
-function ConnectionStatusBadge({ state }: { state: ConnectionState }) {
+function ConnectionStatusBadge({ state }: { state: ServerSummaryState }) {
   const meta = connectionStateMeta[state];
 
   return (
@@ -46,7 +53,7 @@ function ConnectionStatusBadge({ state }: { state: ConnectionState }) {
     >
       {state === "connecting" ? (
         <Loader2 className="size-3 animate-spin" aria-hidden />
-      ) : state === "connected" ? (
+      ) : state === "connected" || state === "not_linked" ? (
         <span
           className={`
           size-1.5 rounded-full
