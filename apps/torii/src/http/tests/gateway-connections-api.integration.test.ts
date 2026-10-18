@@ -41,12 +41,7 @@ function serverConfig(
 async function closeManagerConnections(
   manager: ConnectionManager,
 ): Promise<void> {
-  await Promise.all(
-    manager
-      .list()
-      .map((connection) => connection.client?.close())
-      .filter((close): close is Promise<void> => close !== undefined),
-  );
+  await manager.closeAll();
 }
 
 function createConnectionsGateway(
@@ -409,6 +404,115 @@ describe("Gateway /api/connections endpoints", () => {
           toolsBody.tools.map((tool) => tool.name),
           ["search_issues"],
         );
+      } finally {
+        await gateway.close();
+      }
+    } finally {
+      await closeManagerConnections(connectionManager);
+      await mockServer.close();
+    }
+  });
+
+  it("isolates GET /api/connections and SSE events by ?owner= for user_oauth servers", async () => {
+    const mockServer = await startMockMcpServer({
+      requireAuth: true,
+      expectedBearer: "owner-a-token",
+      tools: [{ name: "search_issues", description: "Search issues" }],
+    });
+    const oauthProviders = {
+      github: {
+        token_url: "https://github.com/login/oauth/access_token",
+        client_id: "client",
+        client_secret: "secret",
+        scopes: ["repo"],
+      },
+    };
+    const { credentialResolver, tokenRepository } = createCredentialServices({
+      oauth_providers: oauthProviders,
+    });
+    await tokenRepository.set("owner-a", "github", {
+      accessToken: "owner-a-token",
+    });
+
+    const groups = [
+      testAgentsGroup([{ server: "github", tools: ["search_issues"] }]),
+    ];
+    const configService = new ToriiConfigService({
+      oauth_providers: oauthProviders,
+      servers: [
+        {
+          name: "github",
+          transport: { type: "http", url: mockServer.url },
+          credential: { strategy: "user_oauth", provider: "github" },
+        },
+      ],
+    });
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
+    const toolCatalog = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+      createPolicyEnforcement(groups),
+      createNoopLogger(),
+    );
+    const gatewayHttpServer = await createConnectionsGateway(
+      configService,
+      connectionManager,
+      toolCatalog,
+      groups,
+    );
+
+    try {
+      await connectionManager.connectAll();
+      const gateway = await gatewayHttpServer.start();
+      try {
+        // Connect owner-a
+        await fetch(
+          `${gateway.baseUrl}/api/connections/github/reconnect?owner=owner-a`,
+          { method: "POST" },
+        );
+
+        // Open SSE stream for owner-a; initial snapshot is "connected"
+        const ownerASsePromise = readSseEventsUntil(
+          `${gateway.baseUrl}/api/connections/events?owner=owner-a`,
+          (events) => events.length >= 2,
+        );
+
+        // Unlinked owner-b fails to reconnect
+        await fetch(
+          `${gateway.baseUrl}/api/connections/github/reconnect?owner=owner-b`,
+          { method: "POST" },
+        );
+
+        // Reconnect owner-a again so ownerASsePromise receives its second event
+        await fetch(
+          `${gateway.baseUrl}/api/connections/github/reconnect?owner=owner-a`,
+          { method: "POST" },
+        );
+
+        const ownerAEvents = await ownerASsePromise;
+        // owner-a's SSE stream must never receive owner-b's "failed" state
+        assert.equal(
+          ownerAEvents.some((entry) => entry.connection.state === "failed"),
+          false,
+        );
+
+        const ownerAConnRes = await fetch(
+          `${gateway.baseUrl}/api/connections?owner=owner-a`,
+        );
+        const ownerAConnBody =
+          (await ownerAConnRes.json()) as ConnectionsResponse;
+        assert.equal(ownerAConnBody.connections[0]?.state, "connected");
+
+        const ownerBConnRes = await fetch(
+          `${gateway.baseUrl}/api/connections?owner=owner-b`,
+        );
+        const ownerBConnBody =
+          (await ownerBConnRes.json()) as ConnectionsResponse;
+        assert.equal(ownerBConnBody.connections[0]?.state, "failed");
       } finally {
         await gateway.close();
       }

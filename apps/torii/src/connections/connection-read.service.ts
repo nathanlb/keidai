@@ -19,10 +19,10 @@ export class ConnectionReadService {
     private readonly toolCatalog: ToolCatalogService,
   ) {}
 
-  listConnections(): ConnectionsResponse {
+  listConnections(ownerId?: string): ConnectionsResponse {
     return {
       connections: this.connectionManager
-        .list()
+        .list(ownerId)
         .map((connection) => this.projectConnection(connection)),
     };
   }
@@ -33,8 +33,18 @@ export class ConnectionReadService {
     };
   }
 
-  subscribe(listener: (event: ConnectionSseEvent) => void): () => void {
-    return this.connectionManager.subscribe((connection) => {
+  subscribe(
+    listener: (event: ConnectionSseEvent) => void,
+    ownerId?: string,
+  ): () => void {
+    return this.connectionManager.subscribe((connection, eventOwnerId) => {
+      if (
+        connection.config.credential.strategy === "user_oauth" &&
+        ownerId !== undefined &&
+        eventOwnerId !== ownerId
+      ) {
+        return;
+      }
       listener({
         type: CONNECTION_SSE_EVENT.stateChanged,
         connection: this.projectConnection(connection),
