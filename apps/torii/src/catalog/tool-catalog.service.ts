@@ -18,10 +18,13 @@ import {
 } from "./types/catalog-tool.js";
 import { namespaceTool } from "./utils/namespacing.js";
 
+type RawMcpTool = CatalogTool["tool"];
+
 @injectable()
 export class ToolCatalogService {
   private catalog: CatalogTool[] = [];
   private serverTools = new Map<string, ServerToolView[]>();
+  private readonly discoveredToolsByServer = new Map<string, RawMcpTool[]>();
 
   constructor(
     @inject(ConnectionManager)
@@ -57,9 +60,20 @@ export class ToolCatalogService {
   async refresh(): Promise<CatalogTool[]> {
     const catalog: CatalogTool[] = [];
     const serverTools = new Map<string, ServerToolView[]>();
-    const connected = this.connectionManager
-      .list()
-      .filter((connection) => connection.state === "connected");
+    const allConnections = this.connectionManager.list();
+    const activeServers = new Set(
+      allConnections.map((connection) => connection.config.name),
+    );
+    for (const cachedServer of this.discoveredToolsByServer.keys()) {
+      if (!activeServers.has(cachedServer)) {
+        this.discoveredToolsByServer.delete(cachedServer);
+      }
+    }
+
+    const connected = allConnections.filter(
+      (connection) => connection.state === "connected",
+    );
+    const refreshedServers = new Set<string>();
 
     await Promise.all(
       connected.map(async (connection) => {
@@ -70,46 +84,18 @@ export class ToolCatalogService {
         try {
           await this.credentialResolver.resolve(connection.config);
           const result = await connection.client.listTools();
-          const backendToolNames = result.tools.map((tool) => tool.name);
-
-          this.policyEnforcement.warnUnknownPolicyTools(
+          this.discoveredToolsByServer.set(
             connection.config.name,
-            backendToolNames,
+            result.tools,
           );
-
-          const toolsForServer: ServerToolView[] = [];
-
-          for (const tool of result.tools) {
-            const configured = this.policyEnforcement.isConfiguredGrant(
-              connection.config.name,
-              tool.name,
-            );
-
-            toolsForServer.push({
-              name: tool.name,
-              description: tool.description,
-              // Grant surface across all groups. Connections UI lists every
-              // backend tool; agent tools/list still filters by principal.
-              allowed: configured,
-            });
-
-            if (!configured) {
-              continue;
-            }
-
-            const namespacedName = namespaceTool(
-              connection.config.name,
-              tool.name,
-            );
-            catalog.push({
-              server: connection.config.name,
-              bareName: tool.name,
-              namespacedName,
-              tool: { ...tool, name: namespacedName },
-            });
-          }
-
-          serverTools.set(connection.config.name, toolsForServer);
+          refreshedServers.add(connection.config.name);
+          this.populateServerCatalog(
+            connection.config.name,
+            result.tools,
+            catalog,
+            serverTools,
+            true,
+          );
         } catch (error) {
           if (error instanceof LinkingRequiredError) {
             this.logger.warn("catalog.linking_required", {
@@ -132,12 +118,80 @@ export class ToolCatalogService {
       }),
     );
 
+    for (const connection of allConnections) {
+      const serverName = connection.config.name;
+      if (
+        refreshedServers.has(serverName) ||
+        connection.config.credential.strategy !== "user_oauth"
+      ) {
+        continue;
+      }
+      const cachedTools = this.discoveredToolsByServer.get(serverName);
+      if (!cachedTools) {
+        continue;
+      }
+      this.populateServerCatalog(
+        serverName,
+        cachedTools,
+        catalog,
+        serverTools,
+        false,
+      );
+    }
+
     catalog.sort((left, right) =>
       left.namespacedName.localeCompare(right.namespacedName),
     );
     this.catalog = catalog;
     this.serverTools = serverTools;
     return catalog;
+  }
+
+  private populateServerCatalog(
+    serverName: string,
+    tools: readonly RawMcpTool[],
+    catalog: CatalogTool[],
+    serverTools: Map<string, ServerToolView[]>,
+    warnUnknown: boolean,
+  ): void {
+    if (warnUnknown) {
+      const backendToolNames = tools.map((tool) => tool.name);
+      this.policyEnforcement.warnUnknownPolicyTools(
+        serverName,
+        backendToolNames,
+      );
+    }
+
+    const toolsForServer: ServerToolView[] = [];
+
+    for (const tool of tools) {
+      const configured = this.policyEnforcement.isConfiguredGrant(
+        serverName,
+        tool.name,
+      );
+
+      toolsForServer.push({
+        name: tool.name,
+        description: tool.description,
+        // Grant surface across all groups. Connections UI lists every
+        // backend tool; agent tools/list still filters by principal.
+        allowed: configured,
+      });
+
+      if (!configured) {
+        continue;
+      }
+
+      const namespacedName = namespaceTool(serverName, tool.name);
+      catalog.push({
+        server: serverName,
+        bareName: tool.name,
+        namespacedName,
+        tool: { ...tool, name: namespacedName },
+      });
+    }
+
+    serverTools.set(serverName, toolsForServer);
   }
 
   /**
