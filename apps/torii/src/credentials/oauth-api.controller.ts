@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { inject, injectable } from "tsyringe";
 import { ToriiConfigService } from "../config/torii-config.service.js";
 import { resolveGatewayBaseUrl } from "../config/utils/resolve-gateway-base-url.js";
+import { ConnectionManager } from "../connections/connection-manager.service.js";
 import { OAuthConnectionReadService } from "./oauth-connection-read.service.js";
 import { OAuthLinkService } from "./oauth-link.service.js";
 import type { PendingOAuthLinkStore } from "./types/pending-oauth-link-store.js";
@@ -43,6 +44,8 @@ export class OAuthApiController {
     private readonly tokens: TokenRepository,
     @inject(PENDING_OAUTH_LINK_STORE)
     private readonly pendingLinks: PendingOAuthLinkStore,
+    @inject(ConnectionManager)
+    private readonly connectionManager?: ConnectionManager,
   ) {}
 
   registerRoutes(app: FastifyInstance): void {
@@ -76,6 +79,7 @@ export class OAuthApiController {
         const tokensDeleted = await this.tokens.deleteByOwner(ownerId);
         const pendingLinksDeleted =
           await this.pendingLinks.deleteByOwner(ownerId);
+        await this.connectionManager?.evictOwnerConnections(ownerId);
         reply.send({ ownerId, tokensDeleted, pendingLinksDeleted });
       },
     );

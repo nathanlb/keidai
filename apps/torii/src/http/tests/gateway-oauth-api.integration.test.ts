@@ -311,4 +311,87 @@ describe("Gateway OAuth linking API", () => {
       await persistence.close();
     }
   });
+
+  it("evicts only the target owner's cached MCP client on unlink and grant wipe", async () => {
+    const persistence = await createTestGatewayPersistence();
+    const configWithServer: ToriiConfig = {
+      ...sampleConfig,
+      servers: [
+        {
+          name: "github",
+          transport: { type: "http", url: "http://127.0.0.1:9/mcp" },
+          credential: { strategy: "user_oauth", provider: "github" },
+        },
+      ],
+    };
+    const configService = new ToriiConfigService(configWithServer);
+    const closedClients: string[] = [];
+    const { ConnectionManager } =
+      await import("../../connections/connection-manager.service.js");
+    const { tryGetAgentPrincipal } =
+      await import("../../identity/agent-principal-context.js");
+    const { createNoopLogger } =
+      await import("../../logging/tests/test-helpers.js");
+    const connectionManager = new ConnectionManager(
+      configService,
+      {
+        connect: async () => {
+          const ownerId = tryGetAgentPrincipal()?.ownerId ?? "unscoped";
+          return {
+            close: async () => {
+              closedClients.push(ownerId);
+            },
+          } as never;
+        },
+      },
+      createNoopLogger(),
+    );
+
+    const gatewayHttpServer = await createTestGatewayHttpServer(
+      {} as never,
+      {} as never,
+      {
+        configService,
+        persistence,
+        connectionManager,
+        oauthApi: createOAuthApiController(configService, {
+          persistence,
+          connectionManager,
+        }),
+      },
+    );
+
+    await persistence.tokenRepository.set("ada", "github", {
+      accessToken: "ada-token",
+    });
+    await persistence.tokenRepository.set("bob", "github", {
+      accessToken: "bob-token",
+    });
+    await connectionManager.reconnect("github", "ada");
+    await connectionManager.reconnect("github", "bob");
+    assert.equal(connectionManager.get("github", "ada")?.state, "connected");
+    assert.equal(connectionManager.get("github", "bob")?.state, "connected");
+
+    const gateway = await gatewayHttpServer.start();
+    try {
+      const unlinkRes = await fetch(
+        `${gateway.baseUrl}/api/oauth/connections/github?owner=ada`,
+        { method: "DELETE" },
+      );
+      assert.equal(unlinkRes.status, 204);
+      assert.deepEqual(closedClients, ["ada"]);
+      assert.equal(connectionManager.get("github", "ada")?.state, "failed");
+      assert.equal(connectionManager.get("github", "bob")?.state, "connected");
+
+      const wipeRes = await fetch(`${gateway.baseUrl}/api/oauth/grants/bob`, {
+        method: "DELETE",
+      });
+      assert.equal(wipeRes.status, 200);
+      assert.deepEqual(closedClients, ["ada", "bob"]);
+      assert.equal(connectionManager.get("github", "bob")?.state, "failed");
+    } finally {
+      await gateway.close();
+      await persistence.close();
+    }
+  });
 });

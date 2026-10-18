@@ -96,6 +96,7 @@ export function createOAuthApiController(
     clientRepository?: OAuthClientRepository;
     pendingLinkStore?: PendingOAuthLinkStore;
     persistence?: TestGatewayPersistence;
+    connectionManager?: ConnectionManager;
   } = {},
 ): OAuthApiController {
   const persistence = options.persistence ?? memoryPersistence();
@@ -114,6 +115,10 @@ export function createOAuthApiController(
       clientRepository,
       pendingLinkStore,
       createNoopLogger(),
+      undefined,
+      undefined,
+      undefined,
+      options.connectionManager,
     ),
     new OAuthConnectionReadService(
       configService,
@@ -122,6 +127,7 @@ export function createOAuthApiController(
     ),
     tokenRepository,
     pendingLinkStore,
+    options.connectionManager,
   );
 }
 
@@ -246,7 +252,10 @@ export async function createTestGatewayHttpServer(
     ),
     createStubConnectorsApi(),
     options.oauthApi ??
-      createOAuthApiController(configService, { persistence }),
+      createOAuthApiController(configService, {
+        persistence,
+        connectionManager,
+      }),
     new TracesApiController(traceRead),
     approvalServices.approvalsApi,
     groupsApi,

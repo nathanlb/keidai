@@ -27,9 +27,14 @@ export class ConnectionsApiController {
   ) {}
 
   registerRoutes(app: FastifyInstance): void {
-    app.get("/api/connections", async (_request, reply) => {
-      reply.send(this.connectionRead.listConnections());
-    });
+    app.get<{ Querystring: { owner?: string } }>(
+      "/api/connections",
+      async (request, reply) => {
+        reply.send(
+          this.connectionRead.listConnections(readOwnerQuery(request)),
+        );
+      },
+    );
 
     app.get("/api/connections/:name/tools", async (request, reply) => {
       const { name } = request.params as { name: string };
@@ -39,9 +44,10 @@ export class ConnectionsApiController {
     app.post<{ Querystring: { owner?: string } }>(
       "/api/connections/reconnect",
       async (request, reply) => {
-        await this.runReconnect(readOwnerQuery(request), async () => {
-          await this.connectionManager.reconnectAll();
-          await this.refreshCatalogAndBroadcast();
+        const ownerId = readOwnerQuery(request);
+        await this.runReconnect(ownerId, async () => {
+          await this.connectionManager.reconnectAll(ownerId);
+          await this.refreshCatalogAndBroadcast(undefined, ownerId);
         });
         reply.send({ ok: true });
       },
@@ -52,34 +58,39 @@ export class ConnectionsApiController {
       Querystring: { owner?: string };
     }>("/api/connections/:name/reconnect", async (request, reply) => {
       const { name } = request.params;
-      await this.runReconnect(readOwnerQuery(request), async () => {
-        await this.connectionManager.reconnect(name);
-        await this.refreshCatalogAndBroadcast(name);
+      const ownerId = readOwnerQuery(request);
+      await this.runReconnect(ownerId, async () => {
+        await this.connectionManager.reconnect(name, ownerId);
+        await this.refreshCatalogAndBroadcast(name, ownerId);
       });
       reply.send({ ok: true });
     });
 
-    app.get("/api/connections/events", (request, reply) => {
-      const { writeEvent } = openSseStream(request, reply);
+    app.get<{ Querystring: { owner?: string } }>(
+      "/api/connections/events",
+      (request, reply) => {
+        const ownerId = readOwnerQuery(request);
+        const { writeEvent } = openSseStream(request, reply);
 
-      const emit = (event: ConnectionSseEvent): void => {
-        writeEvent(event.type, event.connection);
-      };
+        const emit = (event: ConnectionSseEvent): void => {
+          writeEvent(event.type, event.connection);
+        };
 
-      for (const connection of this.connectionRead.listConnections()
-        .connections) {
-        emit({
-          type: CONNECTION_SSE_EVENT.stateChanged,
-          connection,
+        for (const connection of this.connectionRead.listConnections(ownerId)
+          .connections) {
+          emit({
+            type: CONNECTION_SSE_EVENT.stateChanged,
+            connection,
+          });
+        }
+
+        const unsubscribe = this.connectionRead.subscribe(emit, ownerId);
+
+        request.raw.on("close", () => {
+          unsubscribe();
         });
-      }
-
-      const unsubscribe = this.connectionRead.subscribe(emit);
-
-      request.raw.on("close", () => {
-        unsubscribe();
-      });
-    });
+      },
+    );
   }
 
   /**
@@ -98,8 +109,11 @@ export class ConnectionsApiController {
     await runWithAgentPrincipal(operatorReconnectPrincipal(ownerId), fn);
   }
 
-  private async refreshCatalogAndBroadcast(name?: string): Promise<void> {
+  private async refreshCatalogAndBroadcast(
+    name?: string,
+    ownerId?: string,
+  ): Promise<void> {
     await this.toolCatalog.refresh();
-    this.connectionManager.rebroadcast(name);
+    this.connectionManager.rebroadcast(name, ownerId);
   }
 }

@@ -323,12 +323,18 @@ export class ToolDispatchService {
       throw new ToolNotFoundError(ctx.namespacedName);
     }
 
-    let connection = this.connectionManager.get(entry.server);
+    let connection = this.connectionManager.get(
+      entry.server,
+      ctx.principal?.ownerId,
+    );
     if (!connection || connection.state === "failed" || !connection.client) {
       // Retry once with the current agent principal so user_oauth handshakes
       // can attach Authorization after a principal-less boot failure.
       try {
-        connection = await this.connectionManager.ensureConnected(entry.server);
+        connection = await this.connectionManager.ensureConnected(
+          entry.server,
+          ctx.principal?.ownerId,
+        );
       } catch (error) {
         const reason =
           error instanceof Error ? error.message : "connection failed";
@@ -610,6 +616,7 @@ export class ToolDispatchService {
 
     const connection = await this.connectionManager.ensureConnected(
       stored.backendServer,
+      stored.ownerId,
     );
     if (!connection.client || connection.config.transport.type !== "http") {
       await this.taskStore.fail(taskId, {
@@ -688,7 +695,11 @@ export class ToolDispatchService {
       stored.taskId,
       callToolResultToRecord(unsupportedBackendResultToolResult(message)),
     );
-    await this.postBackendCancel(stored.backendServer, stored.backendTaskId);
+    await this.postBackendCancel(
+      stored.backendServer,
+      stored.backendTaskId,
+      stored.ownerId,
+    );
   }
 
   private async forwardBackendCancel(taskId: string): Promise<void> {
@@ -696,7 +707,11 @@ export class ToolDispatchService {
     if (!stored) {
       return;
     }
-    await this.postBackendCancel(stored.backendServer, stored.backendTaskId);
+    await this.postBackendCancel(
+      stored.backendServer,
+      stored.backendTaskId,
+      stored.ownerId,
+    );
   }
 
   /**
@@ -706,9 +721,13 @@ export class ToolDispatchService {
   private async postBackendCancel(
     server: string,
     backendTaskId: string,
+    ownerId?: string,
   ): Promise<void> {
     try {
-      const connection = await this.connectionManager.ensureConnected(server);
+      const connection = await this.connectionManager.ensureConnected(
+        server,
+        ownerId,
+      );
       if (connection.config.transport.type !== "http" || !connection.client) {
         return;
       }

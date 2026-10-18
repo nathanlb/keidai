@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { ConnectorRecord, OAuthInitiateResponse } from "@keidai/shared";
 import { inject, injectable } from "tsyringe";
 import { ToriiConfigService } from "../config/torii-config.service.js";
+import { ConnectionManager } from "../connections/connection-manager.service.js";
 import { StructuredLoggerService } from "../logging/structured-logger.service.js";
 import type { Logger } from "@keidai/shared";
 import {
@@ -97,6 +98,8 @@ export class OAuthLinkService {
     private readonly secrets?: SecretRepository,
     @inject(PgOAuthDiscoveryCache)
     private readonly discoveryCache?: PgOAuthDiscoveryCache,
+    @inject(ConnectionManager)
+    private readonly connectionManager?: ConnectionManager,
   ) {}
 
   /** Reload connectors from Postgres when this replica's registry is stale. */
@@ -218,6 +221,10 @@ export class OAuthLinkService {
       provider,
     );
     if (removed) {
+      await this.connectionManager?.evictOwnerConnections(
+        resolvedOwnerId,
+        provider,
+      );
       this.logger.info("oauth.unlinked", {
         provider,
         ownerId: resolvedOwnerId,
