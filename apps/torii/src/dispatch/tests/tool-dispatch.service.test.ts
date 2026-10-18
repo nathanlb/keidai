@@ -93,12 +93,7 @@ function serviceKeyServer(
 async function closeManagerConnections(
   manager: ConnectionManager,
 ): Promise<void> {
-  await Promise.all(
-    manager
-      .list()
-      .map((connection) => connection.client?.close())
-      .filter((close): close is Promise<void> => close !== undefined),
-  );
+  await manager.closeAll();
 }
 
 async function createDispatchStack(
@@ -1127,6 +1122,110 @@ describe("ToolDispatchService", () => {
       assert.deepEqual(cancelledBackendTaskIds(stub), [backendTaskId]);
     } finally {
       await stack.close();
+      await mockServer.close();
+    }
+  });
+
+  it("allows owner-a's agent to call user_oauth tools after unlinked owner-b refreshes the catalog", async () => {
+    const mockServer = await startMockMcpServer({
+      requireAuth: true,
+      expectedBearer: "gho_owner_a",
+      tools: [{ name: "search_issues", description: "Search issues" }],
+    });
+    const oauthProviders = {
+      github: {
+        token_url: "https://github.com/login/oauth/access_token",
+        client_id: "client",
+        client_secret: "secret",
+        scopes: ["repo"],
+      },
+    };
+    const { tokenRepository, credentialResolver } = createCredentialServices({
+      oauth_providers: oauthProviders,
+    });
+    await tokenRepository.set("owner-a", "github", {
+      accessToken: "gho_owner_a",
+    });
+
+    const groups = [
+      testAgentsGroup([{ server: "github", tools: ["search_issues"] }]),
+    ];
+    const configService = new ToriiConfigService({
+      oauth_providers: oauthProviders,
+      servers: [userOAuthServer("github", mockServer.url)],
+    });
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
+    const toolCatalog = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+      createPolicyEnforcement(groups),
+      createNoopLogger(),
+    );
+    const traceEmitter = new CapturingTraceEmitter();
+    const {
+      approvalGate,
+      taskStore,
+      close: closeApprovals,
+    } = await createApprovalServices(groups);
+    const toolDispatch = new ToolDispatchService(
+      toolCatalog,
+      connectionManager,
+      credentialResolver,
+      traceEmitter,
+      createPolicyEnforcement(groups),
+      approvalGate,
+      taskStore,
+    );
+
+    try {
+      await connectionManager.connectAll();
+
+      // owner-a links and populates the catalog
+      await runWithAgentPrincipal(
+        {
+          agentId: "agent-a",
+          ownerId: "owner-a",
+          bearerId: "shaiden-runner",
+          groups: ["agents"],
+        },
+        async () => {
+          await toolCatalog.listToolsForAgent();
+        },
+      );
+
+      // Unlinked owner-b refreshes the catalog
+      await runWithAgentPrincipal(
+        {
+          agentId: "agent-b",
+          ownerId: "owner-b",
+          bearerId: "shaiden-runner",
+          groups: ["agents"],
+        },
+        async () => {
+          await toolCatalog.listToolsForAgent();
+        },
+      );
+
+      // owner-a's agent can still dispatch github.search_issues without ToolNotFoundError
+      const result = expectCallToolResult(
+        await runWithAgentPrincipal(
+          {
+            agentId: "agent-a",
+            ownerId: "owner-a",
+            bearerId: "shaiden-runner",
+            groups: ["agents"],
+          },
+          () => toolDispatch.callTool("github.search_issues", {}),
+        ),
+      );
+      assert.notEqual(result.isError, true);
+    } finally {
+      await closeManagerConnections(connectionManager);
+      await closeApprovals();
       await mockServer.close();
     }
   });

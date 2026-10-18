@@ -19,7 +19,11 @@ import {
 } from "../../credentials/tests/test-helpers.js";
 import { GroupPolicyCache } from "../../policy/group-policy-cache.service.js";
 import { PolicyEnforcementService } from "../../policy/policy-enforcement.service.js";
-import { createPolicyEnforcement } from "../../policy/tests/test-helpers.js";
+import {
+  createPolicyEnforcement,
+  groupPolicyCacheFromDefinitions,
+} from "../../policy/tests/test-helpers.js";
+import { buildGroupPolicies } from "../../policy/utils/build-group-policies.js";
 import { testAgentsGroup } from "../../testing/test-config.js";
 
 function serverConfig(
@@ -36,12 +40,7 @@ function serverConfig(
 async function closeManagerConnections(
   manager: ConnectionManager,
 ): Promise<void> {
-  await Promise.all(
-    manager
-      .list()
-      .map((connection) => connection.client?.close())
-      .filter((close): close is Promise<void> => close !== undefined),
-  );
+  await manager.closeAll();
 }
 
 describe("ToolCatalogService", () => {
@@ -459,6 +458,174 @@ describe("ToolCatalogService", () => {
     } finally {
       await closeManagerConnections(connectionManager);
       await Promise.all([zeta.close(), alpha.close()]);
+    }
+  });
+
+  it("preserves user_oauth tool schemas when an unlinked owner refreshes and evicts when connector is removed", async () => {
+    const mockServer = await startMockMcpServer({
+      requireAuth: true,
+      expectedBearer: "owner-a-token",
+      tools: [
+        { name: "search_issues", description: "Search GitHub issues" },
+        { name: "merge_pull_request", description: "Merge PR" },
+      ],
+    });
+    const oauthProviders = {
+      github: {
+        token_url: "https://github.com/login/oauth/access_token",
+        client_id: "client",
+        client_secret: "secret",
+        scopes: ["repo"],
+      },
+    };
+    const { credentialResolver, tokenRepository } = createCredentialServices({
+      oauth_providers: oauthProviders,
+    });
+    await tokenRepository.set("owner-a", "github", {
+      accessToken: "owner-a-token",
+    });
+
+    const { ConnectorRegistry } =
+      await import("../../connectors/connector-registry.service.js");
+    const { runWithAgentPrincipal } =
+      await import("../../identity/agent-principal-context.js");
+    const registry = ConnectorRegistry.fromConfig({
+      oauth_providers: oauthProviders,
+      servers: [
+        {
+          name: "github",
+          transport: { type: "http", url: mockServer.url },
+          credential: { strategy: "user_oauth", provider: "github" },
+        },
+      ],
+    });
+    const configService = new ToriiConfigService(registry);
+    const policyCache = groupPolicyCacheFromDefinitions([
+      testAgentsGroup([{ server: "github", tools: ["search_issues"] }]),
+    ]);
+    const connectionManager = new ConnectionManager(
+      configService,
+      new DefaultMcpClientConnector(credentialResolver),
+      createNoopLogger(),
+    );
+    const catalogService = new ToolCatalogService(
+      connectionManager,
+      credentialResolver,
+      new PolicyEnforcementService(policyCache, createNoopLogger()),
+      createNoopLogger(),
+    );
+
+    try {
+      await connectionManager.connectAll();
+
+      // owner-a connects and populates the tool catalog
+      await runWithAgentPrincipal(
+        {
+          agentId: "agent-a",
+          ownerId: "owner-a",
+          bearerId: "shaiden-runner",
+          groups: ["agents"],
+        },
+        async () => {
+          await catalogService.listToolsForAgent();
+        },
+      );
+
+      assert.equal(catalogService.getServerTools("github").length, 2);
+      assert.ok(catalogService.findTool("github.search_issues"));
+      assert.equal(
+        catalogService.findTool("github.merge_pull_request"),
+        undefined,
+      );
+
+      // Principal-less refresh after a policy edit updates `allowed` on retained schemas without reconnecting
+      policyCache.replace(
+        buildGroupPolicies({
+          groups: [
+            testAgentsGroup([
+              {
+                server: "github",
+                tools: ["search_issues", "merge_pull_request"],
+              },
+            ]),
+          ],
+        }),
+      );
+      await catalogService.refresh();
+      assert.ok(catalogService.findTool("github.merge_pull_request"));
+      assert.deepEqual(
+        catalogService
+          .getServerTools("github")
+          .map((tool) => ({ name: tool.name, allowed: tool.allowed })),
+        [
+          { name: "search_issues", allowed: true },
+          { name: "merge_pull_request", allowed: true },
+        ],
+      );
+
+      // Unlinked owner-b refreshes / lists tools — cached schemas must be preserved
+      await runWithAgentPrincipal(
+        {
+          agentId: "agent-b",
+          ownerId: "owner-b",
+          bearerId: "shaiden-runner",
+          groups: ["agents"],
+        },
+        async () => {
+          await catalogService.listToolsForAgent();
+        },
+      );
+
+      assert.equal(catalogService.getServerTools("github").length, 2);
+      assert.ok(catalogService.findTool("github.search_issues"));
+
+      // Hard listTools failure for the connected owner drops stale cached schemas
+      const ownerAConn = connectionManager.get("github", "owner-a");
+      assert.ok(ownerAConn?.client);
+      const originalListTools = ownerAConn.client.listTools.bind(
+        ownerAConn.client,
+      );
+      ownerAConn.client.listTools = async () => {
+        throw new Error("upstream 502 bad gateway");
+      };
+      await runWithAgentPrincipal(
+        {
+          agentId: "agent-a",
+          ownerId: "owner-a",
+          bearerId: "shaiden-runner",
+          groups: ["agents"],
+        },
+        async () => {
+          await catalogService.refresh();
+        },
+      );
+      assert.deepEqual(catalogService.getServerTools("github"), []);
+      assert.equal(catalogService.findTool("github.search_issues"), undefined);
+
+      // Restore listTools so owner-a re-populates, then verify connector removal evicts
+      ownerAConn.client.listTools = originalListTools;
+      await runWithAgentPrincipal(
+        {
+          agentId: "agent-a",
+          ownerId: "owner-a",
+          bearerId: "shaiden-runner",
+          groups: ["agents"],
+        },
+        async () => {
+          await catalogService.refresh();
+        },
+      );
+      assert.equal(catalogService.getServerTools("github").length, 2);
+
+      // Removing the connector from the registry and reconciling evicts its tools
+      registry.replace([]);
+      await connectionManager.reconcile();
+      await catalogService.refresh();
+      assert.deepEqual(catalogService.getServerTools("github"), []);
+      assert.equal(catalogService.findTool("github.search_issues"), undefined);
+    } finally {
+      await closeManagerConnections(connectionManager);
+      await mockServer.close();
     }
   });
 });
