@@ -23,8 +23,8 @@ export class RunStore {
 
   constructor(private readonly repository: RunRepository) {}
 
-  listRuns(limit?: number) {
-    return this.repository.list(limit);
+  listRuns(limit?: number, agentOwnerId?: string) {
+    return this.repository.list(limit, agentOwnerId);
   }
 
   getRun(runId: string) {

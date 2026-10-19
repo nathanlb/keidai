@@ -12,6 +12,7 @@ export interface RunReporter {
     personaVersion?: number;
     persona?: string;
     modelId?: string;
+    agentOwnerId?: string;
   }): Promise<void>;
   recordStep(step: {
     id?: string;

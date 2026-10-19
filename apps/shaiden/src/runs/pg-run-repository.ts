@@ -51,6 +51,7 @@ interface RunRow {
   persona_version: number | null;
   persona: string | null;
   model_id: string | null;
+  agent_owner_id: string | null;
 }
 
 interface RunStepRow {
@@ -126,8 +127,14 @@ function stepPayloadToJson(step: RunStep): string {
 const RUN_COLUMNS = `
   id, task_id, task_snapshot_json, started_at, assignee, goal_preview,
   status, outcome_json, step_count, conversation_history_json,
-  persona_version, persona, model_id
+  persona_version, persona, model_id, agent_owner_id
 `;
+
+function agentOwnerField(
+  agentOwnerId: string | null | undefined,
+): { agentOwnerId: string } | Record<string, never> {
+  return agentOwnerId ? { agentOwnerId } : {};
+}
 
 export class PgRunRepository implements RunRepository {
   constructor(
@@ -140,17 +147,18 @@ export class PgRunRepository implements RunRepository {
     const personaVersion = input.personaVersion ?? null;
     const persona = input.persona ?? null;
     const modelId = input.modelId ?? null;
+    const agentOwnerId = input.agentOwnerId ?? null;
     try {
       await this.pool.query(
         `
           INSERT INTO runs (
             id, task_id, task_snapshot_json, started_at, assignee, goal_preview,
             status, outcome_json, step_count, conversation_history_json,
-            persona_version, persona, model_id, updated_at
+            persona_version, persona, model_id, agent_owner_id, updated_at
           ) VALUES (
             $1, $2, $3::jsonb, $4, $5, $6,
             $7, $8::jsonb, $9, $10::jsonb,
-            $11, $12, $13, $14
+            $11, $12, $13, $14, $15
           )
         `,
         [
@@ -167,6 +175,7 @@ export class PgRunRepository implements RunRepository {
           personaVersion,
           persona,
           modelId,
+          agentOwnerId,
           startedAt,
         ],
       );
@@ -192,6 +201,7 @@ export class PgRunRepository implements RunRepository {
         persona_version: personaVersion,
         persona,
         model_id: modelId,
+        agent_owner_id: agentOwnerId,
       },
       [],
     );
@@ -264,15 +274,16 @@ export class PgRunRepository implements RunRepository {
     return this.rowToRunReport(runRow, await this.listStepsForRun(runId));
   }
 
-  async list(limit = 50) {
+  async list(limit = 50, agentOwnerId?: string) {
     const result = await this.pool.query<RunRow>(
       `
         SELECT ${RUN_COLUMNS}
         FROM runs
+        ${agentOwnerId ? "WHERE agent_owner_id = $2" : ""}
         ORDER BY started_at DESC, id DESC
         LIMIT $1
       `,
-      [limit],
+      agentOwnerId ? [limit, agentOwnerId] : [limit],
     );
     const runs = result.rows.map((row) => ({
       id: row.id,
@@ -288,6 +299,7 @@ export class PgRunRepository implements RunRepository {
         : {}),
       ...(row.persona != null ? { persona: row.persona } : {}),
       ...(row.model_id != null ? { modelId: row.model_id } : {}),
+      ...agentOwnerField(row.agent_owner_id),
     }));
     return { runs };
   }
@@ -763,6 +775,7 @@ export class PgRunRepository implements RunRepository {
         : {}),
       ...(row.persona != null ? { persona: row.persona } : {}),
       ...(row.model_id != null ? { modelId: row.model_id } : {}),
+      ...agentOwnerField(row.agent_owner_id),
     };
   }
 

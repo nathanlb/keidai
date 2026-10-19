@@ -76,6 +76,9 @@ export class MockRunRepository implements RunRepository {
         : {}),
       ...(input.persona !== undefined ? { persona: input.persona } : {}),
       ...(input.modelId !== undefined ? { modelId: input.modelId } : {}),
+      ...(input.agentOwnerId !== undefined
+        ? { agentOwnerId: input.agentOwnerId }
+        : {}),
     };
     this.runs.set(run.id, run);
     this.trim();
@@ -127,8 +130,9 @@ export class MockRunRepository implements RunRepository {
     return this.runs.get(runId) ?? null;
   }
 
-  async list(limit = 50) {
+  async list(limit = 50, agentOwnerId?: string) {
     const runs = [...this.runs.values()]
+      .filter((run) => !agentOwnerId || run.agentOwnerId === agentOwnerId)
       .sort(compareRuns)
       .slice(0, limit)
       .map((run) => ({
@@ -145,6 +149,9 @@ export class MockRunRepository implements RunRepository {
           : {}),
         ...(run.persona !== undefined ? { persona: run.persona } : {}),
         ...(run.modelId !== undefined ? { modelId: run.modelId } : {}),
+        ...(run.agentOwnerId !== undefined
+          ? { agentOwnerId: run.agentOwnerId }
+          : {}),
       }));
 
     return { runs };

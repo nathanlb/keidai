@@ -98,6 +98,11 @@ export interface RunListItem {
    * Resume keeps this model for the life of the run.
    */
   modelId?: string;
+  /**
+   * Human owner of the assigned agent, stamped at run start. Absent on runs
+   * created before that column existed.
+   */
+  agentOwnerId?: string;
 }
 
 export interface RunReport extends RunListItem {
@@ -119,6 +124,7 @@ export interface CreateRunRequest {
   personaVersion?: number;
   persona?: string;
   modelId?: string;
+  agentOwnerId?: string;
 }
 
 export interface AppendRunStepRequest {

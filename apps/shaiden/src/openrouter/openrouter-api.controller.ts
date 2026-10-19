@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import type { FastifyInstance } from "fastify";
+import { readOperatorContext } from "@keidai/shared";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { fetchOpenRouterModels } from "./fetch-models.js";
 import {
@@ -39,11 +40,17 @@ export class OpenRouterApiController {
   constructor(private readonly options: OpenRouterApiControllerOptions) {}
 
   registerRoutes(app: FastifyInstance): void {
-    app.get("/api/openrouter/credential", async (_request, reply) => {
+    app.get("/api/openrouter/credential", async (request, reply) => {
+      if (this.forbidUnlessAdmin(request, reply)) {
+        return;
+      }
       reply.send(await this.status());
     });
 
     app.put("/api/openrouter/credential", async (request, reply) => {
+      if (this.forbidUnlessAdmin(request, reply)) {
+        return;
+      }
       const parsed = putBodySchema.safeParse(request.body);
       if (!parsed.success) {
         reply.code(400).send({ error: "invalid OpenRouter API key" });
@@ -68,7 +75,10 @@ export class OpenRouterApiController {
       }
     });
 
-    app.delete("/api/openrouter/credential", async (_request, reply) => {
+    app.delete("/api/openrouter/credential", async (request, reply) => {
+      if (this.forbidUnlessAdmin(request, reply)) {
+        return;
+      }
       await this.options.credentials.clear();
       this.cache = null;
       reply.send(await this.status());
@@ -86,6 +96,18 @@ export class OpenRouterApiController {
         reply.code(502).send({ error: message });
       }
     });
+  }
+
+  private forbidUnlessAdmin(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): boolean {
+    const operator = readOperatorContext(request.headers);
+    if (!operator || operator.role === "admin") {
+      return false;
+    }
+    reply.code(403).send({ error: "Forbidden" });
+    return true;
   }
 
   private status() {
