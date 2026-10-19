@@ -94,6 +94,13 @@ describe("connector operator RBAC", () => {
         headers: operatorHeaders("ada", "member"),
       });
       assert.equal(memberDelete.status, 403);
+
+      const anonymousCreate = await fetch(`${baseUrl}/api/connectors`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(connectorBody),
+      });
+      assert.equal(anonymousCreate.status, 403);
       assert.deepEqual(calls, []);
 
       const adminCreate = await fetch(`${baseUrl}/api/connectors`, {

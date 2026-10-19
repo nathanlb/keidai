@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { operatorContextHeaders } from "@keidai/shared";
 import { createTestServer, sampleAgentBody } from "./test-helpers.js";
+
+function adminHeaders(json = false): Record<string, string> {
+  return {
+    ...operatorContextHeaders({ ownerId: "ada", role: "admin" }),
+    ...(json ? { "content-type": "application/json" } : {}),
+  };
+}
 
 describe("owners management API", () => {
   it("provisions on first login, keeps the id, and disables the session owner", async () => {
@@ -49,7 +57,7 @@ describe("owners management API", () => {
         `${handle.baseUrl}/api/owners/${sampleAgentBody.ownerId}`,
         {
           method: "PATCH",
-          headers: { "content-type": "application/json" },
+          headers: adminHeaders(true),
           body: JSON.stringify({ role: "admin" }),
         },
       );
@@ -57,7 +65,7 @@ describe("owners management API", () => {
 
       const disable = await fetch(`${handle.baseUrl}/api/owners/ada`, {
         method: "PATCH",
-        headers: { "content-type": "application/json" },
+        headers: adminHeaders(true),
         body: JSON.stringify({ status: "disabled" }),
       });
       assert.equal(disable.status, 200);
@@ -115,7 +123,7 @@ describe("owners management API", () => {
 
       const deleted = await fetch(
         `${handle.baseUrl}/api/owners/${sampleAgentBody.ownerId}`,
-        { method: "DELETE" },
+        { method: "DELETE", headers: adminHeaders() },
       );
       assert.equal(deleted.status, 200);
       const body = (await deleted.json()) as {
@@ -131,6 +139,7 @@ describe("owners management API", () => {
       assert.equal(missingAgent.status, 404);
       const missingOwner = await fetch(
         `${handle.baseUrl}/api/owners/${sampleAgentBody.ownerId}`,
+        { headers: adminHeaders() },
       );
       assert.equal(missingOwner.status, 404);
     } finally {

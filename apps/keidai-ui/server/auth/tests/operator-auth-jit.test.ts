@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
-import { createServer as createHttpServer } from "node:http";
+import {
+  createServer as createHttpServer,
+  type IncomingMessage,
+} from "node:http";
 import { after, before, describe, it } from "node:test";
+import { OPERATOR_OWNER_HEADER, OPERATOR_ROLE_HEADER } from "@keidai/shared";
 import { createServer } from "../../create-server.js";
 import { createFudaOwnerClient } from "../fuda-owner-client.js";
 import type { OperatorAuthConfig } from "../types.js";
@@ -156,8 +160,10 @@ describe("JIT operator login", () => {
 
   it("caches and deduplicates Fuda owner active checks within TTL", async () => {
     let lookups = 0;
-    const fudaStub = createHttpServer((_req, res) => {
+    let seen: IncomingMessage["headers"] | undefined;
+    const fudaStub = createHttpServer((req, res) => {
       lookups += 1;
+      seen = req.headers;
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify({ owner: { ownerId: "ada", status: "active" } }));
     });
@@ -182,6 +188,8 @@ describe("JIT operator login", () => {
       assert.equal(second, true);
       assert.equal(third, true);
       assert.equal(lookups, 1);
+      assert.equal(seen?.[OPERATOR_OWNER_HEADER], "keidai-bff");
+      assert.equal(seen?.[OPERATOR_ROLE_HEADER], "admin");
     } finally {
       await new Promise<void>((resolve, reject) => {
         fudaStub.close((error) => (error ? reject(error) : resolve()));

@@ -1,4 +1,4 @@
-import type { OperatorRole } from "@keidai/shared";
+import { operatorContextHeaders, type OperatorRole } from "@keidai/shared";
 import { bffServiceTokenAuthorizationHeader } from "@keidai/shared/bff-service-token";
 import type { ProvisionOwnerRequest, ProvisionOwnerResult } from "./types.js";
 
@@ -48,9 +48,17 @@ export function createFudaOwnerClient(options: {
   }
 
   async function fetchOwnerAccess(ownerId: string): Promise<OwnerAccess> {
+    // Role refresh runs before the caller can be classified. This lookup is
+    // the BFF itself, so it presents as an admin. Browser calls still arrive
+    // with the session role, which AdminOnly enforces.
     const response = await fetch(
       `${baseUrl}/api/owners/${encodeURIComponent(ownerId)}`,
-      { headers },
+      {
+        headers: {
+          ...headers,
+          ...operatorContextHeaders({ ownerId: "keidai-bff", role: "admin" }),
+        },
+      },
     );
     if (response.status === 404) {
       const missing: OwnerAccess = { active: false, role: "member" };

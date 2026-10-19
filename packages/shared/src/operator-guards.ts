@@ -44,13 +44,13 @@ export function UseGuards(...guards: OperatorGuard[]): MethodDecorator {
 }
 
 /**
- * 403 when a signed-in member calls an admin-only route.
- * Missing operator context is allowed so internal callers keep working.
+ * 403 unless the caller is a signed-in admin.
+ * A missing or invalid operator context is denied.
  */
 export function AdminOnly(): MethodDecorator {
   return UseGuards(function adminOnly(request, reply) {
     const operator = readOperatorContext(request.headers);
-    if (operator && operator.role !== "admin") {
+    if (!operator || operator.role !== "admin") {
       reply.code(403).send({ error: "Forbidden" });
       return false;
     }

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { Logger, Task } from "@keidai/shared";
+import { operatorContextHeaders, type Logger, type Task } from "@keidai/shared";
 import type { RuntimeConfig } from "../../config/runtime-config.js";
 import { ShaidenHttpServer } from "../../http/shaiden-http-server.js";
 import { createTestPersistence } from "../../testing/persistence.js";
@@ -23,6 +23,11 @@ const runtimeConfig: RuntimeConfig = {
   httpHost: "127.0.0.1",
   httpPort: 3200,
 };
+
+const adminHeaders = operatorContextHeaders({
+  ownerId: "ada",
+  role: "admin",
+});
 
 const sampleTask: Task = {
   goal: "Draft a note.",
@@ -67,7 +72,12 @@ describe("OpenRouter configuration API", () => {
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     const secret = "sk-or-v1-ui-managed-secret-key";
     try {
-      const before = await fetch(`${handle.baseUrl}/api/openrouter/credential`);
+      const before = await fetch(
+        `${handle.baseUrl}/api/openrouter/credential`,
+        {
+          headers: adminHeaders,
+        },
+      );
       assert.equal(before.status, 200);
       assert.deepEqual(await before.json(), {
         configured: true,
@@ -77,7 +87,7 @@ describe("OpenRouter configuration API", () => {
 
       const saved = await fetch(`${handle.baseUrl}/api/openrouter/credential`, {
         method: "PUT",
-        headers: { "content-type": "application/json" },
+        headers: { ...adminHeaders, "content-type": "application/json" },
         body: JSON.stringify({ apiKey: secret }),
       });
       assert.equal(saved.status, 200);
@@ -104,6 +114,7 @@ describe("OpenRouter configuration API", () => {
         `${handle.baseUrl}/api/openrouter/credential`,
         {
           method: "DELETE",
+          headers: adminHeaders,
         },
       );
       assert.equal(cleared.status, 200);

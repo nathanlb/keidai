@@ -54,9 +54,9 @@ describe("AdminOnly", () => {
     assert.deepEqual(sent, [{ status: 403, body: { error: "Forbidden" } }]);
   });
 
-  it("allows an admin and a caller with no operator context", async () => {
+  it("allows an admin", async () => {
     const admin = new AdminRoute();
-    const { reply: adminReply, sent: adminSent } = fakeReply();
+    const { reply, sent } = fakeReply();
     await admin.handle(
       {
         headers: {
@@ -64,16 +64,18 @@ describe("AdminOnly", () => {
           [OPERATOR_ROLE_HEADER]: "admin",
         },
       },
-      adminReply,
+      reply,
     );
     assert.equal(admin.calls, 1);
-    assert.deepEqual(adminSent, [{ status: 200, body: { ok: true } }]);
+    assert.deepEqual(sent, [{ status: 200, body: { ok: true } }]);
+  });
 
+  it("rejects a caller with no operator context", async () => {
     const internal = new AdminRoute();
     const { reply, sent } = fakeReply();
     await internal.handle({ headers: {} }, reply);
-    assert.equal(internal.calls, 1);
-    assert.deepEqual(sent, [{ status: 200, body: { ok: true } }]);
+    assert.equal(internal.calls, 0);
+    assert.deepEqual(sent, [{ status: 403, body: { error: "Forbidden" } }]);
   });
 });
 
