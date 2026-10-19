@@ -36,6 +36,12 @@ import {
 import { AGENTS_PATH } from "../shell/navigation.js";
 import { useFetchTasks } from "../tasks/hooks/use-fetch-tasks.js";
 import { taskCreateHref, taskEditHref } from "../tasks/navigation.js";
+import { useActingOwner } from "../shell/hooks/use-acting-owner.js";
+import {
+  canMutateOwned,
+  canRunOwnAgent,
+  knownOperator,
+} from "../shell/utils/operator-permissions.js";
 import { useSWRConfig } from "swr";
 import { AgentEffectiveToolsPanel } from "./agent-effective-tools-panel.js";
 import { AgentPersonaHistoryPanel } from "./agent-persona-history-panel.js";
@@ -105,6 +111,8 @@ export function AgentDetailView() {
     suspendedRunIds,
   } = useRunsVisibility(true);
   const { connections } = useLiveConnections();
+  const { owner } = useActingOwner();
+  const operator = knownOperator(owner);
 
   const groups = groupsData?.groups;
   const knownGroupNames = useMemo(
@@ -112,6 +120,8 @@ export function AgentDetailView() {
     [groups],
   );
   const agent = data?.agent;
+  const canManageAgent = canMutateOwned(operator, agent?.ownerId);
+  const canRunAgent = canRunOwnAgent(operator, agent?.ownerId);
   const serverNames = useMemo(() => {
     if (!agent) {
       return [] as string[];
@@ -388,28 +398,32 @@ export function AgentDetailView() {
           </div>
         </div>
         <div className="flex shrink-0 gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={openNewTask}
-          >
-            <Play className="size-3.5" aria-hidden />
-            Run a task
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="
+          {canRunAgent ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={openNewTask}
+            >
+              <Play className="size-3.5" aria-hidden />
+              Run a task
+            </Button>
+          ) : null}
+          {canManageAgent ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="
               text-destructive
               hover:text-destructive
             "
-            onClick={() => setDeleteConfirmOpen(true)}
-          >
-            <Trash2 className="size-3.5" aria-hidden />
-            Delete agent
-          </Button>
+              onClick={() => setDeleteConfirmOpen(true)}
+            >
+              <Trash2 className="size-3.5" aria-hidden />
+              Delete agent
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -459,7 +473,12 @@ export function AgentDetailView() {
             lg:grid-cols-[minmax(0,42.5rem)_18.5rem]
           "
           >
-            <AgentForm mode="edit" agent={agent} onSubmit={handleSaveAgent} />
+            <AgentForm
+              mode="edit"
+              agent={agent}
+              readOnly={!canManageAgent}
+              onSubmit={handleSaveAgent}
+            />
             <AgentPersonaHistoryPanel
               agent={agent}
               versions={versions}

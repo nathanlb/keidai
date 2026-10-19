@@ -1,6 +1,6 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { inject, injectable } from "tsyringe";
-import { CONNECTOR_CATALOG_VERSION } from "@keidai/shared";
+import { AdminOnly, CONNECTOR_CATALOG_VERSION } from "@keidai/shared";
 import { ConnectorManagementService } from "./connector-management.service.js";
 import {
   createConnectorBodySchema,
@@ -38,74 +38,106 @@ export class ConnectorsApiController {
       reply.send({ connector });
     });
 
-    app.post("/api/connectors/from-catalog", async (request, reply) => {
-      const parsed = installCatalogBodySchema.safeParse(request.body);
-      if (!parsed.success) {
-        reply.code(400).send({
-          error: "invalid catalog install",
-          details: parsed.error.flatten(),
-        });
+    app.post("/api/connectors/from-catalog", (request, reply) =>
+      this.installFromCatalog(request, reply),
+    );
+
+    app.post("/api/connectors", (request, reply) =>
+      this.create(request, reply),
+    );
+
+    app.patch("/api/connectors/:slug", (request, reply) =>
+      this.update(request, reply),
+    );
+
+    app.delete("/api/connectors/:slug", (request, reply) =>
+      this.remove(request, reply),
+    );
+  }
+
+  @AdminOnly()
+  private async installFromCatalog(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> {
+    const parsed = installCatalogBodySchema.safeParse(request.body);
+    if (!parsed.success) {
+      reply.code(400).send({
+        error: "invalid catalog install",
+        details: parsed.error.flatten(),
+      });
+      return;
+    }
+    try {
+      const connector = await this.connectors.installFromCatalog(parsed.data);
+      reply.code(201).send({ connector });
+    } catch (error) {
+      this.sendWriteError(reply, error);
+    }
+  }
+
+  @AdminOnly()
+  private async create(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> {
+    const parsed = createConnectorBodySchema.safeParse(request.body);
+    if (!parsed.success) {
+      reply.code(400).send({
+        error: "invalid connector",
+        details: parsed.error.flatten(),
+      });
+      return;
+    }
+    try {
+      const connector = await this.connectors.create(parsed.data);
+      reply.code(201).send({ connector });
+    } catch (error) {
+      this.sendWriteError(reply, error);
+    }
+  }
+
+  @AdminOnly()
+  private async update(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> {
+    const { slug } = request.params as { slug: string };
+    const parsed = updateConnectorBodySchema.safeParse(request.body);
+    if (!parsed.success) {
+      reply.code(400).send({
+        error: "invalid connector update",
+        details: parsed.error.flatten(),
+      });
+      return;
+    }
+    try {
+      const connector = await this.connectors.update(slug, parsed.data);
+      if (!connector) {
+        reply.code(404).send({ error: "connector not found" });
         return;
       }
-      try {
-        const connector = await this.connectors.installFromCatalog(parsed.data);
-        reply.code(201).send({ connector });
-      } catch (error) {
-        this.sendWriteError(reply, error);
-      }
-    });
+      reply.send({ connector });
+    } catch (error) {
+      this.sendWriteError(reply, error);
+    }
+  }
 
-    app.post("/api/connectors", async (request, reply) => {
-      const parsed = createConnectorBodySchema.safeParse(request.body);
-      if (!parsed.success) {
-        reply.code(400).send({
-          error: "invalid connector",
-          details: parsed.error.flatten(),
-        });
+  @AdminOnly()
+  private async remove(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> {
+    const { slug } = request.params as { slug: string };
+    try {
+      if (!(await this.connectors.delete(slug))) {
+        reply.code(404).send({ error: "connector not found" });
         return;
       }
-      try {
-        const connector = await this.connectors.create(parsed.data);
-        reply.code(201).send({ connector });
-      } catch (error) {
-        this.sendWriteError(reply, error);
-      }
-    });
-
-    app.patch("/api/connectors/:slug", async (request, reply) => {
-      const { slug } = request.params as { slug: string };
-      const parsed = updateConnectorBodySchema.safeParse(request.body);
-      if (!parsed.success) {
-        reply.code(400).send({
-          error: "invalid connector update",
-          details: parsed.error.flatten(),
-        });
-        return;
-      }
-      try {
-        const connector = await this.connectors.update(slug, parsed.data);
-        if (!connector) {
-          reply.code(404).send({ error: "connector not found" });
-          return;
-        }
-        reply.send({ connector });
-      } catch (error) {
-        this.sendWriteError(reply, error);
-      }
-    });
-
-    app.delete("/api/connectors/:slug", async (request, reply) => {
-      const { slug } = request.params as { slug: string };
-      try {
-        if (!(await this.connectors.delete(slug))) {
-          reply.code(404).send({ error: "connector not found" });
-          return;
-        }
-        reply.code(204).send();
-      } catch (error) {
-        this.sendWriteError(reply, error);
-      }
-    });
+      reply.code(204).send();
+    } catch (error) {
+      this.sendWriteError(reply, error);
+    }
   }
 
   private sendWriteError(

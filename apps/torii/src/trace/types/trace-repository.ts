@@ -13,6 +13,7 @@ export interface TraceListFilters {
   outcome?: TraceOutcome;
   server?: string;
   text?: string;
+  ownerId?: string;
 }
 
 export interface TraceListResult {
@@ -34,5 +35,5 @@ export interface TraceRepository {
   append(trace: CallTrace): Promise<void>;
   get(traceId: string): Promise<CallTrace | null>;
   list(filters: TraceListFilters): Promise<TraceListResult>;
-  getStats(windowMs: number): Promise<TraceStatsResult>;
+  getStats(windowMs: number, ownerId?: string): Promise<TraceStatsResult>;
 }

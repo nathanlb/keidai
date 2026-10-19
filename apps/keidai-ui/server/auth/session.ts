@@ -1,4 +1,4 @@
-import type { OperatorPrincipal } from "@keidai/shared";
+import type { OperatorPrincipal, OperatorRole } from "@keidai/shared";
 import { isOperatorAllowed } from "./allowlist.js";
 import { readCookie, serializeCookie } from "./cookie.js";
 import { sealPayload, unsealPayload } from "./sealed-cookie.js";
@@ -29,6 +29,7 @@ export async function sealOperatorSession(
       googleSub: principal.googleSub,
       email: principal.email,
       ownerId: principal.ownerId,
+      role: principal.role,
       ...(principal.name ? { name: principal.name } : {}),
       ...(principal.picture ? { picture: principal.picture } : {}),
     },
@@ -50,6 +51,7 @@ export async function readOperatorSession(
     googleSub?: unknown;
     email?: unknown;
     ownerId?: unknown;
+    role?: unknown;
     name?: unknown;
     picture?: unknown;
   }>(raw, config.sessionSecret);
@@ -76,7 +78,19 @@ export async function readOperatorSession(
     return null;
   }
 
-  if (config.isOwnerActive) {
+  let role: OperatorRole = payload.role === "admin" ? "admin" : "member";
+
+  if (config.getOwnerAccess) {
+    try {
+      const access = await config.getOwnerAccess(payload.ownerId);
+      if (!access.active) {
+        return null;
+      }
+      role = access.role;
+    } catch {
+      return null;
+    }
+  } else if (config.isOwnerActive) {
     try {
       if (!(await config.isOwnerActive(payload.ownerId))) {
         return null;
@@ -90,6 +104,7 @@ export async function readOperatorSession(
     googleSub: payload.googleSub,
     email: payload.email,
     ownerId: payload.ownerId,
+    role,
     ...(typeof payload.name === "string" ? { name: payload.name } : {}),
     ...(typeof payload.picture === "string"
       ? { picture: payload.picture }

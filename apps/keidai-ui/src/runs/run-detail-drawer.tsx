@@ -10,7 +10,15 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@keidai/ui";
-import type { RunReport } from "@keidai/shared";
+import { useActingOwner } from "../shell/hooks/use-acting-owner.js";
+import {
+  APPROVE_OWNER_ONLY,
+  canApproveToolCall,
+  canArchiveTask,
+  canRejectOrCancel,
+  canRunOwnAgent,
+  knownOperator,
+} from "../shell/utils/operator-permissions.js";
 import {
   CheckCircle2,
   CircleX,
@@ -29,6 +37,7 @@ import { useCallback, useId, useState } from "react";
 import { approveApproval, rejectApproval } from "../lib/api/gateway.js";
 import { sendRunFollowUp, stopRun, resumeRun } from "../lib/api/runs.js";
 import type { RunAssigneeDisplay } from "../lib/api/runs.js";
+import type { RunReport } from "@keidai/shared";
 import { DetailDrawer } from "../shell/components/detail-drawer/detail-drawer.js";
 import {
   canResumeRun,
@@ -105,6 +114,12 @@ export function RunDetailDrawer({
   const followUpErrorId = useId();
   const stopErrorId = useId();
   const resumeErrorId = useId();
+  const { owner } = useActingOwner();
+  const operator = knownOperator(owner);
+  const allowApprove = canApproveToolCall(operator, run?.agentOwnerId ?? "");
+  const allowDecide = canRejectOrCancel(operator, run?.agentOwnerId ?? "");
+  const allowContinue = canRunOwnAgent(operator, run?.agentOwnerId);
+  const allowStop = canArchiveTask(operator, run?.agentOwnerId);
 
   if (run?.id !== activeRunId) {
     setActiveRunId(run?.id);
@@ -290,7 +305,7 @@ export function RunDetailDrawer({
               type="button"
               variant="outline"
               className="flex-1"
-              disabled={isDeciding}
+              disabled={isDeciding || !allowDecide}
               onClick={() => void handleReject()}
             >
               Reject
@@ -298,7 +313,8 @@ export function RunDetailDrawer({
             <Button
               type="button"
               className="flex-1"
-              disabled={isDeciding}
+              disabled={isDeciding || !allowApprove}
+              title={allowApprove ? undefined : APPROVE_OWNER_ONLY}
               onClick={() => void handleApprove()}
             >
               Approve
@@ -334,7 +350,7 @@ export function RunDetailDrawer({
               type="button"
               variant="outline"
               className="w-full"
-              disabled={isStopping}
+              disabled={isStopping || !allowStop}
               onClick={() => void handleStop()}
             >
               {isStopping ? (
@@ -358,7 +374,7 @@ export function RunDetailDrawer({
           <Button
             type="button"
             className="w-full"
-            disabled={isResuming}
+            disabled={isResuming || !allowContinue}
             onClick={() => void handleResume()}
           >
             {isResuming ? (
@@ -450,7 +466,7 @@ export function RunDetailDrawer({
             onChange={(event) => setFollowUpMessage(event.target.value)}
             placeholder="Add guidance, ask for a summary, or suggest a retry…"
             rows={3}
-            disabled={isSendingFollowUp}
+            disabled={isSendingFollowUp || !allowContinue}
             aria-invalid={followUpError ? true : undefined}
             aria-describedby={followUpError ? followUpErrorId : undefined}
           />
@@ -462,7 +478,11 @@ export function RunDetailDrawer({
           <Button
             type="button"
             className="w-full"
-            disabled={isSendingFollowUp || followUpMessage.trim().length === 0}
+            disabled={
+              isSendingFollowUp ||
+              !allowContinue ||
+              followUpMessage.trim().length === 0
+            }
             onClick={() => void handleSendFollowUp()}
           >
             <Send className="size-3.5" aria-hidden />

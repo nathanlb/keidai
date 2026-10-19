@@ -163,6 +163,7 @@ export async function mockToriiConfig(
         googleSub: "e2e-operator",
         email: "e2e@example.com",
         ownerId: "owner-a",
+        role: "admin",
         name: "E2E Operator",
       }),
     });

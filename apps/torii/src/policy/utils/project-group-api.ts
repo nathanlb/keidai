@@ -9,6 +9,7 @@ export function toGroupView(group: GroupPolicy): GroupView {
     description: group.description,
     createdAt: toIso(group.createdAt),
     updatedAt: toIso(group.updatedAt),
+    ownerId: group.ownerId ?? null,
     servers: group.servers.map((policy) => ({
       server: policy.server,
       default: policy.default,

@@ -1,4 +1,11 @@
-import { Button, Input, Spinner } from "@keidai/ui";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Button,
+  Input,
+  Spinner,
+} from "@keidai/ui";
 import { useState } from "react";
 import useSWR from "swr";
 import {
@@ -7,6 +14,8 @@ import {
   saveOpenRouterCredential,
   type OpenRouterCredentialStatus,
 } from "../lib/api/openrouter.js";
+import { useActingOwner } from "../shell/hooks/use-acting-owner.js";
+import { OperatorsRolesCard } from "./operators-roles-card.js";
 
 const CREDENTIAL_KEY = "openrouter-credential";
 
@@ -21,6 +30,38 @@ function statusCopy(status: OpenRouterCredentialStatus | undefined): string {
 }
 
 export function SettingsView() {
+  const { owner, isAdmin, isLoading: sessionLoading } = useActingOwner();
+  if (sessionLoading) {
+    return (
+      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Spinner className="size-4" aria-hidden />
+        Loading settings…
+      </p>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <Alert>
+        <AlertTitle>Workspace settings are read-only</AlertTitle>
+        <AlertDescription>
+          The OpenRouter API key and operator roles are managed by
+          administrators. You can still run your own agents and link your own
+          accounts.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  return (
+    <div className="flex max-w-3xl flex-col gap-4">
+      <OpenRouterCard />
+      <OperatorsRolesCard currentOwnerId={owner?.ownerId} />
+    </div>
+  );
+}
+
+function OpenRouterCard() {
   const { data, error, isLoading, mutate } = useSWR(
     CREDENTIAL_KEY,
     fetchOpenRouterCredential,

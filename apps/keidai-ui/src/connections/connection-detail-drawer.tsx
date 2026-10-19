@@ -23,6 +23,11 @@ import { ToolDescription } from "../lib/components/tool-description.js";
 import { updateConnector } from "../lib/api/gateway.js";
 import { CONNECTORS_KEY } from "../lib/hooks/use-fetch-connectors.js";
 import { mutate } from "swr";
+import { useActingOwner } from "../shell/hooks/use-acting-owner.js";
+import {
+  canMutateWorkspace,
+  knownOperator,
+} from "../shell/utils/operator-permissions.js";
 import { useState } from "react";
 
 import type { ServerSummaryState } from "./utils/build-server-summaries.js";
@@ -171,6 +176,8 @@ export function ConnectionDetailDrawer() {
   const [oauthError, setOauthError] = useState<string | null>(null);
   const [isSavingOauth, setIsSavingOauth] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const { owner } = useActingOwner();
+  const canManageConnectors = canMutateWorkspace(knownOperator(owner));
 
   const { tools, isLoading: toolsLoading } = useFetchServerTools(
     summary?.name ?? null,
@@ -242,30 +249,34 @@ export function ConnectionDetailDrawer() {
               />
               Reconnect
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              className="gap-1.5 text-destructive hover:text-destructive"
-              title="Remove connector from workspace for all operators"
-              disabled={isDeleting}
-              onClick={() => {
-                setIsDeleting(true);
-                void onDeleteConnector(summary.name).finally(() =>
-                  setIsDeleting(false),
-                );
-              }}
-            >
-              {isDeleting ? (
-                <Loader2 className="size-3.5 animate-spin" aria-hidden />
-              ) : (
-                <Trash2 className="size-3.5" aria-hidden />
-              )}
-              Remove connector
-            </Button>
+            {canManageConnectors ? (
+              <Button
+                type="button"
+                variant="ghost"
+                className="gap-1.5 text-destructive hover:text-destructive"
+                title="Remove connector from workspace for all operators"
+                disabled={isDeleting}
+                onClick={() => {
+                  setIsDeleting(true);
+                  void onDeleteConnector(summary.name).finally(() =>
+                    setIsDeleting(false),
+                  );
+                }}
+              >
+                {isDeleting ? (
+                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                ) : (
+                  <Trash2 className="size-3.5" aria-hidden />
+                )}
+                Remove connector
+              </Button>
+            ) : null}
           </div>
-          <p className="text-right text-[11.5px] text-muted-foreground">
-            Removing a connector deletes it for the whole workspace.
-          </p>
+          {canManageConnectors ? (
+            <p className="text-right text-[11.5px] text-muted-foreground">
+              Removing a connector deletes it for the whole workspace.
+            </p>
+          ) : null}
         </div>
       }
     >
@@ -331,7 +342,7 @@ export function ConnectionDetailDrawer() {
             </Button>
           </div>
         ) : null}
-        {needsByoClientForm(connector) ? (
+        {canManageConnectors && needsByoClientForm(connector) ? (
           <form
             className="mt-2.5 space-y-2 rounded-lg border border-border p-3"
             onSubmit={(event) => {

@@ -5,6 +5,7 @@ import {
   fetchManagementApiJson,
   UpstreamRequestError,
 } from "../../upstream/fetch-management-api.js";
+import { requestOperator, runsVisibleToOperator } from "../operator-scope.js";
 import { buildRunsVisibilityResponse } from "./build-runs-visibility-response.js";
 import type {
   FudaManagementAgent,
@@ -45,19 +46,31 @@ export async function registerShaidenRunsRoute(
         ? "/api/runs"
         : `/api/runs?limit=${encodeURIComponent(String(limit))}`;
 
+    const operator = requestOperator(request);
+
     try {
       const [runsResponse, agentsResponse] = await Promise.all([
         fetchManagementApiJson<RunsResponse>(backends.shaiden, runsPath, {
           bffServiceToken,
+          operator,
         }),
         fetchManagementApiJson<{ agents: FudaManagementAgent[] }>(
           backends.fuda,
           "/api/agents",
-          { bffServiceToken },
+          { bffServiceToken, operator },
         ),
       ]);
 
-      return buildRunsVisibilityResponse(runsResponse, agentsResponse.agents);
+      return buildRunsVisibilityResponse(
+        {
+          runs: runsVisibleToOperator(
+            runsResponse.runs,
+            agentsResponse.agents,
+            operator,
+          ),
+        },
+        agentsResponse.agents,
+      );
     } catch (error) {
       if (error instanceof UpstreamRequestError) {
         return reply.code(502).send({

@@ -157,4 +157,49 @@ describe("resolveOrProvisionOwner", () => {
       await isolated.close();
     }
   });
+
+  it("makes the first provisioned owner an admin and later owners members", async () => {
+    const isolated = await createIsolatedSchema();
+    try {
+      await openFudaDatabase(resolveTestDatabaseUrl(), isolated.pool);
+      const owners = new PgOwnerRepository(isolated.pool);
+
+      const first = await resolveOrProvisionOwner(owners, {
+        idpIssuer: issuer,
+        idpSub: "sub-ada",
+        email: "ada@acme.com",
+      });
+      assert.equal(first.ok, true);
+      if (!first.ok) {
+        return;
+      }
+      assert.equal(first.owner.role, "admin");
+
+      const second = await resolveOrProvisionOwner(owners, {
+        idpIssuer: issuer,
+        idpSub: "sub-bob",
+        email: "bob@acme.com",
+        role: "member",
+      });
+      assert.equal(second.ok, true);
+      if (!second.ok) {
+        return;
+      }
+      assert.equal(second.owner.role, "member");
+
+      const hinted = await resolveOrProvisionOwner(owners, {
+        idpIssuer: issuer,
+        idpSub: "sub-cam",
+        email: "cam@acme.com",
+        role: "admin",
+      });
+      assert.equal(hinted.ok, true);
+      if (!hinted.ok) {
+        return;
+      }
+      assert.equal(hinted.owner.role, "admin");
+    } finally {
+      await isolated.close();
+    }
+  });
 });

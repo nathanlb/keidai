@@ -36,12 +36,18 @@ export async function applyOperatorsFile(
 
   const file = await loadOperatorsFile(trimmed);
   if (mode === "strict") {
+    const seeded = await seedOperators(owners, file.operators);
     const reconciled = await reconcileOwners(
       owners,
       agents,
       ownerIdsFromOperators(file.operators),
     );
-    return { mode, ...reconciled };
+    return {
+      mode,
+      ownersUpserted: seeded.ownersUpserted,
+      ownersDeleted: reconciled.ownersDeleted,
+      agentsDeleted: reconciled.agentsDeleted,
+    };
   }
 
   return {
@@ -59,7 +65,11 @@ async function seedOperators(
   let ownersUpserted = 0;
   for (const entry of operators) {
     const before = await owners.get(entry.owner_id);
-    await owners.upsert(entry.owner_id);
+    let role = entry.role;
+    if (!role && !before && (await owners.countActiveAdmins()) === 0) {
+      role = "admin";
+    }
+    await owners.upsert(entry.owner_id, role ? { role } : undefined);
     if (!before) {
       ownersUpserted += 1;
     }

@@ -18,6 +18,13 @@ import { paginateItems } from "../shell/components/table-pagination/paginate-ite
 import { useTablePageIndex } from "../shell/components/table-pagination/use-table-page-index.js";
 import { runSavedTask } from "../lib/api/tasks.js";
 import { useFetchTasks } from "./hooks/use-fetch-tasks.js";
+import { useFetchAgents } from "../lib/hooks/use-fetch-agents.js";
+import { useActingOwner } from "../shell/hooks/use-acting-owner.js";
+import {
+  canArchiveTask,
+  canRunOwnAgent,
+  knownOperator,
+} from "../shell/utils/operator-permissions.js";
 import { useRunsVisibility } from "../runs/hooks/use-runs-visibility.js";
 import { runDetailHref } from "../runs/navigation.js";
 import {
@@ -50,6 +57,9 @@ export function TasksListView() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { data, error, isLoading } = useFetchTasks();
+  const { data: agentsData } = useFetchAgents();
+  const { owner } = useActingOwner();
+  const operator = knownOperator(owner);
   const { runs, resolveAssigneeDisplay } = useRunsVisibility(true);
   const [startingTaskIds, setStartingTaskIds] = useState<Set<string>>(
     () => new Set(),
@@ -176,19 +186,26 @@ export function TasksListView() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pageTasks.map((task) => (
-                    <TasksTableRow
-                      key={task.id}
-                      task={task}
-                      assignee={resolveAssigneeDisplay(task.assignee)}
-                      isRunning={
-                        runningTaskIds.has(task.id) ||
-                        startingTaskIds.has(task.id)
-                      }
-                      onEdit={() => void navigate(taskEditHref(task.id))}
-                      onRun={() => void handleRunTask(task.id)}
-                    />
-                  ))}
+                  {pageTasks.map((task) => {
+                    const agentOwnerId = agentsData?.agents.find(
+                      (agent) => agent.id === task.assignee,
+                    )?.ownerId;
+                    return (
+                      <TasksTableRow
+                        key={task.id}
+                        task={task}
+                        assignee={resolveAssigneeDisplay(task.assignee)}
+                        isRunning={
+                          runningTaskIds.has(task.id) ||
+                          startingTaskIds.has(task.id)
+                        }
+                        canEdit={canArchiveTask(operator, agentOwnerId)}
+                        canRun={canRunOwnAgent(operator, agentOwnerId)}
+                        onEdit={() => void navigate(taskEditHref(task.id))}
+                        onRun={() => void handleRunTask(task.id)}
+                      />
+                    );
+                  })}
                 </TableBody>
               </Table>
               <TablePaginationFooter

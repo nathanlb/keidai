@@ -1,8 +1,10 @@
 import {
+  readOperatorContext,
   RUN_SSE_EVENT,
   type FollowUpRunRequest,
   type FollowUpRunResponse,
   type Logger,
+  type OperatorContext,
   type ResumeRunResponse,
   type RunReport,
   type RunSseEvent,
@@ -33,6 +35,34 @@ import {
   stopConflictMessage,
 } from "./utils/follow-up-message.js";
 
+function memberOwnerId(operator: OperatorContext | null): string | undefined {
+  return operator?.role === "member" ? operator.ownerId : undefined;
+}
+
+function runVisibleToOperator(
+  run: RunReport,
+  operator: OperatorContext | null,
+): boolean {
+  if (!operator || operator.role === "admin") {
+    return true;
+  }
+  return run.agentOwnerId === operator.ownerId;
+}
+
+function canMutateRun(
+  run: RunReport,
+  operator: OperatorContext | null,
+  action: "continue" | "stop",
+): boolean {
+  if (!operator) {
+    return true;
+  }
+  if (run.agentOwnerId === operator.ownerId) {
+    return true;
+  }
+  return action === "stop" && operator.role === "admin";
+}
+
 function parseRunListLimit(request: FastifyRequest): number {
   const query = request.query as Record<string, string | undefined>;
   const parsedLimit = Number(query.limit ?? DEFAULT_RUN_LIST_LIMIT);
@@ -56,6 +86,7 @@ export class RunsApiController {
 
   registerRoutes(app: FastifyInstance): void {
     app.get("/api/runs/events", async (request, reply) => {
+      const operator = readOperatorContext(request.headers);
       reply.hijack();
       reply.raw.writeHead(200, {
         "Content-Type": "text/event-stream",
@@ -72,9 +103,11 @@ export class RunsApiController {
         reply.raw.write(`data: ${JSON.stringify(event.run)}\n\n`);
       };
 
-      for (const item of (await this.deps.runStore.listRuns(50)).runs) {
+      for (const item of (
+        await this.deps.runStore.listRuns(50, memberOwnerId(operator))
+      ).runs) {
         const run = await this.deps.runStore.getRun(item.id);
-        if (run) {
+        if (run && runVisibleToOperator(run, operator)) {
           writeEvent({
             type: RUN_SSE_EVENT.runUpdated,
             run,
@@ -82,7 +115,12 @@ export class RunsApiController {
         }
       }
 
-      const unsubscribe = this.deps.runStore.subscribe(writeEvent);
+      const unsubscribe = this.deps.runStore.subscribe((event) => {
+        if (!runVisibleToOperator(event.run, operator)) {
+          return;
+        }
+        writeEvent(event);
+      });
       const keepalive = setInterval(() => {
         reply.raw.write(": keepalive\n\n");
       }, 15_000);
@@ -96,7 +134,10 @@ export class RunsApiController {
     app.get("/api/runs/:runId", async (request, reply) => {
       const { runId } = request.params as { runId: string };
       const run = await this.deps.runStore.getRun(runId);
-      if (!run) {
+      if (
+        !run ||
+        !runVisibleToOperator(run, readOperatorContext(request.headers))
+      ) {
         reply.code(404).send({ error: "run not found" });
         return;
       }
@@ -104,7 +145,13 @@ export class RunsApiController {
     });
 
     app.get("/api/runs", async (request, reply) => {
-      reply.send(await this.deps.runStore.listRuns(parseRunListLimit(request)));
+      const operator = readOperatorContext(request.headers);
+      reply.send(
+        await this.deps.runStore.listRuns(
+          parseRunListLimit(request),
+          memberOwnerId(operator),
+        ),
+      );
     });
 
     app.post("/api/runs/:runId/follow-up", async (request, reply) => {
@@ -122,6 +169,12 @@ export class RunsApiController {
         reply.code(404).send({ error: "run not found" });
         return;
       }
+      if (
+        !canMutateRun(run, readOperatorContext(request.headers), "continue")
+      ) {
+        reply.code(403).send({ error: "Forbidden" });
+        return;
+      }
 
       const response = await this.handleFollowUp(run, runId, message);
       reply.code(response.status).send(response.body);
@@ -134,6 +187,10 @@ export class RunsApiController {
         reply.code(404).send({ error: "run not found" });
         return;
       }
+      if (!canMutateRun(run, readOperatorContext(request.headers), "stop")) {
+        reply.code(403).send({ error: "Forbidden" });
+        return;
+      }
 
       const response = await this.handleStop(run, runId);
       reply.code(response.status).send(response.body);
@@ -144,6 +201,12 @@ export class RunsApiController {
       const run = await this.deps.runStore.getRun(runId);
       if (!run) {
         reply.code(404).send({ error: "run not found" });
+        return;
+      }
+      if (
+        !canMutateRun(run, readOperatorContext(request.headers), "continue")
+      ) {
+        reply.code(403).send({ error: "Forbidden" });
         return;
       }
 

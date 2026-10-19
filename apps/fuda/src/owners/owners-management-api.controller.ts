@@ -1,5 +1,6 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { inject, injectable } from "tsyringe";
+import { AdminOnly, type OperatorRole } from "@keidai/shared";
 import {
   AGENT_REPOSITORY,
   type AgentRepository,
@@ -16,8 +17,16 @@ import {
 } from "./types/owner-api.js";
 import {
   OWNER_REPOSITORY,
+  type OwnerRecord,
   type OwnerRepository,
+  type OwnerStatus,
 } from "./types/owner-repository.js";
+
+const LAST_ADMIN_ERROR = "cannot remove or demote the last active admin";
+
+function isActiveAdmin(owner: OwnerRecord): boolean {
+  return owner.status === "active" && owner.role === "admin";
+}
 
 @injectable()
 export class OwnersManagementApiController {
@@ -52,55 +61,133 @@ export class OwnersManagementApiController {
       reply.send({ owner: result.owner });
     });
 
-    app.get("/api/owners/:ownerId", async (request, reply) => {
-      const { ownerId } = request.params as { ownerId: string };
-      const owner = await this.owners.get(ownerId);
-      if (!owner) {
+    app.get("/api/owners", (request, reply) => this.list(request, reply));
+
+    app.get("/api/owners/:ownerId", (request, reply) =>
+      this.get(request, reply),
+    );
+
+    app.patch("/api/owners/:ownerId", (request, reply) =>
+      this.update(request, reply),
+    );
+
+    app.delete("/api/owners/:ownerId", (request, reply) =>
+      this.remove(request, reply),
+    );
+  }
+
+  @AdminOnly()
+  private async list(
+    _request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> {
+    reply.send({ owners: await this.owners.list() });
+  }
+
+  @AdminOnly()
+  private async get(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> {
+    const { ownerId } = request.params as { ownerId: string };
+    const owner = await this.owners.get(ownerId);
+    if (!owner) {
+      reply.code(404).send({ error: "owner not found" });
+      return;
+    }
+    reply.send({ owner });
+  }
+
+  @AdminOnly()
+  private async update(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> {
+    const { ownerId } = request.params as { ownerId: string };
+    const parsed = updateOwnerBodySchema.safeParse(request.body);
+    if (!parsed.success) {
+      reply.code(400).send({
+        error: "invalid owner update",
+        details: parsed.error.flatten(),
+      });
+      return;
+    }
+
+    const existing = await this.owners.get(ownerId);
+    if (!existing) {
+      reply.code(404).send({ error: "owner not found" });
+      return;
+    }
+
+    const nextStatus: OwnerStatus = parsed.data.status ?? existing.status;
+    const nextRole: OperatorRole = parsed.data.role ?? existing.role;
+    if (
+      await this.removesLastActiveAdmin(existing, {
+        status: nextStatus,
+        role: nextRole,
+      })
+    ) {
+      reply.code(409).send({ error: LAST_ADMIN_ERROR });
+      return;
+    }
+
+    const owner = await this.owners.update(ownerId, {
+      status: nextStatus,
+      role: nextRole,
+    });
+    if (!owner) {
+      reply.code(404).send({ error: "owner not found" });
+      return;
+    }
+    reply.send({ owner });
+  }
+
+  @AdminOnly()
+  private async remove(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> {
+    const { ownerId } = request.params as { ownerId: string };
+    const existing = await this.owners.get(ownerId);
+    if (!existing) {
+      reply.code(404).send({ error: "owner not found" });
+      return;
+    }
+    if (await this.removesLastActiveAdmin(existing, null)) {
+      reply.code(409).send({ error: LAST_ADMIN_ERROR });
+      return;
+    }
+
+    try {
+      const deleted = await deleteOwner(
+        this.owners,
+        this.agents,
+        ownerId,
+        this.grants,
+      );
+      if (!deleted) {
         reply.code(404).send({ error: "owner not found" });
         return;
       }
-      reply.send({ owner });
-    });
+      reply.send({ ownerId, ...deleted });
+    } catch (error) {
+      reply.code(502).send({
+        error: "oauth grant cleanup failed",
+        detail: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
 
-    app.patch("/api/owners/:ownerId", async (request, reply) => {
-      const { ownerId } = request.params as { ownerId: string };
-      const parsed = updateOwnerBodySchema.safeParse(request.body);
-      if (!parsed.success) {
-        reply.code(400).send({
-          error: "invalid owner update",
-          details: parsed.error.flatten(),
-        });
-        return;
-      }
-
-      const owner = await this.owners.setStatus(ownerId, parsed.data.status);
-      if (!owner) {
-        reply.code(404).send({ error: "owner not found" });
-        return;
-      }
-      reply.send({ owner });
-    });
-
-    app.delete("/api/owners/:ownerId", async (request, reply) => {
-      const { ownerId } = request.params as { ownerId: string };
-      try {
-        const deleted = await deleteOwner(
-          this.owners,
-          this.agents,
-          ownerId,
-          this.grants,
-        );
-        if (!deleted) {
-          reply.code(404).send({ error: "owner not found" });
-          return;
-        }
-        reply.send({ ownerId, ...deleted });
-      } catch (error) {
-        reply.code(502).send({
-          error: "oauth grant cleanup failed",
-          detail: error instanceof Error ? error.message : String(error),
-        });
-      }
-    });
+  private async removesLastActiveAdmin(
+    owner: OwnerRecord,
+    next: { status: OwnerStatus; role: OperatorRole } | null,
+  ): Promise<boolean> {
+    if (!isActiveAdmin(owner)) {
+      return false;
+    }
+    if (next && next.status === "active" && next.role === "admin") {
+      return false;
+    }
+    return (await this.owners.countActiveAdmins()) <= 1;
   }
 }

@@ -7,12 +7,13 @@ export interface ManagementAgent extends AgentRecord {
   persona: string;
 }
 
-/** Shaiden-facing definition view — no identity fields. */
+/** Shaiden-facing definition view. Includes ownerId; omits groups. */
 export interface AgentDefinition {
   name: string;
   slug: string;
   persona: string;
   personaVersion: number;
+  ownerId: string;
 }
 
 export const createAgentBodySchema = z.object({

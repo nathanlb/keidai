@@ -26,5 +26,7 @@ export interface GroupPolicy extends GroupPolicySnapshot {
   description: string;
   createdAt: Date;
   updatedAt: Date;
+  /** Operator who created the group. Null for groups created without an operator context. */
+  ownerId?: string | null;
   servers: GroupServerPolicy[];
 }

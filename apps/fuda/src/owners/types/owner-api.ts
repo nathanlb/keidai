@@ -8,14 +8,19 @@ export const resolveOrProvisionOwnerBodySchema = z
     displayName: z.string().min(1).optional(),
     pictureUrl: z.string().min(1).optional(),
     ownerId: z.string().min(1).optional(),
+    role: z.enum(["admin", "member"]).optional(),
   })
   .strict();
 
 export const updateOwnerBodySchema = z
   .object({
-    status: z.enum(["active", "disabled"]),
+    status: z.enum(["active", "disabled"]).optional(),
+    role: z.enum(["admin", "member"]).optional(),
   })
-  .strict();
+  .strict()
+  .refine((body) => body.status !== undefined || body.role !== undefined, {
+    message: "status or role is required",
+  });
 
 export type ResolveOrProvisionOwnerBody = z.infer<
   typeof resolveOrProvisionOwnerBodySchema

@@ -17,12 +17,17 @@ export interface ExchangeTokenInput {
   audience?: TokenExchangeAudience;
 }
 
-/** Shaiden-facing agent definition from `GET /agents/{id}` (no identity fields). */
+/**
+ * Shaiden-facing agent definition from `GET /agents/{id}`.
+ * `ownerId` is the human operator who owns the agent. Group membership stays
+ * off this view.
+ */
 export interface AgentDefinition {
   name: string;
   slug: string;
   persona: string;
   personaVersion: number;
+  ownerId: string;
   defaultModelId?: string;
 }
 

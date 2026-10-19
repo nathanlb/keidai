@@ -12,6 +12,7 @@ interface GroupRow {
   id: string;
   name: string;
   description: string;
+  owner_id: string | null;
   created_at: Date | string;
   updated_at: Date | string;
 }
@@ -44,6 +45,7 @@ function rowToGroup(row: GroupRow, servers: GroupServerPolicy[]): GroupPolicy {
     id: row.id,
     name: row.name,
     description: row.description,
+    ownerId: row.owner_id,
     createdAt: toDate(row.created_at),
     updatedAt: toDate(row.updated_at),
     servers,
@@ -86,7 +88,7 @@ export class PgGroupPolicyRepository implements GroupPolicyRepository {
   async list(): Promise<GroupPolicy[]> {
     const groups = await this.pool.query<GroupRow>(
       `
-        SELECT id, name, description, created_at, updated_at
+        SELECT id, name, description, owner_id, created_at, updated_at
         FROM groups
         ORDER BY name ASC
       `,
@@ -106,7 +108,7 @@ export class PgGroupPolicyRepository implements GroupPolicyRepository {
   async get(id: string): Promise<GroupPolicy | null> {
     const result = await this.pool.query<GroupRow>(
       `
-        SELECT id, name, description, created_at, updated_at
+        SELECT id, name, description, owner_id, created_at, updated_at
         FROM groups
         WHERE id = $1
       `,
@@ -126,6 +128,7 @@ export class PgGroupPolicyRepository implements GroupPolicyRepository {
       id: randomUUID(),
       name: input.name,
       description: input.description,
+      ownerId: input.ownerId ?? null,
       createdAt: now,
       updatedAt: now,
       servers: input.servers.map((policy) => ({
@@ -139,13 +142,16 @@ export class PgGroupPolicyRepository implements GroupPolicyRepository {
     await withTransaction(this.pool, async (client) => {
       await client.query(
         `
-          INSERT INTO groups (id, name, description, created_at, updated_at)
-          VALUES ($1, $2, $3, $4, $5)
+          INSERT INTO groups (
+            id, name, description, owner_id, created_at, updated_at
+          )
+          VALUES ($1, $2, $3, $4, $5, $6)
         `,
         [
           group.id,
           group.name,
           group.description,
+          group.ownerId ?? null,
           toIso(group.createdAt),
           toIso(group.updatedAt),
         ],

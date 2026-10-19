@@ -37,7 +37,8 @@ export class ApprovalReadService {
   async listApprovals(
     status?: ApprovalRecordStatus,
     limit?: number,
+    ownerId?: string,
   ): Promise<ApprovalRecordView[]> {
-    return this.approvalStore.listApprovals(status, limit);
+    return this.approvalStore.listApprovals(status, limit, ownerId);
   }
 }

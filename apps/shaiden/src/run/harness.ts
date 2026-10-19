@@ -131,6 +131,7 @@ async function resolvePersonaAtTaskStart(input: {
   personaVersion?: number;
   persona?: string;
   agentDefaultModelId?: string;
+  agentOwnerId?: string;
 }> {
   const { assignee, fudaClient } = input;
 
@@ -143,6 +144,7 @@ async function resolvePersonaAtTaskStart(input: {
     systemPrompt: systemPromptFromPersona(definition.persona),
     personaVersion: definition.personaVersion,
     persona: definition.persona,
+    agentOwnerId: definition.ownerId,
     ...(definition.defaultModelId
       ? { agentDefaultModelId: definition.defaultModelId }
       : {}),
@@ -197,11 +199,16 @@ export async function launchHarnessRun({
   const logger = options.logger ?? defaultLogger;
   const fudaClient = resolveFudaClient(config, options);
   const openRouterApiKey = await resolveConfiguredOpenRouterApiKey(config);
-  const { systemPrompt, personaVersion, persona, agentDefaultModelId } =
-    await resolvePersonaAtTaskStart({
-      assignee: task.assignee,
-      fudaClient,
-    });
+  const {
+    systemPrompt,
+    personaVersion,
+    persona,
+    agentDefaultModelId,
+    agentOwnerId,
+  } = await resolvePersonaAtTaskStart({
+    assignee: task.assignee,
+    fudaClient,
+  });
   const modelId = resolveModelId({
     taskModelId: task.modelId,
     agentDefaultModelId,
@@ -224,6 +231,7 @@ export async function launchHarnessRun({
     personaVersion,
     persona,
     modelId,
+    ...(agentOwnerId ? { agentOwnerId } : {}),
   });
 
   const initialHistory: ConversationEntry[] = [

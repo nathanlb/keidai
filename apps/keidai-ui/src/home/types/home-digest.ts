@@ -15,6 +15,7 @@ export interface HomeAttentionItem {
   reviewHref: string;
   cta: HomeAttentionCta;
   ctaLabel: "Approve";
+  approvalOwnerId?: string;
 }
 
 export interface HomeLiveRun {

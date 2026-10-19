@@ -5,6 +5,7 @@ import type {
   ConnectionStatus,
   GroupView,
   GroupsResponse,
+  OperatorContext,
   PublicServerConfig,
   RunReport,
   RunsResponse,
@@ -16,6 +17,11 @@ import {
   fetchManagementApiJson,
   UpstreamRequestError,
 } from "../../upstream/fetch-management-api.js";
+import {
+  approvalsVisibleToOperator,
+  requestOperator,
+  runsVisibleToOperator,
+} from "../operator-scope.js";
 import { buildRunsVisibilityResponse } from "../runs/build-runs-visibility-response.js";
 import type { HomeDigestAgent } from "./home-digest.dto.js";
 import {
@@ -51,12 +57,13 @@ async function fetchRunReport(
   backends: OperatorApiBackends,
   bffServiceToken: string | null,
   runId: string,
+  operator: OperatorContext | null,
 ): Promise<RunReport | null> {
   try {
     return await fetchManagementApiJson<RunReport>(
       backends.shaiden,
       `/api/runs/${encodeURIComponent(runId)}`,
-      { bffServiceToken },
+      { bffServiceToken, operator },
     );
   } catch {
     return null;
@@ -66,12 +73,13 @@ async function fetchRunReport(
 async function fetchGroupsOrEmpty(
   backends: OperatorApiBackends,
   bffServiceToken: string | null,
+  operator: OperatorContext | null,
 ): Promise<GroupView[]> {
   try {
     const response = await fetchManagementApiJson<GroupsResponse>(
       backends.torii,
       "/api/groups",
-      { bffServiceToken },
+      { bffServiceToken, operator },
     );
     return response.groups;
   } catch {
@@ -82,12 +90,13 @@ async function fetchGroupsOrEmpty(
 async function fetchServersOrEmpty(
   backends: OperatorApiBackends,
   bffServiceToken: string | null,
+  operator: OperatorContext | null,
 ): Promise<PublicServerConfig[]> {
   try {
     const response = await fetchManagementApiJson<ConfigServersResponse>(
       backends.torii,
       "/api/config/servers",
-      { bffServiceToken },
+      { bffServiceToken, operator },
     );
     return response.servers;
   } catch {
@@ -98,6 +107,7 @@ async function fetchServersOrEmpty(
 async function fetchConnectionsOrEmpty(
   backends: OperatorApiBackends,
   bffServiceToken: string | null,
+  operator: OperatorContext | null,
   ownerId?: string,
 ): Promise<ConnectionStatus[]> {
   try {
@@ -107,7 +117,7 @@ async function fetchConnectionsOrEmpty(
     const response = await fetchManagementApiJson<ConnectionsResponse>(
       backends.torii,
       path,
-      { bffServiceToken },
+      { bffServiceToken, operator },
     );
     return response.connections;
   } catch {
@@ -126,13 +136,14 @@ export async function registerHomeDigestRoute(
     Reply: HomeDigestSourcesResponse | { error: string };
   }>("/api/ui/home/digest", async (request, reply) => {
     const limit = parseLimitQuery(request.query.limit);
+    const operator = requestOperator(request);
     const runsPath = listQueryPath("/api/runs", limit);
     const tasksPath = listQueryPath("/api/tasks", limit);
     const approvalsPath = listQueryPath("/api/approvals", limit);
 
     try {
       const [
-        approvals,
+        rawApprovals,
         rawRuns,
         tasksResponse,
         agentsResponse,
@@ -143,36 +154,51 @@ export async function registerHomeDigestRoute(
         fetchManagementApiJson<ApprovalRecordView[]>(
           backends.torii,
           approvalsPath,
-          { bffServiceToken },
+          { bffServiceToken, operator },
         ),
         fetchManagementApiJson<RunsResponse>(backends.shaiden, runsPath, {
           bffServiceToken,
+          operator,
         }),
         fetchManagementApiJson<TasksResponse>(backends.shaiden, tasksPath, {
           bffServiceToken,
+          operator,
         }),
         fetchManagementApiJson<{ agents: HomeDigestAgent[] }>(
           backends.fuda,
           "/api/agents",
-          { bffServiceToken },
+          { bffServiceToken, operator },
         ),
-        fetchGroupsOrEmpty(backends, bffServiceToken),
-        fetchServersOrEmpty(backends, bffServiceToken),
+        fetchGroupsOrEmpty(backends, bffServiceToken, operator),
+        fetchServersOrEmpty(backends, bffServiceToken, operator),
         fetchConnectionsOrEmpty(
           backends,
           bffServiceToken,
+          operator,
           request.operatorPrincipal?.ownerId,
         ),
       ]);
 
+      const approvals = approvalsVisibleToOperator(rawApprovals, operator);
       const runsResponse = buildRunsVisibilityResponse(
-        rawRuns,
+        {
+          runs: runsVisibleToOperator(
+            rawRuns.runs,
+            agentsResponse.agents,
+            operator,
+          ),
+        },
         agentsResponse.agents,
       );
       const runningIds = collectRunningRunIds(approvals, runsResponse.runs);
       const reportEntries = await Promise.all(
         runningIds.map(async (runId) => {
-          const report = await fetchRunReport(backends, bffServiceToken, runId);
+          const report = await fetchRunReport(
+            backends,
+            bffServiceToken,
+            runId,
+            operator,
+          );
           return report ? ([runId, report] as const) : null;
         }),
       );

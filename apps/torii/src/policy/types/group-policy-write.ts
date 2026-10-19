@@ -4,6 +4,7 @@ export interface CreateGroupPolicyInput {
   name: string;
   description: string;
   servers: GroupServerPolicy[];
+  ownerId?: string | null;
 }
 
 export interface UpdateGroupPolicyInput {

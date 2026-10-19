@@ -18,6 +18,13 @@ import {
 } from "lucide-react";
 import { useState, type MouseEvent } from "react";
 import { useFetchRun } from "../lib/hooks/use-fetch-run.js";
+import { useActingOwner } from "../shell/hooks/use-acting-owner.js";
+import {
+  APPROVE_OWNER_ONLY,
+  canApproveToolCall,
+  canRejectOrCancel,
+  knownOperator,
+} from "../shell/utils/operator-permissions.js";
 import { ApprovalActions } from "./approval-actions.js";
 import { ApprovalCapturedCall } from "./approval-captured-call.js";
 import { ConnectionLogo } from "./connection-logo.js";
@@ -47,6 +54,10 @@ export function ApprovalCard({
   );
   const display = deriveApprovalDisplay(approval, run);
   const parkedLabel = formatParkedDuration(approval.createdAt);
+  const { owner } = useActingOwner();
+  const operator = knownOperator(owner);
+  const allowApprove = canApproveToolCall(operator, approval.ownerId);
+  const allowDecide = canRejectOrCancel(operator, approval.ownerId);
 
   const handleQuickApprove = async (event: MouseEvent) => {
     event.stopPropagation();
@@ -117,14 +128,17 @@ export function ApprovalCard({
                 type="button"
                 size="icon"
                 className="size-6.5 shrink-0"
-                disabled={busy}
+                disabled={busy || !allowApprove}
                 onClick={handleQuickApprove}
                 aria-label="Approve and resume"
+                title={allowApprove ? "Approve & resume" : APPROVE_OWNER_ONLY}
               >
                 <CheckCheck className="size-3.5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="left">Approve & resume</TooltipContent>
+            <TooltipContent side="left">
+              {allowApprove ? "Approve & resume" : APPROVE_OWNER_ONLY}
+            </TooltipContent>
           </Tooltip>
           <Button
             type="button"
@@ -203,6 +217,8 @@ export function ApprovalCard({
 
             <ApprovalActions
               disabled={busy}
+              canApprove={allowApprove}
+              canDecide={allowDecide}
               onApprove={() => onApprove(approval.id)}
               onReject={(reason) => onReject(approval.id, reason)}
               onCancel={() => onCancel(approval.id)}

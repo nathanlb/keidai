@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { OperatorRole } from "./operator-principal.js";
 
 /**
  * Optional operator allowlist: opaque owner_id ↔ Google identity.
@@ -11,6 +12,7 @@ export const operatorEntrySchema = z
     owner_id: z.string().min(1),
     google_sub: z.string().min(1).optional(),
     google_email: z.string().email().optional(),
+    role: z.enum(["admin", "member"]).optional(),
   })
   .strict()
   .refine(
@@ -91,6 +93,7 @@ export function parseOperatorsDocument(document: unknown): OperatorsFile {
       ...(entry.google_email?.trim()
         ? { google_email: entry.google_email.trim().toLowerCase() }
         : {}),
+      ...(entry.role ? { role: entry.role satisfies OperatorRole } : {}),
     })),
   };
 

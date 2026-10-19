@@ -14,6 +14,8 @@ export interface GroupView {
   description: string;
   createdAt: string;
   updatedAt: string;
+  /** Operator who created a custom group. Null for system or unscoped groups. */
+  ownerId?: string | null;
   servers: GroupServerPolicyView[];
 }
 

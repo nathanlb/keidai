@@ -11,6 +11,11 @@ import {
 } from "@keidai/ui";
 import type { GroupServerPolicyView, GroupView } from "@keidai/shared";
 import { ArrowLeft } from "lucide-react";
+import { useActingOwner } from "../shell/hooks/use-acting-owner.js";
+import {
+  canMutateOwned,
+  knownOperator,
+} from "../shell/utils/operator-permissions.js";
 import { useEffect, useMemo, useState } from "react";
 import { useBlocker, useNavigate, useParams } from "react-router";
 import { useSWRConfig } from "swr";
@@ -85,11 +90,13 @@ export function GroupDetailView() {
   const { data: serversData } = useFetchServers();
   const { connections } = useLiveConnections();
   const { message, showToast } = useGroupsToast();
+  const { owner } = useActingOwner();
 
   const saved = useMemo(
     () => data?.groups.find((group) => group.name === name) ?? null,
     [data, name],
   );
+  const canEdit = canMutateOwned(knownOperator(owner), saved?.ownerId);
   const [draft, setDraft] = useState<GroupView | null>(null);
   const [draftGroupId, setDraftGroupId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -276,6 +283,7 @@ export function GroupDetailView() {
               }
               placeholder="Add a description…"
               aria-label="Group description"
+              disabled={!canEdit}
               className="
                 mt-1 h-auto border-0 bg-transparent p-0 text-[13.5px]
                 text-muted-foreground shadow-none
@@ -284,34 +292,42 @@ export function GroupDetailView() {
             />
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="
+            {canEdit ? (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="
                 h-8.5 text-[12.5px] text-destructive
                 hover:text-destructive
               "
-              onClick={() => setDeleteOpen(true)}
-            >
-              Delete group
-            </Button>
-            <Button
-              type="button"
-              className={
-                dirty
-                  ? "h-8.5 text-[12.5px]"
-                  : `
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  Delete group
+                </Button>
+                <Button
+                  type="button"
+                  className={
+                    dirty
+                      ? "h-8.5 text-[12.5px]"
+                      : `
                     h-8.5 bg-muted text-[12.5px] text-muted-foreground
                     opacity-75
                     hover:bg-muted
                   `
-              }
-              disabled={!dirty || isSaving}
-              onClick={() => void handleSave()}
-            >
-              {isSaving ? <Spinner className="size-3.5" aria-hidden /> : null}
-              {dirty ? "Save policy" : "Saved"}
-            </Button>
+                  }
+                  disabled={!dirty || isSaving}
+                  onClick={() => void handleSave()}
+                >
+                  {isSaving ? (
+                    <Spinner className="size-3.5" aria-hidden />
+                  ) : null}
+                  {dirty ? "Save policy" : "Saved"}
+                </Button>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">Read-only</p>
+            )}
           </div>
         </div>
         {saveError ? (
@@ -340,6 +356,7 @@ export function GroupDetailView() {
               catalogue={catalogues[policy.server]}
               connectionState={connections.get(policy.server)?.state}
               defaultOpen={index === 0}
+              readOnly={!canEdit}
               onChange={(next) =>
                 setDraft({
                   ...draft,
@@ -354,15 +371,17 @@ export function GroupDetailView() {
               }
             />
           ))}
-          <AddServerButton
-            servers={remainingServers}
-            onAdd={(server) =>
-              setDraft({
-                ...draft,
-                servers: addServerPolicy(draft.servers, server),
-              })
-            }
-          />
+          {canEdit ? (
+            <AddServerButton
+              servers={remainingServers}
+              onAdd={(server) =>
+                setDraft({
+                  ...draft,
+                  servers: addServerPolicy(draft.servers, server),
+                })
+              }
+            />
+          ) : null}
         </div>
         <div className="flex flex-col gap-3">
           <GroupAgentsRail groupName={draft.name} agents={members} />

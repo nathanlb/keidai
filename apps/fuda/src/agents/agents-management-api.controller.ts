@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { inject, injectable } from "tsyringe";
 import { isUniqueViolation } from "@keidai/postgres";
+import { readOperatorContext, type OperatorContext } from "@keidai/shared";
 import { PLATFORM_BEARER_ID } from "../bearers/platform-bearer.js";
 import {
   BEARER_REPOSITORY,
@@ -54,7 +55,9 @@ export class AgentsManagementApiController {
     });
 
     app.post("/api/agents", async (request, reply) => {
-      const parsed = createAgentBodySchema.safeParse(request.body);
+      const operator = readOperatorContext(request.headers);
+      const rawBody = forceAgentOwner(request.body, operator);
+      const parsed = createAgentBodySchema.safeParse(rawBody);
       if (!parsed.success) {
         reply.code(400).send({
           error: "invalid agent",
@@ -138,6 +141,12 @@ export class AgentsManagementApiController {
         reply.code(404).send({ error: "agent not found" });
         return;
       }
+      if (
+        !canMutateAgent(readOperatorContext(request.headers), existing.ownerId)
+      ) {
+        reply.code(403).send({ error: "Forbidden" });
+        return;
+      }
 
       if (parsed.data.name !== undefined) {
         await this.agents.updateName(agentId, { name: parsed.data.name });
@@ -168,6 +177,17 @@ export class AgentsManagementApiController {
 
     app.delete("/api/agents/:agentId", async (request, reply) => {
       const { agentId } = request.params as { agentId: string };
+      const existing = await this.agents.get(agentId);
+      if (!existing) {
+        reply.code(404).send({ error: "agent not found" });
+        return;
+      }
+      if (
+        !canMutateAgent(readOperatorContext(request.headers), existing.ownerId)
+      ) {
+        reply.code(403).send({ error: "Forbidden" });
+        return;
+      }
       if (!(await this.agents.delete(agentId))) {
         reply.code(404).send({ error: "agent not found" });
         return;
@@ -188,4 +208,30 @@ export class AgentsManagementApiController {
       persona: persona.content,
     };
   }
+}
+
+function forceAgentOwner(
+  body: unknown,
+  operator: OperatorContext | null,
+): unknown {
+  if (!operator) {
+    return body;
+  }
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return { ownerId: operator.ownerId };
+  }
+  return {
+    ...(body as Record<string, unknown>),
+    ownerId: operator.ownerId,
+  };
+}
+
+function canMutateAgent(
+  operator: OperatorContext | null,
+  ownerId: string,
+): boolean {
+  if (!operator) {
+    return true;
+  }
+  return operator.role === "admin" || operator.ownerId === ownerId;
 }

@@ -154,6 +154,7 @@ export async function registerOperatorAuth(
       googleSub: claims.googleSub,
       email: claims.email,
       ownerId: resolved.ownerId,
+      role: resolved.role,
       ...(resolved.name ? { name: resolved.name } : {}),
       ...(resolved.picture ? { picture: resolved.picture } : {}),
     };

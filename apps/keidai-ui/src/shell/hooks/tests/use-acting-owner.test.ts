@@ -30,6 +30,7 @@ describe("useActingOwner", () => {
         googleSub: "sub-1",
         email: "ops@example.com",
         ownerId: "demo-owner",
+        role: "admin",
         name: "Ops User",
         picture: "https://example.com/p.png",
       },
@@ -44,6 +45,8 @@ describe("useActingOwner", () => {
       displayName: "Ops User",
       initials: "OU",
       picture: "https://example.com/p.png",
+      role: "admin",
     });
+    expect(result.current.isAdmin).toBe(true);
   });
 });

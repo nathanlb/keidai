@@ -1,4 +1,5 @@
 import { toIso, type Pool } from "@keidai/postgres";
+import type { OperatorRole } from "@keidai/shared";
 import type {
   OwnerIdentityInput,
   OwnerRecord,
@@ -11,6 +12,7 @@ interface OwnerRow {
   created_at: Date | string;
   updated_at: Date | string;
   status: OwnerStatus;
+  role: OperatorRole;
   idp_issuer: string | null;
   idp_sub: string | null;
   email: string | null;
@@ -19,7 +21,7 @@ interface OwnerRow {
 }
 
 const OWNER_COLUMNS = `
-  owner_id, created_at, updated_at, status,
+  owner_id, created_at, updated_at, status, role,
   idp_issuer, idp_sub, email, display_name, picture_url
 `;
 
@@ -29,6 +31,7 @@ function rowToOwner(row: OwnerRow): OwnerRecord {
     createdAt: toIso(row.created_at),
     updatedAt: toIso(row.updated_at),
     status: row.status,
+    role: row.role,
     idpIssuer: row.idp_issuer,
     idpSub: row.idp_sub,
     email: row.email,
@@ -40,21 +43,30 @@ function rowToOwner(row: OwnerRow): OwnerRecord {
 export class PgOwnerRepository implements OwnerRepository {
   constructor(private readonly pool: Pool) {}
 
-  async upsert(ownerId: string): Promise<OwnerRecord> {
-    const existing = await this.get(ownerId);
-    if (existing) {
-      return existing;
-    }
-
+  async upsert(
+    ownerId: string,
+    options?: { role?: OperatorRole },
+  ): Promise<OwnerRecord> {
     const now = new Date().toISOString();
+    const role = options?.role ?? "member";
     await this.pool.query(
       `
-        INSERT INTO owners (owner_id, created_at, updated_at, status)
-        VALUES ($1, $2, $2, 'active')
+        INSERT INTO owners (owner_id, created_at, updated_at, status, role)
+        VALUES ($1, $2, $2, 'active', $3)
         ON CONFLICT (owner_id) DO NOTHING
       `,
-      [ownerId, now],
+      [ownerId, now, role],
     );
+    if (options?.role) {
+      await this.pool.query(
+        `
+          UPDATE owners
+          SET role = $2, updated_at = $3
+          WHERE owner_id = $1 AND role IS DISTINCT FROM $2
+        `,
+        [ownerId, options.role, now],
+      );
+    }
     const created = await this.get(ownerId);
     if (!created) {
       throw new Error(`failed to upsert owner "${ownerId}"`);
@@ -120,23 +132,36 @@ export class PgOwnerRepository implements OwnerRepository {
     return result.rows.map(rowToOwner);
   }
 
+  async countActiveAdmins(): Promise<number> {
+    const result = await this.pool.query<{ count: string | number }>(
+      `
+        SELECT COUNT(*)::int AS count
+        FROM owners
+        WHERE status = 'active' AND role = 'admin'
+      `,
+    );
+    return Number(result.rows[0]?.count ?? 0);
+  }
+
   async insertProvisioned(
     ownerId: string,
     identity: OwnerIdentityInput,
+    role: OperatorRole,
   ): Promise<OwnerRecord> {
     const now = new Date().toISOString();
     const result = await this.pool.query<OwnerRow>(
       `
         INSERT INTO owners (
-          owner_id, created_at, updated_at, status,
+          owner_id, created_at, updated_at, status, role,
           idp_issuer, idp_sub, email, display_name, picture_url
         )
-        VALUES ($1, $2, $2, 'active', $3, $4, $5, $6, $7)
+        VALUES ($1, $2, $2, 'active', $3, $4, $5, $6, $7, $8)
         RETURNING ${OWNER_COLUMNS}
       `,
       [
         ownerId,
         now,
+        role,
         identity.idpIssuer,
         identity.idpSub,
         identity.email,
@@ -186,14 +211,30 @@ export class PgOwnerRepository implements OwnerRepository {
     ownerId: string,
     status: OwnerStatus,
   ): Promise<OwnerRecord | null> {
+    return this.update(ownerId, { status });
+  }
+
+  async update(
+    ownerId: string,
+    patch: { status?: OwnerStatus; role?: OperatorRole },
+  ): Promise<OwnerRecord | null> {
+    const existing = await this.get(ownerId);
+    if (!existing) {
+      return null;
+    }
     const result = await this.pool.query<OwnerRow>(
       `
         UPDATE owners
-        SET status = $2, updated_at = $3
+        SET status = $2, role = $3, updated_at = $4
         WHERE owner_id = $1
         RETURNING ${OWNER_COLUMNS}
       `,
-      [ownerId, status, new Date().toISOString()],
+      [
+        ownerId,
+        patch.status ?? existing.status,
+        patch.role ?? existing.role,
+        new Date().toISOString(),
+      ],
     );
     const row = result.rows[0];
     return row ? rowToOwner(row) : null;

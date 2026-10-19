@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import type { FastifyInstance } from "fastify";
+import { AdminOnly } from "@keidai/shared";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { fetchOpenRouterModels } from "./fetch-models.js";
 import {
@@ -39,40 +40,17 @@ export class OpenRouterApiController {
   constructor(private readonly options: OpenRouterApiControllerOptions) {}
 
   registerRoutes(app: FastifyInstance): void {
-    app.get("/api/openrouter/credential", async (_request, reply) => {
-      reply.send(await this.status());
-    });
+    app.get("/api/openrouter/credential", (request, reply) =>
+      this.showCredential(request, reply),
+    );
 
-    app.put("/api/openrouter/credential", async (request, reply) => {
-      const parsed = putBodySchema.safeParse(request.body);
-      if (!parsed.success) {
-        reply.code(400).send({ error: "invalid OpenRouter API key" });
-        return;
-      }
+    app.put("/api/openrouter/credential", (request, reply) =>
+      this.putCredential(request, reply),
+    );
 
-      try {
-        const status = await storeOpenRouterApiKey({
-          credentials: this.options.credentials,
-          apiKey: parsed.data.apiKey,
-          env: this.options.env,
-        });
-        this.cache = null;
-        reply.send(status);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        const status = message.includes("SHAIDEN_SECRET_KEY") ? 503 : 500;
-        reply.code(status).send({
-          error:
-            status === 503 ? message : "Failed to store the OpenRouter API key",
-        });
-      }
-    });
-
-    app.delete("/api/openrouter/credential", async (_request, reply) => {
-      await this.options.credentials.clear();
-      this.cache = null;
-      reply.send(await this.status());
-    });
+    app.delete("/api/openrouter/credential", (request, reply) =>
+      this.clearCredential(request, reply),
+    );
 
     app.get("/api/openrouter/models", async (_request, reply) => {
       try {
@@ -86,6 +64,53 @@ export class OpenRouterApiController {
         reply.code(502).send({ error: message });
       }
     });
+  }
+
+  @AdminOnly()
+  private async showCredential(
+    _request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> {
+    reply.send(await this.status());
+  }
+
+  @AdminOnly()
+  private async putCredential(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> {
+    const parsed = putBodySchema.safeParse(request.body);
+    if (!parsed.success) {
+      reply.code(400).send({ error: "invalid OpenRouter API key" });
+      return;
+    }
+
+    try {
+      const status = await storeOpenRouterApiKey({
+        credentials: this.options.credentials,
+        apiKey: parsed.data.apiKey,
+        env: this.options.env,
+      });
+      this.cache = null;
+      reply.send(status);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const status = message.includes("SHAIDEN_SECRET_KEY") ? 503 : 500;
+      reply.code(status).send({
+        error:
+          status === 503 ? message : "Failed to store the OpenRouter API key",
+      });
+    }
+  }
+
+  @AdminOnly()
+  private async clearCredential(
+    _request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> {
+    await this.options.credentials.clear();
+    this.cache = null;
+    reply.send(await this.status());
   }
 
   private status() {

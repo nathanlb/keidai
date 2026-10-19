@@ -99,6 +99,33 @@ export function forceSessionOwnerQuery(url: string, ownerId: string): string {
 /** @deprecated Use forceSessionOwnerQuery */
 export const forceSessionOwnerOnOAuthInitiateUrl = forceSessionOwnerQuery;
 
+/** Browser callers must not provision owners or mutate bearers through the BFF. */
+export function isBlockedBrowserOperatorRoute(
+  method: string,
+  url: string,
+): boolean {
+  const pathname = url.split("?")[0] ?? url;
+  const upperMethod = method.toUpperCase();
+  if (
+    upperMethod === "POST" &&
+    (pathname === "/api/owners/resolve-or-provision" ||
+      pathname === "/resolve-or-provision" ||
+      pathname.endsWith("/owners/resolve-or-provision"))
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export function isBearerMutation(method: string): boolean {
+  const upperMethod = method.toUpperCase();
+  return (
+    upperMethod === "POST" ||
+    upperMethod === "PATCH" ||
+    upperMethod === "DELETE"
+  );
+}
+
 /**
  * `@fastify/http-proxy` preHandler for the Fuda `/api/agents` mount.
  * Requires `proxyPayloads: false` so JSON bodies are parsed and re-sent.

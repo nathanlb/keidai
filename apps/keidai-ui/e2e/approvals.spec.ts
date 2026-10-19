@@ -5,7 +5,7 @@ import { mockToriiConfig } from "./helpers/mock-torii.js";
 const pendingApproval: ApprovalRecordView = {
   id: "approval-1",
   agentId: "shaiden-newsletter-01",
-  ownerId: "owner-demo",
+  ownerId: "owner-a",
   toolName: "gmail.send_email",
   params: {
     to: "team@example.com",

@@ -15,5 +15,8 @@ export function projectRunListItem(run: RunReport): RunListItem {
       : {}),
     ...(run.persona !== undefined ? { persona: run.persona } : {}),
     ...(run.modelId !== undefined ? { modelId: run.modelId } : {}),
+    ...(run.agentOwnerId !== undefined
+      ? { agentOwnerId: run.agentOwnerId }
+      : {}),
   };
 }

@@ -3,6 +3,8 @@ import fastifyStatic from "@fastify/static";
 import {
   OPERATOR_API_ROUTES,
   isOperatorApiSsePath,
+  operatorContextHeaders,
+  stripOperatorContextHeaders,
   type OperatorApiBackend,
 } from "@keidai/shared";
 import {
@@ -19,9 +21,11 @@ import { createFudaOwnerClient } from "./auth/fuda-owner-client.js";
 import {
   enforceSessionOwnerOnAgentProxy,
   enforceSessionOwnerOnToriiApiProxy,
+  isBearerMutation,
+  isBlockedBrowserOperatorRoute,
 } from "./auth/enforce-session-owner.js";
 import { registerOperatorAuth } from "./auth/register-auth.js";
-import type { OperatorAuthConfig } from "./auth/types.js";
+import type { OperatorAuthConfig, OperatorPrincipal } from "./auth/types.js";
 import { registerUiRoutes } from "./ui/register-ui-routes.js";
 
 const serverDir = path.dirname(fileURLToPath(import.meta.url));
@@ -126,7 +130,10 @@ function readForwardedHeader(
  * URLs from X-Forwarded-* instead of its internal listen address.
  */
 function forwardOperatorEdgeHeaders(
-  request: { headers: IncomingHttpHeaders },
+  request: {
+    headers: IncomingHttpHeaders;
+    operatorPrincipal?: OperatorPrincipal;
+  },
   headers: IncomingHttpHeaders,
   bffServiceToken: string | null,
 ): IncomingHttpHeaders {
@@ -135,11 +142,14 @@ function forwardOperatorEdgeHeaders(
     request.headers.host;
   const proto =
     readForwardedHeader(request.headers["x-forwarded-proto"]) ?? "http";
+  const stripped = stripOperatorContextHeaders(headers);
+  const principal = request.operatorPrincipal;
 
   return {
-    ...headers,
+    ...stripped,
     ...(host ? { "x-forwarded-host": host } : {}),
     "x-forwarded-proto": proto,
+    ...(principal ? operatorContextHeaders(principal) : {}),
     ...(bffServiceToken
       ? {
           authorization: bffServiceTokenAuthorizationHeader(bffServiceToken),
@@ -172,10 +182,14 @@ export async function registerApiProxy(
       : route.prefix;
 
     const isAgentsProxy = route.prefix === "/api/agents";
+    const isOwnersProxy = route.prefix === "/api/owners";
+    const isBearersProxy = route.prefix === "/api/bearers";
     const isToriiApiCatchAll =
       route.prefix === "/api" && route.backend === "torii";
     // OAuth provider redirects are browser navigations — no service token.
     const injectServiceToken = route.prefix !== "/oauth/callback";
+    const needsPreHandler =
+      isAgentsProxy || isOwnersProxy || isBearersProxy || isToriiApiCatchAll;
 
     await app.register(fastifyHttpProxy, {
       upstream: backends[route.backend],
@@ -184,13 +198,31 @@ export async function registerApiProxy(
       // Parse JSON so agent-create preHandler can rewrite `ownerId` before
       // reply-from re-serializes the body upstream.
       ...(enforceSessionOwner && isAgentsProxy
-        ? {
-            proxyPayloads: false as const,
-            preHandler: enforceSessionOwnerOnAgentProxy,
-          }
+        ? { proxyPayloads: false as const }
         : {}),
-      ...(isToriiApiCatchAll
-        ? { preHandler: enforceSessionOwnerOnToriiApiProxy }
+      ...(needsPreHandler
+        ? {
+            preHandler: async (request, reply) => {
+              if (
+                isOwnersProxy &&
+                isBlockedBrowserOperatorRoute(request.method, request.url)
+              ) {
+                return reply.code(403).send({ error: "Forbidden" });
+              }
+              if (isBearersProxy && isBearerMutation(request.method)) {
+                return reply.code(403).send({ error: "Forbidden" });
+              }
+              if (isToriiApiCatchAll) {
+                await enforceSessionOwnerOnToriiApiProxy(request, reply);
+                if (reply.sent) {
+                  return;
+                }
+              }
+              if (enforceSessionOwner && isAgentsProxy) {
+                await enforceSessionOwnerOnAgentProxy(request, reply);
+              }
+            },
+          }
         : {}),
       ...bffUpstreamAgentOptions(),
       replyOptions: {

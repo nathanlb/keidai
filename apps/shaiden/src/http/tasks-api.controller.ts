@@ -2,9 +2,11 @@ import {
   isScheduleTrigger,
   oneShotMustBeFutureError,
   openRouterModelIdSchema,
+  readOperatorContext,
   taskSchema,
   taskTriggersEqual,
   type Logger,
+  type OperatorContext,
   type StartTaskRunResponse,
   type Task,
 } from "@keidai/shared";
@@ -109,7 +111,10 @@ export class TasksApiController {
         return;
       }
 
-      const assigneeError = await this.validateAssignee(parsed.data.assignee);
+      const assigneeError = await this.authorizeOwnAssignee(
+        parsed.data.assignee,
+        readOperatorContext(request.headers),
+      );
       if (assigneeError) {
         reply.code(assigneeError.status).send({ error: assigneeError.error });
         return;
@@ -151,6 +156,16 @@ export class TasksApiController {
         return;
       }
 
+      const operator = readOperatorContext(request.headers);
+      const existingError = await this.authorizeExistingTask(
+        existing.assignee,
+        operator,
+      );
+      if (existingError) {
+        reply.code(existingError.status).send({ error: existingError.error });
+        return;
+      }
+
       const body = request.body as Record<string, unknown>;
       const parsed = taskSchema
         .partial()
@@ -167,7 +182,10 @@ export class TasksApiController {
       }
 
       if (parsed.data.assignee !== undefined) {
-        const assigneeError = await this.validateAssignee(parsed.data.assignee);
+        const assigneeError = await this.authorizeOwnAssignee(
+          parsed.data.assignee,
+          operator,
+        );
         if (assigneeError) {
           reply.code(assigneeError.status).send({ error: assigneeError.error });
           return;
@@ -206,6 +224,15 @@ export class TasksApiController {
         return;
       }
 
+      const existingError = await this.authorizeExistingTask(
+        existing.assignee,
+        readOperatorContext(request.headers),
+      );
+      if (existingError) {
+        reply.code(existingError.status).send({ error: existingError.error });
+        return;
+      }
+
       if (!(await this.taskRepository.archive(taskId))) {
         reply.code(404).send({ error: "task not found" });
         return;
@@ -227,7 +254,11 @@ export class TasksApiController {
         return;
       }
 
-      const response = await this.startRunForTask(saved, taskId);
+      const response = await this.startRunForTask(
+        saved,
+        taskId,
+        readOperatorContext(request.headers),
+      );
       if ("error" in response) {
         reply.code(response.status).send({ error: response.error });
         return;
@@ -253,14 +284,18 @@ export class TasksApiController {
         return;
       }
 
-      const assigneeError = await this.validateAssignee(parsed.data.assignee);
+      const operator = readOperatorContext(request.headers);
+      const assigneeError = await this.authorizeOwnAssignee(
+        parsed.data.assignee,
+        operator,
+      );
       if (assigneeError) {
         reply.code(assigneeError.status).send({ error: assigneeError.error });
         return;
       }
 
       const saved = await this.taskRepository.create({ task: parsed.data });
-      const response = await this.startRunForTask(saved, saved.id, {
+      const response = await this.startRunForTask(saved, saved.id, operator, {
         deleteTaskOnStartFailure: true,
       });
       if ("error" in response) {
@@ -272,16 +307,16 @@ export class TasksApiController {
     });
   }
 
-  private async validateAssignee(
+  private async assigneeOwner(
     assignee: string,
-  ): Promise<{ error: string; status: number } | null> {
+  ): Promise<{ ownerId: string | null } | { error: string; status: number }> {
     if (!this.fudaClient) {
-      return null;
+      return { ownerId: null };
     }
 
     try {
-      await this.fudaClient.getAgentDefinition(assignee);
-      return null;
+      const definition = await this.fudaClient.getAgentDefinition(assignee);
+      return { ownerId: definition.ownerId };
     } catch (error) {
       if (error instanceof AgentDefinitionError) {
         return describeAgentDefinitionFailure(error, "creation");
@@ -292,6 +327,35 @@ export class TasksApiController {
         status: 502,
       };
     }
+  }
+
+  /**
+   * Create, reassign, and run: the assignee agent must belong to the caller.
+   * Admins are not exempt — a run executes with the agent's credentials.
+   */
+  private async authorizeOwnAssignee(
+    assignee: string,
+    operator: OperatorContext | null,
+  ): Promise<{ error: string; status: number } | null> {
+    const resolved = await this.assigneeOwner(assignee);
+    if ("error" in resolved) {
+      return resolved;
+    }
+    if (operator && resolved.ownerId !== operator.ownerId) {
+      return { error: "Forbidden", status: 403 };
+    }
+    return null;
+  }
+
+  /** Edit and archive: members are limited to their own agents; admins are not. */
+  private async authorizeExistingTask(
+    assignee: string,
+    operator: OperatorContext | null,
+  ): Promise<{ error: string; status: number } | null> {
+    if (!operator || operator.role === "admin") {
+      return null;
+    }
+    return this.authorizeOwnAssignee(assignee, operator);
   }
 
   private async getRunningRunForTask(taskId: string) {
@@ -310,6 +374,7 @@ export class TasksApiController {
       modelId?: string;
     },
     taskId: string,
+    operator: OperatorContext | null,
     options: { deleteTaskOnStartFailure?: boolean } = {},
   ): Promise<
     { body: StartTaskRunResponse } | { error: string; status: number }
@@ -322,7 +387,10 @@ export class TasksApiController {
       ...(saved.modelId ? { modelId: saved.modelId } : {}),
     });
 
-    const assigneeError = await this.validateAssignee(task.assignee);
+    const assigneeError = await this.authorizeOwnAssignee(
+      task.assignee,
+      operator,
+    );
     if (assigneeError) {
       return assigneeError;
     }

@@ -123,6 +123,7 @@ describe("operator auth", () => {
       googleSub: "allowlisted-sub",
       email: "allow@example.com",
       ownerId: "nathanlb",
+      role: "admin" as const,
     };
     const sealed = await sealOperatorSession(principal, authConfig);
     const cookieHeader = serializeSessionCookie(sealed, authConfig).split(
@@ -148,6 +149,7 @@ describe("operator auth", () => {
       googleSub: "allowlisted-sub",
       email: "allow@example.com",
       ownerId: "nathanlb",
+      role: "admin" as const,
     };
     const sealed = await sealOperatorSession(principal, authConfig);
     const cookieHeader = serializeSessionCookie(sealed, authConfig).split(
@@ -187,6 +189,7 @@ describe("operator auth", () => {
       googleSub: "allowlisted-sub",
       email: "allow@example.com",
       ownerId: "nathanlb",
+      role: "admin" as const,
     };
     const sealed = await sealOperatorSession(principal, authConfig);
     const cookieHeader = serializeSessionCookie(sealed, authConfig).split(
@@ -361,6 +364,7 @@ describe("operator auth", () => {
       googleSub: "allowlisted-sub",
       email: "allow@example.com",
       ownerId: "nathanlb",
+      role: "member",
     });
   });
 
@@ -370,6 +374,7 @@ describe("operator auth", () => {
         googleSub: "other-sub",
         email: "deny@example.com",
         ownerId: "nathanlb",
+        role: "member",
       },
       authConfig,
     );
@@ -401,6 +406,7 @@ describe("operator auth", () => {
       googleSub: "allowlisted-sub",
       email: "allow@example.com",
       ownerId: "nathanlb",
+      role: "admin" as const,
     };
     const sealed = await sealOperatorSession(principal, authConfig);
     const cookieHeader = serializeSessionCookie(sealed, authConfig).split(

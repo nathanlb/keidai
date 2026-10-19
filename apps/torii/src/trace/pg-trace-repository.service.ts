@@ -189,6 +189,11 @@ export class PgTraceRepository implements TraceRepository {
       );
     }
 
+    if (filters.ownerId) {
+      params.push(filters.ownerId);
+      conditions.push(`owner_id = $${params.length}`);
+    }
+
     const whereClause =
       conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
     params.push(filters.limit + 1);
@@ -217,16 +222,25 @@ export class PgTraceRepository implements TraceRepository {
     };
   }
 
-  async getStats(windowMs: number): Promise<TraceStatsResult> {
+  async getStats(
+    windowMs: number,
+    ownerId?: string,
+  ): Promise<TraceStatsResult> {
     const cutoff = new Date(Date.now() - windowMs).toISOString();
+    const params: string[] = [cutoff];
+    const conditions = ["timestamp >= $1::timestamptz"];
+    if (ownerId) {
+      params.push(ownerId);
+      conditions.push(`owner_id = $${params.length}`);
+    }
     const result = await this.pool.query<TraceRow>(
       `
         SELECT ${TRACE_SELECT}
         FROM call_traces
-        WHERE timestamp >= $1::timestamptz
+        WHERE ${conditions.join(" AND ")}
         ORDER BY timestamp ASC
       `,
-      [cutoff],
+      params,
     );
     const traces = result.rows.map(rowToTrace);
     const outcomes = traces.map(deriveTraceOutcome);

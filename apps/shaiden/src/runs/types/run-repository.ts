@@ -54,7 +54,7 @@ export interface RunRepository {
   appendStep(runId: string, step: RunStep): Promise<RunReport | null>;
   complete(runId: string, input: CompleteRunRequest): Promise<RunReport | null>;
   get(runId: string): Promise<RunReport | null>;
-  list(limit?: number): Promise<{ runs: RunListItem[] }>;
+  list(limit?: number, agentOwnerId?: string): Promise<{ runs: RunListItem[] }>;
   listRunningRuns(): Promise<RunningRunRef[]>;
   setConversationHistory(
     runId: string,

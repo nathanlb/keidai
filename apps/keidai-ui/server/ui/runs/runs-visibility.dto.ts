@@ -23,4 +23,5 @@ export interface FudaManagementAgent {
   slug: string;
   name: string;
   emoji?: string | null;
+  ownerId?: string;
 }
