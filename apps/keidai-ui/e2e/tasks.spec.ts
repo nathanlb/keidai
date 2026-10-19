@@ -13,7 +13,7 @@ const shaidenAgent: ManagementAgent = {
   id: "shaiden-newsletter-01",
   slug: "shaiden-newsletter-01",
   name: "Shaiden Newsletter",
-  ownerId: "nathanlb",
+  ownerId: "owner-a",
   groups: [],
   persona: "Compose and send the weekly status newsletter.",
   currentPersonaVersion: 1,
