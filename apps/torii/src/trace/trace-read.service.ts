@@ -38,6 +38,7 @@ export class TraceReadService {
       ...(query.outcome ? { outcome: query.outcome } : {}),
       ...(query.server ? { server: query.server } : {}),
       ...(query.q ? { text: query.q } : {}),
+      ...(query.ownerId ? { ownerId: query.ownerId } : {}),
     });
 
     return {
@@ -53,8 +54,9 @@ export class TraceReadService {
 
   async getStats(
     windowMs = DEFAULT_TRACE_STATS_WINDOW_MS,
+    ownerId?: string,
   ): Promise<TraceStatsResponse> {
-    return this.repository.getStats(windowMs);
+    return this.repository.getStats(windowMs, ownerId);
   }
 
   subscribe(listener: (event: TraceSseEvent) => void): () => void {

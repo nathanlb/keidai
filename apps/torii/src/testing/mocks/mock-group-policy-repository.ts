@@ -35,6 +35,7 @@ export class MockGroupPolicyRepository implements GroupPolicyRepository {
       id: `mock-${input.name}`,
       name: input.name,
       description: input.description,
+      ownerId: input.ownerId ?? null,
       createdAt: now,
       updatedAt: now,
       servers: input.servers.map((policy) => ({ ...policy })),

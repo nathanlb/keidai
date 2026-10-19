@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { inject, injectable } from "tsyringe";
 import { CONNECTOR_CATALOG_VERSION } from "@keidai/shared";
+import { forbidUnlessAdmin } from "../http/utils/operator-access.js";
 import { ConnectorManagementService } from "./connector-management.service.js";
 import {
   createConnectorBodySchema,
@@ -39,6 +40,9 @@ export class ConnectorsApiController {
     });
 
     app.post("/api/connectors/from-catalog", async (request, reply) => {
+      if (forbidUnlessAdmin(request, reply)) {
+        return;
+      }
       const parsed = installCatalogBodySchema.safeParse(request.body);
       if (!parsed.success) {
         reply.code(400).send({
@@ -56,6 +60,9 @@ export class ConnectorsApiController {
     });
 
     app.post("/api/connectors", async (request, reply) => {
+      if (forbidUnlessAdmin(request, reply)) {
+        return;
+      }
       const parsed = createConnectorBodySchema.safeParse(request.body);
       if (!parsed.success) {
         reply.code(400).send({
@@ -73,6 +80,9 @@ export class ConnectorsApiController {
     });
 
     app.patch("/api/connectors/:slug", async (request, reply) => {
+      if (forbidUnlessAdmin(request, reply)) {
+        return;
+      }
       const { slug } = request.params as { slug: string };
       const parsed = updateConnectorBodySchema.safeParse(request.body);
       if (!parsed.success) {
@@ -95,6 +105,9 @@ export class ConnectorsApiController {
     });
 
     app.delete("/api/connectors/:slug", async (request, reply) => {
+      if (forbidUnlessAdmin(request, reply)) {
+        return;
+      }
       const { slug } = request.params as { slug: string };
       try {
         if (!(await this.connectors.delete(slug))) {

@@ -18,6 +18,8 @@ export interface TraceListQuery {
   server?: string;
   /** Free-text match across tool, server, agent, and owner. */
   q?: string;
+  /** When set, only traces for this operator are returned. */
+  ownerId?: string;
 }
 
 /** Response body for `GET /api/traces`. */

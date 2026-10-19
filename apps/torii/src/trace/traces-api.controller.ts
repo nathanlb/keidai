@@ -6,6 +6,7 @@ import {
 } from "@keidai/shared";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { inject, injectable } from "tsyringe";
+import { requestOperator } from "../http/utils/operator-access.js";
 import { TraceReadService } from "./trace-read.service.js";
 import { openSseStream } from "../http/utils/sse-stream.js";
 import {
@@ -48,6 +49,30 @@ function parseStatsWindowMs(request: FastifyRequest): number {
     : DEFAULT_TRACE_STATS_WINDOW_MS;
 }
 
+function memberOwnerId(request: FastifyRequest): string | undefined {
+  const operator = requestOperator(request);
+  return operator?.role === "member" ? operator.ownerId : undefined;
+}
+
+function traceVisible(
+  request: FastifyRequest,
+  trace: { principal?: { ownerId: string } },
+): boolean {
+  const ownerId = memberOwnerId(request);
+  if (!ownerId) {
+    return true;
+  }
+  return trace.principal?.ownerId === ownerId;
+}
+
+function scopeTraceQuery(
+  request: FastifyRequest,
+  query: TraceListQuery,
+): TraceListQuery {
+  const ownerId = memberOwnerId(request);
+  return ownerId ? { ...query, ownerId } : query;
+}
+
 @injectable()
 export class TracesApiController {
   constructor(
@@ -57,18 +82,27 @@ export class TracesApiController {
 
   registerRoutes(app: FastifyInstance): void {
     app.get("/api/traces/stats", async (request, reply) => {
-      reply.send(await this.traceRead.getStats(parseStatsWindowMs(request)));
+      reply.send(
+        await this.traceRead.getStats(
+          parseStatsWindowMs(request),
+          memberOwnerId(request),
+        ),
+      );
     });
 
     app.get("/api/traces/events", async (request, reply) => {
       const { writeEvent } = openSseStream(request, reply);
 
       const emit = (event: TraceSseEvent): void => {
+        if (!traceVisible(request, event.trace)) {
+          return;
+        }
         writeEvent(event.type, event.trace);
       };
 
-      for (const trace of (await this.traceRead.listTraces({ limit: 50 }))
-        .traces) {
+      for (const trace of (
+        await this.traceRead.listTraces(scopeTraceQuery(request, { limit: 50 }))
+      ).traces) {
         emit({
           type: TRACE_SSE_EVENT.traceCreated,
           trace,
@@ -85,7 +119,7 @@ export class TracesApiController {
     app.get("/api/traces/:traceId", async (request, reply) => {
       const { traceId } = request.params as { traceId: string };
       const trace = await this.traceRead.getTrace(traceId);
-      if (!trace) {
+      if (!trace || !traceVisible(request, trace)) {
         reply.code(404).send({ error: "trace not found" });
         return;
       }
@@ -93,7 +127,11 @@ export class TracesApiController {
     });
 
     app.get("/api/traces", async (request, reply) => {
-      reply.send(await this.traceRead.listTraces(parseTraceListQuery(request)));
+      reply.send(
+        await this.traceRead.listTraces(
+          scopeTraceQuery(request, parseTraceListQuery(request)),
+        ),
+      );
     });
   }
 }

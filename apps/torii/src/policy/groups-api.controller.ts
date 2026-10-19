@@ -1,5 +1,6 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { inject, injectable } from "tsyringe";
+import { requestOperator } from "../http/utils/operator-access.js";
 import { GroupPolicyManagementService } from "./group-policy-management.service.js";
 import {
   createGroupBodySchema,
@@ -40,7 +41,11 @@ export class GroupsApiController {
       }
 
       try {
-        const group = await this.groups.create(parsed.data);
+        const operator = requestOperator(request);
+        const group = await this.groups.create(
+          parsed.data,
+          operator?.ownerId ?? null,
+        );
         reply.code(201).send({ group });
       } catch (error) {
         this.sendWriteError(reply, error);
@@ -63,6 +68,10 @@ export class GroupsApiController {
         return;
       }
 
+      if (!(await this.allowGroupMutation(request, reply, id))) {
+        return;
+      }
+
       try {
         const group = await this.groups.update(id, parsed.data);
         if (!group) {
@@ -77,6 +86,9 @@ export class GroupsApiController {
 
     app.delete("/api/groups/:id", async (request, reply) => {
       const { id } = request.params as { id: string };
+      if (!(await this.allowGroupMutation(request, reply, id))) {
+        return;
+      }
       if (!(await this.groups.delete(id))) {
         reply.code(404).send({ error: "group not found" });
         return;
@@ -96,5 +108,26 @@ export class GroupsApiController {
       return;
     }
     throw error;
+  }
+
+  private async allowGroupMutation(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    id: string,
+  ): Promise<boolean> {
+    const operator = requestOperator(request);
+    if (!operator || operator.role === "admin") {
+      return true;
+    }
+    const existing = await this.groups.get(id);
+    if (!existing) {
+      reply.code(404).send({ error: "group not found" });
+      return false;
+    }
+    if (existing.ownerId !== operator.ownerId) {
+      reply.code(403).send({ error: "Forbidden" });
+      return false;
+    }
+    return true;
   }
 }

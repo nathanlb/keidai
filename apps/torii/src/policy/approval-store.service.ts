@@ -212,28 +212,32 @@ export class ApprovalStoreService {
   async listApprovals(
     status?: ApprovalRecordStatus,
     limit = DEFAULT_APPROVAL_LIST_LIMIT,
+    ownerId?: string,
   ): Promise<ApprovalRecordView[]> {
     const boundedLimit = Math.min(Math.max(1, limit), MAX_APPROVAL_LIST_LIMIT);
-    const result = status
-      ? await this.queryable.query<ApprovalRow>(
-          `
-            SELECT ${APPROVAL_SELECT}
-            FROM approvals
-            WHERE status = $1
-            ORDER BY created_at DESC
-            LIMIT $2
-          `,
-          [status, boundedLimit],
-        )
-      : await this.queryable.query<ApprovalRow>(
-          `
-            SELECT ${APPROVAL_SELECT}
-            FROM approvals
-            ORDER BY created_at DESC
-            LIMIT $1
-          `,
-          [boundedLimit],
-        );
+    const conditions: string[] = [];
+    const params: Array<string | number> = [];
+    if (status) {
+      params.push(status);
+      conditions.push(`status = $${params.length}`);
+    }
+    if (ownerId) {
+      params.push(ownerId);
+      conditions.push(`owner_id = $${params.length}`);
+    }
+    params.push(boundedLimit);
+    const where =
+      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const result = await this.queryable.query<ApprovalRow>(
+      `
+        SELECT ${APPROVAL_SELECT}
+        FROM approvals
+        ${where}
+        ORDER BY created_at DESC
+        LIMIT $${params.length}
+      `,
+      params,
+    );
 
     return result.rows.map((row) => toApprovalView(rowToApproval(row)));
   }

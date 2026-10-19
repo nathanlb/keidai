@@ -32,10 +32,16 @@ export class GroupPolicyManagementService {
     return group ? toGroupView(group) : null;
   }
 
-  async create(input: CreateGroupBody): Promise<GroupView> {
+  async create(
+    input: CreateGroupBody,
+    ownerId: string | null = null,
+  ): Promise<GroupView> {
     this.assertValidServers(input.servers);
     try {
-      const created = await this.repository.create(input);
+      const created = await this.repository.create({
+        ...input,
+        ownerId,
+      });
       await this.refreshCache();
       return toGroupView(created);
     } catch (error) {

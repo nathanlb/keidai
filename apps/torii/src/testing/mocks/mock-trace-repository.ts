@@ -84,6 +84,12 @@ export class MockTraceRepository implements TraceRepository {
       );
     }
 
+    if (filters.ownerId) {
+      filtered = filtered.filter(
+        (trace) => trace.principal?.ownerId === filters.ownerId,
+      );
+    }
+
     const page = filtered.slice(0, filters.limit);
     const hasMore = filtered.length > filters.limit;
 
@@ -93,9 +99,16 @@ export class MockTraceRepository implements TraceRepository {
     };
   }
 
-  async getStats(windowMs: number): Promise<TraceStatsResult> {
+  async getStats(
+    windowMs: number,
+    ownerId?: string,
+  ): Promise<TraceStatsResult> {
     const cutoff = new Date(Date.now() - windowMs).toISOString();
-    const traces = this.traces.filter((trace) => trace.timestamp >= cutoff);
+    const traces = this.traces.filter(
+      (trace) =>
+        trace.timestamp >= cutoff &&
+        (ownerId === undefined || trace.principal?.ownerId === ownerId),
+    );
     const outcomes = traces.map(deriveTraceOutcome);
     const successCount = outcomes.filter(
       (outcome) => outcome === "success",
