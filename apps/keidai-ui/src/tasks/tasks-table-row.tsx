@@ -32,6 +32,8 @@ export function TasksTableRow({
   isRunning,
   onEdit,
   onRun,
+  canEdit = true,
+  canRun = true,
 }: {
   task: SavedTask;
   /** Null when the assignee is not a known Fuda agent. */
@@ -39,6 +41,8 @@ export function TasksTableRow({
   isRunning: boolean;
   onEdit: () => void;
   onRun: () => void;
+  canEdit?: boolean;
+  canRun?: boolean;
 }) {
   return (
     <TableRow
@@ -91,7 +95,13 @@ export function TasksTableRow({
         style={tasksTableColumns.cellStyle("actions")}
       >
         <div className="flex justify-end gap-2">
-          <Button type="button" size="sm" variant="ghost" onClick={onEdit}>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={!canEdit}
+            onClick={onEdit}
+          >
             <Pencil className="size-3.5" aria-hidden />
             Edit
           </Button>
@@ -99,7 +109,7 @@ export function TasksTableRow({
             type="button"
             size="sm"
             variant="outline"
-            disabled={isRunning}
+            disabled={isRunning || !canRun}
             onClick={onRun}
           >
             {isRunning ? (

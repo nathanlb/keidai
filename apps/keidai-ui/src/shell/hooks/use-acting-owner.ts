@@ -1,3 +1,4 @@
+import type { OperatorRole } from "@keidai/shared";
 import { useMemo } from "react";
 import { deriveOwnerInitials } from "../utils/derive-owner-initials.js";
 import { useOperatorSession } from "./use-operator-session.js";
@@ -8,6 +9,7 @@ export interface ActingOwner {
   displayName: string;
   initials: string;
   picture?: string;
+  role: OperatorRole;
 }
 
 /**
@@ -33,12 +35,14 @@ export function useActingOwner() {
       initials: deriveOwnerInitials(
         principal.name?.trim() || principal.email || principal.ownerId,
       ),
+      role: principal.role,
       ...(principal.picture ? { picture: principal.picture } : {}),
     };
   }, [status, principal]);
 
   return {
     owner,
+    isAdmin: owner?.role === "admin",
     isLoading: status === "loading",
   };
 }

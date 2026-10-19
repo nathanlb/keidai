@@ -252,6 +252,7 @@ function buildAttention(options: {
         reviewHref: approvalReviewHref(approval.id),
         cta: { type: "approve", approvalId: approval.id },
         ctaLabel: "Approve",
+        approvalOwnerId: approval.ownerId,
       };
     });
 }

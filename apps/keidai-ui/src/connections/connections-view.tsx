@@ -20,18 +20,35 @@ import { ConnectionDetailDrawer } from "./connection-detail-drawer.js";
 import { ConnectionServerRow } from "./connection-server-row.js";
 import { ConnectionsSummaryTiles } from "./connections-summary-tiles.js";
 import { LinkingRequiredBanner } from "./linking-required-banner.js";
+import { useActingOwner } from "../shell/hooks/use-acting-owner.js";
+import {
+  canMutateWorkspace,
+  knownOperator,
+} from "../shell/utils/operator-permissions.js";
 
-function ConnectionsEmptyState({ onAdd }: { onAdd: () => void }) {
+function ConnectionsEmptyState({
+  onAdd,
+  canAdd,
+}: {
+  onAdd: () => void;
+  canAdd: boolean;
+}) {
   return (
     <PageEmptyState
       icon={<Cable className="size-7.5" aria-hidden />}
       title="No connectors yet"
-      description="Install a prebuilt MCP server from the catalog, or add a custom backend URL."
+      description={
+        canAdd
+          ? "Install a prebuilt MCP server from the catalog, or add a custom backend URL."
+          : "An administrator can install MCP servers from the catalog or a custom URL."
+      }
       action={
-        <Button type="button" onClick={onAdd}>
-          <Plus className="size-3.5" aria-hidden />
-          Add connector
-        </Button>
+        canAdd ? (
+          <Button type="button" onClick={onAdd}>
+            <Plus className="size-3.5" aria-hidden />
+            Add connector
+          </Button>
+        ) : undefined
       }
     />
   );
@@ -48,13 +65,18 @@ export function ConnectionsView() {
     onLinkFromBanner,
   } = useConnectionsPage();
   const [addOpen, setAddOpen] = useState(false);
+  const { owner } = useActingOwner();
+  const canManageConnectors = canMutateWorkspace(knownOperator(owner));
 
   const isEmpty = summaries.length === 0;
 
   return (
     <>
       {isEmpty ? (
-        <ConnectionsEmptyState onAdd={() => setAddOpen(true)} />
+        <ConnectionsEmptyState
+          canAdd={canManageConnectors}
+          onAdd={() => setAddOpen(true)}
+        />
       ) : (
         <div className="space-y-4">
           {linkingRequiredTrace ? (
@@ -82,14 +104,16 @@ export function ConnectionsView() {
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => setAddOpen(true)}
-                >
-                  <Plus className="size-3.5" aria-hidden />
-                  Add connector
-                </Button>
+                {canManageConnectors ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => setAddOpen(true)}
+                  >
+                    <Plus className="size-3.5" aria-hidden />
+                    Add connector
+                  </Button>
+                ) : null}
                 <Button
                   type="button"
                   variant="outline"

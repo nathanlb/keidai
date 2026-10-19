@@ -45,6 +45,8 @@ describe("useActingOwner", () => {
       displayName: "Ops User",
       initials: "OU",
       picture: "https://example.com/p.png",
+      role: "admin",
     });
+    expect(result.current.isAdmin).toBe(true);
   });
 });

@@ -59,6 +59,7 @@ export type AgentFormProps =
       mode: "edit";
       agent: ManagementAgent;
       onSubmit: (values: CreateAgentFormValues) => Promise<void>;
+      readOnly?: boolean;
     };
 
 function agentFormValues(agent: ManagementAgent): CreateAgentFormValues {
@@ -93,6 +94,7 @@ function LockedBadge({ children }: { children: ReactNode }) {
 export function AgentForm(props: AgentFormProps) {
   const isCreate = props.mode === "create";
   const agent = props.mode === "edit" ? props.agent : null;
+  const readOnly = props.mode === "edit" && props.readOnly === true;
   const { owner } = useActingOwner();
   const { data: toriiGroupsData } = useFetchToriiGroups();
   const { data: bearersData } = useFetchBearers();
@@ -268,7 +270,14 @@ export function AgentForm(props: AgentFormProps) {
     : "Saved as version 1. Later edits append new versions.";
 
   return (
-    <form className="flex max-w-170 flex-col" onSubmit={onSubmit}>
+    <form
+      className={
+        readOnly
+          ? "pointer-events-none flex max-w-170 flex-col"
+          : "flex max-w-170 flex-col"
+      }
+      onSubmit={readOnly ? (event) => event.preventDefault() : onSubmit}
+    >
       <div className="flex flex-col gap-5 rounded-xl border border-border bg-card p-5">
         <section>
           <FieldHeader
@@ -486,20 +495,22 @@ export function AgentForm(props: AgentFormProps) {
               Discard
             </Button>
           ) : null}
-          <Button
-            type="submit"
-            disabled={!canSubmit}
-            className={cn(!canSubmit && "opacity-45 grayscale")}
-          >
-            {isSubmitting ? (
-              <Spinner className="size-4" aria-hidden />
-            ) : isCreate ? (
-              <Plus className="size-4" aria-hidden />
-            ) : (
-              <Save className="size-4" aria-hidden />
-            )}
-            {isCreate ? "Create agent" : "Save changes"}
-          </Button>
+          {readOnly ? null : (
+            <Button
+              type="submit"
+              disabled={!canSubmit}
+              className={cn(!canSubmit && "opacity-45 grayscale")}
+            >
+              {isSubmitting ? (
+                <Spinner className="size-4" aria-hidden />
+              ) : isCreate ? (
+                <Plus className="size-4" aria-hidden />
+              ) : (
+                <Save className="size-4" aria-hidden />
+              )}
+              {isCreate ? "Create agent" : "Save changes"}
+            </Button>
+          )}
         </div>
       </div>
     </form>

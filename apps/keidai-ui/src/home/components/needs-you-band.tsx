@@ -1,7 +1,20 @@
-import { Button, Card, CardContent } from "@keidai/ui";
+import {
+  Button,
+  Card,
+  CardContent,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@keidai/ui";
 import { TriangleAlert } from "lucide-react";
 import { Link } from "react-router";
 import { APPROVALS_PATH } from "../../shell/navigation.js";
+import { useActingOwner } from "../../shell/hooks/use-acting-owner.js";
+import {
+  APPROVE_OWNER_ONLY,
+  canApproveToolCall,
+  knownOperator,
+} from "../../shell/utils/operator-permissions.js";
 import type { HomeAttentionItem } from "../types/home-digest.js";
 import { formatItemCount } from "../utils/format-home-copy.js";
 
@@ -17,6 +30,8 @@ export function NeedsYouBand({
   actingId: string | null;
   onAct: (item: HomeAttentionItem) => void;
 }) {
+  const { owner } = useActingOwner();
+  const operator = knownOperator(owner);
   return (
     <Card
       data-testid="home-needs-you"
@@ -93,14 +108,32 @@ export function NeedsYouBand({
               >
                 <Link to={item.reviewHref}>Review</Link>
               </Button>
-              <Button
-                size="sm"
-                className="h-7.25 text-[12.5px] font-semibold"
-                disabled={actingId === item.id}
-                onClick={() => onAct(item)}
-              >
-                {item.ctaLabel}
-              </Button>
+              {item.approvalOwnerId &&
+              !canApproveToolCall(operator, item.approvalOwnerId) ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button
+                        size="sm"
+                        className="h-7.25 text-[12.5px] font-semibold"
+                        disabled
+                      >
+                        {item.ctaLabel}
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>{APPROVE_OWNER_ONLY}</TooltipContent>
+                </Tooltip>
+              ) : (
+                <Button
+                  size="sm"
+                  className="h-7.25 text-[12.5px] font-semibold"
+                  disabled={actingId === item.id}
+                  onClick={() => onAct(item)}
+                >
+                  {item.ctaLabel}
+                </Button>
+              )}
             </div>
           </div>
         ))}

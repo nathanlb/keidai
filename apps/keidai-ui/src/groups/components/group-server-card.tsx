@@ -44,6 +44,7 @@ export function GroupServerCard({
   defaultOpen,
   onChange,
   onRemove,
+  readOnly = false,
 }: {
   policy: GroupServerPolicyView;
   catalogue: ServerCatalogue | undefined;
@@ -51,6 +52,7 @@ export function GroupServerCard({
   defaultOpen: boolean;
   onChange: (next: GroupServerPolicyView) => void;
   onRemove: () => void;
+  readOnly?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const tools = catalogue?.available ? catalogue.tools : [];
@@ -116,7 +118,12 @@ export function GroupServerCard({
       </button>
 
       {open ? (
-        <CardContent className="border-t border-border p-0">
+        <CardContent
+          className={cn(
+            "border-t border-border p-0",
+            readOnly && "pointer-events-none",
+          )}
+        >
           {rules.length === 0 ? (
             <div
               className="
@@ -219,20 +226,22 @@ export function GroupServerCard({
             />
           </div>
 
-          <div className="flex justify-end px-4 py-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="
+          {readOnly ? null : (
+            <div className="flex justify-end px-4 py-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="
                 h-7 text-[12px] text-muted-foreground
                 hover:text-destructive
               "
-              onClick={onRemove}
-            >
-              Remove this server
-            </Button>
-          </div>
+                onClick={onRemove}
+              >
+                Remove this server
+              </Button>
+            </div>
+          )}
         </CardContent>
       ) : null}
     </Card>

@@ -1,11 +1,20 @@
-import { Button, Textarea } from "@keidai/ui";
+import {
+  Button,
+  Textarea,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@keidai/ui";
 import { Ban, Check, X } from "lucide-react";
 import { useState } from "react";
+import { APPROVE_OWNER_ONLY } from "../shell/utils/operator-permissions.js";
 
 type ActionMode = "idle" | "reject" | "cancel";
 
 interface ApprovalActionsProps {
   disabled?: boolean;
+  canApprove?: boolean;
+  canDecide?: boolean;
   onApprove: () => Promise<void>;
   onReject: (reason?: string) => Promise<void>;
   onCancel: () => Promise<void>;
@@ -13,6 +22,8 @@ interface ApprovalActionsProps {
 
 export function ApprovalActions({
   disabled = false,
+  canApprove = true,
+  canDecide = true,
   onApprove,
   onReject,
   onCancel,
@@ -120,20 +131,29 @@ export function ApprovalActions({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button
-        type="button"
-        size="sm"
-        disabled={busy || disabled}
-        onClick={() => run(onApprove)}
-      >
-        <Check className="size-3.5" />
-        Approve & resume
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span>
+            <Button
+              type="button"
+              size="sm"
+              disabled={busy || disabled || !canApprove}
+              onClick={() => run(onApprove)}
+            >
+              <Check className="size-3.5" />
+              Approve & resume
+            </Button>
+          </span>
+        </TooltipTrigger>
+        {!canApprove ? (
+          <TooltipContent>{APPROVE_OWNER_ONLY}</TooltipContent>
+        ) : null}
+      </Tooltip>
       <Button
         type="button"
         variant="outline"
         size="sm"
-        disabled={busy || disabled}
+        disabled={busy || disabled || !canDecide}
         onClick={() => setMode("reject")}
       >
         <X className="size-3.5" />
@@ -147,7 +167,7 @@ export function ApprovalActions({
           ml-auto text-destructive
           hover:text-destructive
         "
-        disabled={busy || disabled}
+        disabled={busy || disabled || !canDecide}
         onClick={() => setMode("cancel")}
       >
         <Ban className="size-3.5" />

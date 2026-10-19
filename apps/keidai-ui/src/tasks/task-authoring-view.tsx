@@ -18,6 +18,11 @@ import { runDetailHref } from "../runs/navigation.js";
 import { useFetchTaskRuntime } from "./hooks/use-fetch-task-runtime.js";
 import { TASKS_KEY } from "./hooks/use-fetch-tasks.js";
 import { useActingOwner } from "../shell/hooks/use-acting-owner.js";
+import {
+  canArchiveTask,
+  canRunOwnAgent,
+  knownOperator,
+} from "../shell/utils/operator-permissions.js";
 import { useFetchAgents } from "../lib/hooks/use-fetch-agents.js";
 import { useZodForm } from "../shell/forms/use-zod-form.js";
 import {
@@ -65,6 +70,7 @@ export function TaskAuthoringView({
     isLoading: runtimeLoading,
   } = useFetchTaskRuntime();
   const { owner } = useActingOwner();
+  const operator = knownOperator(owner);
 
   const runtimeReady = runtime?.ready === true;
 
@@ -74,11 +80,12 @@ export function TaskAuthoringView({
       return [];
     }
     return agents
+      .filter((agent) => canRunOwnAgent(operator, agent.ownerId))
       .map((agent: ManagementAgent) =>
         toAgentAssigneeOption(agent, runtimeReady),
       )
       .sort((a, b) => a.agentId.localeCompare(b.agentId));
-  }, [agentsData?.agents, runtimeReady]);
+  }, [agentsData?.agents, operator, runtimeReady]);
 
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [syncedTaskId, setSyncedTaskId] = useState(taskId);
@@ -180,7 +187,11 @@ export function TaskAuthoringView({
     !agentsLoading &&
     !runtimeLoading &&
     !agentsError &&
-    !runtimeError;
+    !runtimeError &&
+    canRunOwnAgent(
+      operator,
+      agentsData?.agents.find((agent) => agent.id === assignee)?.ownerId,
+    );
 
   function leaveToList() {
     void mutate(TASKS_KEY);
@@ -338,7 +349,12 @@ export function TaskAuthoringView({
             ownerId={owner?.ownerId}
             onCancel={requestLeave}
             onArchiveRequest={
-              isEditMode
+              isEditMode &&
+              canArchiveTask(
+                operator,
+                agentsData?.agents.find((agent) => agent.id === assignee)
+                  ?.ownerId,
+              )
                 ? () => {
                     setArchiveError(null);
                     setArchiveConfirmOpen(true);
