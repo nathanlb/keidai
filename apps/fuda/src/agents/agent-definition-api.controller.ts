@@ -8,7 +8,8 @@ import {
 
 /**
  * Runtime-facing definition view for Shaiden (NAT-120 / NAT-127).
- * Deliberately omits identity fields (`ownerId`, `groups`).
+ * Includes `ownerId` so callers can authorize the assigned agent.
+ * Omits group membership.
  */
 @injectable()
 export class AgentDefinitionApiController {
@@ -37,6 +38,7 @@ export class AgentDefinitionApiController {
         slug: agent.slug,
         persona: persona.content,
         personaVersion: persona.version,
+        ownerId: agent.ownerId,
         ...(agent.defaultModelId
           ? { defaultModelId: agent.defaultModelId }
           : {}),

@@ -70,6 +70,7 @@ describe("launchHarnessRun persona fetch", () => {
       slug: "newsletter",
       persona: "You are a concise newsletter author.",
       personaVersion: 4,
+      ownerId: "owner-1",
     });
 
     // Drive fails at token exchange (stub fudaClient is present); we only
@@ -113,6 +114,7 @@ describe("launchHarnessRun persona fetch", () => {
       slug: "other",
       persona: "You are another agent.",
       personaVersion: 2,
+      ownerId: "owner-1",
     });
 
     const launched = await launchHarnessRun({
@@ -221,6 +223,7 @@ describe("launchHarnessRun persona fetch", () => {
       slug: "newsletter",
       persona: "You are a concise newsletter author.",
       personaVersion: 4,
+      ownerId: "owner-1",
     });
 
     const launched = await launchHarnessRun({
@@ -241,6 +244,7 @@ describe("launchHarnessRun persona fetch", () => {
       slug: "newsletter",
       persona: "You are a verbose newsletter author.",
       personaVersion: 5,
+      ownerId: "owner-1",
     };
 
     const history = [
@@ -301,6 +305,7 @@ describe("launchHarnessRun persona fetch", () => {
       slug: "newsletter",
       persona: "You are a concise newsletter author.",
       personaVersion: 4,
+      ownerId: "owner-1",
     });
 
     await assert.rejects(

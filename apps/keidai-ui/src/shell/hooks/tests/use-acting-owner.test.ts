@@ -30,6 +30,7 @@ describe("useActingOwner", () => {
         googleSub: "sub-1",
         email: "ops@example.com",
         ownerId: "demo-owner",
+        role: "admin",
         name: "Ops User",
         picture: "https://example.com/p.png",
       },

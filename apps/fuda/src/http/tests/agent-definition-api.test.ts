@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { createTestServer, sampleAgentBody } from "./test-helpers.js";
 
 describe("agent definition view", () => {
-  it("returns definition fields without identity fields", async () => {
+  it("returns ownerId with the definition and omits groups", async () => {
     const server = await createTestServer("management,agent");
     const handle = await server.start({ host: "127.0.0.1", port: 0 });
     try {
@@ -21,6 +21,7 @@ describe("agent definition view", () => {
       const body = (await response.json()) as Record<string, unknown>;
       assert.deepEqual(Object.keys(body).sort(), [
         "name",
+        "ownerId",
         "persona",
         "personaVersion",
         "slug",
@@ -30,7 +31,7 @@ describe("agent definition view", () => {
       assert.equal(body.slug, sampleAgentBody.slug);
       assert.equal(body.persona, sampleAgentBody.persona);
       assert.equal(body.personaVersion, 1);
-      assert.equal("ownerId" in body, false);
+      assert.equal(body.ownerId, sampleAgentBody.ownerId);
       assert.equal("owner_id" in body, false);
       assert.equal("groups" in body, false);
     } finally {

@@ -32,6 +32,7 @@ interface AgentDefinitionBody {
   slug?: unknown;
   persona?: unknown;
   personaVersion?: unknown;
+  ownerId?: unknown;
   defaultModelId?: unknown;
 }
 
@@ -283,7 +284,9 @@ export function createHttpFudaClient(
         body.persona.length === 0 ||
         typeof body.personaVersion !== "number" ||
         !Number.isInteger(body.personaVersion) ||
-        body.personaVersion < 1
+        body.personaVersion < 1 ||
+        typeof body.ownerId !== "string" ||
+        body.ownerId.length === 0
       ) {
         throw new AgentDefinitionError(
           "unexpected",
@@ -297,6 +300,7 @@ export function createHttpFudaClient(
         slug: body.slug,
         persona: body.persona,
         personaVersion: body.personaVersion,
+        ownerId: body.ownerId,
         ...(typeof body.defaultModelId === "string" &&
         body.defaultModelId.length > 0
           ? { defaultModelId: body.defaultModelId }

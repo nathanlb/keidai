@@ -22,6 +22,20 @@ describe("parseOperatorsDocument", () => {
 
     assert.equal(file.operators.length, 1);
     assert.equal(file.operators[0]?.google_email, "ops@example.com");
+    assert.equal(file.operators[0]?.role, undefined);
+  });
+
+  it("keeps an optional role", () => {
+    const file = parseOperatorsDocument({
+      operators: [
+        {
+          owner_id: "demo-owner",
+          google_email: "ops@example.com",
+          role: "admin",
+        },
+      ],
+    });
+    assert.equal(file.operators[0]?.role, "admin");
   });
 
   it("rejects duplicate owner_id", () => {

@@ -63,9 +63,13 @@ describe("JIT operator login", () => {
         }
         assert.equal(input.idpIssuer, "https://acme.okta.com");
         assert.equal(input.email, "ada@acme.com");
-        return { ok: true, ownerId: "ada" };
+        return { ok: true, ownerId: "ada", role: "admin" };
       },
       isOwnerActive: async (ownerId) => active && ownerId === "ada",
+      getOwnerAccess: async (ownerId) => ({
+        active: active && ownerId === "ada",
+        role: "admin",
+      }),
     });
 
     app = await createServer({
@@ -127,6 +131,7 @@ describe("JIT operator login", () => {
       googleSub: "sub-ada",
       email: "ada@acme.com",
       ownerId: "ada",
+      role: "admin",
       name: "Ada",
     });
   });

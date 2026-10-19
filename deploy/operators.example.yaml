@@ -16,4 +16,7 @@ operators:
   - owner_id: nathan-lafranceb
     # Prefer google_sub once known (stable). Email is useful for first bootstrap.
     google_email: nathan.lafranceb@gmail.com
+    # Optional workspace role. Omit to leave an existing role unchanged.
+    # The first owner provisioned on a fresh install becomes admin.
+    role: admin
     # google_sub: "1182..."

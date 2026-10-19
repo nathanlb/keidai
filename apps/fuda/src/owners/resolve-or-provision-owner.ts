@@ -4,10 +4,16 @@ import type {
   OwnerRecord,
   OwnerRepository,
 } from "./types/owner-repository.js";
+import type { OperatorRole } from "@keidai/shared";
 
 export interface ResolveOrProvisionOwnerInput extends OwnerIdentityInput {
   /** Allowlist or pre-seed hint. Used when this IdP subject is not bound yet. */
   ownerId?: string;
+  /**
+   * Role hint from operators.yaml. `admin` is honored on insert.
+   * Omitted or `member` still becomes `admin` when no active admin exists.
+   */
+  role?: OperatorRole;
 }
 
 export type ResolveOrProvisionOwnerResult =
@@ -75,6 +81,29 @@ function isUniqueViolation(error: unknown): boolean {
   );
 }
 
+async function roleForNewOwner(
+  owners: OwnerRepository,
+  hinted: OperatorRole | undefined,
+): Promise<OperatorRole> {
+  if (hinted === "admin") {
+    return "admin";
+  }
+  if ((await owners.countActiveAdmins()) === 0) {
+    return "admin";
+  }
+  return "member";
+}
+
+async function insertProvisionedOwner(
+  owners: OwnerRepository,
+  ownerId: string,
+  identity: OwnerIdentityInput,
+  hinted: OperatorRole | undefined,
+): Promise<OwnerRecord> {
+  const role = await roleForNewOwner(owners, hinted);
+  return owners.insertProvisioned(ownerId, identity, role);
+}
+
 async function resolveExistingByIdp(
   owners: OwnerRepository,
   identity: OwnerIdentityInput,
@@ -118,7 +147,12 @@ export async function resolveOrProvisionOwner(
       }
     } else {
       try {
-        const created = await owners.insertProvisioned(input.ownerId, identity);
+        const created = await insertProvisionedOwner(
+          owners,
+          input.ownerId,
+          identity,
+          input.role,
+        );
         return { ok: true, owner: created };
       } catch (error) {
         if (!isUniqueViolation(error)) {
@@ -151,7 +185,12 @@ export async function resolveOrProvisionOwner(
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const candidateId = await allocateOwnerId(owners, baseId);
     try {
-      const created = await owners.insertProvisioned(candidateId, identity);
+      const created = await insertProvisionedOwner(
+        owners,
+        candidateId,
+        identity,
+        input.role,
+      );
       return { ok: true, owner: created };
     } catch (error) {
       if (!isUniqueViolation(error)) {

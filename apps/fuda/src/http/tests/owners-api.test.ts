@@ -45,6 +45,16 @@ describe("owners management API", () => {
       assert.equal(renamed.owner.ownerId, "ada");
       assert.equal(renamed.owner.email, "ada.lovelace@acme.com");
 
+      const promoteSeed = await fetch(
+        `${handle.baseUrl}/api/owners/${sampleAgentBody.ownerId}`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ role: "admin" }),
+        },
+      );
+      assert.equal(promoteSeed.status, 200);
+
       const disable = await fetch(`${handle.baseUrl}/api/owners/ada`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },

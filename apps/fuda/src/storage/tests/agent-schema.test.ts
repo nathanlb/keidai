@@ -16,6 +16,7 @@ describe("001_baseline schema", () => {
         "002_agent_default_model",
         "003_agent_emoji",
         "004_owner_identity",
+        "005_owner_role",
       ]);
 
       const tables = await isolated.pool.query<{ tablename: string }>(
@@ -80,6 +81,7 @@ describe("001_baseline schema", () => {
         "002_agent_default_model",
         "003_agent_emoji",
         "004_owner_identity",
+        "005_owner_role",
       ]);
       const second = await openFudaDatabase(
         resolveTestDatabaseUrl(),
@@ -91,6 +93,7 @@ describe("001_baseline schema", () => {
         "002_agent_default_model",
         "003_agent_emoji",
         "004_owner_identity",
+        "005_owner_role",
       ]);
     } finally {
       await isolated.close();

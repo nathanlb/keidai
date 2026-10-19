@@ -35,7 +35,11 @@ describe("resolveLoginOwner", () => {
     const result = await resolveLoginOwner(
       config({
         allowedEmailDomains: ["acme.com"],
-        provisionOwner: async () => ({ ok: true, ownerId: "ada" }),
+        provisionOwner: async () => ({
+          ok: true,
+          ownerId: "ada",
+          role: "member",
+        }),
       }),
       {
         googleSub: "sub",
@@ -46,6 +50,7 @@ describe("resolveLoginOwner", () => {
     assert.deepEqual(result, {
       ok: true,
       ownerId: "ada",
+      role: "member",
       email: "ada@acme.com",
     });
   });

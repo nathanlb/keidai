@@ -134,6 +134,7 @@ describe("createHttpFudaClient.getAgentDefinition", () => {
             slug: "newsletter",
             persona: "You write concise status newsletters.",
             personaVersion: 3,
+            ownerId: "owner-1",
           }),
           { status: 200, headers: { "content-type": "application/json" } },
         );
@@ -146,6 +147,7 @@ describe("createHttpFudaClient.getAgentDefinition", () => {
       slug: "newsletter",
       persona: "You write concise status newsletters.",
       personaVersion: 3,
+      ownerId: "owner-1",
     });
     assert.equal(calls.length, 1);
     assert.equal(calls[0]?.url, "http://fuda.test/agents/agent-1");
@@ -162,6 +164,7 @@ describe("createHttpFudaClient.getAgentDefinition", () => {
             slug: "newsletter",
             persona: "You write concise status newsletters.",
             personaVersion: 3,
+            ownerId: "owner-1",
             defaultModelId: "google/gemini-2.5-flash",
           }),
           { status: 200, headers: { "content-type": "application/json" } },
@@ -184,6 +187,7 @@ describe("createHttpFudaClient.getAgentDefinition", () => {
             slug: "a",
             persona: "persona",
             personaVersion: 1,
+            ownerId: "owner-1",
           }),
           { status: 200, headers: { "content-type": "application/json" } },
         );

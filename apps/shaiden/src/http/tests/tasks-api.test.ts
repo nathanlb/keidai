@@ -524,6 +524,7 @@ describe("tasks API", () => {
           slug: agentId,
           persona: `Persona for ${agentId}`,
           personaVersion: 1,
+          ownerId: "owner-1",
         }),
       },
     });

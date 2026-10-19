@@ -87,4 +87,32 @@ describe("applyOperatorsFile", () => {
       await isolated.close();
     }
   });
+
+  it("applies an operators.yaml role and bootstraps the first owner as admin", async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), "fuda-ops-"));
+    const operatorsPath = path.join(dir, "operators.yaml");
+    await writeFile(
+      operatorsPath,
+      `operators:\n  - owner_id: demo-owner\n    google_email: ops@example.com\n    role: admin\n  - owner_id: member-owner\n    google_email: member@example.com\n`,
+      "utf8",
+    );
+
+    const isolated = await createIsolatedSchema();
+    try {
+      await openFudaDatabase(resolveTestDatabaseUrl(), isolated.pool);
+      const owners = new PgOwnerRepository(isolated.pool);
+      const agents = new PgAgentRepository(isolated.pool);
+      const result = await applyOperatorsFile(
+        owners,
+        agents,
+        operatorsPath,
+        "additive",
+      );
+      assert.ok(result);
+      assert.equal((await owners.get("demo-owner"))?.role, "admin");
+      assert.equal((await owners.get("member-owner"))?.role, "member");
+    } finally {
+      await isolated.close();
+    }
+  });
 });

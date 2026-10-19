@@ -1,4 +1,8 @@
-import type { OperatorEntry, OperatorPrincipal } from "@keidai/shared";
+import type {
+  OperatorEntry,
+  OperatorPrincipal,
+  OperatorRole,
+} from "@keidai/shared";
 
 export type { OperatorPrincipal };
 
@@ -10,10 +14,12 @@ export interface ProvisionOwnerRequest {
   pictureUrl?: string;
   /** Pre-seeded owner id from operators.yaml, when the account is allowlisted. */
   ownerId?: string;
+  /** Role hint from operators.yaml. Fuda promotes the first owner when omitted. */
+  role?: OperatorRole;
 }
 
 export type ProvisionOwnerResult =
-  | { ok: true; ownerId: string }
+  | { ok: true; ownerId: string; role?: OperatorRole }
   | { ok: false; reason: "disabled" };
 
 declare module "fastify" {
@@ -57,6 +63,13 @@ export interface OperatorAuthConfig {
    * When omitted, only the operators allowlist is re-checked.
    */
   isOwnerActive?: (ownerId: string) => Promise<boolean>;
+  /**
+   * Live owner status and role. When set, this replaces `isOwnerActive`
+   * and `GET /api/session` reflects role changes within the client cache TTL.
+   */
+  getOwnerAccess?: (
+    ownerId: string,
+  ) => Promise<{ active: boolean; role: OperatorRole }>;
   /**
    * Test seam: skip the live IdP token + JWKS round-trip and return claims
    * directly from the authorization code (or a canned principal).
