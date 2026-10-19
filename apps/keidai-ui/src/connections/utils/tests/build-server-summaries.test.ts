@@ -133,6 +133,7 @@ describe("buildServerSummaries", () => {
       name: "github",
       toolCount: 4,
       rowAction: "none",
+      linkProviderId: "github",
       credentialSubStatus: { label: "→ GitHub", warning: false },
     });
     expect(summaries[1]).toMatchObject({
@@ -143,9 +144,20 @@ describe("buildServerSummaries", () => {
     });
   });
 
-  it("offers Link for unlinked user_oauth servers", () => {
-    const summaries = buildServerSummaries([githubServer], new Map(), {
-      ownerId: "demo-owner",
+  it("projects not_linked state and offers Link for unlinked user_oauth servers without a transport Failed badge", () => {
+    const connections = new Map<string, ConnectionStatus>([
+      [
+        "github",
+        {
+          name: "github",
+          state: "failed",
+          error: 'No OAuth token linked for provider "github" (owner "user-b")',
+        },
+      ],
+    ]);
+
+    const summaries = buildServerSummaries([githubServer], connections, {
+      ownerId: "user-b",
       oauthProviders: {
         github: {
           token_url: "https://github.com/login/oauth/access_token",
@@ -156,8 +168,11 @@ describe("buildServerSummaries", () => {
       oauthConnections: [],
     });
 
+    expect(summaries[0]?.state).toBe("not_linked");
     expect(summaries[0]?.rowAction).toBe("link");
     expect(summaries[0]?.linkProviderId).toBe("github");
+    expect(summaries[0]?.error).toBeUndefined();
+    expect(summarizeConnectionCounts(summaries).failed).toBe(0);
   });
 
   it("softens boot auth failures when the acting owner is already linked", () => {
@@ -199,6 +214,36 @@ describe("buildServerSummaries", () => {
     expect(summaries[0]?.error).toBe(
       "Owner linked — MCP connects on the next agent session",
     );
+  });
+
+  it("clears raw boot auth errors and projects not_linked when unlinked", () => {
+    const connections = new Map<string, ConnectionStatus>([
+      [
+        "github",
+        {
+          name: "github",
+          state: "failed",
+          error: "Could not resolve OAuth credentials for gateway connections",
+        },
+      ],
+    ]);
+
+    const summaries = buildServerSummaries([githubServer], connections, {
+      ownerId: "demo-owner",
+      oauthProviders: {
+        github: {
+          token_url: "https://github.com/login/oauth/access_token",
+          client_id: "gh-client",
+          scopes: ["repo"],
+        },
+      },
+      oauthConnections: [],
+    });
+
+    expect(summaries[0]?.state).toBe("not_linked");
+    expect(summaries[0]?.rowAction).toBe("link");
+    expect(summaries[0]?.linkProviderId).toBe("github");
+    expect(summaries[0]?.error).toBeUndefined();
   });
 });
 

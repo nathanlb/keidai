@@ -8,6 +8,7 @@ import type {
 import { formatCredentialSubStatus } from "./format-credential-substatus.js";
 
 export type ServerRowAction = "link" | "none";
+export type ServerSummaryState = ConnectionState | "not_linked";
 
 export interface ConnectionSummaryCounts {
   total: number;
@@ -23,28 +24,36 @@ export interface ServerConnectionSummary {
   credentialStrategy: PublicServerConfig["credential"]["strategy"];
   credentialSubStatus: { label: string; warning: boolean };
   toolCount: number | null;
-  state: ConnectionState;
+  state: ServerSummaryState;
   error?: string;
   rowAction: ServerRowAction;
   linkProviderId?: string;
 }
 
+function isOAuthLinkingNeeded(
+  server: PublicServerConfig,
+  oauthConnection: OAuthConnectionStatus | undefined,
+): boolean {
+  if (server.credential.strategy !== "user_oauth") {
+    return false;
+  }
+  return (
+    !oauthConnection ||
+    oauthConnection.status === "not_linked" ||
+    oauthConnection.status === "expired"
+  );
+}
+
 function deriveRowAction(
   server: PublicServerConfig,
-  _state: ConnectionState,
   oauthConnection: OAuthConnectionStatus | undefined,
 ): Pick<ServerConnectionSummary, "rowAction" | "linkProviderId"> {
   if (server.credential.strategy === "user_oauth") {
-    const needsLink =
-      !oauthConnection ||
-      oauthConnection.status === "not_linked" ||
-      oauthConnection.status === "expired";
-    if (needsLink) {
-      return {
-        rowAction: "link",
-        linkProviderId: server.credential.provider,
-      };
-    }
+    const needsLink = isOAuthLinkingNeeded(server, oauthConnection);
+    return {
+      rowAction: needsLink ? "link" : "none",
+      linkProviderId: server.credential.provider,
+    };
   }
 
   return { rowAction: "none" };
@@ -66,6 +75,8 @@ export function summarizeConnectionCounts(
         case "failed":
           counts.failed += 1;
           break;
+        case "not_linked":
+          break;
       }
       return counts;
     },
@@ -75,10 +86,14 @@ export function summarizeConnectionCounts(
 
 function formatConnectionError(
   server: PublicServerConfig,
-  state: ConnectionState,
+  state: ServerSummaryState,
   connection: ConnectionStatus | undefined,
   oauthConnection: OAuthConnectionStatus | undefined,
 ): string | undefined {
+  if (state === "not_linked") {
+    return undefined;
+  }
+
   if (
     server.credential.strategy === "user_oauth" &&
     oauthConnection?.status === "linked" &&
@@ -105,7 +120,7 @@ export function buildServerSummaries(
     .sort((left, right) => left.name.localeCompare(right.name))
     .map((server) => {
       const connection = connections.get(server.name);
-      const state = connection?.state ?? "connecting";
+      const rawState = connection?.state ?? "connecting";
       const oauthProviderId =
         server.credential.strategy === "user_oauth"
           ? server.credential.provider
@@ -116,7 +131,10 @@ export function buildServerSummaries(
           )
         : undefined;
 
-      const rowAction = deriveRowAction(server, state, oauthConnection);
+      const needsLink = isOAuthLinkingNeeded(server, oauthConnection);
+      const state: ServerSummaryState =
+        needsLink && rawState === "failed" ? "not_linked" : rawState;
+      const rowAction = deriveRowAction(server, oauthConnection);
 
       return {
         name: server.name,

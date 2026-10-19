@@ -66,7 +66,14 @@ describe("ConnectionDetailDrawer", () => {
       screen.queryByText("Policy", { exact: true }),
     ).not.toBeInTheDocument();
     expect(screen.getByText("Tools", { exact: true })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Remove" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Remove connector" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Removing a connector deletes it for the whole workspace.",
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Allowed")).not.toBeInTheDocument();
     expect(screen.queryByText("Blocked")).not.toBeInTheDocument();
     expect(screen.getByText("Search GitHub issues")).toBeInTheDocument();
@@ -94,6 +101,29 @@ describe("ConnectionDetailDrawer", () => {
     await user.click(screen.getByRole("button", { name: "Link" }));
 
     expect(onLink).toHaveBeenCalledWith("github");
+  });
+
+  it("renders Unlink and invokes onUnlink when the signed-in operator's user_oauth account is linked", async () => {
+    const user = userEvent.setup();
+    const onUnlink = vi.fn().mockResolvedValue(undefined);
+
+    renderWithConnectionsPage(<ConnectionDetailDrawer />, {
+      selectedSummary: {
+        ...githubSummary,
+        credentialSubStatus: { label: "→ GitHub", warning: false },
+        rowAction: "none",
+        linkProviderId: "github",
+      },
+      selectedServer: githubServer,
+      drawerOpen: true,
+      onUnlink,
+    });
+
+    expect(
+      screen.getByText("Your personal OAuth account is linked."),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Unlink" }));
+    expect(onUnlink).toHaveBeenCalledWith("github");
   });
 
   it("invokes onReconnect from the footer", async () => {

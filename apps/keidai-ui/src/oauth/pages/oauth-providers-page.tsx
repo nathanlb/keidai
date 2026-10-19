@@ -1,7 +1,6 @@
 import { useCallback, useMemo } from "react";
 import type { OAuthConnectionStatus } from "@keidai/shared";
 import { useActingOwner } from "../../shell/hooks/use-acting-owner.js";
-import { useFetchAgents } from "../../lib/hooks/use-fetch-agents.js";
 import { useFetchOAuthConnections } from "../../lib/hooks/use-fetch-oauth-connections.js";
 import { useFetchOAuthProviders } from "../../lib/hooks/use-fetch-oauth-providers.js";
 import { buildOAuthProviderSummaries } from "../utils/build-oauth-provider-summaries.js";
@@ -17,21 +16,11 @@ export function OAuthProvidersPage() {
     isLoading: providersLoading,
   } = useFetchOAuthProviders();
 
-  const {
-    data: agentsData,
-    error: agentsError,
-    isLoading: agentsLoading,
-  } = useFetchAgents();
-
   const { owner } = useActingOwner();
 
   const ownerIds = useMemo(
-    () =>
-      resolveOAuthProviderOwnerIds(
-        owner?.ownerId,
-        (agentsData?.agents ?? []).map((agent) => agent.ownerId),
-      ),
-    [agentsData, owner?.ownerId],
+    () => resolveOAuthProviderOwnerIds(owner?.ownerId),
+    [owner?.ownerId],
   );
 
   const {
@@ -54,10 +43,9 @@ export function OAuthProvidersPage() {
 
   const isLoading =
     providersLoading ||
-    agentsLoading ||
     (ownerIds.length > 0 && connectionsLoading && !connectionsByOwner);
 
-  const error = providersError ?? agentsError ?? connectionsError;
+  const error = providersError ?? connectionsError;
 
   const summaries = useMemo(
     () =>
