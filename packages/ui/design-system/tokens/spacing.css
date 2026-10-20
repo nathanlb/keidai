@@ -11,6 +11,8 @@
   --radius-2xl: 1.125rem; /* 18px */
   --radius-full: 9999px;
   --radius-pill: var(--radius-full);
+  /* Sidebar nav links; themes can point this at their own corner. */
+  --nav-radius: 6px;
 
   /* Spacing scale (Tailwind, 0.25rem step) */
   --space-0: 0;

@@ -2,7 +2,7 @@ import { cn } from "@keidai/ui";
 import type { ReactNode } from "react";
 
 export const navItemClassName =
-  "flex items-center gap-[9px] rounded-[6px] px-2 py-[7px] text-[13.5px] font-medium text-sidebar-foreground no-underline transition-[background,color] duration-150 ease-out hover:bg-sidebar-accent hover:text-sidebar-accent-foreground motion-reduce:transition-none";
+  "flex items-center gap-[9px] rounded-(--nav-radius) px-2 py-[7px] text-[13.5px] font-medium text-sidebar-foreground no-underline transition-[background,color] duration-150 ease-out hover:bg-sidebar-accent hover:text-sidebar-accent-foreground motion-reduce:transition-none";
 
 export function sidebarNavLinkTestId(path: string): string {
   const slug = path.replace(/^\//, "").replace(/\//g, "-");

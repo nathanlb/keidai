@@ -1,6 +1,12 @@
 import { Card, CardContent } from "@keidai/ui";
 import type { HomeGoalDay } from "../types/home-digest.js";
 
+function weekHasCompletedRuns(week: readonly HomeGoalDay[]): boolean {
+  return week.some(
+    (day) => day.metPct > 0 || day.partialPct > 0 || day.missedPct > 0,
+  );
+}
+
 export function GoalCompletionCard({
   rateLabel,
   week,
@@ -8,6 +14,8 @@ export function GoalCompletionCard({
   rateLabel: string;
   week: readonly HomeGoalDay[];
 }) {
+  const hasWeekData = weekHasCompletedRuns(week);
+
   return (
     <Card className="flex h-full flex-col overflow-hidden py-0 shadow-none">
       <CardContent className="flex h-full flex-col p-0">
@@ -21,17 +29,25 @@ export function GoalCompletionCard({
         </div>
         <div className="flex flex-1 flex-col px-4 pt-3.75 pb-4">
           <div className="flex items-baseline gap-2">
-            <span
-              className="
-              font-display text-[28px] leading-none font-bold tracking-[-0.02em]
-              lining-nums tabular-nums
-            "
-            >
-              {rateLabel}
-            </span>
-            <span className="text-[12.5px] text-muted-foreground">
-              of runs met their goal
-            </span>
+            {hasWeekData ? (
+              <>
+                <span
+                  className="
+                  font-display text-[28px] leading-none font-bold
+                  tracking-[-0.02em] lining-nums tabular-nums
+                "
+                >
+                  {rateLabel}
+                </span>
+                <span className="text-[12.5px] text-muted-foreground">
+                  of runs met their goal
+                </span>
+              </>
+            ) : (
+              <span className="text-[13.5px] text-muted-foreground">
+                No completed runs in the last 7 days
+              </span>
+            )}
           </div>
           <div className="mt-4 flex min-h-13.5 flex-1 items-end gap-1">
             {week.map((day, index) => (

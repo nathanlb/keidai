@@ -210,6 +210,7 @@
   --border: #c1beb6;
   --input: #b8b5ad;
   --ring: var(--stripe-blue);
+  --focus-ring: color-mix(in srgb, var(--ring) 35%, transparent);
 
   --sidebar: var(--plat-100);
   --sidebar-foreground: var(--plat-900);
@@ -219,6 +220,12 @@
   --sidebar-accent-foreground: var(--plat-900);
   --sidebar-border: #c1beb6;
   --sidebar-ring: var(--stripe-blue);
+  /* Nav hover: halfway between the casework and its accent, so it sits apart from the debossed current item. */
+  --sidebar-hover: color-mix(
+    in srgb,
+    var(--sidebar-accent) 35%,
+    var(--sidebar)
+  );
 
   /* ----- Type ----- */
   --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
@@ -236,6 +243,7 @@
   --radius-2xl: 0.75rem;
   /* chips and toggles share the button's molded corner instead of a full pill */
   --radius-pill: var(--radius-md);
+  --nav-radius: var(--radius-md);
 
   /* ----- Molded-plastic light: top-left key light, highlight lip + soft cast ----- */
   --lip: inset 0 1px 0 rgba(255, 255, 255, 0.6);
@@ -273,7 +281,7 @@
   :is(.ui-input, .ui-textarea, .ui-select, .ui-otp__slot):focus-visible {
   box-shadow:
     var(--deboss),
-    0 0 0 3px color-mix(in srgb, var(--ring) 35%, transparent);
+    0 0 0 3px var(--focus-ring);
 }
 :is(.theme-platinum, [data-theme="platinum"]) .ui-btn--default {
   background: linear-gradient(
@@ -379,15 +387,14 @@
   outline: none;
   box-shadow:
     var(--shadow-xs),
-    0 0 0 3px color-mix(in srgb, var(--ring) 35%, transparent);
+    0 0 0 3px var(--focus-ring);
 }
 
 /* Sidebar nav links follow the same key logic: a light lift on hover, debossed while current. */
-:is(.theme-platinum, [data-theme="platinum"]) [data-slot="nav-link"] {
-  border-radius: var(--radius-md);
-}
-:is(.theme-platinum, [data-theme="platinum"]) [data-slot="nav-link"]:hover {
-  background: color-mix(in srgb, var(--sidebar-accent) 35%, var(--sidebar));
+:is(.theme-platinum, [data-theme="platinum"])
+  :is(.theme-platinum, [data-theme="platinum"])
+  [data-slot="nav-link"]:hover {
+  background: var(--sidebar-hover);
   box-shadow: var(--lip);
 }
 :is(.theme-platinum, [data-theme="platinum"])
@@ -401,13 +408,13 @@
   outline: none;
   box-shadow:
     var(--shadow-xs),
-    0 0 0 3px color-mix(in srgb, var(--ring) 35%, transparent);
+    0 0 0 3px var(--focus-ring);
 }
 :is(.theme-platinum, [data-theme="platinum"])
   [data-slot="nav-link"][aria-current="page"]:focus-visible {
   box-shadow:
     var(--deboss),
-    0 0 0 3px color-mix(in srgb, var(--ring) 35%, transparent);
+    0 0 0 3px var(--focus-ring);
 }
 
 /* Status badges are debossed nameplates; the icon is the LED and carries the stripe colour. */
@@ -819,7 +826,7 @@
   [data-slot="input-group"]:has(:focus-visible) {
   box-shadow:
     var(--deboss),
-    0 0 0 3px color-mix(in srgb, var(--ring) 35%, transparent);
+    0 0 0 3px var(--focus-ring);
 }
 :is(.theme-platinum, [data-theme="platinum"])
   :is(.ui-input, .ui-textarea)[data-slot="input-group-control"],

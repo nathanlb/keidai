@@ -181,6 +181,23 @@ describe("buildHomeDigest", () => {
     expect(digest.runningAgentLabel).toBe("1 agent");
   });
 
+  it("uses an em dash for the 7-day goal rate when there are no completed runs", () => {
+    const digest = buildHomeDigest({
+      approvals: [],
+      runs: [],
+      runReports: {},
+      tasks: [],
+      agents: [agent()],
+      groups: [],
+      now: NOW,
+    });
+
+    expect(digest.goalRateLabel).toBe("—");
+    expect(
+      digest.week.every((day) => day.metPct === 0 && day.missedPct === 0),
+    ).toBe(true);
+  });
+
   it("computes 24h goal stats and a 7-day rate from real outcomes", () => {
     const digest = buildHomeDigest({
       approvals: [],

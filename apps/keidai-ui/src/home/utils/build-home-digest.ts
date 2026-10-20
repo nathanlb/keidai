@@ -153,35 +153,40 @@ function buildLiveRun(
   };
 }
 
-function buildWeek(
+function buildWeekGoals(
   completed: readonly RunListItem[],
   now: number,
-): HomeGoalDay[] {
+): { week: HomeGoalDay[]; met: number; total: number } {
   const todayStart = startOfLocalDay(now);
-  return Array.from({ length: 7 }, (_, index) => {
+  let met = 0;
+  let total = 0;
+  const week = Array.from({ length: 7 }, (_, index) => {
     const start = todayStart - (6 - index) * DAY_MS;
     const end = start + DAY_MS;
-    let met = 0;
-    let missed = 0;
+    let dayMet = 0;
+    let dayMissed = 0;
     for (const run of completed) {
       const started = new Date(run.startedAt).getTime();
       if (Number.isNaN(started) || started < start || started >= end) {
         continue;
       }
       if (run.outcome?.status === "goal_met") {
-        met += 1;
+        dayMet += 1;
       } else {
-        missed += 1;
+        dayMissed += 1;
       }
     }
-    const total = met + missed;
+    const dayTotal = dayMet + dayMissed;
+    met += dayMet;
+    total += dayTotal;
     return {
       label: WEEKDAY_LABELS[new Date(start).getDay()] ?? "",
-      metPct: total === 0 ? 0 : Math.round((met / total) * 100),
+      metPct: dayTotal === 0 ? 0 : Math.round((dayMet / dayTotal) * 100),
       partialPct: 0,
-      missedPct: total === 0 ? 0 : Math.round((missed / total) * 100),
+      missedPct: dayTotal === 0 ? 0 : Math.round((dayMissed / dayTotal) * 100),
     };
   });
+  return { week, met, total };
 }
 
 function countEffectiveTools(
@@ -291,14 +296,22 @@ export function buildHomeDigest(sources: HomeDigestSources): HomeDigest {
     .sort(
       (left, right) => Date.parse(right.startedAt) - Date.parse(left.startedAt),
     );
+  const todayStart = startOfLocalDay(now);
+  const weekRangeStart = todayStart - 6 * DAY_MS;
+  const weekRangeEnd = todayStart + DAY_MS;
   const weekCompleted = completed.filter((run) => {
     const started = new Date(run.startedAt).getTime();
-    return !Number.isNaN(started) && now - started <= 7 * DAY_MS;
+    return (
+      !Number.isNaN(started) &&
+      started >= weekRangeStart &&
+      started < weekRangeEnd
+    );
   });
-  const weekMet = weekCompleted.filter(
-    (run) => run.outcome?.status === "goal_met",
-  ).length;
-  const weekTotal = weekCompleted.length;
+  const {
+    week,
+    met: weekMet,
+    total: weekTotal,
+  } = buildWeekGoals(weekCompleted, now);
 
   const attention = buildAttention({
     pending,
@@ -428,7 +441,7 @@ export function buildHomeDigest(sources: HomeDigestSources): HomeDigest {
     ),
     goalRateLabel:
       weekTotal === 0 ? "—" : `${Math.round((weekMet / weekTotal) * 100)}%`,
-    week: buildWeek(weekCompleted, now),
+    week,
     recentRuns,
     totalRunCount: sources.runs.length,
     scheduled,
