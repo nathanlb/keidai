@@ -13,7 +13,7 @@ export function HomeToast({ message }: { message: string | null }) {
     >
       <div
         className="
-        pointer-events-auto flex items-center gap-2 rounded-full border
+        pointer-events-auto flex items-center gap-2 rounded-pill border
         border-border bg-popover px-4 py-2.5 text-[13px] text-popover-foreground
         shadow-lg
       "

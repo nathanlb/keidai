@@ -14,8 +14,10 @@ import {
 import {
   applyTheme,
   initialThemeState,
+  themePaletteStorageKey,
   themeReducer,
   themeStorageKey,
+  type ThemePalette,
 } from "./slices/theme-slice.js";
 
 interface AppProviderProps {
@@ -33,12 +35,17 @@ export function AppProvider({ children }: AppProviderProps) {
   );
 
   useEffect(() => {
-    applyTheme(themeState.theme);
+    applyTheme(themeState.theme, themeState.palette);
     localStorage.setItem(themeStorageKey, themeState.theme);
-  }, [themeState.theme]);
+    localStorage.setItem(themePaletteStorageKey, themeState.palette);
+  }, [themeState.theme, themeState.palette]);
 
   const toggleTheme = useCallback(() => {
     themeDispatch({ type: "theme/toggle" });
+  }, []);
+
+  const setPalette = useCallback((palette: ThemePalette) => {
+    themeDispatch({ type: "theme/setPalette", palette });
   }, []);
 
   const setNavOpen = useCallback((navOpen: boolean) => {
@@ -53,6 +60,8 @@ export function AppProvider({ children }: AppProviderProps) {
     () => ({
       theme: themeState.theme,
       toggleTheme,
+      palette: themeState.palette,
+      setPalette,
       navOpen: shellUiState.navOpen,
       setNavOpen,
       toggleNav,
@@ -60,6 +69,8 @@ export function AppProvider({ children }: AppProviderProps) {
     [
       themeState.theme,
       toggleTheme,
+      themeState.palette,
+      setPalette,
       shellUiState.navOpen,
       setNavOpen,
       toggleNav,

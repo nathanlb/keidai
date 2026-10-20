@@ -214,7 +214,7 @@ export function AgentEffectiveToolsPanel({
                       className={cn(
                         `
                           inline-flex w-19.5 shrink-0 justify-center
-                          rounded-full px-2 py-0.5 text-[11px] font-semibold
+                          rounded-pill px-2 py-0.5 text-[11px] font-semibold
                         `,
                         chip.className,
                       )}

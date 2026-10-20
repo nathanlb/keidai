@@ -39,10 +39,12 @@ export function ActivityOutcomeChips({
           <button
             key={filter}
             type="button"
+            data-slot="filter-chip"
+            aria-pressed={isActive}
             onClick={() => onChange(filter)}
             className={cn(
               `
-                inline-flex h-7.5 items-center gap-1.5 rounded-full border px-3
+                inline-flex h-7.5 items-center gap-1.5 rounded-pill border px-3
                 text-[12.5px] transition-colors
               `,
               isActive

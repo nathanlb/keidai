@@ -94,6 +94,7 @@ export function TraceDetailDrawer() {
       headerBadge={
         <Badge
           variant="outline"
+          data-tone={meta.tone}
           className={cn("mt-0.5 gap-1 font-normal", meta.badgeClass)}
         >
           {meta.label}

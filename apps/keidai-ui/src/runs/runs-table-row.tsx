@@ -127,6 +127,7 @@ export function RunsTableRow({
       >
         <Badge
           variant="outline"
+          data-tone={meta.tone}
           className={cn(
             "max-w-full gap-1 truncate font-normal",
             meta.badgeClass,

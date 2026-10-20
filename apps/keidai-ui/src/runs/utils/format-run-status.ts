@@ -1,3 +1,4 @@
+import type { StatusTone } from "../../lib/types/status-tone.js";
 import type {
   RunDisplayStatus,
   RunStatusFilter,
@@ -5,6 +6,7 @@ import type {
 
 export interface RunStatusMeta {
   label: string;
+  tone: StatusTone;
   badgeClass: string;
   dotClass?: string;
 }
@@ -12,41 +14,49 @@ export interface RunStatusMeta {
 export const RUN_STATUS_META: Record<RunDisplayStatus, RunStatusMeta> = {
   running: {
     label: "Running",
+    tone: "info",
     badgeClass: "border-border bg-background text-foreground",
     dotClass: "bg-muted-foreground",
   },
   waiting_approval: {
     label: "Awaiting review",
+    tone: "warning",
     badgeClass: "border-warning/40 bg-warning/10 text-foreground",
     dotClass: "bg-warning",
   },
   goal_met: {
     label: "Goal met",
+    tone: "success",
     badgeClass: "border-transparent bg-secondary text-secondary-foreground",
     dotClass: "bg-success",
   },
   failed: {
     label: "Failed",
+    tone: "error",
     badgeClass: "border-transparent bg-destructive text-destructive-foreground",
     dotClass: "bg-destructive",
   },
   iteration_exhausted: {
     label: "Iteration exhausted",
+    tone: "neutral",
     badgeClass: "border-border bg-background text-foreground",
     dotClass: "bg-muted-foreground",
   },
   timeout: {
     label: "Timeout",
+    tone: "warning",
     badgeClass: "border-warning/40 bg-warning/10 text-foreground",
     dotClass: "bg-warning",
   },
   human_reject: {
     label: "Rejected",
+    tone: "error",
     badgeClass: "border-transparent bg-destructive text-destructive-foreground",
     dotClass: "bg-destructive",
   },
   stopped: {
     label: "Stopped",
+    tone: "neutral",
     badgeClass: "border-border bg-muted/60 text-foreground",
     dotClass: "bg-foreground/50",
   },

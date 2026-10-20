@@ -4,15 +4,15 @@ import * as React from "react";
 import { cn } from "../../lib/utils.js";
 
 const alertVariants = cva(
-  "relative w-full rounded-lg border px-4 py-3 text-sm [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:top-3 [&>svg]:left-4 [&>svg]:text-foreground [&>svg~*]:pl-7",
+  "ui-alert relative w-full rounded-lg border px-4 py-3 text-sm [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:top-3 [&>svg]:left-4 [&>svg]:text-foreground [&>svg~*]:pl-7 [&>span[aria-hidden]+div]:translate-y-[-3px] [&>span[aria-hidden]]:absolute [&>span[aria-hidden]]:top-3 [&>span[aria-hidden]]:left-4 [&>span[aria-hidden]]:size-4 [&>span[aria-hidden]]:text-foreground [&>span[aria-hidden]~*]:pl-7",
   {
     variants: {
       variant: {
         default: "bg-background text-foreground",
         destructive:
-          "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
+          "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive [&>span[aria-hidden]]:text-destructive",
         warning:
-          "border-warning/40 bg-warning/10 text-foreground [&>svg]:text-warning",
+          "border-warning/40 bg-warning/10 text-foreground [&>svg]:text-warning [&>span[aria-hidden]]:text-warning",
       },
     },
     defaultVariants: {
@@ -53,7 +53,7 @@ const AlertDescription = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "text-sm text-muted-foreground [&_p]:leading-relaxed",
+      "ui-alert__desc text-sm text-muted-foreground [&_p]:leading-relaxed",
       className,
     )}
     {...props}

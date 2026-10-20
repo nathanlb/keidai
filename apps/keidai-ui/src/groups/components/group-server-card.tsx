@@ -97,7 +97,7 @@ export function GroupServerCard({
         </div>
         <span
           className={cn(
-            "shrink-0 rounded-full border px-2.5 py-0.5 font-mono text-[11px]",
+            "shrink-0 rounded-pill border px-2.5 py-0.5 font-mono text-[11px]",
             isAllowDefault
               ? "border-amber-500/50 text-amber-500"
               : "border-border text-muted-foreground",

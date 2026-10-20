@@ -1,8 +1,8 @@
 import { useAppContext } from "../context/app-context.js";
 
-export type { Theme } from "../context/slices/theme-slice.js";
+export type { Theme, ThemePalette } from "../context/slices/theme-slice.js";
 
 export function useTheme() {
-  const { theme, toggleTheme } = useAppContext();
-  return { theme, toggleTheme };
+  const { theme, toggleTheme, palette, setPalette } = useAppContext();
+  return { theme, toggleTheme, palette, setPalette };
 }

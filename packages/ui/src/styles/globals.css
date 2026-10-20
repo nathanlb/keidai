@@ -8,6 +8,7 @@
 @import "./tokens/typography.css";
 @import "./tokens/colors.css";
 @import "./tokens/spacing.css";
+@import "../../design-system/tokens/theme-platinum.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -46,6 +47,8 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-error: var(--error);
+  --color-error-foreground: var(--error-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
@@ -72,6 +75,7 @@
   --radius-lg: var(--radius-lg);
   --radius-xl: var(--radius-xl);
   --radius-2xl: var(--radius-2xl);
+  --radius-pill: var(--radius-pill);
 
   --shadow-2xs: var(--shadow-2xs);
   --shadow-xs: var(--shadow-xs);

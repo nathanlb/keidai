@@ -52,7 +52,7 @@ export function AgentGroupChip({
     <span
       className={cn(
         `
-          inline-flex h-7.5 items-center gap-1.5 rounded-full border pr-1.5 pl-3
+          inline-flex h-7.5 items-center gap-1.5 rounded-pill border pr-1.5 pl-3
           font-mono text-xs
         `,
         known
@@ -72,7 +72,7 @@ export function AgentGroupChip({
           aria-label={`Remove ${name}`}
           className={cn(
             `
-              inline-flex shrink-0 rounded-full p-0.5 transition-colors
+              inline-flex shrink-0 rounded-pill p-0.5 transition-colors
               hover:bg-accent
             `,
             known ? "text-muted-foreground" : "text-amber-500",

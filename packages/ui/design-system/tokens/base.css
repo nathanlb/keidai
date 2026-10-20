@@ -1,0 +1,38 @@
+/* shadcn/ui — base element resets + body defaults */
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  margin: 0;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+  margin: 0;
+}
+
+code, pre, kbd {
+  font-family: var(--font-mono);
+}
+
+::selection {
+  background-color: var(--neutral-200);
+}

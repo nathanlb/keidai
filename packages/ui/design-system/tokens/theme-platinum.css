@@ -1,0 +1,799 @@
+/* Platinum theme — inspired by 1980s beige-plastic desktop hardware:
+   warm platinum casework, debossed nameplates, vent grooves, soft chamfers,
+   and a six-band rainbow accent. Opt in with class="theme-platinum"
+   (or data-theme="platinum") on <html> or any wrapper.
+   Latin and latin-ext cuts are self-hosted (SIL OFL). */
+
+@font-face {
+  font-family: "EB Garamond";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("../fonts/eb-garamond-latin-ext.woff2") format("woff2");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "EB Garamond";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("../fonts/eb-garamond-latin.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Instrument Sans";
+  font-style: normal;
+  font-weight: 400 700;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("../fonts/instrument-sans-latin-ext.woff2") format("woff2");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Instrument Sans";
+  font-style: normal;
+  font-weight: 400 700;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("../fonts/instrument-sans-latin.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/ibm-plex-mono-400-latin-ext.woff2") format("woff2");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/ibm-plex-mono-400-latin.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../fonts/ibm-plex-mono-500-latin-ext.woff2") format("woff2");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../fonts/ibm-plex-mono-500-latin.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
+
+.theme-platinum,
+[data-theme="platinum"] {
+  /* ----- Primitive: Platinum casework (warm grey) -----
+     Held at OKLCH chroma ≤ 0.012 so the plastic reads grey-warm, not parchment. */
+  --plat-50: #f4f2ee;
+  --plat-100: #eae8e3;
+  --plat-200: #dbd9d2;
+  --plat-300: #cecbc4;
+  --plat-400: #b6b3ab;
+  --plat-500: #98958d;
+  --plat-600: #77746d;
+  --plat-700: #57554f;
+  --plat-800: #413f3b;
+  --plat-900: #2b2a26;
+
+  /* ----- Primitive: six-band stripe ----- */
+  --stripe-green: #5ebd3e;
+  --stripe-yellow: #ffb900;
+  --stripe-orange: #f78200;
+  --stripe-red: #e23838;
+  --stripe-purple: #973999;
+  --stripe-blue: #009cdf;
+  /* text-safe deep inks of the stripe hues (≥4.5:1 on platinum).
+     Green and red are one step darker than the first pass so badge tints clear 4.5:1. */
+  --ink-green: #2c6d1a;
+  --ink-red: #ac2026;
+  --ink-blue: #005f8a;
+  --ink-purple: #7a2b7c;
+
+  --stripes: linear-gradient(
+    180deg,
+    var(--stripe-green) 0 16.66%,
+    var(--stripe-yellow) 16.66% 33.33%,
+    var(--stripe-orange) 33.33% 50%,
+    var(--stripe-red) 50% 66.66%,
+    var(--stripe-purple) 66.66% 83.33%,
+    var(--stripe-blue) 83.33% 100%
+  );
+  --stripes-x: linear-gradient(
+    90deg,
+    var(--stripe-green) 0 16.66%,
+    var(--stripe-yellow) 16.66% 33.33%,
+    var(--stripe-orange) 33.33% 50%,
+    var(--stripe-red) 50% 66.66%,
+    var(--stripe-purple) 66.66% 83.33%,
+    var(--stripe-blue) 83.33% 100%
+  );
+
+  --ink-yellow: #7f5600;
+
+  /* ----- Rainbow glow: reserved for flair moments (AI, hero focus) ----- */
+  --rainbow: linear-gradient(
+    90deg,
+    var(--stripe-green),
+    var(--stripe-yellow),
+    var(--stripe-orange),
+    var(--stripe-red),
+    var(--stripe-purple),
+    var(--stripe-blue)
+  );
+
+  /* ----- Status: stripe hues with meaning ----- */
+  --success: var(--ink-green);
+  --success-fill: var(--stripe-green);
+  --warning: var(--ink-yellow);
+  --warning-fill: var(--stripe-yellow);
+  --error: var(--ink-red);
+  --error-fill: var(--stripe-red);
+
+  /* ----- Highlight accents: draw attention to key areas ----- */
+  --highlight: var(--ink-blue);
+  --highlight-fill: var(--stripe-blue);
+  --highlight-2: var(--ink-purple);
+  --highlight-2-fill: var(--stripe-purple);
+
+  /* ----- Charts: casework greys, blue marks the key series ----- */
+  --chart-1: var(--stripe-blue);
+  --chart-2: var(--plat-700);
+  --chart-3: var(--plat-500);
+  --chart-4: var(--plat-400);
+  --chart-5: var(--plat-300);
+
+  /* ----- Semantic -----
+     Three planes: the casework (sidebar + top bar) is one molded shell,
+     the content bay is recessed into it, and cards are modules seated in the bay. */
+  --background: var(--plat-50);
+  --foreground: var(--plat-900);
+  --card: var(--plat-50);
+  --card-foreground: var(--plat-900);
+  --popover: var(--plat-50);
+  --popover-foreground: var(--plat-900);
+  --primary: var(--plat-800);
+  --primary-foreground: var(--plat-50);
+  --secondary: var(--plat-300);
+  --secondary-foreground: var(--plat-900);
+  --muted: var(--plat-300);
+  --muted-foreground: var(--plat-700);
+  --accent: var(--plat-300);
+  --accent-foreground: var(--plat-900);
+  --destructive: var(--ink-red);
+  --destructive-foreground: var(--plat-50);
+  --error: var(--ink-red);
+  --error-foreground: var(--plat-50);
+  --success: var(--ink-green);
+  --success-foreground: var(--plat-50);
+  --warning: var(--ink-yellow);
+  --warning-foreground: var(--plat-50);
+  --green-600: var(--ink-green);
+  --amber-500: var(--ink-yellow);
+  --red-600: var(--ink-red);
+  --red-500: var(--ink-red);
+  --red-400: var(--ink-red);
+  --border: #c1beb6;
+  --input: #b8b5ad;
+  --ring: var(--stripe-blue);
+
+  --sidebar: var(--plat-100);
+  --sidebar-foreground: var(--plat-900);
+  --sidebar-primary: var(--plat-800);
+  --sidebar-primary-foreground: var(--plat-50);
+  --sidebar-accent: var(--plat-300);
+  --sidebar-accent-foreground: var(--plat-900);
+  --sidebar-border: #c1beb6;
+  --sidebar-ring: var(--stripe-blue);
+
+  /* ----- Type ----- */
+  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "EB Garamond", Garamond, "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+
+  /* ----- Radius: tight molded corners ----- */
+  --radius: 0.25rem;
+  --radius-xs: 0.125rem;
+  --radius-sm: 0.1875rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.375rem;
+  --radius-xl: 0.5rem;
+  --radius-2xl: 0.75rem;
+  /* chips and toggles share the button's molded corner instead of a full pill */
+  --radius-pill: var(--radius-md);
+
+  /* ----- Molded-plastic light: top-left key light, highlight lip + soft cast ----- */
+  --lip: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --deboss:
+    inset 0 1px 2px rgba(60, 52, 40, 0.28),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.45);
+  --shadow-2xs: 0 1px 0 rgba(60, 52, 40, 0.12);
+  --shadow-xs: var(--lip), 0 1px 0 rgba(60, 52, 40, 0.2);
+  --shadow-sm:
+    var(--lip), 0 1px 0 rgba(60, 52, 40, 0.14),
+    0 3px 6px -3px rgba(60, 52, 40, 0.3);
+  --shadow: var(--shadow-sm);
+  --shadow-md:
+    var(--lip), 0 1px 0 rgba(60, 52, 40, 0.14),
+    0 8px 16px -8px rgba(60, 52, 40, 0.4);
+  --shadow-lg:
+    var(--lip), 0 1px 0 rgba(60, 52, 40, 0.14),
+    0 18px 32px -14px rgba(60, 52, 40, 0.45);
+  --shadow-xl:
+    var(--lip), 0 1px 0 rgba(60, 52, 40, 0.14),
+    0 28px 48px -20px rgba(60, 52, 40, 0.5);
+}
+
+/* ===== Component refinements (theme-scoped) ===== */
+:is(.theme-platinum, [data-theme="platinum"]) {
+  font-family: var(--font-sans);
+  color: var(--foreground);
+}
+:is(.theme-platinum, [data-theme="platinum"])
+  :is(.ui-input, .ui-textarea, .ui-select, .ui-otp__slot) {
+  background: var(--plat-50);
+  box-shadow: var(--deboss);
+}
+:is(.theme-platinum, [data-theme="platinum"])
+  :is(.ui-input, .ui-textarea, .ui-select, .ui-otp__slot):focus-visible {
+  box-shadow:
+    var(--deboss),
+    0 0 0 3px color-mix(in srgb, var(--ring) 35%, transparent);
+}
+:is(.theme-platinum, [data-theme="platinum"]) .ui-btn--default {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--primary) 90%, white),
+    var(--primary)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 1px 0 rgba(30, 26, 20, 0.35);
+}
+:is(.theme-platinum, [data-theme="platinum"]) .ui-btn--default:hover {
+  background: color-mix(in srgb, var(--primary) 88%, var(--background));
+}
+:is(.theme-platinum, [data-theme="platinum"]) .ui-btn--secondary {
+  background: linear-gradient(180deg, var(--plat-100), var(--plat-300));
+  border-color: #c1beb6;
+}
+:is(.theme-platinum, [data-theme="platinum"]) .ui-btn--outline {
+  background: var(--plat-100);
+}
+:is(.theme-platinum, [data-theme="platinum"]) .ui-btn:active {
+  box-shadow: var(--deboss);
+}
+:is(.theme-platinum, [data-theme="platinum"]) .ui-badge--default {
+  background: var(--plat-600);
+  color: var(--plat-50);
+  box-shadow: var(--deboss);
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+}
+:is(.theme-platinum, [data-theme="platinum"]) .ui-badge--secondary {
+  box-shadow: var(--deboss);
+}
+:is(.theme-platinum, [data-theme="platinum"]) .ui-card__title {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+:is(.theme-platinum, [data-theme="platinum"])
+  :is(.ui-progress, .ui-slider__track, .ui-tabs__list) {
+  box-shadow: var(--deboss);
+}
+:is(.theme-platinum, [data-theme="platinum"]) .ui-switch:checked {
+  background: var(--highlight);
+}
+:is(.theme-platinum, [data-theme="platinum"]) .ui-checkbox:checked {
+  background: var(--plat-800);
+  border-color: var(--plat-800);
+}
+:is(.theme-platinum, [data-theme="platinum"]) .ui-kbd {
+  background: linear-gradient(180deg, var(--plat-50), var(--plat-200));
+  box-shadow: var(--shadow-xs);
+  font-family: var(--font-mono);
+}
+
+/* ===== App shell: casework frame around a recessed content bay ===== */
+:is(.theme-platinum, [data-theme="platinum"]) {
+  --bay-cast: rgba(60, 52, 40, 0.22);
+  --bay-edge: rgba(60, 52, 40, 0.1);
+}
+/* The top bar is the same molded shell as the sidebar; its lower lip casts onto the bay. */
+:is(.theme-platinum, [data-theme="platinum"]) [data-slot="shell-topbar"] {
+  position: relative;
+  z-index: 1;
+  background: var(--sidebar);
+  border-bottom-color: var(--sidebar-border);
+  box-shadow:
+    var(--lip),
+    0 1px 0 var(--bay-edge),
+    0 6px 8px -7px var(--bay-cast);
+}
+:is(.theme-platinum, [data-theme="platinum"]) [data-slot="shell-bay"] {
+  box-shadow:
+    inset 1px 0 0 var(--bay-edge),
+    inset 6px 0 8px -7px var(--bay-cast);
+}
+
+/* Filter chips are latching keys: raised at rest, debossed while engaged. */
+:is(.theme-platinum, [data-theme="platinum"]) [data-slot="filter-chip"] {
+  background: linear-gradient(180deg, var(--plat-50), var(--plat-100));
+  border-color: var(--border);
+  color: var(--plat-800);
+  box-shadow: var(--shadow-xs);
+}
+:is(.theme-platinum, [data-theme="platinum"])
+  [data-slot="filter-chip"]:hover {
+  background: var(--plat-50);
+}
+:is(.theme-platinum, [data-theme="platinum"])
+  [data-slot="filter-chip"][aria-pressed="true"] {
+  background: var(--plat-200);
+  border-color: var(--input);
+  color: var(--foreground);
+  box-shadow: var(--deboss);
+}
+:is(.theme-platinum, [data-theme="platinum"])
+  [data-slot="filter-chip"]:focus-visible {
+  outline: none;
+  box-shadow:
+    var(--shadow-xs),
+    0 0 0 3px color-mix(in srgb, var(--ring) 35%, transparent);
+}
+
+/* Status badges are debossed nameplates; the icon is the LED and carries the stripe colour. */
+:is(.theme-platinum, [data-theme="platinum"]) .ui-badge[data-tone] {
+  background: var(--plat-100);
+  border-color: var(--border);
+  color: var(--foreground);
+  box-shadow: var(--deboss);
+  text-shadow: none;
+}
+:is(.theme-platinum, [data-theme="platinum"]) .ui-badge[data-tone] svg {
+  color: var(--muted-foreground);
+}
+:is(.theme-platinum, [data-theme="platinum"])
+  .ui-badge[data-tone="success"]
+  svg {
+  color: var(--success);
+}
+:is(.theme-platinum, [data-theme="platinum"])
+  .ui-badge[data-tone="warning"]
+  svg {
+  color: var(--warning);
+}
+:is(.theme-platinum, [data-theme="platinum"]) .ui-badge[data-tone="info"] svg {
+  color: var(--highlight);
+}
+:is(.theme-platinum, [data-theme="platinum"]) .ui-badge[data-tone="error"] {
+  color: var(--error);
+  border-color: color-mix(in srgb, var(--error-fill) 45%, var(--border));
+}
+:is(.theme-platinum, [data-theme="platinum"])
+  .ui-badge[data-tone="error"]
+  svg {
+  color: var(--error);
+}
+
+/* ===== Motifs ===== */
+.plat-plate {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.875rem 0.375rem;
+  border-radius: var(--radius-sm);
+  background: var(--plat-600);
+  color: var(--plat-50);
+  font-family: var(--font-display);
+  font-weight: 500;
+  box-shadow:
+    inset 0 1px 2px rgba(30, 26, 20, 0.45),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.25),
+    0 1px 0 rgba(255, 255, 255, 0.6);
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.35);
+}
+.plat-stripes {
+  display: inline-block;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: var(--radius-xs);
+  background: var(--stripes);
+}
+.plat-stripes--x {
+  background: var(--stripes-x);
+}
+.plat-vents {
+  height: 2.5rem;
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0 6px,
+    rgba(40, 34, 26, 0.55) 6px 9px,
+    rgba(255, 255, 255, 0.55) 9px 10px
+  );
+}
+.plat-step {
+  border-top: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 -1px 0 rgba(60, 52, 40, 0.25),
+    inset 0 8px 12px -10px rgba(60, 52, 40, 0.3);
+}
+
+/* Status tints for Badge / Alert: add alongside the component class */
+.ui-badge.plat-status--success {
+  background: color-mix(in srgb, var(--success-fill) 18%, var(--plat-100));
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success-fill) 45%, transparent);
+  box-shadow: none;
+  text-shadow: none;
+}
+.ui-alert.plat-status--success {
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success-fill) 55%, transparent);
+  background: color-mix(in srgb, var(--success-fill) 10%, var(--plat-100));
+}
+.plat-status--success .plat-dot {
+  background: var(--success-fill);
+}
+.ui-badge.plat-status--warning {
+  background: color-mix(in srgb, var(--warning-fill) 18%, var(--plat-100));
+  color: var(--warning);
+  border-color: color-mix(in srgb, var(--warning-fill) 45%, transparent);
+  box-shadow: none;
+  text-shadow: none;
+}
+.ui-alert.plat-status--warning {
+  color: var(--warning);
+  border-color: color-mix(in srgb, var(--warning-fill) 55%, transparent);
+  background: color-mix(in srgb, var(--warning-fill) 10%, var(--plat-100));
+}
+.plat-status--warning .plat-dot {
+  background: var(--warning-fill);
+}
+.ui-badge.plat-status--error {
+  background: color-mix(in srgb, var(--error-fill) 18%, var(--plat-100));
+  color: var(--error);
+  border-color: color-mix(in srgb, var(--error-fill) 45%, transparent);
+  box-shadow: none;
+  text-shadow: none;
+}
+.ui-alert.plat-status--error {
+  color: var(--error);
+  border-color: color-mix(in srgb, var(--error-fill) 55%, transparent);
+  background: color-mix(in srgb, var(--error-fill) 10%, var(--plat-100));
+}
+.plat-status--error .plat-dot {
+  background: var(--error-fill);
+}
+.ui-alert:is(.plat-status--success, .plat-status--warning, .plat-status--error)
+  .ui-alert__desc {
+  color: var(--plat-800);
+}
+.plat-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--plat-500);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+/* Rainbow glow: blurred spectrum beneath one focal surface (e.g. an AI prompt). Once per view. */
+.plat-glow {
+  position: relative;
+  isolation: isolate;
+}
+.plat-glow::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 6%;
+  right: 6%;
+  bottom: -10px;
+  height: 60%;
+  background: var(--rainbow);
+  filter: blur(16px);
+  opacity: 0.55;
+  border-radius: 50%;
+  transition: opacity 0.2s;
+}
+.plat-glow:focus-within::before {
+  opacity: 0.85;
+}
+.plat-glow > * {
+  position: relative;
+}
+
+/* ===== Dark — warm graphite casework =====
+   <html class="theme-platinum dark">. Ramp inverts (50 = deepest). */
+:is(
+  .theme-platinum.dark,
+  .dark .theme-platinum,
+  .theme-platinum .dark,
+  [data-theme="platinum"].dark
+) {
+  --plat-50: #1b1a18;
+  --plat-100: #22211e;
+  --plat-200: #2a2925;
+  --plat-300: #35332e;
+  --plat-400: #46433d;
+  --plat-500: #5e5a53;
+  --plat-600: #7f7a71;
+  --plat-700: #a9a498;
+  --plat-800: #d7d2c6;
+  --plat-900: #eeeae0;
+
+  --ink-green: #7fcf62;
+  --ink-yellow: #ffc83a;
+  --ink-red: #ff6e68;
+  --ink-blue: #45b9ee;
+  --ink-purple: #c886ca;
+
+  --background: var(--plat-100);
+  --foreground: var(--plat-900);
+  --card: var(--plat-200);
+  --card-foreground: var(--plat-900);
+  --popover: var(--plat-300);
+  --popover-foreground: var(--plat-900);
+  --primary: var(--plat-800);
+  --primary-foreground: var(--plat-100);
+  --secondary: var(--plat-300);
+  --secondary-foreground: var(--plat-900);
+  --muted: var(--plat-300);
+  --muted-foreground: var(--plat-700);
+  --accent: var(--plat-400);
+  --accent-foreground: var(--plat-900);
+  --destructive: var(--ink-red);
+  --destructive-foreground: var(--plat-100);
+  --error-foreground: var(--plat-100);
+  --success-foreground: var(--plat-100);
+  --warning-foreground: var(--plat-100);
+  --border: #3d3b36;
+  --input: #4a4741;
+  --ring: var(--ink-blue);
+
+  --sidebar: var(--plat-50);
+  --sidebar-foreground: var(--plat-900);
+  --sidebar-primary: var(--plat-800);
+  --sidebar-primary-foreground: var(--plat-100);
+  --sidebar-accent: var(--plat-300);
+  --sidebar-accent-foreground: var(--plat-900);
+  --sidebar-border: #3d3b36;
+  --sidebar-ring: var(--ink-blue);
+
+  --chart-2: var(--plat-700);
+  --chart-3: var(--plat-600);
+  --chart-4: var(--plat-500);
+  --chart-5: var(--plat-400);
+
+  --bay-cast: rgba(0, 0, 0, 0.55);
+  --bay-edge: rgba(0, 0, 0, 0.35);
+
+  --lip: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --deboss:
+    inset 0 1px 3px rgba(0, 0, 0, 0.55),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-2xs: 0 1px 0 rgba(0, 0, 0, 0.4);
+  --shadow-xs: var(--lip), 0 1px 0 rgba(0, 0, 0, 0.45);
+  --shadow-sm:
+    var(--lip), 0 1px 0 rgba(0, 0, 0, 0.4), 0 3px 6px -3px rgba(0, 0, 0, 0.6);
+  --shadow: var(--shadow-sm);
+  --shadow-md:
+    var(--lip), 0 1px 0 rgba(0, 0, 0, 0.4), 0 8px 16px -8px rgba(0, 0, 0, 0.7);
+  --shadow-lg:
+    var(--lip), 0 1px 0 rgba(0, 0, 0, 0.4),
+    0 18px 32px -14px rgba(0, 0, 0, 0.75);
+  --shadow-xl:
+    var(--lip), 0 1px 0 rgba(0, 0, 0, 0.4), 0 28px 48px -20px rgba(0, 0, 0, 0.8);
+}
+:is(
+    .theme-platinum.dark,
+    .dark .theme-platinum,
+    .theme-platinum .dark,
+    [data-theme="platinum"].dark
+  )
+  .ui-btn--secondary {
+  background: linear-gradient(180deg, var(--plat-400), var(--plat-300));
+  border-color: #4a4741;
+}
+:is(
+    .theme-platinum.dark,
+    .dark .theme-platinum,
+    .theme-platinum .dark,
+    [data-theme="platinum"].dark
+  )
+  .ui-btn--outline {
+  background: var(--plat-200);
+}
+:is(
+    .theme-platinum.dark,
+    .dark .theme-platinum,
+    .theme-platinum .dark,
+    [data-theme="platinum"].dark
+  )
+  [data-slot="filter-chip"] {
+  background: linear-gradient(180deg, var(--plat-300), var(--plat-200));
+  border-color: var(--input);
+}
+:is(
+    .theme-platinum.dark,
+    .dark .theme-platinum,
+    .theme-platinum .dark,
+    [data-theme="platinum"].dark
+  )
+  [data-slot="filter-chip"]:hover {
+  background: var(--plat-300);
+}
+:is(
+    .theme-platinum.dark,
+    .dark .theme-platinum,
+    .theme-platinum .dark,
+    [data-theme="platinum"].dark
+  )
+  [data-slot="filter-chip"][aria-pressed="true"] {
+  background: var(--plat-100);
+  border-color: var(--border);
+}
+:is(
+    .theme-platinum.dark,
+    .dark .theme-platinum,
+    .theme-platinum .dark,
+    [data-theme="platinum"].dark
+  )
+  .ui-badge[data-tone] {
+  background: var(--plat-100);
+}
+:is(
+    .theme-platinum.dark,
+    .dark .theme-platinum,
+    .theme-platinum .dark,
+    [data-theme="platinum"].dark
+  )
+  .ui-btn--destructive {
+  color: var(--plat-50);
+}
+:is(
+    .theme-platinum.dark,
+    .dark .theme-platinum,
+    .theme-platinum .dark,
+    [data-theme="platinum"].dark
+  )
+  .ui-badge--default {
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+:is(
+    .theme-platinum.dark,
+    .dark .theme-platinum,
+    .theme-platinum .dark,
+    [data-theme="platinum"].dark
+  )
+  .ui-kbd {
+  background: linear-gradient(180deg, var(--plat-400), var(--plat-300));
+}
+:is(
+    .theme-platinum.dark,
+    .dark .theme-platinum,
+    .theme-platinum .dark,
+    [data-theme="platinum"].dark
+  )
+  .ui-alert:is(
+    .plat-status--success,
+    .plat-status--warning,
+    .plat-status--error
+  )
+  .ui-alert__desc {
+  color: var(--plat-800);
+}
+:is(
+    .theme-platinum.dark,
+    .dark .theme-platinum,
+    .theme-platinum .dark,
+    [data-theme="platinum"].dark
+  )
+  .plat-plate {
+  background: var(--plat-300);
+  color: var(--plat-800);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.6),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06),
+    0 1px 0 rgba(255, 255, 255, 0.05);
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.6);
+}
+:is(
+    .theme-platinum.dark,
+    .dark .theme-platinum,
+    .theme-platinum .dark,
+    [data-theme="platinum"].dark
+  )
+  .plat-vents {
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0 6px,
+    rgba(0, 0, 0, 0.7) 6px 9px,
+    rgba(255, 255, 255, 0.07) 9px 10px
+  );
+}
+:is(
+    .theme-platinum.dark,
+    .dark .theme-platinum,
+    .theme-platinum .dark,
+    [data-theme="platinum"].dark
+  )
+  .plat-step {
+  border-top-color: rgba(255, 255, 255, 0.07);
+  box-shadow:
+    0 -1px 0 rgba(0, 0, 0, 0.5),
+    inset 0 8px 12px -10px rgba(0, 0, 0, 0.6);
+}
+:is(
+    .theme-platinum.dark,
+    .dark .theme-platinum,
+    .theme-platinum .dark,
+    [data-theme="platinum"].dark
+  )
+  .plat-glow::before {
+  opacity: 0.45;
+}
+:is(
+    .theme-platinum.dark,
+    .dark .theme-platinum,
+    .theme-platinum .dark,
+    [data-theme="platinum"].dark
+  )
+  .plat-glow:focus-within::before {
+  opacity: 0.7;
+}
+
+/* React input groups keep a transparent control; the group shell is the field. */
+:is(.theme-platinum, [data-theme="platinum"]) [data-slot="input-group"] {
+  background: var(--plat-50);
+  box-shadow: var(--deboss);
+}
+:is(.theme-platinum, [data-theme="platinum"])
+  [data-slot="input-group"]:has(:focus-visible) {
+  box-shadow:
+    var(--deboss),
+    0 0 0 3px color-mix(in srgb, var(--ring) 35%, transparent);
+}
+:is(.theme-platinum, [data-theme="platinum"])
+  :is(.ui-input, .ui-textarea)[data-slot="input-group-control"],
+:is(.theme-platinum, [data-theme="platinum"])
+  :is(.ui-input, .ui-textarea)[data-slot="input-group-control"]:focus-visible {
+  background: transparent;
+  box-shadow: none;
+}

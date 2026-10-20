@@ -22,7 +22,7 @@ export function GoalVerdictPill({
     <span
       className={cn(
         `
-          inline-flex items-center rounded-full px-2 py-0.5 text-[11px]
+          inline-flex items-center rounded-pill px-2 py-0.5 text-[11px]
           font-semibold
         `,
         PILL_CLASS[verdict],

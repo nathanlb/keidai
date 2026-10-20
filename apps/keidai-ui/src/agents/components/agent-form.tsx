@@ -382,7 +382,7 @@ export function AgentForm(props: AgentFormProps) {
                   key={groupName}
                   onClick={() => addGroup(groupName)}
                   className="
-                    inline-flex h-7 items-center gap-1.5 rounded-full border
+                    inline-flex h-7 items-center gap-1.5 rounded-pill border
                     border-dashed border-border px-2.5 font-mono text-[11.5px]
                     text-muted-foreground
                     hover:bg-accent

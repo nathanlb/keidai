@@ -1,0 +1,16 @@
+/* shadcn/ui Design System — global stylesheet entry point.
+   Consumers link this single file. Keep it as @import lines only. */
+
+@import "./tokens/typography.css";
+@import "./tokens/colors.css";
+@import "./tokens/spacing.css";
+@import "./tokens/base.css";
+@import "./tokens/theme-platinum.css";
+
+/* Component styles */
+@import "./components/core/core.css";
+@import "./components/forms/forms.css";
+@import "./components/feedback/feedback.css";
+@import "./components/overlay/overlay.css";
+@import "./components/navigation/navigation.css";
+@import "./components/data/data.css";

@@ -367,7 +367,7 @@ export function AgentDetailView() {
             {runningNow ? (
               <span
                 className="
-                inline-flex items-center gap-1.5 rounded-full
+                inline-flex items-center gap-1.5 rounded-pill
                 bg-[color-mix(in_srgb,var(--green-600)_16%,transparent)] px-2.5
                 py-0.5 text-xs text-(--green-600)
               "

@@ -1,5 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AppProvider } from "../../shell/context/app-provider.js";
 import { SettingsView } from "../settings-view.js";
 
 vi.mock("../../shell/hooks/use-acting-owner.js", () => ({
@@ -60,8 +61,18 @@ const adminOwner = {
   role: "admin" as const,
 };
 
+function renderSettings() {
+  return render(
+    <AppProvider>
+      <SettingsView />
+    </AppProvider>,
+  );
+}
+
 describe("SettingsView", () => {
   beforeEach(() => {
+    localStorage.clear();
+    document.documentElement.classList.remove("theme-platinum", "dark");
     vi.mocked(useActingOwner).mockReturnValue({
       owner: adminOwner,
       isAdmin: true,
@@ -70,7 +81,7 @@ describe("SettingsView", () => {
   });
 
   it("shows the API key and operator roster to admins", async () => {
-    render(<SettingsView />);
+    renderSettings();
 
     expect(
       await screen.findByRole("heading", { name: "OpenRouter API key" }),
@@ -89,15 +100,42 @@ describe("SettingsView", () => {
     ).toBeEnabled();
   });
 
-  it("shows a read-only notice to members", () => {
+  it("switches between the Default and Platinum themes", () => {
+    renderSettings();
+
+    const platinum = screen.getByRole("radio", { name: "Platinum" });
+    const defaultOption = screen.getByRole("radio", { name: "Default" });
+
+    expect(defaultOption).toHaveAttribute("data-state", "on");
+    expect(document.documentElement.classList.contains("theme-platinum")).toBe(
+      false,
+    );
+
+    fireEvent.click(platinum);
+    expect(platinum).toHaveAttribute("data-state", "on");
+    expect(document.documentElement.classList.contains("theme-platinum")).toBe(
+      true,
+    );
+    expect(localStorage.getItem("keidai-ui-theme-palette")).toBe("platinum");
+
+    fireEvent.click(defaultOption);
+    expect(defaultOption).toHaveAttribute("data-state", "on");
+    expect(document.documentElement.classList.contains("theme-platinum")).toBe(
+      false,
+    );
+    expect(localStorage.getItem("keidai-ui-theme-palette")).toBe("default");
+  });
+
+  it("shows a read-only notice to members while keeping theme settings available", () => {
     vi.mocked(useActingOwner).mockReturnValue({
       owner: { ...adminOwner, ownerId: "bob", role: "member" },
       isAdmin: false,
       isLoading: false,
     });
 
-    render(<SettingsView />);
+    renderSettings();
 
+    expect(screen.getByRole("radio", { name: "Platinum" })).toBeInTheDocument();
     expect(
       screen.getByText("Workspace settings are read-only"),
     ).toBeInTheDocument();

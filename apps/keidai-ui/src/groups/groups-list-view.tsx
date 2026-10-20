@@ -201,7 +201,7 @@ export function GroupsListView() {
                               key={policy.server}
                               variant="secondary"
                               className="
-                                rounded-full font-mono text-[11px] font-normal
+                                rounded-pill font-mono text-[11px] font-normal
                               "
                             >
                               {policy.server}

@@ -16,6 +16,7 @@ export function TopBar({ breadcrumb, showNavButton = false }: TopBarProps) {
 
   return (
     <div
+      data-slot="shell-topbar"
       className="
       box-border flex h-14.5 shrink-0 items-center justify-between gap-3
       border-b border-border px-4

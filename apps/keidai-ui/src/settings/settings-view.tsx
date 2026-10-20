@@ -3,8 +3,15 @@ import {
   AlertDescription,
   AlertTitle,
   Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
   Input,
   Spinner,
+  ToggleGroup,
+  ToggleGroupItem,
 } from "@keidai/ui";
 import { useState } from "react";
 import useSWR from "swr";
@@ -15,6 +22,7 @@ import {
   type OpenRouterCredentialStatus,
 } from "../lib/api/openrouter.js";
 import { useActingOwner } from "../shell/hooks/use-acting-owner.js";
+import { useTheme, type ThemePalette } from "../shell/hooks/use-theme.js";
 import { OperatorsRolesCard } from "./operators-roles-card.js";
 
 const CREDENTIAL_KEY = "openrouter-credential";
@@ -42,22 +50,59 @@ export function SettingsView() {
 
   if (!isAdmin) {
     return (
-      <Alert>
-        <AlertTitle>Workspace settings are read-only</AlertTitle>
-        <AlertDescription>
-          The OpenRouter API key and operator roles are managed by
-          administrators. You can still run your own agents and link your own
-          accounts.
-        </AlertDescription>
-      </Alert>
+      <div className="flex max-w-3xl flex-col gap-4">
+        <ThemeCard />
+        <Alert>
+          <AlertTitle>Workspace settings are read-only</AlertTitle>
+          <AlertDescription>
+            The OpenRouter API key and operator roles are managed by
+            administrators. You can still run your own agents and link your own
+            accounts.
+          </AlertDescription>
+        </Alert>
+      </div>
     );
   }
 
   return (
     <div className="flex max-w-3xl flex-col gap-4">
+      <ThemeCard />
       <OpenRouterCard />
       <OperatorsRolesCard currentOwnerId={owner?.ownerId} />
     </div>
+  );
+}
+
+function ThemeCard() {
+  const { palette, setPalette } = useTheme();
+
+  return (
+    <Card className="max-w-170 shadow-none">
+      <CardHeader className="p-5 pb-3">
+        <CardTitle className="text-[15px]">Theme</CardTitle>
+        <CardDescription className="text-[13px] leading-relaxed">
+          Choose the surface palette for this browser. Light and dark mode stay
+          in the top bar.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-5 pt-0">
+        <ToggleGroup
+          type="single"
+          variant="outline"
+          size="sm"
+          aria-label="Theme"
+          value={palette}
+          onValueChange={(next) => {
+            if (next === "default" || next === "platinum") {
+              setPalette(next as ThemePalette);
+            }
+          }}
+        >
+          <ToggleGroupItem value="default">Default</ToggleGroupItem>
+          <ToggleGroupItem value="platinum">Platinum</ToggleGroupItem>
+        </ToggleGroup>
+      </CardContent>
+    </Card>
   );
 }
 

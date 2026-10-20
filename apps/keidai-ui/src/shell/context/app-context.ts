@@ -1,9 +1,11 @@
 import { createContext, useContext } from "react";
-import type { Theme } from "./slices/theme-slice.js";
+import type { Theme, ThemePalette } from "./slices/theme-slice.js";
 
 export interface AppContextValue {
   theme: Theme;
   toggleTheme: () => void;
+  palette: ThemePalette;
+  setPalette: (palette: ThemePalette) => void;
   navOpen: boolean;
   setNavOpen: (navOpen: boolean) => void;
   toggleNav: () => void;

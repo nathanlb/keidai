@@ -48,6 +48,8 @@
   --accent-foreground: var(--neutral-900);
   --destructive: var(--red-600);
   --destructive-foreground: var(--neutral-50);
+  --error: var(--red-600);
+  --error-foreground: var(--neutral-50);
   --success: var(--green-600);
   --success-foreground: var(--neutral-50);
   --warning: var(--amber-500);
@@ -83,6 +85,8 @@
   --accent-foreground: var(--neutral-50);
   --destructive: var(--red-400);
   --destructive-foreground: var(--neutral-50);
+  --error: var(--red-400);
+  --error-foreground: var(--neutral-50);
   --success: var(--green-600);
   --success-foreground: var(--neutral-50);
   --warning: var(--amber-500);

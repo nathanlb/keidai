@@ -34,7 +34,7 @@ function TailToggle({
       variant="outline"
       onClick={onToggle}
       className="
-        h-7.5 gap-1.5 rounded-full px-3 font-mono text-[12.5px]
+        h-7.5 gap-1.5 rounded-pill px-3 font-mono text-[12.5px]
         whitespace-nowrap
       "
     >
