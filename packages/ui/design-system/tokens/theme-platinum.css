@@ -358,8 +358,7 @@
   color: var(--plat-800);
   box-shadow: var(--shadow-xs);
 }
-:is(.theme-platinum, [data-theme="platinum"])
-  [data-slot="filter-chip"]:hover {
+:is(.theme-platinum, [data-theme="platinum"]) [data-slot="filter-chip"]:hover {
   background: var(--plat-50);
 }
 :is(.theme-platinum, [data-theme="platinum"])
@@ -405,9 +404,7 @@
   color: var(--error);
   border-color: color-mix(in srgb, var(--error-fill) 45%, var(--border));
 }
-:is(.theme-platinum, [data-theme="platinum"])
-  .ui-badge[data-tone="error"]
-  svg {
+:is(.theme-platinum, [data-theme="platinum"]) .ui-badge[data-tone="error"] svg {
   color: var(--error);
 }
 

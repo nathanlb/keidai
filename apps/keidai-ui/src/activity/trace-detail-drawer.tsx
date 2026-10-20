@@ -108,21 +108,6 @@ export function TraceDetailDrawer() {
         </span>
       }
       bodyClassName="space-y-[22px]"
-      footerLeading={
-        <Button
-          type="button"
-          variant="outline"
-          className="gap-1.5"
-          onClick={() => void copyTraceId()}
-        >
-          {copied ? (
-            <Check className="size-3.5" aria-hidden />
-          ) : (
-            <Copy className="size-3.5" aria-hidden />
-          )}
-          Copy trace id
-        </Button>
-      }
     >
       <div
         className="
@@ -153,7 +138,6 @@ export function TraceDetailDrawer() {
           ) : (
             <Copy className="size-3.5" aria-hidden />
           )}
-          {copied ? "Copied" : "Copy"}
         </Button>
       </div>
 

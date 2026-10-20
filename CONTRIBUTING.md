@@ -7,6 +7,8 @@ the behavior.
 ## Development workflow
 
 1. Use Node.js 24 and install dependencies with `pnpm install`.
+   That install enables a pre-commit hook which runs `pnpm fmt` on staged
+   files and includes the formatted result in the commit.
 2. Read the relevant service README and [public documentation](docs/README.md).
 3. Make focused changes with tests colocated beside the code they cover.
 4. Run the smallest relevant check first, then the repository checks required

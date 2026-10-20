@@ -24,7 +24,9 @@
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   cursor: pointer;
-  transition: background-color .15s, color .15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
   white-space: nowrap;
 }
 .ui-tabs__trigger[aria-selected="true"] {
@@ -32,18 +34,46 @@
   color: var(--foreground);
   box-shadow: var(--shadow-xs);
 }
-.ui-tabs__content { padding-top: 1rem; }
+.ui-tabs__content {
+  padding-top: 1rem;
+}
 
 /* ===== Breadcrumb ===== */
-.ui-breadcrumb { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; font-size: var(--text-sm); color: var(--muted-foreground); }
-.ui-breadcrumb a { color: var(--muted-foreground); text-decoration: none; transition: color .15s; }
-.ui-breadcrumb a:hover { color: var(--foreground); }
-.ui-breadcrumb__sep { color: var(--muted-foreground); display: inline-flex; }
-.ui-breadcrumb__sep svg { width: 0.875rem; height: 0.875rem; }
-.ui-breadcrumb__current { color: var(--foreground); font-weight: var(--font-normal); }
+.ui-breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: var(--text-sm);
+  color: var(--muted-foreground);
+}
+.ui-breadcrumb a {
+  color: var(--muted-foreground);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.ui-breadcrumb a:hover {
+  color: var(--foreground);
+}
+.ui-breadcrumb__sep {
+  color: var(--muted-foreground);
+  display: inline-flex;
+}
+.ui-breadcrumb__sep svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+.ui-breadcrumb__current {
+  color: var(--foreground);
+  font-weight: var(--font-normal);
+}
 
 /* ===== Pagination ===== */
-.ui-pagination { display: inline-flex; align-items: center; gap: 0.25rem; }
+.ui-pagination {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
 .ui-pagination__item {
   display: inline-flex;
   align-items: center;
@@ -60,16 +90,37 @@
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   cursor: pointer;
-  transition: background-color .15s, border-color .15s;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
 }
-.ui-pagination__item svg { width: 1rem; height: 1rem; }
-.ui-pagination__item:hover { background: var(--accent); }
-.ui-pagination__item[aria-current="page"] { border-color: var(--border); background: var(--background); }
-.ui-pagination__ellipsis { display: inline-flex; align-items: center; justify-content: center; min-width: 2.25rem; height: 2.25rem; color: var(--muted-foreground); }
+.ui-pagination__item svg {
+  width: 1rem;
+  height: 1rem;
+}
+.ui-pagination__item:hover {
+  background: var(--accent);
+}
+.ui-pagination__item[aria-current="page"] {
+  border-color: var(--border);
+  background: var(--background);
+}
+.ui-pagination__ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.25rem;
+  height: 2.25rem;
+  color: var(--muted-foreground);
+}
 
 /* ===== Accordion ===== */
-.ui-accordion { border-top: 1px solid var(--border); }
-.ui-accordion__item { border-bottom: 1px solid var(--border); }
+.ui-accordion {
+  border-top: 1px solid var(--border);
+}
+.ui-accordion__item {
+  border-bottom: 1px solid var(--border);
+}
 .ui-accordion__trigger {
   display: flex;
   align-items: center;
@@ -86,8 +137,25 @@
   color: var(--foreground);
   text-align: left;
 }
-.ui-accordion__trigger:hover { text-decoration: underline; }
-.ui-accordion__trigger svg { width: 1rem; height: 1rem; color: var(--muted-foreground); transition: transform .2s; flex-shrink: 0; }
-.ui-accordion__trigger[aria-expanded="true"] svg { transform: rotate(180deg); }
-.ui-accordion__content { overflow: hidden; font-size: var(--text-sm); color: var(--muted-foreground); line-height: var(--leading-relaxed); }
-.ui-accordion__content-inner { padding-bottom: 1rem; }
+.ui-accordion__trigger:hover {
+  text-decoration: underline;
+}
+.ui-accordion__trigger svg {
+  width: 1rem;
+  height: 1rem;
+  color: var(--muted-foreground);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.ui-accordion__trigger[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+.ui-accordion__content {
+  overflow: hidden;
+  font-size: var(--text-sm);
+  color: var(--muted-foreground);
+  line-height: var(--leading-relaxed);
+}
+.ui-accordion__content-inner {
+  padding-bottom: 1rem;
+}
