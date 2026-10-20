@@ -23,6 +23,7 @@ export function SettingsNavLink() {
   return (
     <NavLink
       to={settingsNavItem.path}
+      data-slot="nav-link"
       data-testid={sidebarNavLinkTestId(settingsNavItem.path)}
       className={() =>
         cn(
@@ -49,6 +50,7 @@ export function WorkspaceSidebarNav() {
       <NavLink
         to={homeNavItem.path}
         end
+        data-slot="nav-link"
         data-testid={sidebarNavLinkTestId(homeNavItem.path)}
         className={({ isActive }) =>
           cn(
@@ -74,6 +76,7 @@ export function WorkspaceSidebarNav() {
             <NavLink
               key={item.path}
               to={item.path}
+              data-slot="nav-link"
               data-testid={sidebarNavLinkTestId(item.path)}
               className={() =>
                 cn(

@@ -382,6 +382,34 @@
     0 0 0 3px color-mix(in srgb, var(--ring) 35%, transparent);
 }
 
+/* Sidebar nav links follow the same key logic: a light lift on hover, debossed while current. */
+:is(.theme-platinum, [data-theme="platinum"]) [data-slot="nav-link"] {
+  border-radius: var(--radius-md);
+}
+:is(.theme-platinum, [data-theme="platinum"]) [data-slot="nav-link"]:hover {
+  background: color-mix(in srgb, var(--sidebar-accent) 35%, var(--sidebar));
+  box-shadow: var(--lip);
+}
+:is(.theme-platinum, [data-theme="platinum"])
+  [data-slot="nav-link"][aria-current="page"] {
+  background: var(--plat-200);
+  color: var(--foreground);
+  box-shadow: var(--deboss);
+}
+:is(.theme-platinum, [data-theme="platinum"])
+  [data-slot="nav-link"]:focus-visible {
+  outline: none;
+  box-shadow:
+    var(--shadow-xs),
+    0 0 0 3px color-mix(in srgb, var(--ring) 35%, transparent);
+}
+:is(.theme-platinum, [data-theme="platinum"])
+  [data-slot="nav-link"][aria-current="page"]:focus-visible {
+  box-shadow:
+    var(--deboss),
+    0 0 0 3px color-mix(in srgb, var(--ring) 35%, transparent);
+}
+
 /* Status badges are debossed nameplates; the icon is the LED and carries the stripe colour. */
 :is(.theme-platinum, [data-theme="platinum"]) .ui-badge[data-tone] {
   background: var(--plat-100);
