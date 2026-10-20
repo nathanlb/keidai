@@ -139,10 +139,10 @@ function ScheduledRows({ rows }: { rows: readonly HomeScheduledTask[] }) {
                 row.paused
                   ? "bg-muted-foreground"
                   : row.failed
-                    ? "bg-destructive"
+                    ? "bg-error-fill"
                     : row.lastVerdict
                       ? verdictDotClass(row.lastVerdict)
-                      : "bg-(--green-600)",
+                      : "bg-success-fill",
               )}
               aria-hidden
             />

@@ -20,7 +20,7 @@ describe("buildTraceSpans", () => {
       "gateway.respond",
     ]);
     expect(totalMs).toBe(7);
-    expect(spans[2]?.barClass).toContain("destructive");
+    expect(spans[2]?.barClass).toBe("bg-error-fill");
   });
 
   it("includes backend timing for successful oauth traces", () => {
@@ -39,7 +39,7 @@ describe("buildTraceSpans", () => {
       "118ms",
     );
     expect(spans.find((span) => span.label === "backend.call")?.barClass).toBe(
-      "bg-success",
+      "bg-success-fill",
     );
   });
 
@@ -49,7 +49,7 @@ describe("buildTraceSpans", () => {
       (span) => span.label === "credential.resolve",
     );
 
-    expect(credential?.barClass).toBe("bg-warning");
+    expect(credential?.barClass).toBe("bg-warning-fill");
     expect(spans.some((span) => span.label === "backend.call")).toBe(false);
   });
 
@@ -67,7 +67,7 @@ describe("buildTraceSpans", () => {
     const { spans } = buildTraceSpans(backendErrorTrace, githubServer);
     const backend = spans.find((span) => span.label === "backend.call");
 
-    expect(backend?.barClass).toBe("bg-destructive");
+    expect(backend?.barClass).toBe("bg-error-fill");
     expect(backend?.durLabel).toBe("1840ms");
   });
 });

@@ -1,3 +1,4 @@
+import type { StatusTone } from "../../lib/types/status-tone.js";
 import type {
   RunDisplayStatus,
   RunStatusFilter,
@@ -5,6 +6,7 @@ import type {
 
 export interface RunStatusMeta {
   label: string;
+  tone: StatusTone;
   badgeClass: string;
   dotClass?: string;
 }
@@ -12,41 +14,49 @@ export interface RunStatusMeta {
 export const RUN_STATUS_META: Record<RunDisplayStatus, RunStatusMeta> = {
   running: {
     label: "Running",
+    tone: "info",
     badgeClass: "border-border bg-background text-foreground",
     dotClass: "bg-muted-foreground",
   },
   waiting_approval: {
     label: "Awaiting review",
-    badgeClass: "border-warning/40 bg-warning/10 text-foreground",
-    dotClass: "bg-warning",
+    tone: "warning",
+    badgeClass: "border-warning-fill/40 bg-warning-fill/10 text-foreground",
+    dotClass: "bg-warning-fill",
   },
   goal_met: {
     label: "Goal met",
+    tone: "success",
     badgeClass: "border-transparent bg-secondary text-secondary-foreground",
-    dotClass: "bg-success",
+    dotClass: "bg-success-fill",
   },
   failed: {
     label: "Failed",
+    tone: "error",
     badgeClass: "border-transparent bg-destructive text-destructive-foreground",
-    dotClass: "bg-destructive",
+    dotClass: "bg-error-fill",
   },
   iteration_exhausted: {
     label: "Iteration exhausted",
+    tone: "neutral",
     badgeClass: "border-border bg-background text-foreground",
     dotClass: "bg-muted-foreground",
   },
   timeout: {
     label: "Timeout",
-    badgeClass: "border-warning/40 bg-warning/10 text-foreground",
-    dotClass: "bg-warning",
+    tone: "warning",
+    badgeClass: "border-warning-fill/40 bg-warning-fill/10 text-foreground",
+    dotClass: "bg-warning-fill",
   },
   human_reject: {
     label: "Rejected",
+    tone: "error",
     badgeClass: "border-transparent bg-destructive text-destructive-foreground",
-    dotClass: "bg-destructive",
+    dotClass: "bg-error-fill",
   },
   stopped: {
     label: "Stopped",
+    tone: "neutral",
     badgeClass: "border-border bg-muted/60 text-foreground",
     dotClass: "bg-foreground/50",
   },
@@ -85,11 +95,11 @@ export function runStatusChipDotClass(
     case "running":
       return "bg-muted-foreground";
     case "waiting_approval":
-      return "bg-warning";
+      return "bg-warning-fill";
     case "goal_met":
-      return "bg-success";
+      return "bg-success-fill";
     case "failed":
-      return "bg-destructive";
+      return "bg-error-fill";
     case "terminated":
       return "bg-muted-foreground";
     default:

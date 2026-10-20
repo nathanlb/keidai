@@ -87,7 +87,7 @@ export function AgentPersonaHistoryPanel({
               </div>
               {isCurrent ? (
                 <Check
-                  className="mt-0.5 size-3.5 shrink-0 text-(--green-600)"
+                  className="mt-0.5 size-3.5 shrink-0 text-success"
                   aria-hidden
                 />
               ) : null}

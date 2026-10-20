@@ -1,7 +1,9 @@
 import type { TraceOutcome } from "@keidai/shared";
+import type { StatusTone } from "../../lib/types/status-tone.js";
 
 export interface TraceOutcomeMeta {
   label: string;
+  tone: StatusTone;
   accentClass: string;
   badgeClass: string;
   dotClass?: string;
@@ -10,25 +12,29 @@ export interface TraceOutcomeMeta {
 export const TRACE_OUTCOME_META: Record<TraceOutcome, TraceOutcomeMeta> = {
   success: {
     label: "ok",
-    accentClass: "bg-success",
+    tone: "success",
+    accentClass: "bg-success-fill",
     badgeClass: "border-transparent bg-secondary text-secondary-foreground",
-    dotClass: "bg-success",
+    dotClass: "bg-success-fill",
   },
   error: {
     label: "backend error",
-    accentClass: "bg-warning",
+    tone: "warning",
+    accentClass: "bg-warning-fill",
     badgeClass: "border-border bg-background text-foreground",
-    dotClass: "bg-warning",
+    dotClass: "bg-warning-fill",
   },
   denied: {
     label: "denied",
-    accentClass: "bg-destructive",
+    tone: "error",
+    accentClass: "bg-error-fill",
     badgeClass: "border-transparent bg-destructive text-destructive-foreground",
-    dotClass: "bg-destructive",
+    dotClass: "bg-error-fill",
   },
   linking_required: {
     label: "linking required",
-    accentClass: "bg-warning",
+    tone: "warning",
+    accentClass: "bg-warning-fill",
     badgeClass: "border-border bg-background text-foreground",
   },
 };

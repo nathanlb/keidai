@@ -82,6 +82,7 @@ export function AppShell({
             <TopBar breadcrumb={breadcrumb} showNavButton={!isDesktop} />
 
             <div
+              data-slot="shell-bay"
               className="
               flex-1 overflow-y-auto px-5 pt-6 pb-10
               md:px-7 md:pt-6 md:pb-15

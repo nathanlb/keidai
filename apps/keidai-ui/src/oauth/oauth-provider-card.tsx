@@ -20,7 +20,7 @@ const aggregateStatusMeta: Record<
 > = {
   linked: {
     label: "Linked",
-    dotClass: "bg-success",
+    dotClass: "bg-success-fill",
     badgeClass: "border-transparent bg-secondary text-secondary-foreground",
   },
   not_linked: {
@@ -30,7 +30,7 @@ const aggregateStatusMeta: Record<
   },
   expired: {
     label: "Expired",
-    dotClass: "bg-warning",
+    dotClass: "bg-warning-fill",
     badgeClass: "border-border bg-background text-foreground",
   },
   misconfigured: {
@@ -46,13 +46,13 @@ const ownerStatusMeta: Record<
 > = {
   linked: {
     label: "Linked",
-    dotClass: "bg-success",
+    dotClass: "bg-success-fill",
     badgeClass: "border-transparent bg-secondary text-secondary-foreground",
     healthClass: "text-success",
   },
   expired: {
     label: "Expired",
-    dotClass: "bg-warning",
+    dotClass: "bg-warning-fill",
     badgeClass: "border-border bg-background text-foreground",
     healthClass: "text-warning",
   },

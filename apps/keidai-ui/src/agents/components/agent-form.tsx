@@ -326,14 +326,14 @@ export function AgentForm(props: AgentFormProps) {
               className={cn(
                 "h-9.5 font-mono",
                 slugMessage.tone === "destructive" && "border-destructive",
-                slugMessage.tone === "success" && "border-(--green-600)",
+                slugMessage.tone === "success" && "border-success",
               )}
             />
             <div
               className={cn(
                 "mt-1.5 flex items-center gap-1.5 text-[11.5px]",
                 slugMessage.tone === "destructive" && "text-destructive",
-                slugMessage.tone === "success" && "text-(--green-600)",
+                slugMessage.tone === "success" && "text-success",
                 slugMessage.tone !== "destructive" &&
                   slugMessage.tone !== "success" &&
                   "text-muted-foreground",
@@ -382,7 +382,7 @@ export function AgentForm(props: AgentFormProps) {
                   key={groupName}
                   onClick={() => addGroup(groupName)}
                   className="
-                    inline-flex h-7 items-center gap-1.5 rounded-full border
+                    inline-flex h-7 items-center gap-1.5 rounded-pill border
                     border-dashed border-border px-2.5 font-mono text-[11.5px]
                     text-muted-foreground
                     hover:bg-accent

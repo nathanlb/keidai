@@ -19,8 +19,8 @@ export function UndefinedGroupsBanner({
   return (
     <div
       className="
-      flex items-start gap-3 rounded-xl border border-destructive/45
-      bg-destructive/8 px-4 py-3.5
+      flex items-start gap-3 rounded-xl border border-error-fill/45
+      bg-error-fill/10 px-4 py-3.5
     "
     >
       <TriangleAlert

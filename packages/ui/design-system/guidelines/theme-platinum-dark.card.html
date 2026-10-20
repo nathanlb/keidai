@@ -1,0 +1,303 @@
+<!doctype html>
+<html class="theme-platinum dark" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Platinum dark</title>
+    <link rel="stylesheet" href="../styles.css" />
+    <style>
+      body {
+        padding: 2rem;
+        max-width: 44rem;
+      }
+      h1 {
+        font-family: var(--font-display);
+        font-weight: 500;
+        font-size: 2rem;
+        letter-spacing: 0;
+      }
+      h2 {
+        font-family: var(--font-display);
+        font-weight: 500;
+        font-size: 1.375rem;
+        letter-spacing: 0;
+        margin-top: 2rem;
+      }
+      p {
+        margin: 0;
+      }
+      section {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-top: 0.75rem;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+      }
+      .grow {
+        flex: 1;
+        min-width: 12rem;
+      }
+      .icon-info {
+        background: currentColor;
+        -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 8v4M12 16h.01'/%3E%3C/svg%3E")
+          center / contain no-repeat;
+        mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 8v4M12 16h.01'/%3E%3C/svg%3E")
+          center / contain no-repeat;
+      }
+      .swatch {
+        width: 2rem;
+        height: 2rem;
+        border-radius: var(--radius-xs);
+        border: 1px solid var(--border);
+      }
+      .ai-prompt {
+        background: var(--plat-50);
+        border: 1px solid var(--input);
+        box-shadow: var(--shadow-sm);
+        border-radius: var(--radius-md);
+        padding: 0.75rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="row">
+      <span class="plat-plate">Platinum</span>
+      <span class="plat-stripes" aria-hidden="true"></span>
+      <span class="plat-stripes plat-stripes--x" aria-hidden="true"></span>
+    </div>
+    <h1>Casework</h1>
+    <p>
+      Warm platinum plastic, debossed nameplates, and a stripe used only when it
+      means something.
+    </p>
+
+    <h2>Motifs</h2>
+    <section>
+      <div class="plat-vents" aria-hidden="true"></div>
+      <div class="plat-step"></div>
+    </section>
+
+    <h2>Core</h2>
+    <section>
+      <article class="ui-card">
+        <header class="ui-card__header">
+          <h3 class="ui-card__title">Nameplate</h3>
+          <p class="ui-card__desc">Display serif on the card title.</p>
+        </header>
+        <div class="ui-card__content">
+          <div class="row">
+            <button class="ui-btn ui-btn--md ui-btn--default" type="button">
+              Continue
+            </button>
+            <button class="ui-btn ui-btn--md ui-btn--secondary" type="button">
+              Secondary
+            </button>
+            <button class="ui-btn ui-btn--md ui-btn--outline" type="button">
+              Outline
+            </button>
+            <button class="ui-btn ui-btn--md ui-btn--destructive" type="button">
+              Delete
+            </button>
+            <button class="ui-btn ui-btn--md ui-btn--ghost" type="button">
+              Ghost
+            </button>
+          </div>
+        </div>
+        <footer class="ui-card__footer">
+          <span class="ui-badge ui-badge--default">Default</span>
+          <span class="ui-badge ui-badge--secondary">Secondary</span>
+          <span class="ui-badge ui-badge--outline">Outline</span>
+          <span class="ui-badge plat-status--success"
+            ><span class="plat-dot"></span>Ready</span
+          >
+          <span class="ui-badge plat-status--warning"
+            ><span class="plat-dot"></span>Low battery</span
+          >
+          <span class="ui-badge plat-status--error"
+            ><span class="plat-dot"></span>Fault</span
+          >
+          <kbd class="ui-kbd">⌘K</kbd>
+        </footer>
+      </article>
+    </section>
+
+    <h2>Forms</h2>
+    <section>
+      <label class="ui-label" for="plat-name">Label</label>
+      <input class="ui-input" id="plat-name" placeholder="Search…" />
+      <textarea class="ui-textarea" placeholder="Notes"></textarea>
+      <select class="ui-select" aria-label="Chassis">
+        <option>Beige</option>
+        <option>Graphite</option>
+      </select>
+      <div class="ui-otp" aria-label="One-time code">
+        <input
+          class="ui-otp__slot"
+          inputmode="numeric"
+          value="1"
+          aria-label="Digit 1"
+        />
+        <input
+          class="ui-otp__slot"
+          inputmode="numeric"
+          value="9"
+          aria-label="Digit 2"
+        />
+        <input
+          class="ui-otp__slot"
+          inputmode="numeric"
+          value="8"
+          aria-label="Digit 3"
+        />
+        <input
+          class="ui-otp__slot"
+          inputmode="numeric"
+          value="4"
+          aria-label="Digit 4"
+        />
+      </div>
+      <div class="row">
+        <label class="ui-label"
+          ><input class="ui-checkbox" type="checkbox" checked /> Checked</label
+        >
+        <label class="ui-label"
+          ><input class="ui-switch" type="checkbox" checked /> On</label
+        >
+      </div>
+      <div class="ui-slider" aria-hidden="true">
+        <div class="ui-slider__track">
+          <div class="ui-slider__range" style="width: 40%"></div>
+        </div>
+        <div class="ui-slider__thumb" style="left: 40%"></div>
+      </div>
+    </section>
+
+    <h2>Feedback</h2>
+    <section>
+      <div class="ui-alert" role="alert">
+        <span class="icon-info" aria-hidden="true"></span>
+        <div class="ui-alert__title">Heads up</div>
+        <p class="ui-alert__desc">
+          The icon sits beside the title, and this description sits under the
+          title.
+        </p>
+      </div>
+      <div class="ui-alert plat-status--success" role="alert">
+        <span class="plat-dot" aria-hidden="true"></span>
+        <div class="ui-alert__title">Online</div>
+        <p class="ui-alert__desc">Gateway accepted the last heartbeat.</p>
+      </div>
+      <div class="ui-alert plat-status--warning" role="alert">
+        <span class="plat-dot" aria-hidden="true"></span>
+        <div class="ui-alert__title">Low battery</div>
+        <p class="ui-alert__desc">Charge before the next run.</p>
+      </div>
+      <div class="ui-alert plat-status--error" role="alert">
+        <span class="plat-dot" aria-hidden="true"></span>
+        <div class="ui-alert__title">Fault</div>
+        <p class="ui-alert__desc">The supply rail dropped out.</p>
+      </div>
+      <div class="ui-progress" aria-hidden="true">
+        <div class="ui-progress__bar" style="width: 62%"></div>
+      </div>
+    </section>
+
+    <h2>Navigation</h2>
+    <section>
+      <div class="ui-tabs__list" role="tablist">
+        <button class="ui-tabs__trigger" type="button" aria-selected="true">
+          Casework
+        </button>
+        <button class="ui-tabs__trigger" type="button">Vents</button>
+        <button class="ui-tabs__trigger" type="button">Stripe</button>
+      </div>
+      <nav class="ui-breadcrumb" aria-label="Breadcrumb">
+        <a href="#plat">Home</a>
+        <span class="ui-breadcrumb__sep">/</span>
+        <span class="ui-breadcrumb__current">Platinum</span>
+      </nav>
+    </section>
+
+    <h2>Overlay</h2>
+    <section>
+      <div class="ui-dialog" role="dialog" aria-labelledby="plat-dialog-title">
+        <div class="ui-dialog__header">
+          <h3 class="ui-dialog__title" id="plat-dialog-title">Confirm</h3>
+          <p class="ui-dialog__desc">This does not leave the machine.</p>
+        </div>
+        <div class="ui-dialog__footer">
+          <button class="ui-btn ui-btn--md ui-btn--outline" type="button">
+            Cancel
+          </button>
+          <button class="ui-btn ui-btn--md ui-btn--default" type="button">
+            Save changes
+          </button>
+        </div>
+      </div>
+      <div class="ui-menu" role="menu">
+        <div class="ui-menu__label">File</div>
+        <button class="ui-menu__item" type="button" role="menuitem">
+          Rename
+        </button>
+        <div class="ui-menu__sep"></div>
+        <button
+          class="ui-menu__item ui-menu__item--danger"
+          type="button"
+          role="menuitem"
+        >
+          Delete
+        </button>
+      </div>
+    </section>
+
+    <h2>Data</h2>
+    <section>
+      <div class="ui-table-wrap">
+        <table class="ui-table">
+          <thead>
+            <tr>
+              <th>Series</th>
+              <th class="ui-table__num">Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Key</td>
+              <td class="ui-table__num">12</td>
+            </tr>
+            <tr>
+              <td>Rest</td>
+              <td class="ui-table__num">4</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="row" aria-hidden="true">
+        <span class="swatch" style="background: var(--chart-1)"></span>
+        <span class="swatch" style="background: var(--chart-2)"></span>
+        <span class="swatch" style="background: var(--chart-3)"></span>
+        <span class="swatch" style="background: var(--chart-4)"></span>
+        <span class="swatch" style="background: var(--chart-5)"></span>
+      </div>
+    </section>
+
+    <h2>Prompt</h2>
+    <section>
+      <div class="plat-glow">
+        <label class="ai-prompt grow">
+          <span class="ui-label">Ask</span>
+          <input
+            class="ui-input"
+            placeholder="What needs attention?"
+            style="margin-top: 0.5rem"
+          />
+        </label>
+      </div>
+    </section>
+  </body>
+</html>

@@ -1,5 +1,4 @@
 @import url("https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap");
-
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -8,6 +7,7 @@
 @import "./tokens/typography.css";
 @import "./tokens/colors.css";
 @import "./tokens/spacing.css";
+@import "../../design-system/tokens/theme-platinum.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -20,6 +20,7 @@
 
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
+  --font-display: var(--font-display);
 
   --text-xs: var(--text-xs);
   --text-sm: var(--text-sm);
@@ -29,6 +30,7 @@
   --text-2xl: var(--text-2xl);
   --text-3xl: var(--text-3xl);
   --text-4xl: var(--text-4xl);
+  --text-heading-page: var(--text-heading-page);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -46,10 +48,15 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-error: var(--error);
+  --color-error-foreground: var(--error-foreground);
+  --color-error-fill: var(--error-fill);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-success-fill: var(--success-fill);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-warning-fill: var(--warning-fill);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -72,6 +79,7 @@
   --radius-lg: var(--radius-lg);
   --radius-xl: var(--radius-xl);
   --radius-2xl: var(--radius-2xl);
+  --radius-pill: var(--radius-pill);
 
   --shadow-2xs: var(--shadow-2xs);
   --shadow-xs: var(--shadow-xs);

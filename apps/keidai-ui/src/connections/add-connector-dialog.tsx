@@ -66,7 +66,7 @@ export function AddConnectorDialog({
   const [customUrl, setCustomUrl] = useState("");
   const [customAuth, setCustomAuth] = useState<ConnectorAuthMode>("none");
 
-  const catalog = catalogData?.catalog ?? [];
+  const catalog = useMemo(() => catalogData?.catalog ?? [], [catalogData]);
   const selected = useMemo(
     () => catalog.find((entry) => entry.id === selectedId) ?? null,
     [catalog, selectedId],
@@ -221,7 +221,7 @@ export function AddConnectorDialog({
                 Loading catalog…
               </p>
             ) : (
-              <div className="mt-4 grid max-h-72 gap-2 overflow-y-auto pr-1">
+              <div className="mt-4 grid max-h-100 gap-2 overflow-y-auto pr-1">
                 {catalog.map((entry) => (
                   <button
                     key={entry.id}

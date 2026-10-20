@@ -65,13 +65,10 @@ function AssigneeTriggerContent({
         <span
           className="
             ml-auto inline-flex shrink-0 items-center gap-1.5 text-[11.5px]
-            text-(--green-600)
+            text-success
           "
         >
-          <span
-            className="size-1.5 rounded-full bg-(--green-600)"
-            aria-hidden
-          />
+          <span className="size-1.5 rounded-full bg-success-fill" aria-hidden />
           connected
         </span>
       ) : null}

@@ -191,7 +191,7 @@ function LinkedStep({ providerLabel, ownerId, onClose }: LinkedStepProps) {
       <div className="flex flex-col items-center px-1 pt-2 text-center">
         <span
           className="
-          flex size-10.5 items-center justify-center rounded-full bg-success/20
+          flex size-10.5 items-center justify-center rounded-full bg-success-fill/20
           text-success
         "
         >
@@ -238,7 +238,7 @@ function ErrorStep({ errorMessage, onClose, onRetry }: ErrorStepProps) {
         <span
           className="
           flex size-10.5 items-center justify-center rounded-full
-          bg-destructive/15 text-destructive
+          bg-error-fill/15 text-destructive
         "
         >
           <TriangleAlert className="size-5.5" aria-hidden />

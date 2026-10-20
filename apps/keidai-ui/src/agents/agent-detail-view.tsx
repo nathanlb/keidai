@@ -340,14 +340,14 @@ export function AgentDetailView() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2.5">
-            <div className="text-[23px] font-bold tracking-tight">
+            <h1 className="font-display text-heading-page font-bold tracking-tight">
               {agent.emoji ? (
                 <span className="mr-2" aria-hidden>
                   {agent.emoji}
                 </span>
               ) : null}
               {agent.name}
-            </div>
+            </h1>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Badge
@@ -367,12 +367,12 @@ export function AgentDetailView() {
             {runningNow ? (
               <span
                 className="
-                inline-flex items-center gap-1.5 rounded-full
-                bg-[color-mix(in_srgb,var(--green-600)_16%,transparent)] px-2.5
-                py-0.5 text-xs text-(--green-600)
+                inline-flex items-center gap-1.5 rounded-pill
+                bg-success-fill/15 px-2.5
+                py-0.5 text-xs text-success
               "
               >
-                <span className="size-1.5 rounded-full bg-(--green-600)" />
+                <span className="size-1.5 rounded-full bg-success-fill" />
                 Running now
               </span>
             ) : null}
@@ -456,7 +456,7 @@ export function AgentDetailView() {
               ) : null}
               {item.key === "config" && unknownGroupCount > 0 ? (
                 <span
-                  className="size-1.5 rounded-full bg-amber-500"
+                  className="size-1.5 rounded-full bg-warning-fill"
                   aria-hidden
                 />
               ) : null}

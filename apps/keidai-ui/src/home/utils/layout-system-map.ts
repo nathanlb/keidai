@@ -498,7 +498,7 @@ export function edgeStroke(kind: SystemMapEdgeKind): {
   switch (kind) {
     case "needs-approval":
       return {
-        color: "var(--amber-500)",
+        color: "var(--warning-fill)",
         width: 1.4,
         dash: "5 5",
         opacity: 0.85,
@@ -519,7 +519,7 @@ export function edgeStroke(kind: SystemMapEdgeKind): {
       };
     case "waiting":
       return {
-        color: "var(--amber-500)",
+        color: "var(--warning-fill)",
         width: 1.8,
         dash: undefined,
         opacity: 1,

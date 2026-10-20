@@ -1,0 +1,166 @@
+/* shadcn/ui — overlay component styles */
+
+/* ===== Overlay backdrop ===== */
+.ui-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 50;
+  animation: ui-fade-in 0.15s ease;
+}
+@keyframes ui-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes ui-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ===== Dialog ===== */
+.ui-dialog {
+  position: relative;
+  width: 100%;
+  max-width: 28rem;
+  background: var(--background);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  animation: ui-pop-in 0.18s ease;
+}
+.ui-dialog__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+.ui-dialog__title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-tight);
+}
+.ui-dialog__desc {
+  font-size: var(--text-sm);
+  color: var(--muted-foreground);
+  line-height: var(--leading-snug);
+}
+.ui-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.ui-dialog__close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: inline-grid;
+  place-content: center;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.ui-dialog__close:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.ui-dialog__close svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* ===== Popover / Dropdown panel ===== */
+.ui-popover {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 0.75rem;
+  min-width: 12rem;
+  animation: ui-pop-in 0.15s ease;
+}
+.ui-menu {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 0.25rem;
+  min-width: 12rem;
+  animation: ui-pop-in 0.15s ease;
+}
+.ui-menu__label {
+  padding: 0.375rem 0.5rem;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--muted-foreground);
+}
+.ui-menu__sep {
+  height: 1px;
+  background: var(--border);
+  margin: 0.25rem -0.25rem;
+}
+.ui-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--foreground);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+.ui-menu__item svg {
+  width: 1rem;
+  height: 1rem;
+  color: var(--muted-foreground);
+}
+.ui-menu__item:hover,
+.ui-menu__item:focus-visible {
+  background: var(--accent);
+  color: var(--accent-foreground);
+  outline: none;
+}
+.ui-menu__item--danger {
+  color: var(--destructive);
+}
+.ui-menu__item--danger svg {
+  color: var(--destructive);
+}
+.ui-menu__item--danger:hover {
+  background: color-mix(in srgb, var(--destructive) 10%, transparent);
+  color: var(--destructive);
+}
+.ui-menu__shortcut {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+  letter-spacing: var(--tracking-wide);
+}

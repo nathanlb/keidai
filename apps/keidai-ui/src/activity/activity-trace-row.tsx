@@ -68,6 +68,7 @@ export function ActivityTraceRow({
       <TableCell className="py-3">
         <Badge
           variant="outline"
+          data-tone={meta.tone}
           className={cn("gap-1 font-normal", meta.badgeClass)}
         >
           <OutcomeIcon outcome={trace.outcome} />

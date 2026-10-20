@@ -152,7 +152,7 @@ function GroupChip({
         muted
           ? "border-border bg-card"
           : node.allGated
-            ? "border-[color-mix(in_srgb,var(--amber-500)_50%,var(--border))] bg-[color-mix(in_srgb,var(--amber-500)_12%,var(--card))]"
+            ? "border-[color-mix(in_srgb,var(--warning-fill)_50%,var(--border))] bg-[color-mix(in_srgb,var(--warning-fill)_12%,var(--card))]"
             : "border-[color-mix(in_srgb,var(--foreground)_24%,var(--border))] bg-card",
       )}
       style={{
@@ -167,7 +167,7 @@ function GroupChip({
           muted
             ? "text-muted-foreground"
             : node.allGated
-              ? "text-amber-500"
+              ? "text-warning"
               : "text-foreground",
         )}
       >
@@ -185,7 +185,11 @@ function AgentChip({ node }: { node: LaidOutAgent }) {
   const working = !muted && node.state === "working";
   const waiting = !muted && node.state === "waiting";
   const fill = working ? "34%" : waiting ? "100%" : "0%";
-  const dot = working ? "bg-chart-1" : waiting ? "bg-amber-500" : "bg-border";
+  const dot = working
+    ? "bg-chart-1"
+    : waiting
+      ? "bg-warning-fill"
+      : "bg-border";
 
   return (
     <Link
@@ -200,7 +204,7 @@ function AgentChip({ node }: { node: LaidOutAgent }) {
         working
           ? "border-[color-mix(in_srgb,var(--chart-1)_45%,var(--border))]"
           : waiting
-            ? "border-[color-mix(in_srgb,var(--amber-500)_45%,var(--border))]"
+            ? "border-[color-mix(in_srgb,var(--warning-fill)_45%,var(--border))]"
             : "border-border",
       )}
       style={{
@@ -246,7 +250,7 @@ function AgentChip({ node }: { node: LaidOutAgent }) {
         <div
           className={cn(
             "h-full rounded-sm",
-            working ? "bg-chart-1" : waiting ? "bg-amber-500" : "bg-border",
+            working ? "bg-chart-1" : waiting ? "bg-warning-fill" : "bg-border",
           )}
           data-system-map-creep={working ? "" : undefined}
           style={{ width: fill }}
@@ -320,7 +324,7 @@ export function SystemMapCard({ map }: { map: HomeSystemMap }) {
           </span>
           <span className="flex items-center gap-1.5">
             <span
-              className="w-3.5 border-t border-dashed border-amber-500"
+              className="w-3.5 border-t border-dashed border-warning-fill"
               aria-hidden
             />
             Needs approval

@@ -94,7 +94,7 @@ export function ApprovalActions({
     return (
       <div
         className="
-        rounded-lg border border-destructive/30 bg-destructive/5 p-3.5
+        rounded-lg border border-error-fill/30 bg-error-fill/5 p-3.5
       "
       >
         <div className="text-[12.5px] font-semibold">

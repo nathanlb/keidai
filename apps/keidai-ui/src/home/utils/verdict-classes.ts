@@ -3,25 +3,25 @@ import type { GoalVerdict } from "../types/home-digest.js";
 export function verdictTextClass(verdict: GoalVerdict): string {
   switch (verdict) {
     case "met":
-      return "text-(--green-600)";
+      return "text-success";
     case "partial":
-      return "text-[color-mix(in_srgb,var(--green-600)_60%,var(--muted-foreground))]";
+      return "text-[color-mix(in_srgb,var(--success)_60%,var(--muted-foreground))]";
     case "missed":
       return "text-destructive";
     case "awaiting":
-      return "text-amber-500";
+      return "text-warning";
   }
 }
 
 export function verdictDotClass(verdict: GoalVerdict): string {
   switch (verdict) {
     case "met":
-      return "bg-(--green-600)";
+      return "bg-success-fill";
     case "partial":
-      return "bg-[color-mix(in_srgb,var(--green-600)_60%,var(--muted-foreground))]";
+      return "bg-[color-mix(in_srgb,var(--success-fill)_60%,var(--muted-foreground))]";
     case "missed":
-      return "bg-destructive";
+      return "bg-error-fill";
     case "awaiting":
-      return "bg-amber-500";
+      return "bg-warning-fill";
   }
 }

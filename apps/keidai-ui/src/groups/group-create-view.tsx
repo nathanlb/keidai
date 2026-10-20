@@ -59,7 +59,9 @@ export function GroupCreateView() {
         <ArrowLeft className="size-3.5" aria-hidden />
         All groups
       </button>
-      <div className="text-[23px] font-bold tracking-tight">New group</div>
+      <h1 className="font-display text-heading-page font-bold tracking-tight">
+        New group
+      </h1>
       <p className="mt-1 text-[13.5px] text-muted-foreground">
         Name is the identifier agents join. You&apos;ll author the policy next.
       </p>

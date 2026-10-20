@@ -28,19 +28,20 @@ function SummaryTile({
       <CardContent className="px-4 py-3.5">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           {showSuccessDot ? (
-            <span className="size-1.5 rounded-full bg-success" aria-hidden />
-          ) : null}
-          {showDestructiveDot ? (
             <span
-              className="size-1.5 rounded-full bg-destructive"
+              className="size-1.5 rounded-full bg-success-fill"
               aria-hidden
             />
+          ) : null}
+          {showDestructiveDot ? (
+            <span className="size-1.5 rounded-full bg-error-fill" aria-hidden />
           ) : null}
           {label}
         </div>
         <div
           className={`
-            mt-0.5 text-2xl font-bold tracking-tight tabular-nums
+            mt-0.5 font-display text-2xl font-bold tracking-tight lining-nums
+            tabular-nums
             ${valueClass}
           `}
         >

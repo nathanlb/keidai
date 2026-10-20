@@ -1,6 +1,7 @@
 import type { MouseEvent, ReactNode } from "react";
 import { KeidaiLogo } from "../logo/keidai-logo.js";
 import { useEcosystemHealth } from "../../../lib/hooks/use-ecosystem-health.js";
+import { useTheme } from "../../hooks/use-theme.js";
 
 export interface SidebarPanelProps {
   subtitle?: string;
@@ -17,6 +18,7 @@ export function SidebarPanel({
   onNavInteract,
 }: SidebarPanelProps) {
   const { version } = useEcosystemHealth();
+  const { palette } = useTheme();
 
   return (
     <>
@@ -26,7 +28,12 @@ export function SidebarPanel({
         border-sidebar-border px-3.5
       "
       >
-        <KeidaiLogo size={28} title="" className="shrink-0" />
+        <KeidaiLogo
+          size={28}
+          title=""
+          variant={palette === "platinum" ? "platinum" : "mark"}
+          className="shrink-0"
+        />
         <div className="min-w-0 leading-tight">
           <div className="text-[13.5px] font-semibold text-sidebar-foreground">
             Keidai

@@ -27,7 +27,7 @@ export function OwnerSwitcher() {
           type="button"
           variant="outline"
           className="
-            h-8 gap-2 rounded-full px-1 py-0.5
+            h-8 gap-2 rounded-pill px-1 py-0.5
             sm:pr-2
           "
         >

@@ -9,7 +9,7 @@ const RULES = [
   },
   {
     n: "2",
-    nClass: "text-amber-500",
+    nClass: "text-warning",
     lead: "A gated tool is permitted.",
     rest: "The tool waits for approval before it runs.",
   },
@@ -25,9 +25,9 @@ export function HowThisResolves() {
   return (
     <Card className="shadow-none">
       <CardContent className="px-3.75 py-3.5">
-        <div className="mb-2.5 text-[13px] font-semibold">
+        <h2 className="mb-2.5 text-[13px] font-semibold">
           How these rules apply
-        </div>
+        </h2>
         <div
           className="
           flex flex-col gap-2.5 text-[11.5px] leading-relaxed

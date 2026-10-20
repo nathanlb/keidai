@@ -31,7 +31,7 @@ export function LinkingRequiredBanner({
     <Alert
       variant="destructive"
       className="
-      border-destructive/40 bg-destructive/8
+      border-error-fill/40 bg-error-fill/10
     "
     >
       <AlertTriangle aria-hidden />

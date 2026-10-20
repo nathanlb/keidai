@@ -29,7 +29,7 @@ function exitLabel(
     status === "failed" || status === "human_reject"
       ? "text-destructive"
       : status === "waiting_approval" || status === "timeout"
-        ? "text-amber-500"
+        ? "text-warning"
         : "text-muted-foreground";
   return { text: meta.label, className };
 }
@@ -49,7 +49,12 @@ function StatTile({
         <span className={cn("size-1.75 rounded-full", dotClass)} aria-hidden />
         {label}
       </div>
-      <div className="mt-1.5 text-[22px] leading-none font-bold tracking-tight">
+      <div
+        className="
+        mt-1.5 font-display text-[22px] leading-none font-bold tracking-tight
+        lining-nums tabular-nums
+      "
+      >
         {value}
       </div>
     </div>
@@ -106,17 +111,17 @@ export function AgentRunsPanel({
         <StatTile
           label="Goal met"
           value={counts.met}
-          dotClass="bg-(--green-600)"
+          dotClass="bg-success-fill"
         />
         <StatTile
           label="Partial"
           value={counts.partial}
-          dotClass="bg-amber-500"
+          dotClass="bg-warning-fill"
         />
         <StatTile
           label="Missed"
           value={counts.missed}
-          dotClass="bg-destructive"
+          dotClass="bg-error-fill"
         />
       </div>
 
@@ -216,7 +221,7 @@ export function AgentRunsPanel({
                         "size-1.5 rounded-full",
                         displayStatus === "failed" ||
                           displayStatus === "human_reject"
-                          ? "bg-destructive"
+                          ? "bg-error-fill"
                           : "bg-current",
                       )}
                       aria-hidden
