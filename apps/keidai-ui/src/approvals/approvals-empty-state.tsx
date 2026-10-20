@@ -17,7 +17,7 @@ export function ApprovalsEmptyState() {
       <EmptyHeader>
         <EmptyMedia
           className="
-          mb-0 size-15 rounded-2xl bg-success/15 text-success
+          mb-0 size-15 rounded-2xl bg-success-fill/15 text-success
         "
         >
           <CheckCheck className="size-7" strokeWidth={2} />

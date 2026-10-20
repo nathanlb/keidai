@@ -25,7 +25,8 @@ function StatTile({
         </div>
         <div
           className="
-          mt-1.5 text-[22px] leading-none font-bold tracking-tight
+          mt-1.5 font-display text-[22px] leading-none font-bold tracking-tight
+          lining-nums tabular-nums
         "
         >
           {value}
@@ -61,12 +62,12 @@ export function GroupsStatTiles({
       <StatTile
         label="Tools allowed"
         value={String(allowed)}
-        dotClass="bg-(--green-600)"
+        dotClass="bg-success-fill"
       />
       <StatTile
         label="Need approval"
         value={String(gated)}
-        dotClass="bg-amber-500"
+        dotClass="bg-warning-fill"
       />
       <StatTile
         label="Agents affected"

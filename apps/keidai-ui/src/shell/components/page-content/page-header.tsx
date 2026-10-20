@@ -13,7 +13,9 @@ export function PageHeader({ page, onRefresh }: PageHeaderProps) {
   return (
     <div className="mb-4.5 flex items-start justify-between gap-4">
       <div>
-        <div className="text-[23px] font-bold tracking-tight">{page.title}</div>
+        <h1 className="font-display text-heading-page font-bold tracking-tight">
+          {page.title}
+        </h1>
         <div
           className="
           mt-0.5 text-[13.5px] leading-normal text-muted-foreground

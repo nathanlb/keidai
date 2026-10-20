@@ -37,9 +37,9 @@ function GroupsPageHeader({ onNewGroup }: { onNewGroup: () => void }) {
   return (
     <div className="flex items-start justify-between gap-4">
       <div className="max-w-155">
-        <div className="text-[23px] font-bold tracking-tight">
+        <h1 className="font-display text-heading-page font-bold tracking-tight">
           Policy Groups
-        </div>
+        </h1>
         <p className="mt-1 text-[13.5px] leading-relaxed text-muted-foreground">
           A group is a named policy over one or more servers. Agents get their
           abilities by joining groups — nothing an agent does is permitted
@@ -217,7 +217,7 @@ export function GroupsListView() {
                           )}
                         </div>
                         {gatedLabel ? (
-                          <div className="mt-0.5 text-[11.5px] text-amber-500">
+                          <div className="mt-0.5 text-[11.5px] text-warning">
                             {gatedLabel}
                           </div>
                         ) : null}

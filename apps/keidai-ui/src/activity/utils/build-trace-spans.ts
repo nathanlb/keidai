@@ -48,12 +48,12 @@ function spanLabelClass(kind: SpanKind): string {
 function spanBarClass(kind: SpanKind): string {
   switch (kind) {
     case "good":
-      return "bg-success";
+      return "bg-success-fill";
     case "deny":
     case "error":
-      return "bg-destructive";
+      return "bg-error-fill";
     case "fail":
-      return "bg-warning";
+      return "bg-warning-fill";
     default:
       return "bg-muted-foreground/80";
   }

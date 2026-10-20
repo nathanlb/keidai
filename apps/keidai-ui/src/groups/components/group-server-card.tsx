@@ -32,9 +32,9 @@ import {
 } from "./policy-effect-control.js";
 
 const healthDotClass: Record<ConnectionState, string> = {
-  connected: "bg-(--green-600)",
+  connected: "bg-success-fill",
   connecting: "bg-muted-foreground",
-  failed: "bg-destructive",
+  failed: "bg-error-fill",
 };
 
 export function GroupServerCard({
@@ -99,7 +99,7 @@ export function GroupServerCard({
           className={cn(
             "shrink-0 rounded-pill border px-2.5 py-0.5 font-mono text-[11px]",
             isAllowDefault
-              ? "border-amber-500/50 text-amber-500"
+              ? "border-warning-fill/50 text-warning"
               : "border-border text-muted-foreground",
           )}
         >

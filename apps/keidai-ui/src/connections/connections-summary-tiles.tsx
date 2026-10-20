@@ -32,7 +32,7 @@ function SummaryTile({
         </div>
         <div
           className={`
-          mt-1 text-2xl font-semibold tabular-nums
+          mt-1 font-display text-2xl font-semibold lining-nums tabular-nums
           ${valueClass}
         `}
         >

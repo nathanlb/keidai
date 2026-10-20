@@ -50,7 +50,7 @@ export function PolicyEffectControl({
             "data-[state=off]:text-muted-foreground",
             option.value === "gated" &&
               value === "gated" &&
-              "data-[state=on]:text-amber-500",
+              "data-[state=on]:text-warning",
           )}
         >
           {option.value === "gated" ? (

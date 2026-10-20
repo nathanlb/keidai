@@ -66,7 +66,7 @@ export function ModelPicker({
         </SelectContent>
       </Select>
       {unavailable ? (
-        <p className="flex items-start gap-1.5 text-xs text-amber-500">
+        <p className="flex items-start gap-1.5 text-xs text-warning">
           <TriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
           <span>{value} is no longer available from OpenRouter.</span>
         </p>

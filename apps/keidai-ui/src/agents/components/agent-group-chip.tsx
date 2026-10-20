@@ -26,7 +26,7 @@ export function AgentGroupBadge({
     <Badge
       variant="outline"
       className={cn(
-        "gap-1 border-amber-500/45 font-mono text-[11px] text-amber-500",
+        "gap-1 border-warning-fill/45 font-mono text-[11px] text-warning",
         className,
       )}
     >
@@ -57,7 +57,7 @@ export function AgentGroupChip({
         `,
         known
           ? "border-border bg-secondary text-secondary-foreground"
-          : "border-amber-500/45 bg-amber-500/10 text-amber-500",
+          : "border-warning-fill/45 bg-warning-fill/10 text-warning",
         className,
       )}
     >
@@ -75,7 +75,7 @@ export function AgentGroupChip({
               inline-flex shrink-0 rounded-pill p-0.5 transition-colors
               hover:bg-accent
             `,
-            known ? "text-muted-foreground" : "text-amber-500",
+            known ? "text-muted-foreground" : "text-warning",
           )}
         >
           <X className="size-3" aria-hidden />

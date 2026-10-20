@@ -156,7 +156,9 @@ function OpenRouterCard() {
   return (
     <div className="flex max-w-170 flex-col gap-4">
       <div className="rounded-xl border border-border bg-card p-5">
-        <h2 className="text-[15px] font-semibold">OpenRouter API key</h2>
+        <h2 className="ui-card__title text-[15px] font-semibold">
+          OpenRouter API key
+        </h2>
         <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
           {isLoading ? "Checking the saved key…" : statusCopy(data)}
         </p>

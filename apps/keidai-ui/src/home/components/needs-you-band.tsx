@@ -19,7 +19,7 @@ import type { HomeAttentionItem } from "../types/home-digest.js";
 import { formatItemCount } from "../utils/format-home-copy.js";
 
 const rowClassName =
-  "flex items-center gap-3 border-b border-[color-mix(in_srgb,var(--amber-500)_16%,var(--border))] px-4 py-3 transition-colors duration-150 ease-out last:border-b-0 hover:bg-[color-mix(in_srgb,var(--muted)_45%,transparent)] motion-reduce:transition-none";
+  "flex items-center gap-3 border-b border-[color-mix(in_srgb,var(--warning-fill)_16%,var(--border))] px-4 py-3 transition-colors duration-150 ease-out last:border-b-0 hover:bg-[color-mix(in_srgb,var(--muted)_45%,transparent)] motion-reduce:transition-none";
 
 export function NeedsYouBand({
   items,
@@ -37,22 +37,19 @@ export function NeedsYouBand({
       data-testid="home-needs-you"
       className="
         overflow-hidden
-        border-[color-mix(in_srgb,var(--amber-500)_45%,var(--border))]
-        bg-[color-mix(in_srgb,var(--amber-500)_6%,var(--card))] py-0 shadow-none
+        border-[color-mix(in_srgb,var(--warning-fill)_45%,var(--border))]
+        bg-[color-mix(in_srgb,var(--warning-fill)_6%,var(--card))] py-0 shadow-none
       "
     >
       <CardContent className="p-0">
         <div
           className="
           flex items-center gap-2.25 border-b
-          border-[color-mix(in_srgb,var(--amber-500)_28%,var(--border))] px-4
+          border-[color-mix(in_srgb,var(--warning-fill)_28%,var(--border))] px-4
           py-3.25
         "
         >
-          <TriangleAlert
-            className="size-4 shrink-0 text-amber-500"
-            aria-hidden
-          />
+          <TriangleAlert className="size-4 shrink-0 text-warning" aria-hidden />
           <span className="text-[14px] font-semibold">Needs you</span>
           <span className="font-mono text-[11.5px] text-muted-foreground">
             {formatItemCount(items.length)}

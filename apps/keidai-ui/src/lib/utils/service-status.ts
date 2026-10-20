@@ -13,9 +13,9 @@ export function getServiceStatusKind(status: ServiceHealth): ServiceStatusKind {
 }
 
 export const statusColorClass: Record<ServiceStatusKind, string> = {
-  healthy: "bg-success",
-  degraded: "bg-warning",
-  down: "bg-destructive",
+  healthy: "bg-success-fill",
+  degraded: "bg-warning-fill",
+  down: "bg-error-fill",
 };
 
 export function formatEcosystemVersion(

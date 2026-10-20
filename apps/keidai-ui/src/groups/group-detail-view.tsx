@@ -273,9 +273,9 @@ export function GroupDetailView() {
         </button>
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <div className="font-mono text-[23px] font-bold tracking-tight">
+            <h1 className="font-mono text-heading-page font-bold tracking-tight">
               {draft.name}
-            </div>
+            </h1>
             <Input
               value={draft.description}
               onChange={(event) =>

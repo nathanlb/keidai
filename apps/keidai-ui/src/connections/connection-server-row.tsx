@@ -20,7 +20,7 @@ const connectionStateMeta: Record<
 > = {
   connected: {
     label: "Connected",
-    dotClass: "bg-success",
+    dotClass: "bg-success-fill",
     badgeClass: "border-transparent bg-secondary text-secondary-foreground",
   },
   connecting: {

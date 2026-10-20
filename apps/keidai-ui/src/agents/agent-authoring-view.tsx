@@ -49,7 +49,9 @@ export function AgentAuthoringView() {
         All agents
       </Button>
 
-      <div className="text-[23px] font-bold tracking-tight">New agent</div>
+      <h1 className="font-display text-heading-page font-bold tracking-tight">
+        New agent
+      </h1>
       <p className="mt-0.5 mb-5 text-[13.5px] text-muted-foreground">
         The slug and owner are fixed once this is created. Everything else stays
         editable.

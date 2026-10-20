@@ -12,8 +12,8 @@ export function AllClearCard() {
         <div
           className="
           flex size-9.5 shrink-0 items-center justify-center rounded-[10px]
-          bg-[color-mix(in_srgb,var(--green-600)_16%,transparent)]
-          text-(--green-600)
+          bg-success-fill/15
+          text-success
         "
         >
           <CheckCheck className="size-4.75" aria-hidden />

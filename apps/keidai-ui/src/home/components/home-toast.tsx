@@ -18,7 +18,7 @@ export function HomeToast({ message }: { message: string | null }) {
         shadow-lg
       "
       >
-        <Check className="size-3.5 shrink-0 text-(--green-600)" aria-hidden />
+        <Check className="size-3.5 shrink-0 text-success" aria-hidden />
         {message}
       </div>
     </div>

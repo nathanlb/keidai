@@ -29,19 +29,20 @@ function SummaryTile({
             />
           ) : null}
           {showWarningDot ? (
-            <span className="size-1.5 rounded-full bg-warning" aria-hidden />
-          ) : null}
-          {showDestructiveDot ? (
             <span
-              className="size-1.5 rounded-full bg-destructive"
+              className="size-1.5 rounded-full bg-warning-fill"
               aria-hidden
             />
+          ) : null}
+          {showDestructiveDot ? (
+            <span className="size-1.5 rounded-full bg-error-fill" aria-hidden />
           ) : null}
           {label}
         </div>
         <div
           className={`
-            mt-0.5 text-2xl font-bold tracking-tight tabular-nums
+            mt-0.5 font-display text-2xl font-bold tracking-tight lining-nums
+            tabular-nums
             ${valueClass}
           `}
         >

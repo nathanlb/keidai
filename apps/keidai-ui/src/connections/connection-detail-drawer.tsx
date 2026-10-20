@@ -39,7 +39,7 @@ function ConnectionStatusBadge({ state }: { state: ServerSummaryState }) {
           label: "Connected",
           badgeClass:
             "border-transparent bg-secondary text-secondary-foreground",
-          dotClass: "bg-success",
+          dotClass: "bg-success-fill",
         }
       : state === "connecting"
         ? {
@@ -305,8 +305,8 @@ export function ConnectionDetailDrawer() {
         {needsLink ? (
           <div
             className="
-            mt-2.5 flex items-center gap-3 rounded-lg border border-warning/40
-            bg-warning/8 p-3
+            mt-2.5 flex items-center gap-3 rounded-lg border border-warning-fill/40
+            bg-warning-fill/10 p-3
           "
           >
             <p className="flex-1 text-[12.5px] leading-snug text-foreground">

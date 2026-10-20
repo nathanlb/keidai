@@ -286,7 +286,7 @@ export function TaskAuthoringView({
         All tasks
       </Button>
 
-      <h1 className="text-[23px] font-bold tracking-tight">
+      <h1 className="font-display text-heading-page font-bold tracking-tight">
         {isEditMode ? "Edit task" : "New task"}
       </h1>
       <p className="mt-0.5 mb-5 text-[13.5px] text-muted-foreground">

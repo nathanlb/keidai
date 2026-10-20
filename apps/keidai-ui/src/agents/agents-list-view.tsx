@@ -44,7 +44,9 @@ function AgentsPageHeader({ onNewAgent }: { onNewAgent: () => void }) {
   return (
     <div className="mb-4.5 flex items-start justify-between gap-4">
       <div>
-        <div className="text-[23px] font-bold tracking-tight">Agents</div>
+        <h1 className="font-display text-heading-page font-bold tracking-tight">
+          Agents
+        </h1>
         <div
           className="
           mt-0.5 text-[13.5px] leading-normal text-muted-foreground
@@ -70,12 +72,12 @@ function UnknownGroupsBanner({ names }: { names: string[] }) {
   return (
     <div
       className="
-      mb-3 flex items-start gap-2.5 rounded-md border border-amber-500/45
-      bg-amber-500/10 px-3.5 py-2.5 text-[13px] leading-normal
+      mb-3 flex items-start gap-2.5 rounded-md border border-warning-fill/45
+      bg-warning-fill/10 px-3.5 py-2.5 text-[13px] leading-normal
     "
     >
       <TriangleAlert
-        className="mt-0.5 size-3.5 shrink-0 text-amber-500"
+        className="mt-0.5 size-3.5 shrink-0 text-warning"
         aria-hidden
       />
       <span>

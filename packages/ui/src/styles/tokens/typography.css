@@ -5,6 +5,8 @@
   --font-mono:
     "Geist Mono", "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Consolas,
     monospace;
+  /* Headings and stat figures; themes may swap in a display face. */
+  --font-display: var(--font-sans);
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;
@@ -13,6 +15,8 @@
   --text-2xl: 1.5rem;
   --text-3xl: 1.875rem;
   --text-4xl: 2.25rem;
+  /* Page titles: sized per theme, since display faces read smaller. */
+  --text-heading-page: 23px;
   --font-normal: 400;
   --font-medium: 500;
   --font-semibold: 600;

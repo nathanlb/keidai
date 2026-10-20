@@ -16,13 +16,11 @@ import {
 const CHIP: Record<EffectiveToolState, { label: string; className: string }> = {
   permit: {
     label: "Permitted",
-    className:
-      "bg-[color-mix(in_srgb,var(--green-600)_18%,transparent)] text-(--green-600)",
+    className: "bg-success-fill/20 text-success",
   },
   gated: {
     label: "Approval",
-    className:
-      "bg-[color-mix(in_srgb,var(--amber-500)_18%,transparent)] text-amber-500",
+    className: "bg-warning-fill/20 text-warning",
   },
   deny: {
     label: "Blocked",
@@ -32,10 +30,10 @@ const CHIP: Record<EffectiveToolState, { label: string; className: string }> = {
 
 function healthClass(state: ConnectionStatus["state"] | undefined): string {
   if (state === "connected") {
-    return "bg-(--green-600)";
+    return "bg-success-fill";
   }
   if (state === "failed") {
-    return "bg-destructive";
+    return "bg-error-fill";
   }
   return "bg-muted-foreground";
 }
@@ -111,10 +109,10 @@ export function AgentEffectiveToolsPanel({
         <Alert
           className="
           rounded-none border-0 border-b border-border
-          bg-[color-mix(in_srgb,var(--amber-500)_8%,transparent)] px-4.5 py-3
+          bg-warning-fill/10 px-4.5 py-3
         "
         >
-          <TriangleAlert className="text-amber-500" aria-hidden />
+          <TriangleAlert className="text-warning" aria-hidden />
           <AlertDescription
             className="
             text-[12.5px] leading-normal text-foreground
@@ -178,7 +176,7 @@ export function AgentEffectiveToolsPanel({
             {server.catalogueAvailable ? null : (
               <p
                 className="
-                border-b border-border px-4.5 py-2.5 text-[12px] text-amber-500
+                border-b border-border px-4.5 py-2.5 text-[12px] text-warning
               "
               >
                 {server.unavailableReason ??
@@ -241,7 +239,7 @@ export function AgentEffectiveToolsPanel({
                           leading-snug
                         `,
                         tool.conflict || tool.defaultAllow
-                          ? "text-amber-500"
+                          ? "text-warning"
                           : "text-muted-foreground",
                       )}
                     >

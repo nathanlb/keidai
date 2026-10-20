@@ -239,7 +239,7 @@ export function TraceDetailDrawer() {
           className={cn(
             "rounded-lg border p-3.5",
             policyDenied
-              ? "border-destructive/40 bg-destructive/8"
+              ? "border-error-fill/40 bg-error-fill/10"
               : "border-border",
           )}
         >
@@ -326,8 +326,8 @@ export function TraceDetailDrawer() {
         {showLinkingCta ? (
           <div
             className="
-            mt-2.5 flex items-center gap-3 rounded-lg border border-warning/40
-            bg-warning/8 p-3
+            mt-2.5 flex items-center gap-3 rounded-lg border border-warning-fill/40
+            bg-warning-fill/10 p-3
           "
           >
             <p className="flex-1 text-[12.5px] leading-snug text-foreground">
@@ -346,7 +346,7 @@ export function TraceDetailDrawer() {
         ) : linkingReason && !linkingResolved ? (
           <p
             className="
-            mt-2.5 rounded-lg border border-warning/40 bg-warning/8 p-3
+            mt-2.5 rounded-lg border border-warning-fill/40 bg-warning-fill/10 p-3
             text-[12.5px] leading-snug text-foreground
           "
           >
@@ -360,8 +360,8 @@ export function TraceDetailDrawer() {
           <SectionLabel>Backend error</SectionLabel>
           <pre
             className="
-            overflow-x-auto rounded-lg border border-destructive/35
-            bg-destructive/8 p-3.5 font-mono text-xs/normal whitespace-pre-wrap
+            overflow-x-auto rounded-lg border border-error-fill/35
+            bg-error-fill/10 p-3.5 font-mono text-xs/normal whitespace-pre-wrap
             text-destructive
           "
           >

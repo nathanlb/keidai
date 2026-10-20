@@ -35,7 +35,8 @@ export function AgentTasksPanel({
   startingTaskIds: ReadonlySet<string>;
   runError: string | null;
 }) {
-  const [since] = useState(() => Date.now() - SEVEN_DAYS_MS);
+  const [now] = useState(() => Date.now());
+  const since = now - SEVEN_DAYS_MS;
 
   if (isLoading) {
     return (
@@ -135,7 +136,7 @@ export function AgentTasksPanel({
                           isScheduleTrigger(task.trigger) &&
                           task.trigger.paused,
                         ),
-                        Date.now(),
+                        now,
                         Boolean(task.scheduleFailedAt),
                       )}
                 </div>

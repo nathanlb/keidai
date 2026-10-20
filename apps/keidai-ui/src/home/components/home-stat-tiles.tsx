@@ -30,7 +30,8 @@ function StatTile({
         </div>
         <div
           className="
-          mt-1.75 text-2xl leading-none font-bold tracking-[-0.02em]
+          mt-1.75 font-display text-2xl leading-none font-bold tracking-[-0.02em]
+          lining-nums tabular-nums
         "
         >
           {value}
@@ -78,7 +79,7 @@ export function HomeStatTiles({
         label="Awaiting you"
         value={String(awaitingYou)}
         sub={oldestParkedLabel}
-        dotClass="bg-amber-500"
+        dotClass="bg-warning-fill"
       />
       <StatTile
         testId="home-stat-running"
@@ -92,14 +93,14 @@ export function HomeStatTiles({
         label="Goal met · 24h"
         value={String(goalMet24h)}
         sub={formatPartialSub(partial24h)}
-        dotClass="bg-(--green-600)"
+        dotClass="bg-success-fill"
       />
       <StatTile
         testId="home-stat-failed"
         label="Failed · 24h"
         value={String(failed24h)}
         sub={failedTaskName ?? "none"}
-        dotClass="bg-destructive"
+        dotClass="bg-error-fill"
       />
     </div>
   );

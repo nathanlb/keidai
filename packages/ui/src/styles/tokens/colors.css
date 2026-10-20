@@ -54,6 +54,11 @@
   --success-foreground: var(--neutral-50);
   --warning: var(--amber-500);
   --warning-foreground: var(--neutral-900);
+  /* Fills: indicator dots, bars and tints. Themes with a brighter
+     signal palette than their text inks override these. */
+  --success-fill: var(--success);
+  --warning-fill: var(--warning);
+  --error-fill: var(--error);
   --border: var(--neutral-200);
   --input: var(--neutral-200);
   --ring: var(--neutral-400);

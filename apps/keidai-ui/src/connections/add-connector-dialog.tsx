@@ -66,7 +66,7 @@ export function AddConnectorDialog({
   const [customUrl, setCustomUrl] = useState("");
   const [customAuth, setCustomAuth] = useState<ConnectorAuthMode>("none");
 
-  const catalog = catalogData?.catalog ?? [];
+  const catalog = useMemo(() => catalogData?.catalog ?? [], [catalogData]);
   const selected = useMemo(
     () => catalog.find((entry) => entry.id === selectedId) ?? null,
     [catalog, selectedId],

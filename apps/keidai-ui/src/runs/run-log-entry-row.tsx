@@ -216,7 +216,7 @@ function ToolCallSettledResult({
     <div
       className={cn(
         "run-log-result-enter mt-1 flex flex-col gap-2 border-t pt-3",
-        isError ? "border-destructive/25" : "border-border/80",
+        isError ? "border-error-fill/25" : "border-border/80",
       )}
     >
       <div
