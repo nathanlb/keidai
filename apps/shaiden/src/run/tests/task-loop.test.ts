@@ -157,6 +157,90 @@ describe("task loop", () => {
     assert.deepEqual(result.outcome, { status: "timeout" });
   });
 
+  it("runs until goal_met when both limits are off", async () => {
+    let calls = 0;
+    const result = await runGoalLoop(
+      "goal",
+      { max_iterations: null, timeout_seconds: null },
+      {
+        callModel: async () => {
+          calls += 1;
+          if (calls < 8) {
+            return modelStep({
+              text: "",
+              toolCalls: [toolCall("busy_tool", `call-${calls}`)],
+            });
+          }
+          return modelStep({ text: "Done.", toolCalls: [] });
+        },
+        dispatchToolCall: okDispatch,
+      },
+    );
+
+    assert.deepEqual(result.outcome, { status: "goal_met" });
+    assert.equal(calls, 8);
+    assert.equal(result.iterations, 8);
+  });
+
+  it("fails when the model errors even with no limits", async () => {
+    const result = await runGoalLoop(
+      "goal",
+      { max_iterations: null, timeout_seconds: null },
+      {
+        callModel: async () => {
+          throw new Error("provider unreachable");
+        },
+        dispatchToolCall: okDispatch,
+      },
+    );
+
+    assert.equal(result.outcome.status, "failed");
+  });
+
+  it("still times out when only the iteration cap is off", async () => {
+    let clock = 0;
+    const result = await runGoalLoop(
+      "goal",
+      { max_iterations: null, timeout_seconds: 10 },
+      {
+        callModel: scriptedModel([
+          { text: "", toolCalls: [toolCall("slow_tool")] },
+          { text: "never reached", toolCalls: [] },
+        ]),
+        dispatchToolCall: async () => {
+          clock += 10_001;
+          return { isError: false, text: "ok" };
+        },
+        now: () => clock,
+      },
+    );
+
+    assert.deepEqual(result.outcome, { status: "timeout" });
+  });
+
+  it("still exhausts iterations when only the timeout is off", async () => {
+    let clock = 0;
+    const result = await runGoalLoop(
+      "goal",
+      { max_iterations: 2, timeout_seconds: null },
+      {
+        callModel: async () =>
+          modelStep({
+            text: "",
+            toolCalls: [toolCall("busy_tool", `call-${clock}`)],
+          }),
+        dispatchToolCall: async () => {
+          clock += 60_000;
+          return { isError: false, text: "ok" };
+        },
+        now: () => clock,
+      },
+    );
+
+    assert.deepEqual(result.outcome, { status: "iteration_exhausted" });
+    assert.equal(result.iterations, 2);
+  });
+
   it("parks on approval_required, resumes with the polled tool result, and continues", async () => {
     const dispatched: string[] = [];
     const approval = deferredParkedResult();

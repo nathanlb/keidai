@@ -59,6 +59,9 @@ export function formatParkedApprovals(count: number): string {
   return count === 1 ? "1 approval parked" : `${count} approvals parked`;
 }
 
-export function formatAgentStep(current: number, max: number): string {
+export function formatAgentStep(current: number, max: number | null): string {
+  if (max == null) {
+    return `step ${current}`;
+  }
   return `step ${current} of ${max}`;
 }

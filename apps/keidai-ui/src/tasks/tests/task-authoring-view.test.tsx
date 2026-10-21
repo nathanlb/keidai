@@ -261,6 +261,96 @@ describe("TaskAuthoringView edit mode", () => {
       screen.queryByRole("button", { name: "Cancel" }),
     ).not.toBeInTheDocument();
     expect(screen.getByText(/this task is archived/i)).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "No limits" })).toBeDisabled();
+    expect(
+      screen.getByRole("spinbutton", { name: "Iteration cap" }),
+    ).toBeDisabled();
+  });
+
+  it("saves edited limits", async () => {
+    const user = userEvent.setup();
+    vi.mocked(shaidenClient.updateTask).mockResolvedValue({
+      task: {
+        ...savedTask,
+        limits: { max_iterations: 40, timeout_seconds: 900 },
+        updatedAt: "2026-07-14T12:00:00.000Z",
+      },
+    });
+    renderEditView();
+    await waitForGoalInput();
+
+    const iterations = screen.getByRole("spinbutton", {
+      name: "Iteration cap",
+    });
+    const timeout = screen.getByRole("spinbutton", {
+      name: "Wall-clock timeout (minutes)",
+    });
+    await user.clear(iterations);
+    await user.type(iterations, "40");
+    await user.clear(timeout);
+    await user.type(timeout, "15");
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => {
+      expect(shaidenClient.updateTask).toHaveBeenCalledWith(
+        savedTask.id,
+        expect.objectContaining({
+          limits: { max_iterations: 40, timeout_seconds: 900 },
+        }),
+      );
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Save changes" }),
+      ).toBeDisabled();
+    });
+  });
+
+  it("saves a task with no limits", async () => {
+    const user = userEvent.setup();
+    vi.mocked(shaidenClient.updateTask).mockResolvedValue({
+      task: {
+        ...savedTask,
+        limits: { max_iterations: null, timeout_seconds: null },
+        updatedAt: "2026-07-14T12:00:00.000Z",
+      },
+    });
+    renderEditView();
+    await waitForGoalInput();
+
+    await user.click(screen.getByRole("checkbox", { name: "No limits" }));
+    expect(
+      screen.getByRole("spinbutton", { name: "Iteration cap" }),
+    ).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => {
+      expect(shaidenClient.updateTask).toHaveBeenCalledWith(
+        savedTask.id,
+        expect.objectContaining({
+          limits: { max_iterations: null, timeout_seconds: null },
+        }),
+      );
+    });
+  });
+
+  it("shows no limits when the saved task has null caps", async () => {
+    vi.mocked(shaidenClient.fetchTask).mockResolvedValue({
+      task: {
+        ...savedTask,
+        limits: { max_iterations: null, timeout_seconds: null },
+      },
+    });
+    renderEditView();
+    await waitForGoalInput();
+
+    expect(screen.getByRole("checkbox", { name: "No limits" })).toBeChecked();
+    expect(
+      screen.getByRole("spinbutton", { name: "Iteration cap" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("spinbutton", { name: "Wall-clock timeout (minutes)" }),
+    ).toBeDisabled();
   });
 });
 

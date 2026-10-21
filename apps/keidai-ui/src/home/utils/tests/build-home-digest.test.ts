@@ -181,6 +181,26 @@ describe("buildHomeDigest", () => {
     expect(digest.runningAgentLabel).toBe("1 agent");
   });
 
+  it("omits the iteration ceiling when the task has no limits", () => {
+    const live = report("run-live", "Reading 18 unread threads");
+    live.task = {
+      ...live.task,
+      limits: { max_iterations: null, timeout_seconds: null },
+    };
+    const digest = buildHomeDigest({
+      approvals: [],
+      runs: [run({ id: "run-live", status: "running", stepCount: 2 })],
+      runReports: { "run-live": live },
+      tasks: [task()],
+      agents: [agent()],
+      groups: [opsWrite],
+      now: NOW,
+    });
+
+    expect(digest.liveRuns[0]?.iterationLabel).toBe("1");
+    expect(digest.liveRuns[0]?.progressPct).toBe(0);
+  });
+
   it("uses an em dash for the 7-day goal rate when there are no completed runs", () => {
     const digest = buildHomeDigest({
       approvals: [],

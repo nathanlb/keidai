@@ -9,8 +9,40 @@ import {
   taskSchema,
   type SavedTask,
   type Task,
+  type TaskLimits,
   type Weekday,
 } from "@keidai/shared";
+
+export const MIN_TASK_ITERATIONS = 1;
+export const MAX_TASK_ITERATIONS = 100_000;
+export const MIN_TASK_TIMEOUT_MINUTES = 1;
+/** Seven days. Longer runs should turn limits off. */
+export const MAX_TASK_TIMEOUT_MINUTES = 7 * 24 * 60;
+
+const WHOLE_NUMBER = /^\d+$/;
+
+function defaultTimeoutMinutes(): string {
+  return String(DEFAULT_TASK_LIMITS.timeout_seconds / 60);
+}
+
+function addLimitIssue(
+  ctx: z.RefinementCtx,
+  path: "maxIterations" | "timeoutMinutes",
+  raw: string,
+  message: string,
+  min: number,
+  max: number,
+) {
+  const trimmed = raw.trim();
+  const value = WHOLE_NUMBER.test(trimmed) ? Number(trimmed) : Number.NaN;
+  if (!Number.isSafeInteger(value) || value < min || value > max) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [path],
+      message,
+    });
+  }
+}
 
 export const taskAuthoringFormSchema = z
   .object({
@@ -24,8 +56,29 @@ export const taskAuthoringFormSchema = z
     days: z.array(z.enum(WEEKDAYS)),
     paused: z.boolean(),
     modelId: z.string(),
+    unlimited: z.boolean(),
+    maxIterations: z.string(),
+    timeoutMinutes: z.string(),
   })
   .superRefine((values, ctx) => {
+    if (!values.unlimited) {
+      addLimitIssue(
+        ctx,
+        "maxIterations",
+        values.maxIterations,
+        `Enter a whole number from ${MIN_TASK_ITERATIONS} to ${MAX_TASK_ITERATIONS}, or turn on no limits`,
+        MIN_TASK_ITERATIONS,
+        MAX_TASK_ITERATIONS,
+      );
+      addLimitIssue(
+        ctx,
+        "timeoutMinutes",
+        values.timeoutMinutes,
+        `Enter a whole number of minutes from ${MIN_TASK_TIMEOUT_MINUTES} to ${MAX_TASK_TIMEOUT_MINUTES}, or turn on no limits`,
+        MIN_TASK_TIMEOUT_MINUTES,
+        MAX_TASK_TIMEOUT_MINUTES,
+      );
+    }
     if (values.triggerType !== "schedule") {
       return;
     }
@@ -86,11 +139,39 @@ export function emptyTaskAuthoringValues(): TaskAuthoringFormValues {
     days: ["mon"],
     paused: false,
     modelId: "",
+    unlimited: false,
+    maxIterations: String(DEFAULT_TASK_LIMITS.max_iterations),
+    timeoutMinutes: defaultTimeoutMinutes(),
+  };
+}
+
+function limitFieldsFromTask(
+  task: SavedTask,
+): Pick<
+  TaskAuthoringFormValues,
+  "unlimited" | "maxIterations" | "timeoutMinutes"
+> {
+  const limits = task.limits;
+  const unlimited =
+    limits != null &&
+    limits.max_iterations == null &&
+    limits.timeout_seconds == null;
+  const iterations =
+    limits?.max_iterations ?? DEFAULT_TASK_LIMITS.max_iterations;
+  const timeoutSeconds =
+    limits?.timeout_seconds ?? DEFAULT_TASK_LIMITS.timeout_seconds;
+  return {
+    unlimited,
+    maxIterations: String(iterations),
+    timeoutMinutes: String(Math.max(1, Math.round(timeoutSeconds / 60))),
   };
 }
 
 export function formValuesFromTask(task: SavedTask): TaskAuthoringFormValues {
-  const base = emptyTaskAuthoringValues();
+  const base = {
+    ...emptyTaskAuthoringValues(),
+    ...limitFieldsFromTask(task),
+  };
   if (!isScheduleTrigger(task.trigger)) {
     return {
       ...base,
@@ -123,7 +204,23 @@ function withModelId(values: TaskAuthoringFormValues, task: Task): Task {
   return modelId ? { ...task, modelId } : task;
 }
 
+export function limitsFromFormValues(
+  values: Pick<
+    TaskAuthoringFormValues,
+    "unlimited" | "maxIterations" | "timeoutMinutes"
+  >,
+): TaskLimits {
+  if (values.unlimited) {
+    return { max_iterations: null, timeout_seconds: null };
+  }
+  return {
+    max_iterations: Number(values.maxIterations.trim()),
+    timeout_seconds: Number(values.timeoutMinutes.trim()) * 60,
+  };
+}
+
 export function taskFromFormValues(values: TaskAuthoringFormValues): Task {
+  const limits = limitsFromFormValues(values);
   if (values.triggerType === "now") {
     return withModelId(
       values,
@@ -131,7 +228,7 @@ export function taskFromFormValues(values: TaskAuthoringFormValues): Task {
         goal: values.goal.trim(),
         trigger: { type: "now" },
         assignee: values.assignee,
-        limits: DEFAULT_TASK_LIMITS,
+        limits,
       }),
     );
   }
@@ -154,7 +251,7 @@ export function taskFromFormValues(values: TaskAuthoringFormValues): Task {
         ...(values.paused ? { paused: true } : {}),
       },
       assignee: values.assignee,
-      limits: DEFAULT_TASK_LIMITS,
+      limits,
     }),
   );
 }

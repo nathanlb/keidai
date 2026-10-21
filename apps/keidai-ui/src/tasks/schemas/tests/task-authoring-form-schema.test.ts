@@ -1,9 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
   formValuesFromTask,
+  taskAuthoringFormSchema,
   taskFromFormValues,
 } from "../task-authoring-form-schema.js";
 import type { SavedTask } from "@keidai/shared";
+
+const limits = {
+  unlimited: false,
+  maxIterations: "25",
+  timeoutMinutes: "10",
+};
 
 describe("taskFromFormValues", () => {
   it("builds a now trigger", () => {
@@ -19,6 +26,7 @@ describe("taskFromFormValues", () => {
         days: ["mon"],
         paused: false,
         modelId: "",
+        ...limits,
       }).trigger,
     ).toEqual({ type: "now" });
   });
@@ -35,6 +43,7 @@ describe("taskFromFormValues", () => {
       days: ["mon"],
       paused: false,
       modelId: "openai/gpt-4o",
+      ...limits,
     });
     expect(task.modelId).toBe("openai/gpt-4o");
     expect(task.trigger).toEqual({
@@ -68,5 +77,69 @@ describe("formValuesFromTask", () => {
     expect(values.freq).toBe("daily");
     expect(values.paused).toBe(true);
     expect(taskFromFormValues(values).trigger).toEqual(saved.trigger);
+    expect(taskFromFormValues(values).limits).toEqual({
+      max_iterations: 25,
+      timeout_seconds: 600,
+    });
+  });
+
+  it("round-trips edited limits and an unlimited task", () => {
+    const saved: SavedTask = {
+      id: "t1",
+      goal: "Nightly",
+      assignee: "agt-1",
+      trigger: { type: "now" },
+      limits: { max_iterations: 8, timeout_seconds: 120 },
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    };
+    const values = formValuesFromTask(saved);
+    expect(values.unlimited).toBe(false);
+    expect(values.maxIterations).toBe("8");
+    expect(values.timeoutMinutes).toBe("2");
+    expect(taskFromFormValues(values).limits).toEqual(saved.limits);
+
+    const unlimited = formValuesFromTask({
+      ...saved,
+      limits: { max_iterations: null, timeout_seconds: null },
+    });
+    expect(unlimited.unlimited).toBe(true);
+    expect(taskFromFormValues(unlimited).limits).toEqual({
+      max_iterations: null,
+      timeout_seconds: null,
+    });
+  });
+});
+
+describe("taskAuthoringFormSchema limits", () => {
+  const base = {
+    goal: "Do the thing",
+    assignee: "agt-1",
+    triggerType: "now" as const,
+    timezone: "UTC",
+    at: "2026-09-01T09:00",
+    repeat: false,
+    freq: "daily" as const,
+    days: ["mon" as const],
+    paused: false,
+    modelId: "",
+  };
+
+  it("rejects a blank cap and accepts no limits with a blank cap", () => {
+    const blank = taskAuthoringFormSchema.safeParse({
+      ...base,
+      unlimited: false,
+      maxIterations: "",
+      timeoutMinutes: "10",
+    });
+    expect(blank.success).toBe(false);
+
+    const open = taskAuthoringFormSchema.safeParse({
+      ...base,
+      unlimited: true,
+      maxIterations: "",
+      timeoutMinutes: "",
+    });
+    expect(open.success).toBe(true);
   });
 });

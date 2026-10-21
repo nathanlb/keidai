@@ -144,17 +144,20 @@ export function taskTriggersEqual(
   );
 }
 
+/** Positive integer, or null when that limit is off. */
+const taskLimitSchema = z.number().int().positive().nullable();
+
 export const taskLimitsSchema = z.object({
-  max_iterations: z.number().int().positive(),
-  timeout_seconds: z.number().int().positive(),
+  max_iterations: taskLimitSchema,
+  timeout_seconds: taskLimitSchema,
 });
 
 export type TaskLimits = z.infer<typeof taskLimitsSchema>;
 
-export const DEFAULT_TASK_LIMITS: TaskLimits = {
+export const DEFAULT_TASK_LIMITS = {
   max_iterations: 25,
   timeout_seconds: 600,
-};
+} satisfies TaskLimits;
 
 /**
  * OpenRouter model ids are `author/slug`. A leading `~` marks a latest-family
