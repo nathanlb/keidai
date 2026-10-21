@@ -1,5 +1,6 @@
 import { nextRunAt } from "@keidai/shared";
 import {
+  emptyTaskAuthoringValues,
   taskFromFormValues,
   type TaskAuthoringFormValues,
 } from "../schemas/task-authoring-form-schema.js";
@@ -18,6 +19,7 @@ export function previewScheduleNextFire(
 ): ScheduleNextFirePreview {
   try {
     const task = taskFromFormValues({
+      ...emptyTaskAuthoringValues(),
       goal: "preview",
       assignee: "preview",
       triggerType: "schedule",

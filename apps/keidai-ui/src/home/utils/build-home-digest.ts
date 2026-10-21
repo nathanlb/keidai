@@ -137,10 +137,9 @@ function buildLiveRun(
 ): HomeLiveRun {
   const limits = report ? resolveTaskLimits(report.task) : DEFAULT_TASK_LIMITS;
   const iteration = report ? countModelIterations(report.steps) : run.stepCount;
+  const cap = limits.max_iterations;
   const progressPct =
-    limits.max_iterations <= 0
-      ? 0
-      : Math.min(100, Math.round((iteration / limits.max_iterations) * 100));
+    cap == null ? 0 : Math.min(100, Math.round((iteration / cap) * 100));
 
   return {
     id: run.id,
@@ -149,7 +148,7 @@ function buildLiveRun(
     elapsedLabel: formatCompactDurationSince(run.startedAt, now),
     stepText: report ? currentStepText(report.steps) : "Working…",
     progressPct,
-    iterationLabel: `${iteration} / ${limits.max_iterations}`,
+    iterationLabel: cap == null ? String(iteration) : `${iteration} / ${cap}`,
   };
 }
 

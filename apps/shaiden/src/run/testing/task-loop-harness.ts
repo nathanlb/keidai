@@ -11,10 +11,10 @@ import type {
   ToolDispatchResult,
 } from "../types/task-loop.js";
 
-export const limits: TaskLimits = {
+export const limits = {
   max_iterations: 5,
   timeout_seconds: 60,
-};
+} satisfies TaskLimits;
 
 export function runGoalLoop(
   goal: string,

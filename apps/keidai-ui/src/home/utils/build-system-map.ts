@@ -93,7 +93,7 @@ function assignAgentGroupId(
 function countModelIterations(
   report: SystemMapSources["runReports"][string] | undefined,
   fallback: number,
-): { current: number; max: number } {
+): { current: number; max: number | null } {
   if (!report) {
     return { current: fallback, max: DEFAULT_TASK_LIMITS.max_iterations };
   }

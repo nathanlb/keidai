@@ -334,7 +334,7 @@ export function TaskAuthoringView({
                   agents={agentsData?.agents ?? []}
                   disabled={isArchived}
                 />
-                <TaskLimitsSection />
+                <TaskLimitsSection disabled={isArchived} />
                 {submitError ? (
                   <p className="pb-5 text-sm text-destructive">{submitError}</p>
                 ) : null}

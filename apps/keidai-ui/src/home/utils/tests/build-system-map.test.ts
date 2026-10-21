@@ -234,4 +234,25 @@ describe("buildSystemMap", () => {
     });
     expect(map.workingCount).toBe(0);
   });
+
+  it("labels an unlimited run without an iteration ceiling", () => {
+    const unlimited = report();
+    unlimited.task = {
+      ...unlimited.task,
+      limits: { max_iterations: null, timeout_seconds: null },
+    };
+    const map = buildSystemMap({
+      approvals: [],
+      runs: [run()],
+      runReports: { "run-live": unlimited },
+      tasks: [unusedTask],
+      agents: [agent()],
+      groups: [group()],
+      servers: [],
+      connections: [],
+      now: NOW,
+    });
+
+    expect(map.agents[0]?.task).toBe("triage-inbox · step 1");
+  });
 });

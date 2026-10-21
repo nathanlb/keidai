@@ -86,6 +86,22 @@ describe("task schema", () => {
     const limits = { max_iterations: 10, timeout_seconds: 120 };
     assert.deepEqual(resolveTaskLimits({ ...sampleTask, limits }), limits);
   });
+
+  it("preserves null caps as no limit", () => {
+    const limits = { max_iterations: null, timeout_seconds: null };
+    const parsed = taskSchema.parse({ ...sampleTask, limits });
+    assert.deepEqual(parsed.limits, limits);
+    assert.deepEqual(resolveTaskLimits(parsed), limits);
+  });
+
+  it("rejects a non-positive cap", () => {
+    assert.throws(() =>
+      taskSchema.parse({
+        ...sampleTask,
+        limits: { max_iterations: 0, timeout_seconds: 60 },
+      }),
+    );
+  });
 });
 
 describe("nextRunAt", () => {

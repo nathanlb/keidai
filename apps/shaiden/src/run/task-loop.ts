@@ -47,8 +47,8 @@ function cloneHistory(
  * - Torii tool calls                     -> continue (implicit; no assessment needed)
  * - human approval rejection             -> human_reject (harness-driven; no model round-trip)
  * - operator stop                        -> stopped (cooperative; in-flight tool results dropped)
- * - iteration cap reached                -> iteration_exhausted
- * - active-time budget exhausted         -> timeout
+ * - iteration cap reached                -> iteration_exhausted (null max_iterations skips this)
+ * - active-time budget exhausted         -> timeout (null timeout_seconds skips this)
  * - model or harness-level error         -> failed(reason)
  *   (per-call tool errors are fed back as tool results; the model decides)
  */
@@ -57,7 +57,9 @@ export async function runTaskLoop(
   deps: TaskLoopDeps,
 ): Promise<TaskLoopResult> {
   const now = deps.now ?? Date.now;
-  const timeoutMs = start.limits.timeout_seconds * 1000;
+  const timeoutSeconds = start.limits.timeout_seconds;
+  const timeoutMs = timeoutSeconds == null ? null : timeoutSeconds * 1000;
+  const maxIterations = start.limits.max_iterations;
   let iterationsUsed = start.budget?.iterationsUsed ?? 0;
   let activeElapsedMs = start.budget?.activeElapsedMs ?? 0;
   let segmentStartedAt = now();
@@ -316,10 +318,10 @@ export async function runTaskLoop(
 
   for (
     let iteration = iterationsUsed + 1;
-    iteration <= start.limits.max_iterations;
+    maxIterations == null || iteration <= maxIterations;
     iteration++
   ) {
-    if (currentActiveElapsed() >= timeoutMs) {
+    if (timeoutMs != null && currentActiveElapsed() >= timeoutMs) {
       return terminate({ status: "timeout" }, iterationsUsed);
     }
 
