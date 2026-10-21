@@ -124,6 +124,25 @@ describe("TasksListView assignee column", () => {
   });
 });
 
+describe("TasksListView row", () => {
+  beforeEach(() => {
+    navigate.mockReset();
+  });
+
+  it("opens the editor when the row is clicked", async () => {
+    const user = userEvent.setup();
+    renderList();
+
+    expect(
+      screen.queryByRole("button", { name: "Edit" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByText(taskB.goal));
+
+    expect(navigate).toHaveBeenCalledWith("/tasks/task-b");
+  });
+});
+
 describe("TasksListView concurrent runs", () => {
   beforeEach(() => {
     navigate.mockReset();
@@ -155,6 +174,7 @@ describe("TasksListView concurrent runs", () => {
     expect(runButtonForGoal(taskA.goal)).toBeDisabled();
     expect(runButtonForGoal(taskB.goal)).toBeDisabled();
     expect(runSavedTask).toHaveBeenCalledWith(taskB.id);
+    expect(navigate).not.toHaveBeenCalled();
 
     resolveStart({ runId: "run-b", taskId: taskB.id });
     await vi.waitFor(() => {

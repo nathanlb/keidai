@@ -1,6 +1,6 @@
 import { Button, cn, TableCell, TableRow } from "@keidai/ui";
 import type { SavedTask } from "@keidai/shared";
-import { Loader2, Pencil, Play } from "lucide-react";
+import { Loader2, Play } from "lucide-react";
 import type { RunAssigneeDisplay } from "../lib/api/runs.js";
 import { AgentAvatar } from "../lib/components/agent-avatar.js";
 import { tasksTableColumns } from "./tasks-table-columns.js";
@@ -46,10 +46,11 @@ export function TasksTableRow({
 }) {
   return (
     <TableRow
-      className="
-      border-border
-      hover:bg-muted/30
-    "
+      className={cn(
+        "border-border hover:bg-muted/30",
+        canEdit && "cursor-pointer",
+      )}
+      onClick={canEdit ? onEdit : undefined}
     >
       <TableCell
         className={tasksTableColumns.cellClassName("goal")}
@@ -94,23 +95,16 @@ export function TasksTableRow({
         className={tasksTableColumns.cellClassName("actions")}
         style={tasksTableColumns.cellStyle("actions")}
       >
-        <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            disabled={!canEdit}
-            onClick={onEdit}
-          >
-            <Pencil className="size-3.5" aria-hidden />
-            Edit
-          </Button>
+        <div className="flex justify-end">
           <Button
             type="button"
             size="sm"
             variant="outline"
             disabled={isRunning || !canRun}
-            onClick={onRun}
+            onClick={(event) => {
+              event.stopPropagation();
+              onRun();
+            }}
           >
             {isRunning ? (
               <Loader2 className="size-3.5 animate-spin" aria-hidden />

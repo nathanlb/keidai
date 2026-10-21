@@ -16,7 +16,7 @@ export const tasksTableColumns = defineTableColumns({
       "py-3 whitespace-nowrap font-mono text-[12.5px] text-muted-foreground",
   },
   actions: {
-    width: { type: "fixed", width: 170 },
+    width: { type: "fixed", width: 112 },
     headClassName: "pr-[18px] text-right whitespace-nowrap",
     cellClassName: "py-3 pr-[18px] text-right whitespace-nowrap",
   },

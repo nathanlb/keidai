@@ -193,7 +193,7 @@ test.describe("Shaiden tasks", () => {
     ).toBeDisabled();
   });
 
-  test("edits a saved task from the list edit action", async ({ page }) => {
+  test("edits a saved task by clicking its row", async ({ page }) => {
     await mockToriiConfig(page, {
       fudaAgents: [shaidenAgent],
       tasks: { tasks: [savedTask] },
@@ -201,7 +201,7 @@ test.describe("Shaiden tasks", () => {
 
     await page.goto("/tasks");
 
-    await page.getByRole("button", { name: "Edit" }).click();
+    await page.getByText(savedTask.goal, { exact: true }).click();
 
     await expect(page).toHaveURL(/\/tasks\/task-saved-1$/);
     await expect(
