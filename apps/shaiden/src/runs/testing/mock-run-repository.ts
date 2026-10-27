@@ -144,6 +144,7 @@ export class MockRunRepository implements RunRepository {
         status: run.status,
         outcome: run.outcome,
         stepCount: run.steps.length,
+        activeElapsedMs: run.activeElapsedMs,
         ...(run.personaVersion !== undefined
           ? { personaVersion: run.personaVersion }
           : {}),

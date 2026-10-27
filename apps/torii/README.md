@@ -97,7 +97,7 @@ Agent registration / subject validation lives in Fuda (token exchange). Torii ca
 
 ## Trace feed API (UI)
 
-The Activity & traces screen reads from HTTP endpoints backed by Postgres (`TORII_DATABASE_URL`). `call_traces` is range-partitioned by week; partitions older than 7 days are dropped (`KEIDAI_PARTITION_RETENTION_DAYS` to override). The API contract is store-agnostic so the backing implementation can move to an external observability backend later (OTel collector → time-series / log store) without UI changes.
+The Activity & traces screen reads from HTTP endpoints backed by Postgres (`TORII_DATABASE_URL`). `call_traces` is range-partitioned by week; partitions older than 60 days are dropped (`KEIDAI_PARTITION_RETENTION_DAYS` to override). The API contract is store-agnostic so the backing implementation can move to an external observability backend later (OTel collector → time-series / log store) without UI changes.
 
 Traces are listed with a UI cap of 200. Payloads include credential **refs** only — never token values or other secrets.
 

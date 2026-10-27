@@ -234,6 +234,21 @@ describe("RunDetailDrawer run log loader", () => {
     expect(screen.getByText("Awaiting human review")).toBeInTheDocument();
   });
 
+  it("explains a finished run whose log steps are missing", () => {
+    renderRunDetailDrawer({
+      ...baseRun,
+      status: "completed",
+      outcome: { status: "goal_met" },
+      stepCount: 3,
+      steps: [],
+    });
+
+    expect(
+      screen.getByText("No log is available for this run."),
+    ).toBeInTheDocument();
+    expect(runLogLoader()).not.toBeInTheDocument();
+  });
+
   it("hides the spinner when the run has reached a terminal outcome", () => {
     renderRunDetailDrawer({
       ...baseRun,

@@ -3,6 +3,7 @@ import {
   formatTraceClock,
   formatTraceRelative,
 } from "../../activity/utils/format-trace-time.js";
+import { formatCompactDuration } from "../../home/utils/format-compact-duration.js";
 
 export {
   formatTraceClock as formatRunClock,
@@ -14,6 +15,14 @@ export function resolveRunDurationMs(
   steps?: readonly RunStep[],
   now = Date.now(),
 ): number | undefined {
+  if (
+    typeof run.activeElapsedMs === "number" &&
+    Number.isFinite(run.activeElapsedMs) &&
+    run.activeElapsedMs > 0
+  ) {
+    return run.activeElapsedMs;
+  }
+
   const startedAt = new Date(run.startedAt).getTime();
   if (Number.isNaN(startedAt)) {
     return undefined;
@@ -24,36 +33,34 @@ export function resolveRunDurationMs(
   }
 
   const lastStep = steps?.[steps.length - 1];
-  const endedAt = lastStep ? new Date(lastStep.timestamp).getTime() : now;
+  if (!lastStep) {
+    return undefined;
+  }
 
+  const endedAt = new Date(lastStep.timestamp).getTime();
   if (Number.isNaN(endedAt)) {
     return undefined;
   }
 
-  return Math.max(0, endedAt - startedAt);
+  const span = endedAt - startedAt;
+  if (!Number.isFinite(span) || span <= 0) {
+    return undefined;
+  }
+
+  return span;
 }
 
 export function formatRunDuration(
   run: RunListItem,
   steps?: readonly RunStep[],
+  now = Date.now(),
 ): string {
-  const durationMs = resolveRunDurationMs(run, steps);
+  const durationMs = resolveRunDurationMs(run, steps, now);
   if (durationMs === undefined) {
     return "—";
   }
 
-  if (durationMs < 1000) {
-    return `${durationMs} ms`;
-  }
-
-  const seconds = durationMs / 1000;
-  if (seconds < 60) {
-    return `${seconds.toFixed(1)} s`;
-  }
-
-  const minutes = Math.floor(seconds / 60);
-  const remainder = Math.round(seconds % 60);
-  return `${minutes}m ${remainder}s`;
+  return formatCompactDuration(durationMs);
 }
 
 export function countModelIterations(steps?: readonly RunStep[]): number {

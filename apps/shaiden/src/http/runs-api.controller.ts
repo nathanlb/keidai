@@ -7,7 +7,6 @@ import {
   type OperatorContext,
   type ResumeRunResponse,
   type RunReport,
-  type RunSseEvent,
   type StopRunResponse,
 } from "@keidai/shared";
 import type { FastifyInstance, FastifyRequest } from "fastify";
@@ -28,6 +27,7 @@ import {
   isEligibleContinuationOutcome,
 } from "../runs/utils/conversation-history.js";
 import { createRunStep } from "../runs/utils/create-run-step.js";
+import { presentRunReport } from "../runs/utils/present-run-report.js";
 import {
   followUpConflictMessage,
   normalizeFollowUpMessage,
@@ -84,6 +84,18 @@ export interface RunsApiControllerDeps {
 export class RunsApiController {
   constructor(private readonly deps: RunsApiControllerDeps) {}
 
+  /**
+   * Step partitions past the retention window are dropped while the run row
+   * can remain. Rebuild the log from conversation history for the operator.
+   */
+  private async presentRun(run: RunReport): Promise<RunReport> {
+    if (run.steps.length > 0 || run.stepCount === 0) {
+      return run;
+    }
+    const history = await this.deps.runStore.getConversationHistory(run.id);
+    return presentRunReport(run, history);
+  }
+
   registerRoutes(app: FastifyInstance): void {
     app.get("/api/runs/events", async (request, reply) => {
       const operator = readOperatorContext(request.headers);
@@ -98,9 +110,12 @@ export class RunsApiController {
       // Flush headers + open the stream so proxies do not buffer early events.
       reply.raw.write(": connected\n\n");
 
-      const writeEvent = (event: RunSseEvent): void => {
-        reply.raw.write(`event: ${event.type}\n`);
-        reply.raw.write(`data: ${JSON.stringify(event.run)}\n\n`);
+      const writeEvent = (run: RunReport): void => {
+        if (reply.raw.writableEnded) {
+          return;
+        }
+        reply.raw.write(`event: ${RUN_SSE_EVENT.runUpdated}\n`);
+        reply.raw.write(`data: ${JSON.stringify(run)}\n\n`);
       };
 
       for (const item of (
@@ -108,10 +123,7 @@ export class RunsApiController {
       ).runs) {
         const run = await this.deps.runStore.getRun(item.id);
         if (run && runVisibleToOperator(run, operator)) {
-          writeEvent({
-            type: RUN_SSE_EVENT.runUpdated,
-            run,
-          });
+          writeEvent(await this.presentRun(run));
         }
       }
 
@@ -119,7 +131,14 @@ export class RunsApiController {
         if (!runVisibleToOperator(event.run, operator)) {
           return;
         }
-        writeEvent(event);
+        void this.presentRun(event.run).then(
+          (run) => {
+            writeEvent(run);
+          },
+          () => {
+            writeEvent(event.run);
+          },
+        );
       });
       const keepalive = setInterval(() => {
         reply.raw.write(": keepalive\n\n");
@@ -141,7 +160,7 @@ export class RunsApiController {
         reply.code(404).send({ error: "run not found" });
         return;
       }
-      reply.send(run);
+      reply.send(await this.presentRun(run));
     });
 
     app.get("/api/runs", async (request, reply) => {

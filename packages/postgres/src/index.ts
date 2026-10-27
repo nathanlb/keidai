@@ -23,6 +23,7 @@ export {
 } from "./migrate.js";
 export {
   addWeeks,
+  DEFAULT_PARTITION_RETENTION_DAYS,
   defaultPartitionRetentionMs,
   dropWeeklyPartitionsOlderThan,
   ensureWeeklyPartitions,

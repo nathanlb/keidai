@@ -178,7 +178,7 @@ function ToolCallSettledStatus({
       ml-auto inline-flex items-center gap-3.5 font-mono text-[11px]
     "
     >
-      {entry.durationMs !== undefined ? (
+      {entry.durationMs ? (
         <span className="text-muted-foreground">
           {formatToolCallDuration(entry.durationMs)}
         </span>

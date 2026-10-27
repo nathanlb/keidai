@@ -60,7 +60,7 @@ See [Reference](reference.md) for the owning service and
 
 ## Observability and retention
 
-Torii writes structured call traces and Shaiden persists run history in
-Postgres. Their weekly partitions are retained for seven days by default;
-set `KEIDAI_PARTITION_RETENTION_DAYS` to adjust the period. Traces include
+Torii call traces and Shaiden run logs are stored in weekly Postgres partitions.
+Those partitions are kept for 60 days by default. Set
+`KEIDAI_PARTITION_RETENTION_DAYS` to change the period for both. Traces include
 credential references only, never token values.

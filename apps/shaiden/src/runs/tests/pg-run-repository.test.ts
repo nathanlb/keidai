@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   createIsolatedSchema,
+  defaultPartitionRetentionMs,
   resolveTestDatabaseUrl,
   type IsolatedSchema,
   type Pool,
@@ -48,6 +49,71 @@ async function seedTask(pool: Pool, taskId = "task-1"): Promise<void> {
 }
 
 describe("PgRunRepository", () => {
+  it("keeps run log steps inside the retention window and drops older ones on restart", async () => {
+    const isolated = await createSchema();
+    try {
+      await seedTask(isolated.pool);
+      const repository = createRepository(isolated.pool);
+      const retentionMs = defaultPartitionRetentionMs();
+      const recentAt = new Date(Date.now() - retentionMs / 2).toISOString();
+      const expiredAt = new Date(
+        Date.now() - retentionMs - 14 * 24 * 60 * 60 * 1000,
+      ).toISOString();
+
+      await repository.create({
+        id: "run-recent",
+        taskId: "task-1",
+        task: sampleTask,
+        assignee: sampleTask.assignee,
+        goal: sampleTask.goal,
+        startedAt: recentAt,
+      });
+      await repository.appendStep("run-recent", {
+        id: "step-recent",
+        timestamp: recentAt,
+        kind: "model",
+        text: "Checked the inbox",
+      });
+      await repository.complete("run-recent", {
+        outcome: { status: "goal_met" },
+      });
+
+      await repository.create({
+        id: "run-expired",
+        taskId: "task-1",
+        task: sampleTask,
+        assignee: sampleTask.assignee,
+        goal: sampleTask.goal,
+        startedAt: expiredAt,
+      });
+      await repository.appendStep("run-expired", {
+        id: "step-expired",
+        timestamp: expiredAt,
+        kind: "model",
+        text: "Older check",
+      });
+      await repository.complete("run-expired", {
+        outcome: { status: "goal_met" },
+      });
+
+      await openShaidenDatabase(resolveTestDatabaseUrl(), isolated.pool);
+
+      const reloaded = createRepository(isolated.pool);
+      const recent = await reloaded.get("run-recent");
+      assert.equal(recent?.steps.length, 1);
+      assert.equal(recent?.steps[0]?.kind, "model");
+      if (recent?.steps[0]?.kind === "model") {
+        assert.equal(recent.steps[0].text, "Checked the inbox");
+      }
+
+      const expired = await reloaded.get("run-expired");
+      assert.equal(expired?.stepCount, 1);
+      assert.equal(expired?.steps.length, 0);
+    } finally {
+      await isolated.close();
+    }
+  });
+
   it("appends steps, completes runs, and persists across instances", async () => {
     const isolated = await createSchema();
     try {
