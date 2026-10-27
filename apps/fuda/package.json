@@ -18,7 +18,7 @@
     "@keidai/postgres": "workspace:*",
     "@keidai/shared": "workspace:*",
     "fastify": "5.12.5",
-    "jose": "^6.2.12",
+    "jose": "^6.2.13",
     "reflect-metadata": "^0.2.2",
     "tsyringe": "^4.10.0",
     "yaml": "^2.9.1",
