@@ -28,7 +28,7 @@
     "@hookform/resolvers": "^5.9.2",
     "@keidai/shared": "workspace:*",
     "@keidai/ui": "workspace:*",
-    "fastify": "5.12.5",
+    "fastify": "5.12.6",
     "jose": "^6.2.13",
     "lucide-react": "^1.61.0",
     "react": "^19.3.1",
