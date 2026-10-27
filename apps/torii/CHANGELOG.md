@@ -1,5 +1,17 @@
 # @keidai/torii
 
+## 0.9.0
+
+### Minor Changes
+
+- Fix log retention and duration time formatting ([#173](https://github.com/nathanlb/keidai/pull/173))
+
+### Patch Changes
+
+- Updated dependencies:
+  - @keidai/shared@0.9.0
+  - @keidai/postgres@0.9.0
+
 ## 0.8.0
 
 ### Minor Changes
