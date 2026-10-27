@@ -1,5 +1,18 @@
 # @keidai/postgres
 
+## 0.8.0
+
+### Minor Changes
+
+- Editable task limits including no limits ([#170](https://github.com/nathanlb/keidai/pull/170))
+- Enhance UI components with new status tones and update styling conventions ([#168](https://github.com/nathanlb/keidai/pull/168))
+- Operator rbac adminmember user scoped resource authorization ([#167](https://github.com/nathanlb/keidai/pull/167))
+- Scope Connections and OAuth Providers views to signed-in operator (NAT-208) ([#165](https://github.com/nathanlb/keidai/pull/165))
+- Preserve user_oauth tool schemas in ToolCatalogService across unlinked refreshes (NAT-207) ([#164](https://github.com/nathanlb/keidai/pull/164))
+- Isolate user_oauth MCP client sessions and state by owner (NAT-205) ([#163](https://github.com/nathanlb/keidai/pull/163))
+- Enforce session owner on BFF OAuth/connection routes and block grant wipe (NAT-206) ([#162](https://github.com/nathanlb/keidai/pull/162))
+- Implement owners management API for OIDC SSO support ([#160](https://github.com/nathanlb/keidai/pull/160))
+
 ## 0.7.2
 
 ### Patch Changes
