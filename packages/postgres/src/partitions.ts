@@ -84,12 +84,15 @@ export async function dropWeeklyPartitionsOlderThan(
   return dropped;
 }
 
+/** Default age of weekly trace and run-log partitions. Override with `KEIDAI_PARTITION_RETENTION_DAYS`. */
+export const DEFAULT_PARTITION_RETENTION_DAYS = 60;
+
 export function defaultPartitionRetentionMs(
   env: NodeJS.ProcessEnv = process.env,
 ): number {
   const raw = env.KEIDAI_PARTITION_RETENTION_DAYS?.trim();
   if (!raw) {
-    return 7 * 24 * 60 * 60 * 1000;
+    return DEFAULT_PARTITION_RETENTION_DAYS * 24 * 60 * 60 * 1000;
   }
   const days = Number(raw);
   if (!Number.isFinite(days) || days <= 0) {

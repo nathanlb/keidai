@@ -432,9 +432,15 @@ export function RunDetailDrawer({
           Run log
         </div>
         <div className="divide-y divide-border rounded-lg border border-border">
-          {runLogEntries.map((entry) => (
-            <RunLogEntryRow key={runLogEntryKey(entry)} entry={entry} />
-          ))}
+          {runLogEntries.length === 0 && status !== "running" ? (
+            <div className="px-4 py-3 text-sm text-muted-foreground">
+              No log is available for this run.
+            </div>
+          ) : (
+            runLogEntries.map((entry) => (
+              <RunLogEntryRow key={runLogEntryKey(entry)} entry={entry} />
+            ))
+          )}
           {status === "running" ? (
             <div
               className="

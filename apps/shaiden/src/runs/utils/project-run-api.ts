@@ -10,6 +10,9 @@ export function projectRunListItem(run: RunReport): RunListItem {
     status: run.status,
     outcome: run.outcome,
     stepCount: run.steps.length,
+    ...(run.activeElapsedMs !== undefined
+      ? { activeElapsedMs: run.activeElapsedMs }
+      : {}),
     ...(run.personaVersion !== undefined
       ? { personaVersion: run.personaVersion }
       : {}),

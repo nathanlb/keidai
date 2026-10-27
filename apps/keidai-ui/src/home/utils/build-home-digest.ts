@@ -18,6 +18,7 @@ import type { RunVisibilityListItem } from "../../lib/api/runs.js";
 import { deriveAgentInitials } from "../../lib/utils/derive-agent-initials.js";
 import { parseNamespacedToolName } from "../../approvals/utils/parse-namespaced-tool-name.js";
 import { taskEditHref } from "../../runs/navigation.js";
+import { formatRunDuration } from "../../runs/utils/format-run-time.js";
 import { APPROVAL_ID_PARAM, APPROVALS_PATH } from "../../shell/navigation.js";
 import type {
   HomeAgentCard,
@@ -341,19 +342,10 @@ export function buildHomeDigest(sources: HomeDigestSources): HomeDigest {
     .map((run) => {
       const verdict = deriveGoalVerdict(run);
       const report = sources.runReports[run.id];
-      const endedAt = report?.steps.at(-1)?.timestamp;
       const durationLabel =
         verdict === "awaiting"
           ? "—"
-          : endedAt
-            ? formatCompactDuration(
-                Math.max(
-                  0,
-                  new Date(endedAt).getTime() -
-                    new Date(run.startedAt).getTime(),
-                ),
-              )
-            : "—";
+          : formatRunDuration(run, report?.steps, now);
       return {
         id: run.id,
         task: taskTitle(run.goalPreview),

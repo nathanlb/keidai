@@ -7,6 +7,7 @@ import { describe, it } from "node:test";
 import {
   addWeeks,
   createIsolatedSchema,
+  DEFAULT_PARTITION_RETENTION_DAYS,
   defaultPartitionRetentionMs,
   dropWeeklyPartitionsOlderThan,
   ensureWeeklyPartitions,
@@ -16,7 +17,10 @@ import {
 
 describe("weekly partitions", () => {
   it("honors KEIDAI_PARTITION_RETENTION_DAYS", () => {
-    assert.equal(defaultPartitionRetentionMs({}), 7 * 24 * 60 * 60 * 1000);
+    assert.equal(
+      defaultPartitionRetentionMs({}),
+      DEFAULT_PARTITION_RETENTION_DAYS * 24 * 60 * 60 * 1000,
+    );
     assert.equal(
       defaultPartitionRetentionMs({ KEIDAI_PARTITION_RETENTION_DAYS: "14" }),
       14 * 24 * 60 * 60 * 1000,

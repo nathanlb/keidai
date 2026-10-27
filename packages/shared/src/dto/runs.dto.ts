@@ -84,6 +84,11 @@ export interface RunListItem {
   outcome?: TerminationOutcome;
   stepCount: number;
   /**
+   * Active execution time in milliseconds, excluding time parked on approval.
+   * Absent when the API has not reported a budget.
+   */
+  activeElapsedMs?: number;
+  /**
    * Persona version fetched from Fuda at this run's start. Immutable for the
    * life of the run so traces resolve to the exact persona that produced them.
    */

@@ -52,6 +52,7 @@ interface RunRow {
   persona: string | null;
   model_id: string | null;
   agent_owner_id: string | null;
+  active_elapsed_ms: string | number;
 }
 
 interface RunStepRow {
@@ -87,6 +88,14 @@ function parseOutcome(value: unknown | null): TerminationOutcome | undefined {
 
 function nowIso(): string {
   return new Date().toISOString();
+}
+
+function elapsedMs(value: string | number | null | undefined): number {
+  const parsed = Number(value ?? 0);
+  if (!Number.isFinite(parsed)) {
+    return 0;
+  }
+  return Math.max(0, Math.trunc(parsed));
 }
 
 function parkedMcpTaskFromRow(row: {
@@ -127,7 +136,7 @@ function stepPayloadToJson(step: RunStep): string {
 const RUN_COLUMNS = `
   id, task_id, task_snapshot_json, started_at, assignee, goal_preview,
   status, outcome_json, step_count, conversation_history_json,
-  persona_version, persona, model_id, agent_owner_id
+  persona_version, persona, model_id, agent_owner_id, active_elapsed_ms
 `;
 
 function agentOwnerField(
@@ -202,6 +211,7 @@ export class PgRunRepository implements RunRepository {
         persona,
         model_id: modelId,
         agent_owner_id: agentOwnerId,
+        active_elapsed_ms: 0,
       },
       [],
     );
@@ -294,6 +304,7 @@ export class PgRunRepository implements RunRepository {
       status: row.status as RunReport["status"],
       outcome: parseOutcome(row.outcome_json),
       stepCount: row.step_count,
+      activeElapsedMs: elapsedMs(row.active_elapsed_ms),
       ...(row.persona_version != null
         ? { personaVersion: row.persona_version }
         : {}),
@@ -769,6 +780,7 @@ export class PgRunRepository implements RunRepository {
       status: row.status as RunReport["status"],
       outcome: parseOutcome(row.outcome_json),
       stepCount: row.step_count,
+      activeElapsedMs: elapsedMs(row.active_elapsed_ms),
       steps,
       ...(row.persona_version != null
         ? { personaVersion: row.persona_version }

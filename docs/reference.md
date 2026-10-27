@@ -23,14 +23,14 @@ http://localhost:3000/oauth/callback/{provider}
 
 ## Shared environment ownership
 
-| Value                                          | Set by              | Consumed by                     | Notes                                                  |
-| ---------------------------------------------- | ------------------- | ------------------------------- | ------------------------------------------------------ |
-| `BFF_SERVICE_TOKEN`                            | deployment operator | keidai-ui, Fuda, Torii, Shaiden | One shared management-API credential                   |
-| `FUDA_ISSUER` / `TORII_FUDA_ISSUER`            | deployment operator | Fuda / Torii                    | Must match exactly                                     |
-| `SHAIDEN_BEARER` / `FUDA_STATIC_SUBJECT_TOKEN` | deployment operator | Shaiden / Fuda                  | Same local or Compose subject secret                   |
-| `TORII_GATEWAY_BASE_URL`                       | deployment operator | Torii                           | Browser-visible BFF origin for backend OAuth callbacks |
-| `*_DATABASE_URL`                               | deployment operator | each corresponding service      | Required Postgres connection                           |
-| `KEIDAI_PARTITION_RETENTION_DAYS`              | deployment operator | Torii, Shaiden                  | Retention period for partitioned data                  |
+| Value                                          | Set by              | Consumed by                     | Notes                                                       |
+| ---------------------------------------------- | ------------------- | ------------------------------- | ----------------------------------------------------------- |
+| `BFF_SERVICE_TOKEN`                            | deployment operator | keidai-ui, Fuda, Torii, Shaiden | One shared management-API credential                        |
+| `FUDA_ISSUER` / `TORII_FUDA_ISSUER`            | deployment operator | Fuda / Torii                    | Must match exactly                                          |
+| `SHAIDEN_BEARER` / `FUDA_STATIC_SUBJECT_TOKEN` | deployment operator | Shaiden / Fuda                  | Same local or Compose subject secret                        |
+| `TORII_GATEWAY_BASE_URL`                       | deployment operator | Torii                           | Browser-visible BFF origin for backend OAuth callbacks      |
+| `*_DATABASE_URL`                               | deployment operator | each corresponding service      | Required Postgres connection                                |
+| `KEIDAI_PARTITION_RETENTION_DAYS`              | deployment operator | Torii, Shaiden                  | Trace and run-log partition retention, in days. Default 60. |
 
 Native development commonly uses an issuer such as `https://fuda.local` with a
 locally reachable JWKS URL. Compose uses internal service URLs. The issuer
