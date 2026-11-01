@@ -7,6 +7,7 @@ import {
   type ModelMessage,
   type ToolSet,
 } from "ai";
+import { readOpenRouterCost } from "../model/openrouter.js";
 import type { DiscoveredTool } from "../mcp/types/index.js";
 import {
   parseStepAssessment,
@@ -105,6 +106,32 @@ function toModelMessages(history: ConversationEntry[]): ModelMessage[] {
   });
 }
 
+/** Token, cost, and resolved-model fields taken from one generateText result. */
+export function modelCallAccounting(input: {
+  usage: { inputTokens?: number; outputTokens?: number };
+  response: { modelId?: string; body?: unknown };
+}): Pick<
+  ModelStep,
+  "inputTokens" | "outputTokens" | "cost" | "resolvedModelId"
+> {
+  const cost = readOpenRouterCost(input.response.body);
+  const resolvedModelId = input.response.modelId?.trim();
+  return {
+    ...(typeof input.usage.inputTokens === "number" &&
+    Number.isFinite(input.usage.inputTokens) &&
+    input.usage.inputTokens >= 0
+      ? { inputTokens: input.usage.inputTokens }
+      : {}),
+    ...(typeof input.usage.outputTokens === "number" &&
+    Number.isFinite(input.usage.outputTokens) &&
+    input.usage.outputTokens >= 0
+      ? { outputTokens: input.usage.outputTokens }
+      : {}),
+    ...(cost != null ? { cost } : {}),
+    ...(resolvedModelId ? { resolvedModelId } : {}),
+  };
+}
+
 /** Wrap one single-step generateText call as the loop's callModel dependency. */
 export function createModelStepCaller(
   model: LanguageModel,
@@ -148,6 +175,7 @@ export function createModelStepCaller(
       text: assessment?.message || result.text,
       toolCalls,
       ...(assessment ? { assessment } : {}),
+      ...modelCallAccounting(result),
     };
   };
 }

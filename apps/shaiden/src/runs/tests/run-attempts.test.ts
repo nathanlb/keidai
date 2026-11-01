@@ -771,4 +771,89 @@ describe("run attempt facts", () => {
       await isolated.close();
     }
   });
+
+  it("persists the sum of model-step tokens and the resolved model", async () => {
+    const isolated = await createSchema();
+    try {
+      await seedTask(isolated.pool);
+      const repository = new PgRunRepository(isolated.pool);
+      await repository.create({
+        id: "run-1",
+        taskId: "task-1",
+        task: {
+          ...sampleTask,
+          modelId: "~deepseek/deepseek-v4-flash-latest",
+        },
+        assignee: sampleTask.assignee,
+        goal: sampleTask.goal,
+        startedAt: "2026-07-08T12:00:00.000Z",
+        modelId: "~deepseek/deepseek-v4-flash-latest",
+      });
+      await repository.setRunBudget("run-1", {
+        iterationsUsed: 2,
+        activeElapsedMs: 100,
+      });
+      await repository.appendStep(
+        "run-1",
+        createRunStep({
+          id: "model-1",
+          timestamp: "2026-07-08T12:00:01.000Z",
+          kind: "model",
+          inputTokens: 100,
+          outputTokens: 20,
+          cost: 0.125,
+          resolvedModelId: "deepseek/deepseek-v4-flash",
+        }),
+      );
+      await repository.appendStep(
+        "run-1",
+        createRunStep({
+          id: "model-2",
+          timestamp: "2026-07-08T12:00:04.000Z",
+          kind: "model",
+          inputTokens: 40,
+          outputTokens: 10,
+          cost: 0.125,
+          resolvedModelId: "deepseek/deepseek-v4-flash",
+        }),
+      );
+      await repository.appendStep(
+        "run-1",
+        createRunStep({
+          id: "outcome-1",
+          timestamp: "2026-07-08T12:00:10.000Z",
+          kind: "outcome",
+          outcomeStatus: "goal_met",
+        }),
+      );
+
+      const row = await isolated.pool.query<{
+        model_id: string | null;
+        input_tokens: string | null;
+        output_tokens: string | null;
+        cost: number | null;
+        resolved_model_id: string | null;
+        resolved_model_changed: boolean;
+      }>(
+        `
+          SELECT model_id, input_tokens, output_tokens, cost,
+                 resolved_model_id, resolved_model_changed
+          FROM run_attempts
+          WHERE run_id = $1
+        `,
+        ["run-1"],
+      );
+      assert.equal(row.rows[0]?.model_id, "~deepseek/deepseek-v4-flash-latest");
+      assert.equal(Number(row.rows[0]?.input_tokens), 140);
+      assert.equal(Number(row.rows[0]?.output_tokens), 30);
+      assert.equal(row.rows[0]?.cost, 0.25);
+      assert.equal(
+        row.rows[0]?.resolved_model_id,
+        "deepseek/deepseek-v4-flash",
+      );
+      assert.equal(row.rows[0]?.resolved_model_changed, false);
+    } finally {
+      await isolated.close();
+    }
+  });
 });

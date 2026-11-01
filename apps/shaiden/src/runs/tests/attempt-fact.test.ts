@@ -320,6 +320,47 @@ describe("buildAttemptFact", () => {
     assert.equal(fact.backfilled, true);
     assert.equal(fact.iterationsUsed, 2);
     assert.equal(fact.activeMs, 3_000);
+    assert.equal(fact.inputTokens, null);
+    assert.equal(fact.cost, null);
+    assert.equal(fact.resolvedModelId, null);
+  });
+
+  it("sums model-step tokens and keeps the last resolved model", () => {
+    const steps: RunStep[] = [
+      step("model-1", "2026-07-08T12:00:01.000Z", {
+        kind: "model",
+        inputTokens: 100,
+        outputTokens: 20,
+        cost: 0.125,
+        resolvedModelId: "deepseek/deepseek-v4-flash",
+      }),
+      step("model-2", "2026-07-08T12:00:04.000Z", {
+        kind: "model",
+        inputTokens: 40,
+        outputTokens: 10,
+        cost: 0.125,
+        resolvedModelId: "google/gemini-2.5-flash",
+      }),
+      step("outcome-1", "2026-07-08T12:00:10.000Z", {
+        kind: "outcome",
+        outcomeStatus: "goal_met",
+      }),
+    ];
+
+    const fact = buildAttemptFact({
+      run: { ...run, modelId: "~deepseek/deepseek-v4-flash-latest" },
+      steps,
+      outcomeStepId: "outcome-1",
+      previousAttempts: [],
+      liveBudget: { iterationsUsed: 2, activeElapsedMs: 100 },
+    });
+
+    assert.equal(fact.modelId, "~deepseek/deepseek-v4-flash-latest");
+    assert.equal(fact.inputTokens, 140);
+    assert.equal(fact.outputTokens, 30);
+    assert.equal(fact.cost, 0.25);
+    assert.equal(fact.resolvedModelId, "google/gemini-2.5-flash");
+    assert.equal(fact.resolvedModelChanged, true);
   });
 });
 
