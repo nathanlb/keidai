@@ -53,6 +53,15 @@ export interface AttemptFact {
   outcomeReason: string | null;
   /** Null when the outcome step predates failure classes, or is not a failure. */
   failureClass: FailureClass | null;
+  /** Null when no model step in the attempt recorded tokens. */
+  inputTokens: number | null;
+  outputTokens: number | null;
+  /** Null when no model step reported a provider cost. */
+  cost: number | null;
+  /** Last model step's resolved id. Null when none was recorded. */
+  resolvedModelId: string | null;
+  /** True when model steps in this attempt resolved to more than one id. */
+  resolvedModelChanged: boolean;
   toolCounts: Record<string, ToolAttemptCounts>;
   /** Tool calls that waited on approval, whether later approved or rejected. */
   approvalRequestCount: number;
@@ -189,6 +198,49 @@ export function approximateActiveMs(
   return Math.max(0, end - start - parked);
 }
 
+function addMeasured(
+  total: number | null,
+  value: number | undefined,
+): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    return total;
+  }
+  return (total ?? 0) + value;
+}
+
+export function summarizeModelSteps(steps: readonly RunStep[]): {
+  inputTokens: number | null;
+  outputTokens: number | null;
+  cost: number | null;
+  resolvedModelId: string | null;
+  resolvedModelChanged: boolean;
+} {
+  let inputTokens: number | null = null;
+  let outputTokens: number | null = null;
+  let cost: number | null = null;
+  const resolved: string[] = [];
+
+  for (const step of steps) {
+    if (step.kind !== "model") {
+      continue;
+    }
+    inputTokens = addMeasured(inputTokens, step.inputTokens);
+    outputTokens = addMeasured(outputTokens, step.outputTokens);
+    cost = addMeasured(cost, step.cost);
+    if (step.resolvedModelId && step.resolvedModelId.length > 0) {
+      resolved.push(step.resolvedModelId);
+    }
+  }
+
+  return {
+    inputTokens,
+    outputTokens,
+    cost,
+    resolvedModelId: resolved.at(-1) ?? null,
+    resolvedModelChanged: new Set(resolved).size > 1,
+  };
+}
+
 function failureClassOf(
   outcome: Extract<RunStep, { kind: "outcome" }>,
 ): FailureClass | null {
@@ -319,5 +371,6 @@ export function buildAttemptFact(input: {
     ).length,
     rejectionCount: outcome.outcomeStatus === "human_reject" ? 1 : 0,
     backfilled,
+    ...summarizeModelSteps(segment),
   };
 }

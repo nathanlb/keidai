@@ -21,6 +21,12 @@ export interface ModelStep {
   toolCalls: ModelToolCall[];
   /** Present for terminal steps (no Torii tools). May accompany harness-local tools. */
   assessment?: StepAssessment;
+  inputTokens?: number;
+  outputTokens?: number;
+  /** USD charged for this call when the provider reported it. */
+  cost?: number;
+  /** Concrete model id from the provider response, not the requested alias. */
+  resolvedModelId?: string;
 }
 
 /** Result of dispatching one tool call, flattened for the model. */

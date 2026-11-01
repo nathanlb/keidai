@@ -162,7 +162,9 @@ export async function insertRunAttempt(
         started_at, ended_at, active_ms, iterations_used,
         outcome, outcome_reason, failure_class,
         tool_counts_json, approval_request_count, rejection_count,
-        backfilled
+        backfilled,
+        input_tokens, output_tokens, cost,
+        resolved_model_id, resolved_model_changed
       ) VALUES (
         $1, $2, $3, $4,
         $5, $6, $7,
@@ -171,7 +173,9 @@ export async function insertRunAttempt(
         $13, $14, $15, $16,
         $17, $18, $19,
         $20::jsonb, $21, $22,
-        $23
+        $23,
+        $24, $25, $26,
+        $27, $28
       )
     `,
     [
@@ -198,6 +202,11 @@ export async function insertRunAttempt(
       fact.approvalRequestCount,
       fact.rejectionCount,
       fact.backfilled,
+      fact.inputTokens,
+      fact.outputTokens,
+      fact.cost,
+      fact.resolvedModelId,
+      fact.resolvedModelChanged,
     ],
   );
 }

@@ -20,6 +20,12 @@ interface RunStepBase {
 export interface ModelRunStep extends RunStepBase {
   kind: "model";
   text?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  /** USD charged for this call when the provider reported it. */
+  cost?: number;
+  /** Concrete model id from the provider response, not the requested alias. */
+  resolvedModelId?: string;
 }
 
 /** In-band task deliverable text for the operator (not reasoning, not outcome). */

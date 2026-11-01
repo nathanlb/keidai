@@ -442,6 +442,16 @@ async function driveHarnessRun({
         await reporter.recordStep({
           kind: "model",
           text: step.text ? previewOf(step.text, 500) : undefined,
+          ...(step.inputTokens != null
+            ? { inputTokens: step.inputTokens }
+            : {}),
+          ...(step.outputTokens != null
+            ? { outputTokens: step.outputTokens }
+            : {}),
+          ...(step.cost != null ? { cost: step.cost } : {}),
+          ...(step.resolvedModelId
+            ? { resolvedModelId: step.resolvedModelId }
+            : {}),
         });
         return step;
       };
