@@ -63,7 +63,7 @@ import {
 } from "./utils/classify-backend-tool-result.js";
 import { formatBackendToolError } from "./utils/format-backend-tool-error.js";
 import { isParkedTaskResult } from "./utils/is-parked-task-result.js";
-import { withToriiTraceMeta } from "./utils/with-torii-trace-meta.js";
+import { withToriiCallMeta } from "./utils/with-torii-trace-meta.js";
 
 type TraceFields = Omit<
   Parameters<typeof finalizeCallTrace>[0],
@@ -90,6 +90,8 @@ interface ConnectedBackendTarget {
 interface ProxyBackendOptions {
   clientDeclaresTasks?: boolean;
   existingTaskId?: string;
+  /** Backend round-trip already measured by the caller. */
+  durationMs?: number;
 }
 
 /** A gateway task that remints a backend task, so both origin fields are set. */
@@ -139,16 +141,17 @@ export class ToolDispatchService {
       if (isParkedTaskResult(gatedResult)) {
         return gatedResult;
       }
-      return withToriiTraceMeta(gatedResult, ctx.traceId);
+      return withToriiCallMeta(gatedResult, {
+        traceId: ctx.traceId,
+        decision: "approval-required",
+      });
     }
 
     const target = await this.resolveConnectedBackend(ctx);
     const result = await this.proxyCallToBackend(ctx, target, {
       clientDeclaresTasks: options?.clientDeclaresTasks === true,
     });
-    return isParkedTaskResult(result)
-      ? result
-      : withToriiTraceMeta(result, ctx.traceId);
+    return result;
   }
 
   /**
@@ -271,7 +274,10 @@ export class ToolDispatchService {
       policyDecision: PolicyDecision.Denied,
       error: evaluation.reason ?? "policy denied",
     });
-    throw new PolicyDeniedError(ctx.namespacedName);
+    throw new PolicyDeniedError(ctx.namespacedName, {
+      traceId: ctx.traceId,
+      decision: "denied",
+    });
   }
 
   private async tryHandleApprovalGate(
@@ -404,6 +410,7 @@ export class ToolDispatchService {
 
     try {
       const resolved = await this.credentialResolver.resolve(connection.config);
+      const backendStarted = Date.now();
       const raw = await postBackendMcpJsonRpc({
         url: backendHttpUrl(connection),
         method: "tools/call",
@@ -420,6 +427,7 @@ export class ToolDispatchService {
         },
         protocolVersion: connection.client.getNegotiatedProtocolVersion(),
       });
+      const durationMs = Math.max(0, Date.now() - backendStarted);
       const classified = classifyBackendToolResult(raw);
 
       if (classified.kind === "complete") {
@@ -434,13 +442,18 @@ export class ToolDispatchService {
             ? { error: formatBackendToolError(classified.value) }
             : {}),
         });
-        return classified.value;
+        return withToriiCallMeta(classified.value, {
+          traceId: ctx.traceId,
+          decision: "allowed",
+          durationMs,
+        });
       }
 
       if (classified.kind === "task") {
         return this.adoptBackendTask(ctx, target, classified.value, {
           ...options,
           credentialRef: resolved.credentialRef ?? credentialRef,
+          durationMs,
         });
       }
 
@@ -457,7 +470,11 @@ export class ToolDispatchService {
         durationMs: Date.now() - ctx.startedAt,
         error: message,
       });
-      return unsupportedBackendResultToolResult(message);
+      return withToriiCallMeta(unsupportedBackendResultToolResult(message), {
+        traceId: ctx.traceId,
+        decision: "allowed",
+        durationMs,
+      });
     } catch (error) {
       if (error instanceof LinkingRequiredError) {
         await ctx.emit({
@@ -468,7 +485,10 @@ export class ToolDispatchService {
           policyDecision: PolicyDecision.Allowed,
           error: error.message,
         });
-        return toLinkingRequiredToolResult(error);
+        return withToriiCallMeta(toLinkingRequiredToolResult(error), {
+          traceId: ctx.traceId,
+          decision: "linking-required",
+        });
       }
 
       await ctx.emit({
@@ -568,7 +588,7 @@ export class ToolDispatchService {
     ctx: DispatchCallContext,
     target: ConnectedBackendTarget,
     backendTask: McpCreateTaskResult,
-    options: { credentialRef?: string },
+    options: { credentialRef?: string; durationMs?: number },
     message: string,
   ): Promise<CallToolResult> {
     await ctx.emit({
@@ -582,7 +602,13 @@ export class ToolDispatchService {
       backendTaskId: backendTask.taskId,
     });
     await this.postBackendCancel(target.entry.server, backendTask.taskId);
-    return unsupportedBackendResultToolResult(message);
+    return withToriiCallMeta(unsupportedBackendResultToolResult(message), {
+      traceId: ctx.traceId,
+      decision: "allowed",
+      ...(options.durationMs !== undefined
+        ? { durationMs: options.durationMs }
+        : {}),
+    });
   }
 
   /**

@@ -165,6 +165,7 @@ export function createHarnessToolDispatcher({
       }
       const errorMessage = describeError(error);
       const policyDenied = error instanceof PolicyDeniedError;
+      const deniedMeta = policyDenied ? error.meta : undefined;
       logger?.info("run.tool_result", {
         runId,
         toolName: call.toolName,
@@ -176,6 +177,7 @@ export function createHarnessToolDispatcher({
         isError: true as const,
         text: errorMessage,
         ...(policyDenied ? { policyDenied: true as const } : {}),
+        ...(deniedMeta ? { meta: deniedMeta } : {}),
       };
       await recordToolResult(reporter, call, errorResult);
       return errorResult;

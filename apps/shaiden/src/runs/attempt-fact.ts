@@ -63,6 +63,10 @@ export interface AttemptFact {
   /** True when model steps in this attempt resolved to more than one id. */
   resolvedModelChanged: boolean;
   toolCounts: Record<string, ToolAttemptCounts>;
+  /** Torii tool results whose decision was `denied`. */
+  denialCount: number;
+  /** Torii tool results whose decision was `linking-required`. */
+  linkingRequiredCount: number;
   /** Tool calls that waited on approval, whether later approved or rejected. */
   approvalRequestCount: number;
   rejectionCount: number;
@@ -255,6 +259,25 @@ function failureClassOf(
   }
 }
 
+function toriiDecisionCounts(steps: readonly RunStep[]): {
+  denialCount: number;
+  linkingRequiredCount: number;
+} {
+  let denialCount = 0;
+  let linkingRequiredCount = 0;
+  for (const step of steps) {
+    if (step.kind !== "tool_result") {
+      continue;
+    }
+    if (step.decision === "denied") {
+      denialCount += 1;
+    } else if (step.decision === "linking-required") {
+      linkingRequiredCount += 1;
+    }
+  }
+  return { denialCount, linkingRequiredCount };
+}
+
 function nonNegative(value: number): number {
   if (!Number.isFinite(value)) {
     return 0;
@@ -366,6 +389,7 @@ export function buildAttemptFact(input: {
     outcomeReason,
     failureClass: failureClassOf(outcome),
     toolCounts: toolCounts(segment),
+    ...toriiDecisionCounts(segment),
     approvalRequestCount: segment.filter(
       (step) => step.kind === "waiting_approval",
     ).length,

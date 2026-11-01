@@ -1,6 +1,7 @@
 import {
   APPROVAL_DENIED_STATUS,
   MCP_COMPLETE_RESULT_TYPE,
+  readToriiCallMeta,
   TORII_CALL_META_KEY,
   mcpGetTaskResultSchema,
   type ApprovalDeniedPayload,
@@ -80,8 +81,7 @@ function extractToriiCallMeta(meta: unknown): ToriiCallMeta | undefined {
   if (!toriiMeta || typeof toriiMeta !== "object") {
     return undefined;
   }
-  const traceId = (toriiMeta as Record<string, unknown>).traceId;
-  return typeof traceId === "string" ? { traceId } : undefined;
+  return readToriiCallMeta(toriiMeta);
 }
 
 export function mapCallToolResponse(response: {

@@ -12,6 +12,7 @@ import {
 import {
   MCP_TASKS_EXTENSION_ID,
   PolicyDecision,
+  TORII_CALL_META_KEY,
   clientDeclaresTasksExtension,
   isMcpTasksMethod,
 } from "@keidai/shared";
@@ -288,11 +289,13 @@ export class GatewayMcpServer {
       );
     } catch (error) {
       const mapped = this.toMcpError(error);
+      const meta = error instanceof PolicyDeniedError ? error.meta : undefined;
       sendMcpJsonRpc(
         reply,
         mcpJsonRpcError(mcpRequest.id, {
           code: mapped.code,
           message: mapped.message,
+          ...(meta ? { data: { [TORII_CALL_META_KEY]: meta } } : {}),
         }),
       );
     }

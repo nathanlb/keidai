@@ -38,6 +38,9 @@ export async function recordToolResult(
   call: ModelToolCall,
   result: RecordableToolResult,
 ): Promise<void> {
+  const decision =
+    result.meta?.decision ??
+    (result.approvalRequired ? "approval-required" : undefined);
   await reporter.recordStep({
     kind: "tool_result",
     toolName: call.toolName,
@@ -50,6 +53,10 @@ export async function recordToolResult(
     charCount: result.text.length,
     outputPreview: previewOf(result.text, result.isError ? 500 : 200),
     ...(result.meta?.traceId ? { traceId: result.meta.traceId } : {}),
+    ...(decision ? { decision } : {}),
+    ...(result.meta?.durationMs !== undefined
+      ? { durationMs: result.meta.durationMs }
+      : {}),
   });
 }
 

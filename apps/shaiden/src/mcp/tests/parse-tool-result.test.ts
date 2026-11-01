@@ -36,10 +36,18 @@ describe("parse tool result", () => {
     const result = mapCallToolResponse({
       isError: false,
       content: [{ type: "text", text: "ok" }],
-      _meta: { [TORII_CALL_META_KEY]: { traceId: "trace-1" } },
+      _meta: {
+        [TORII_CALL_META_KEY]: {
+          traceId: "trace-1",
+          decision: "allowed",
+          durationMs: 18,
+        },
+      },
     });
     assert.equal(result.text, "ok");
     assert.equal(result.meta?.traceId, "trace-1");
+    assert.equal(result.meta?.decision, "allowed");
+    assert.equal(result.meta?.durationMs, 18);
   });
 
   it("maps a completed denial task to approvalDenied", () => {

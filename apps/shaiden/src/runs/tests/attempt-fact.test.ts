@@ -362,6 +362,46 @@ describe("buildAttemptFact", () => {
     assert.equal(fact.resolvedModelId, "google/gemini-2.5-flash");
     assert.equal(fact.resolvedModelChanged, true);
   });
+
+  it("counts Torii denials and linking-required results, ignoring harness-local tools", () => {
+    const steps: RunStep[] = [
+      step("tool-1", "2026-07-08T12:00:01.000Z", {
+        kind: "tool_result",
+        toolName: "gmail.create_draft",
+        decision: "denied",
+      }),
+      step("tool-2", "2026-07-08T12:00:02.000Z", {
+        kind: "tool_result",
+        toolName: "gmail.list_drafts",
+        decision: "linking-required",
+      }),
+      step("tool-3", "2026-07-08T12:00:03.000Z", {
+        kind: "tool_result",
+        toolName: "execute_python",
+        status: "ok",
+      }),
+      step("tool-4", "2026-07-08T12:00:04.000Z", {
+        kind: "tool_result",
+        toolName: "gmail.send",
+        decision: "allowed",
+        durationMs: 40,
+      }),
+      step("outcome-1", "2026-07-08T12:00:05.000Z", {
+        kind: "outcome",
+        outcomeStatus: "goal_met",
+      }),
+    ];
+
+    const fact = buildAttemptFact({
+      run,
+      steps,
+      outcomeStepId: "outcome-1",
+      previousAttempts: [],
+    });
+
+    assert.equal(fact.denialCount, 1);
+    assert.equal(fact.linkingRequiredCount, 1);
+  });
 });
 
 describe("attemptRetentionMs", () => {
