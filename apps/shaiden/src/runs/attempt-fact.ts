@@ -1,5 +1,6 @@
 import {
   resolveTaskLimits,
+  type FailureClass,
   type RunStep,
   type Task,
   type TerminationOutcome,
@@ -50,6 +51,8 @@ export interface AttemptFact {
   iterationsUsed: number;
   outcome: TerminationOutcome["status"];
   outcomeReason: string | null;
+  /** Null when the outcome step predates failure classes, or is not a failure. */
+  failureClass: FailureClass | null;
   toolCounts: Record<string, ToolAttemptCounts>;
   /** Tool calls that waited on approval, whether later approved or rejected. */
   approvalRequestCount: number;
@@ -186,6 +189,20 @@ export function approximateActiveMs(
   return Math.max(0, end - start - parked);
 }
 
+function failureClassOf(
+  outcome: Extract<RunStep, { kind: "outcome" }>,
+): FailureClass | null {
+  switch (outcome.failureClass) {
+    case "platform":
+    case "agent":
+    case "limit":
+    case "human":
+      return outcome.failureClass;
+    default:
+      return null;
+  }
+}
+
 function nonNegative(value: number): number {
   if (!Number.isFinite(value)) {
     return 0;
@@ -295,6 +312,7 @@ export function buildAttemptFact(input: {
     iterationsUsed,
     outcome: outcome.outcomeStatus,
     outcomeReason,
+    failureClass: failureClassOf(outcome),
     toolCounts: toolCounts(segment),
     approvalRequestCount: segment.filter(
       (step) => step.kind === "waiting_approval",

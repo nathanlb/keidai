@@ -35,6 +35,9 @@ describe("task loop", () => {
     });
 
     assert.deepEqual(result.outcome, { status: "goal_met" });
+    if (result.outcome.status === "goal_met") {
+      assert.equal(result.outcome.failureClass, undefined);
+    }
     assert.equal(result.iterations, 3);
     assert.deepEqual(dispatched, ["search_issues", "create_draft"]);
   });
@@ -51,6 +54,7 @@ describe("task loop", () => {
 
     assert.equal(result.outcome.status, "failed");
     if (result.outcome.status === "failed") {
+      assert.equal(result.outcome.failureClass, "platform");
       assert.match(result.outcome.reason, /missing_tool/);
       assert.match(result.outcome.reason, /unexpected harness fault/);
     }
@@ -88,7 +92,10 @@ describe("task loop", () => {
       }),
     });
 
-    assert.deepEqual(result.outcome, { status: "iteration_exhausted" });
+    assert.deepEqual(result.outcome, {
+      status: "iteration_exhausted",
+      failureClass: "limit",
+    });
     assert.equal(result.iterations, limits.max_iterations);
     const errorEntries = result.history.filter(
       (entry) => entry.role === "tool" && entry.isError,
@@ -110,7 +117,10 @@ describe("task loop", () => {
       now: () => clock,
     });
 
-    assert.deepEqual(result.outcome, { status: "timeout" });
+    assert.deepEqual(result.outcome, {
+      status: "timeout",
+      failureClass: "limit",
+    });
   });
   it("terminates as failed(reason) when the model call throws", async () => {
     const result = await runGoalLoop("goal", limits, {
@@ -121,6 +131,9 @@ describe("task loop", () => {
     });
 
     assert.equal(result.outcome.status, "failed");
+    if (result.outcome.status === "failed") {
+      assert.equal(result.outcome.failureClass, "platform");
+    }
   });
 
   it("terminates as iteration_exhausted at the iteration cap", async () => {
@@ -136,7 +149,10 @@ describe("task loop", () => {
       dispatchToolCall: okDispatch,
     });
 
-    assert.deepEqual(result.outcome, { status: "iteration_exhausted" });
+    assert.deepEqual(result.outcome, {
+      status: "iteration_exhausted",
+      failureClass: "limit",
+    });
     assert.equal(modelCalls, limits.max_iterations);
   });
 
@@ -154,7 +170,10 @@ describe("task loop", () => {
       now: () => clock,
     });
 
-    assert.deepEqual(result.outcome, { status: "timeout" });
+    assert.deepEqual(result.outcome, {
+      status: "timeout",
+      failureClass: "limit",
+    });
   });
 
   it("runs until goal_met when both limits are off", async () => {
@@ -195,6 +214,9 @@ describe("task loop", () => {
     );
 
     assert.equal(result.outcome.status, "failed");
+    if (result.outcome.status === "failed") {
+      assert.equal(result.outcome.failureClass, "platform");
+    }
   });
 
   it("still times out when only the iteration cap is off", async () => {
@@ -215,7 +237,10 @@ describe("task loop", () => {
       },
     );
 
-    assert.deepEqual(result.outcome, { status: "timeout" });
+    assert.deepEqual(result.outcome, {
+      status: "timeout",
+      failureClass: "limit",
+    });
   });
 
   it("still exhausts iterations when only the timeout is off", async () => {
@@ -237,7 +262,10 @@ describe("task loop", () => {
       },
     );
 
-    assert.deepEqual(result.outcome, { status: "iteration_exhausted" });
+    assert.deepEqual(result.outcome, {
+      status: "iteration_exhausted",
+      failureClass: "limit",
+    });
     assert.equal(result.iterations, 2);
   });
 
@@ -294,6 +322,7 @@ describe("task loop", () => {
 
     assert.equal(result.outcome.status, "failed");
     if (result.outcome.status === "failed") {
+      assert.equal(result.outcome.failureClass, "platform");
       assert.match(
         result.outcome.reason,
         /policy denied after approval resume/,
@@ -330,7 +359,10 @@ describe("task loop", () => {
     });
     const settled = await loop;
 
-    assert.deepEqual(settled.outcome, { status: "human_reject" });
+    assert.deepEqual(settled.outcome, {
+      status: "human_reject",
+      failureClass: "human",
+    });
     assert.equal(modelCalls, 1);
     const toolEntry = settled.history.find((entry) => entry.role === "tool");
     assert.match(toolEntry?.output ?? "", /too risky/);
@@ -355,6 +387,7 @@ describe("task loop", () => {
     assert.deepEqual(result.outcome, {
       status: "failed",
       reason: "I don't have permission to create the draft.",
+      failureClass: "agent",
     });
   });
 
@@ -367,6 +400,7 @@ describe("task loop", () => {
     assert.deepEqual(result.outcome, {
       status: "failed",
       reason: "model returned no step assessment",
+      failureClass: "agent",
     });
   });
 
@@ -467,6 +501,7 @@ describe("task loop", () => {
 
     assert.equal(result.outcome.status, "failed");
     if (result.outcome.status === "failed") {
+      assert.equal(result.outcome.failureClass, "platform");
       assert.match(result.outcome.reason, /cancelled by operator/);
     }
   });
@@ -591,6 +626,9 @@ describe("task loop", () => {
     const result = await loop;
 
     assert.equal(result.outcome.status, "failed");
+    if (result.outcome.status === "failed") {
+      assert.equal(result.outcome.failureClass, "platform");
+    }
     const userMessages = result.history
       .filter((entry) => entry.role === "user")
       .map((entry) => (entry.role === "user" ? entry.text : ""));
@@ -709,7 +747,10 @@ describe("task loop", () => {
     });
     const result = await loop;
 
-    assert.deepEqual(result.outcome, { status: "human_reject" });
+    assert.deepEqual(result.outcome, {
+      status: "human_reject",
+      failureClass: "human",
+    });
     assert.equal(modelCalls, 0);
   });
 
@@ -746,6 +787,7 @@ describe("task loop", () => {
 
     assert.equal(result.outcome.status, "failed");
     if (result.outcome.status === "failed") {
+      assert.equal(result.outcome.failureClass, "platform");
       assert.match(result.outcome.reason, /cancelled by operator/);
     }
   });
@@ -775,6 +817,9 @@ describe("task loop", () => {
     });
 
     assert.deepEqual(result.outcome, { status: "stopped" });
+    if (result.outcome.status === "stopped") {
+      assert.equal(result.outcome.failureClass, undefined);
+    }
     assert.equal(modelCalls, 1);
     const toolEntry = result.history.find((entry) => entry.role === "tool");
     assert.equal(toolEntry?.role, "tool");
@@ -907,6 +952,9 @@ describe("task loop", () => {
     approval.reject(new Error("replica exited"));
     const crashed = await first;
     assert.equal(crashed.outcome.status, "failed");
+    if (crashed.outcome.status === "failed") {
+      assert.equal(crashed.outcome.failureClass, "platform");
+    }
 
     let modelCalls = 0;
     const resumed = await runTaskLoop(
@@ -932,7 +980,10 @@ describe("task loop", () => {
       },
     );
 
-    assert.deepEqual(resumed.outcome, { status: "iteration_exhausted" });
+    assert.deepEqual(resumed.outcome, {
+      status: "iteration_exhausted",
+      failureClass: "limit",
+    });
     assert.equal(modelCalls, 2);
     assert.equal(resumed.iterations, 3);
   });
@@ -1007,7 +1058,10 @@ describe("task loop", () => {
       },
     );
 
-    assert.deepEqual(resumed.outcome, { status: "timeout" });
+    assert.deepEqual(resumed.outcome, {
+      status: "timeout",
+      failureClass: "limit",
+    });
     assert.equal(modelCalls, 1);
   });
 
@@ -1060,7 +1114,10 @@ describe("task loop", () => {
         },
       },
     );
-    assert.deepEqual(continued.outcome, { status: "timeout" });
+    assert.deepEqual(continued.outcome, {
+      status: "timeout",
+      failureClass: "limit",
+    });
 
     clock = 0;
     const reset = await runTaskLoop(
@@ -1203,5 +1260,54 @@ describe("task loop", () => {
           budget.iterationsUsed >= 1 && budget.activeElapsedMs >= 4_000,
       ),
     );
+  });
+
+  it("classifies a parked resume with no pending tool call as a platform failure", async () => {
+    const result = await runTaskLoop(
+      {
+        initialHistory: [{ role: "user", text: "goal" }],
+        limits,
+        resumeParkedApproval: { approvalId: "task-1" },
+      },
+      {
+        callModel: async () => modelStep({ text: "unused", toolCalls: [] }),
+        dispatchToolCall: async () => ({ isError: false, text: "unused" }),
+      },
+    );
+
+    assert.deepEqual(result.outcome, {
+      status: "failed",
+      reason: "parked MCP task task-1 has no pending tool call in history",
+      failureClass: "platform",
+    });
+  });
+
+  it("classifies a harness-local cannot_complete assessment as an agent failure", async () => {
+    const result = await runGoalLoop("goal", limits, {
+      callModel: async () => ({
+        text: "Cannot finish.",
+        toolCalls: [
+          {
+            toolCallId: "out-1",
+            toolName: "report_task_output",
+            input: { text: "Partial notes." },
+          },
+        ],
+        assessment: {
+          status: "cannot_complete",
+          message: "The source document is missing.",
+        },
+      }),
+      dispatchToolCall: async () => ({
+        isError: false,
+        text: "Output recorded for the operator.",
+      }),
+    });
+
+    assert.deepEqual(result.outcome, {
+      status: "failed",
+      reason: "The source document is missing.",
+      failureClass: "agent",
+    });
   });
 });

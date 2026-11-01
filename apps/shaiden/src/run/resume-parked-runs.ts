@@ -100,6 +100,7 @@ export async function resumeParkedHarnessRuns(input: {
         {
           status: "failed",
           reason: poll.reason,
+          failureClass: "platform",
         },
         input.sandbox,
       );

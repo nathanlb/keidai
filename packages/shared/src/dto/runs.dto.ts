@@ -1,4 +1,4 @@
-import type { TerminationOutcome } from "../run.js";
+import type { FailureClass, TerminationOutcome } from "../run.js";
 import type { Task } from "../task.js";
 
 export type RunStatus = "running" | "completed";
@@ -63,6 +63,8 @@ export interface OutcomeRunStep extends RunStepBase {
   kind: "outcome";
   outcomeStatus: TerminationOutcome["status"];
   outcomeReason?: string;
+  /** Absent on outcome steps written before failure classes existed. */
+  failureClass?: FailureClass;
 }
 
 export type RunStep =

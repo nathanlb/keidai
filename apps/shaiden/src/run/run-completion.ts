@@ -5,21 +5,13 @@ import type { SandboxClient } from "../sandbox/sandbox-client.js";
 export function outcomeStepFromTermination(
   outcome: TerminationOutcome,
 ): OutcomeRunStep {
-  if (outcome.status === "failed") {
-    return {
-      id: "",
-      timestamp: "",
-      kind: "outcome",
-      outcomeStatus: outcome.status,
-      outcomeReason: outcome.reason,
-    };
-  }
-
   return {
     id: "",
     timestamp: "",
     kind: "outcome",
     outcomeStatus: outcome.status,
+    ...(outcome.status === "failed" ? { outcomeReason: outcome.reason } : {}),
+    ...(outcome.failureClass ? { failureClass: outcome.failureClass } : {}),
   };
 }
 

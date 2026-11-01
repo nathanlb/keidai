@@ -332,6 +332,7 @@ export async function resumeHarnessRun({
         {
           status: "failed",
           reason: `resume failed: ${reason}`,
+          failureClass: "platform",
         },
         sandboxClientFor(config, fudaClient),
       );
@@ -562,6 +563,7 @@ async function driveHarnessRun({
         {
           status: "failed",
           reason,
+          failureClass: "platform",
         },
         sandbox,
       );

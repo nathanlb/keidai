@@ -42,6 +42,7 @@ interface StoredAttempt {
   iterationsUsed: number;
   outcome: string;
   outcomeReason: string | null;
+  failureClass: string | null;
   toolCounts: Record<string, { calls: number; errors: number }>;
   approvalRequestCount: number;
   rejectionCount: number;
@@ -99,6 +100,7 @@ async function readAttempts(
     iterations_used: number;
     outcome: string;
     outcome_reason: string | null;
+    failure_class: string | null;
     tool_counts_json: Record<string, { calls: number; errors: number }>;
     approval_request_count: number;
     rejection_count: number;
@@ -108,7 +110,7 @@ async function readAttempts(
       SELECT run_id, attempt_index, kind, task_id, agent_id, agent_owner_id,
              model_id, persona_version, task_revision_hash,
              max_iterations, timeout_seconds, started_at, ended_at,
-             active_ms, iterations_used, outcome, outcome_reason,
+             active_ms, iterations_used, outcome, outcome_reason, failure_class,
              tool_counts_json, approval_request_count, rejection_count, backfilled
       FROM run_attempts
       WHERE run_id = $1
@@ -134,6 +136,7 @@ async function readAttempts(
     iterationsUsed: row.iterations_used,
     outcome: row.outcome,
     outcomeReason: row.outcome_reason,
+    failureClass: row.failure_class,
     toolCounts: row.tool_counts_json,
     approvalRequestCount: row.approval_request_count,
     rejectionCount: row.rejection_count,
@@ -300,10 +303,15 @@ describe("run attempt facts", () => {
           kind: "outcome",
           outcomeStatus: "failed",
           outcomeReason: "could not find the source",
+          failureClass: "agent",
         }),
       );
       await repository.complete("run-1", {
-        outcome: { status: "failed", reason: "could not find the source" },
+        outcome: {
+          status: "failed",
+          reason: "could not find the source",
+          failureClass: "agent",
+        },
       });
 
       const secondFollowUp = await repository.beginContinuation(
@@ -332,6 +340,10 @@ describe("run attempt facts", () => {
       );
 
       const live = await readAttempts(isolated.pool, "run-1");
+      assert.deepEqual(
+        live.map((row) => row.failureClass),
+        [null, "agent", null],
+      );
       assert.deepEqual(
         live.map((row) => ({
           attemptIndex: row.attemptIndex,

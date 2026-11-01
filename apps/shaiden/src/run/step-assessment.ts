@@ -36,7 +36,11 @@ export function mapTerminalAssessmentToOutcome(
   assessment: StepAssessment | undefined,
 ): TerminationOutcome {
   if (!assessment) {
-    return { status: "failed", reason: MISSING_TERMINAL_ASSESSMENT };
+    return {
+      status: "failed",
+      reason: MISSING_TERMINAL_ASSESSMENT,
+      failureClass: "agent",
+    };
   }
 
   switch (assessment.status) {
@@ -47,6 +51,7 @@ export function mapTerminalAssessmentToOutcome(
       return {
         status: "failed",
         reason: reason.length > 0 ? reason : "agent reported cannot complete",
+        failureClass: "agent",
       };
     }
   }

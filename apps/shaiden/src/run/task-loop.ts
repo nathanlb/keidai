@@ -246,6 +246,7 @@ export async function runTaskLoop(
         {
           status: "failed",
           reason: `tool call "${call.toolName}" failed: ${describeError(error)}`,
+          failureClass: "platform",
         },
         iterations,
       );
@@ -266,7 +267,10 @@ export async function runTaskLoop(
     await appendToolResult(call, result);
 
     if (result.approvalDenied) {
-      return terminate({ status: "human_reject" }, iterations);
+      return terminate(
+        { status: "human_reject", failureClass: "human" },
+        iterations,
+      );
     }
     return undefined;
   };
@@ -279,6 +283,7 @@ export async function runTaskLoop(
         {
           status: "failed",
           reason: `parked MCP task ${start.resumeParkedApproval.approvalId} has no pending tool call in history`,
+          failureClass: "platform",
         },
         iterationsUsed,
       );
@@ -296,6 +301,7 @@ export async function runTaskLoop(
         {
           status: "failed",
           reason: `tool call "${parkedCall.toolName}" failed: ${describeError(error)}`,
+          failureClass: "platform",
         },
         iterationsUsed,
       );
@@ -303,7 +309,10 @@ export async function runTaskLoop(
 
     await appendToolResult(parkedCall, parkedResult);
     if (parkedResult.approvalDenied) {
-      return terminate({ status: "human_reject" }, iterationsUsed);
+      return terminate(
+        { status: "human_reject", failureClass: "human" },
+        iterationsUsed,
+      );
     }
 
     for (const call of unanswered.slice(1)) {
@@ -322,7 +331,10 @@ export async function runTaskLoop(
     iteration++
   ) {
     if (timeoutMs != null && currentActiveElapsed() >= timeoutMs) {
-      return terminate({ status: "timeout" }, iterationsUsed);
+      return terminate(
+        { status: "timeout", failureClass: "limit" },
+        iterationsUsed,
+      );
     }
 
     if (stopRequested()) {
@@ -340,6 +352,7 @@ export async function runTaskLoop(
         {
           status: "failed",
           reason: `model call failed: ${describeError(error)}`,
+          failureClass: "platform",
         },
         iterationsUsed,
       );
@@ -390,5 +403,8 @@ export async function runTaskLoop(
     await checkpoint();
   }
 
-  return terminate({ status: "iteration_exhausted" }, iterationsUsed);
+  return terminate(
+    { status: "iteration_exhausted", failureClass: "limit" },
+    iterationsUsed,
+  );
 }

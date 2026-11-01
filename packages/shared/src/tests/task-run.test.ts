@@ -276,4 +276,21 @@ describe("termination taxonomy", () => {
       assert.deepEqual(terminationOutcomeSchema.parse(outcome), outcome);
     }
   });
+
+  it("accepts a failure class and rejects an unknown one", () => {
+    const classified = {
+      status: "failed" as const,
+      reason: "model call failed: not a valid model ID",
+      failureClass: "platform" as const,
+    };
+    assert.deepEqual(terminationOutcomeSchema.parse(classified), classified);
+    assert.equal(
+      terminationOutcomeSchema.safeParse({
+        status: "failed",
+        reason: "nope",
+        failureClass: "unknown",
+      }).success,
+      false,
+    );
+  });
 });
