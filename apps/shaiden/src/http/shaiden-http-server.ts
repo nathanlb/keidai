@@ -9,6 +9,7 @@ import type { FudaClient } from "@keidai/shared/clients";
 import { OpenRouterApiController } from "../openrouter/openrouter-api.controller.js";
 import { PgOpenRouterCredentialRepository } from "../openrouter/pg-openrouter-credential-repository.js";
 import { RunsApiController } from "./runs-api.controller.js";
+import { StatsApiController } from "./stats-api.controller.js";
 import { TasksApiController } from "./tasks-api.controller.js";
 import type { RunStore } from "../runs/run-store.js";
 import type {
@@ -56,6 +57,7 @@ export class ShaidenHttpServer {
   private readonly runsApi: RunsApiController;
   private readonly tasksApi: TasksApiController;
   private readonly openRouterApi: OpenRouterApiController;
+  private readonly statsApi: StatsApiController;
 
   constructor(private readonly deps: ShaidenHttpServerDeps) {
     this.runsApi = new RunsApiController({
@@ -73,6 +75,10 @@ export class ShaidenHttpServer {
       logger: deps.logger,
       fudaClient: deps.fudaClient,
       onScheduleChanged: deps.onScheduleChanged,
+    });
+    this.statsApi = new StatsApiController({
+      queryable: deps.pool,
+      taskRepository: deps.taskRepository,
     });
     this.openRouterApi = new OpenRouterApiController({
       credentials: new PgOpenRouterCredentialRepository(deps.pool),
@@ -139,6 +145,7 @@ export class ShaidenHttpServer {
       runsApi: this.runsApi,
       tasksApi: this.tasksApi,
       openRouterApi: this.openRouterApi,
+      statsApi: this.statsApi,
     });
 
     return app;
