@@ -64,3 +64,9 @@ Torii call traces and Shaiden run logs are stored in weekly Postgres partitions.
 Those partitions are kept for 60 days by default. Set
 `KEIDAI_PARTITION_RETENTION_DAYS` to change the period for both. Traces include
 credential references only, never token values.
+
+Shaiden also writes one attempt row each time a run reaches an outcome. Those
+rows are kept for 365 days by default, including after the run log is removed.
+Set `SHAIDEN_ATTEMPT_RETENTION_DAYS` to change that period. A one-off backfill
+from logs still inside the run-log window is `pnpm --filter @keidai/shaiden
+backfill-attempts`.
