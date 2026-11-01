@@ -24,6 +24,8 @@ export interface FetchManagementApiOptions {
   operator?: OperatorContext | null;
   /** Extra headers. `x-keidai-operator-*` values are removed before the request. */
   headers?: IncomingHttpHeaders;
+  method?: "GET" | "PUT" | "DELETE";
+  body?: unknown;
 }
 
 export async function fetchManagementApiJson<T>(
@@ -65,7 +67,17 @@ export async function fetchManagementApiJson<T>(
     Object.assign(headers, operatorContextHeaders(options.operator));
   }
 
-  const response = await fetch(url, { headers });
+  if (options.body !== undefined) {
+    headers["content-type"] = "application/json";
+  }
+
+  const response = await fetch(url, {
+    method: options.method ?? "GET",
+    headers,
+    ...(options.body !== undefined
+      ? { body: JSON.stringify(options.body) }
+      : {}),
+  });
   if (!response.ok) {
     throw new UpstreamRequestError(upstream, response.status);
   }

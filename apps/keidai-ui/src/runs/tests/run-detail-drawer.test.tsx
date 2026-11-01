@@ -10,6 +10,9 @@ vi.mock("../../lib/api/runs.js", () => ({
   sendRunFollowUp: vi.fn().mockResolvedValue({ runId: "run-1" }),
   stopRun: vi.fn().mockResolvedValue({ runId: "run-1" }),
   resumeRun: vi.fn().mockResolvedValue({ runId: "run-1" }),
+  fetchRunAttempts: vi.fn().mockResolvedValue({ attempts: [] }),
+  setRunAttemptVerdict: vi.fn(),
+  clearRunAttemptVerdict: vi.fn(),
 }));
 
 import { resumeRun, sendRunFollowUp, stopRun } from "../../lib/api/runs.js";

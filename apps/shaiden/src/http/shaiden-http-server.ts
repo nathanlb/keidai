@@ -60,6 +60,7 @@ export class ShaidenHttpServer {
   constructor(private readonly deps: ShaidenHttpServerDeps) {
     this.runsApi = new RunsApiController({
       runStore: deps.runStore,
+      queryable: deps.pool,
       resumeHarnessRun: deps.resumeHarnessRun,
       runtimeConfig: deps.runtimeConfig,
       logger: deps.logger,

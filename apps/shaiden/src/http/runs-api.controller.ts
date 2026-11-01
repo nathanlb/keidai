@@ -1,6 +1,8 @@
+import type { Queryable } from "@keidai/postgres";
 import {
   readOperatorContext,
   RUN_SSE_EVENT,
+  setAttemptVerdictRequestSchema,
   type FollowUpRunRequest,
   type FollowUpRunResponse,
   type Logger,
@@ -10,6 +12,12 @@ import {
   type StopRunResponse,
 } from "@keidai/shared";
 import type { FastifyInstance, FastifyRequest } from "fastify";
+import {
+  attemptOwnerId,
+  clearAttemptVerdict,
+  listRunAttempts,
+  setAttemptVerdict,
+} from "../runs/attempt-verdict.js";
 import type { RuntimeConfig } from "../config/runtime-config.js";
 import type { RunStopController } from "../run/run-stop-controller.js";
 import type {
@@ -73,6 +81,7 @@ function parseRunListLimit(request: FastifyRequest): number {
 
 export interface RunsApiControllerDeps {
   runStore: RunStore;
+  queryable: Queryable;
   resumeHarnessRun: (
     input: Omit<ResumeHarnessRunInput, "config">,
   ) => LaunchedHarnessRun | Promise<LaunchedHarnessRun>;
@@ -232,6 +241,139 @@ export class RunsApiController {
       const response = await this.handleResume(run, runId);
       reply.code(response.status).send(response.body);
     });
+
+    app.get("/api/runs/:runId/attempts", async (request, reply) => {
+      const { runId } = request.params as { runId: string };
+      const access = await this.verdictAccess(runId, request);
+      if (access !== "ok") {
+        reply.code(404).send({ error: "run not found" });
+        return;
+      }
+      reply.send({
+        attempts: await listRunAttempts(this.deps.queryable, runId),
+      });
+    });
+
+    app.put(
+      "/api/runs/:runId/attempts/:attemptIndex/verdict",
+      async (request, reply) => {
+        const parsed = this.parseVerdictTarget(request);
+        if (!parsed) {
+          reply.code(400).send({ error: "invalid attempt" });
+          return;
+        }
+        const body = setAttemptVerdictRequestSchema.safeParse(request.body);
+        if (!body.success) {
+          reply.code(400).send({ error: "invalid verdict" });
+          return;
+        }
+        const operator = readOperatorContext(request.headers);
+        if (!operator) {
+          reply.code(401).send({ error: "operator required" });
+          return;
+        }
+        const access = await this.verdictAccess(parsed.runId, request);
+        if (access === "missing") {
+          reply.code(404).send({ error: "attempt not found" });
+          return;
+        }
+        if (access === "forbidden") {
+          reply.code(403).send({ error: "Forbidden" });
+          return;
+        }
+        const note = body.data.note?.trim();
+        const updated = await setAttemptVerdict(this.deps.queryable, {
+          runId: parsed.runId,
+          attemptIndex: parsed.attemptIndex,
+          verdict: body.data.verdict,
+          note: note && note.length > 0 ? note : null,
+          operatorId: operator.ownerId,
+          verdictAt: new Date().toISOString(),
+        });
+        if (!updated) {
+          reply.code(404).send({ error: "attempt not found" });
+          return;
+        }
+        reply.send(updated);
+      },
+    );
+
+    app.delete(
+      "/api/runs/:runId/attempts/:attemptIndex/verdict",
+      async (request, reply) => {
+        const parsed = this.parseVerdictTarget(request);
+        if (!parsed) {
+          reply.code(400).send({ error: "invalid attempt" });
+          return;
+        }
+        const operator = readOperatorContext(request.headers);
+        if (!operator) {
+          reply.code(401).send({ error: "operator required" });
+          return;
+        }
+        const access = await this.verdictAccess(parsed.runId, request);
+        if (access === "missing") {
+          reply.code(404).send({ error: "attempt not found" });
+          return;
+        }
+        if (access === "forbidden") {
+          reply.code(403).send({ error: "Forbidden" });
+          return;
+        }
+        const updated = await clearAttemptVerdict(
+          this.deps.queryable,
+          parsed.runId,
+          parsed.attemptIndex,
+        );
+        if (!updated) {
+          reply.code(404).send({ error: "attempt not found" });
+          return;
+        }
+        reply.send(updated);
+      },
+    );
+  }
+
+  private parseVerdictTarget(
+    request: FastifyRequest,
+  ): { runId: string; attemptIndex: number } | null {
+    const { runId, attemptIndex } = request.params as {
+      runId?: string;
+      attemptIndex?: string;
+    };
+    if (!runId || !attemptIndex || !/^[1-9]\d*$/.test(attemptIndex)) {
+      return null;
+    }
+    const index = Number(attemptIndex);
+    if (!Number.isSafeInteger(index) || index > 2_147_483_647) {
+      return null;
+    }
+    return { runId, attemptIndex: index };
+  }
+
+  /**
+   * Members may only touch attempts stamped with their owner id. Admins may
+   * touch any. A deleted run is still judged from the attempt row.
+   */
+  private async verdictAccess(
+    runId: string,
+    request: FastifyRequest,
+  ): Promise<"ok" | "missing" | "forbidden"> {
+    const operator = readOperatorContext(request.headers);
+    const run = await this.deps.runStore.getRun(runId);
+    const ownerId = run
+      ? (run.agentOwnerId ?? null)
+      : await attemptOwnerId(this.deps.queryable, runId);
+    if (!run && ownerId === undefined) {
+      return "missing";
+    }
+    if (!operator || operator.role === "admin") {
+      return "ok";
+    }
+    if (ownerId && ownerId === operator.ownerId) {
+      return "ok";
+    }
+    return "forbidden";
   }
 
   private async handleFollowUp(
