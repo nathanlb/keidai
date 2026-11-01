@@ -396,7 +396,13 @@ describe("ToolDispatchService", () => {
 
         await assert.rejects(
           () => stack.toolDispatch.callTool("github.merge_pull_request", {}),
-          PolicyDeniedError,
+          (error: unknown) => {
+            assert.ok(error instanceof PolicyDeniedError);
+            assert.equal(error.meta?.decision, "denied");
+            assert.equal(typeof error.meta?.traceId, "string");
+            assert.equal(error.meta?.durationMs, undefined);
+            return true;
+          },
         );
 
         assert.equal(stack.traceEmitter.traces.length, 1);
@@ -602,6 +608,12 @@ describe("ToolDispatchService", () => {
         });
         assert.match(String(structuredContent?.linkUrl), /client_id=client/);
         assert.doesNotMatch(JSON.stringify(result), /gho_valid/);
+        const meta = result._meta?.[TORII_CALL_META_KEY] as {
+          decision?: string;
+          durationMs?: number;
+        };
+        assert.equal(meta.decision, "linking-required");
+        assert.equal(meta.durationMs, undefined);
       });
     } finally {
       await closeManagerConnections(connectionManager);
@@ -666,9 +678,14 @@ describe("ToolDispatchService", () => {
         const trace = stack.traceEmitter.traces[0]!;
         assert.equal(trace.runId, "run-123");
         assert.equal(trace.stepId, "step-456");
-        assert.deepEqual(result._meta?.[TORII_CALL_META_KEY], {
-          traceId: trace.traceId,
-        });
+        const meta = result._meta?.[TORII_CALL_META_KEY] as {
+          traceId?: string;
+          decision?: string;
+          durationMs?: number;
+        };
+        assert.equal(meta.traceId, trace.traceId);
+        assert.equal(meta.decision, "allowed");
+        assert.equal(typeof meta.durationMs, "number");
       });
     } finally {
       await stack.close();
@@ -701,9 +718,14 @@ describe("ToolDispatchService", () => {
         const trace = stack.traceEmitter.traces[0]!;
         assert.equal(trace.runId, undefined);
         assert.equal(trace.stepId, undefined);
-        assert.deepEqual(result._meta?.[TORII_CALL_META_KEY], {
-          traceId: trace.traceId,
-        });
+        const meta = result._meta?.[TORII_CALL_META_KEY] as {
+          traceId?: string;
+          decision?: string;
+          durationMs?: number;
+        };
+        assert.equal(meta.traceId, trace.traceId);
+        assert.equal(meta.decision, "allowed");
+        assert.equal(typeof meta.durationMs, "number");
       });
     } finally {
       await stack.close();

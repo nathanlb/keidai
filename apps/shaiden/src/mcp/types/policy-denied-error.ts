@@ -1,3 +1,5 @@
+import type { ToriiCallMeta } from "@keidai/shared";
+
 /**
  * Torii rejected a tools/call under group policy. Distinct from transport
  * failures so a post-approval policy denial can terminate as failed(reason)
@@ -6,7 +8,10 @@
 export class PolicyDeniedError extends Error {
   readonly code = "policy_denied" as const;
 
-  constructor(message: string) {
+  constructor(
+    message: string,
+    readonly meta?: ToriiCallMeta,
+  ) {
     super(message);
     this.name = "PolicyDeniedError";
   }

@@ -1,4 +1,5 @@
 import type { FailureClass, TerminationOutcome } from "../run.js";
+import type { ToriiCallDecision } from "../torii-mcp-meta.js";
 import type { Task } from "../task.js";
 
 export type RunStatus = "running" | "completed";
@@ -51,6 +52,10 @@ export interface ToolResultRunStep extends RunStepBase {
   charCount?: number;
   /** Torii `CallTrace.traceId` for this tool call, when available. */
   traceId?: string;
+  /** Policy outcome from `ToriiCallMeta`. Absent for harness-local tools. */
+  decision?: ToriiCallDecision;
+  /** Backend round-trip from `ToriiCallMeta`. Absent when no backend was called. */
+  durationMs?: number;
 }
 
 export interface WaitingApprovalRunStep extends RunStepBase {

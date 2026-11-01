@@ -6,9 +6,11 @@ import {
 import {
   MCP_CREATE_TASK_RESULT_TYPE,
   MCP_TASKS_GET_METHOD,
+  TORII_CALL_META_KEY,
   isMcpTaskTerminalStatus,
   mcpCreateTaskResultSchema,
   mcpGetTaskResultSchema,
+  readToriiCallMeta,
   type McpGetTaskResult,
 } from "@keidai/shared";
 import {
@@ -29,6 +31,7 @@ import {
 } from "./poll-mcp-task.js";
 import {
   MCP_PROTOCOL_VERSION,
+  McpJsonRpcError,
   SHAIDEN_CLIENT_CAPABILITIES,
   SHAIDEN_CLIENT_INFO,
   postMcpJsonRpc,
@@ -66,7 +69,13 @@ function describeUnknownError(error: unknown): string {
 function toToolCallError(error: unknown): Error {
   const message = describeUnknownError(error);
   if (/(^|\b)policy_denied\b/i.test(message)) {
-    return new PolicyDeniedError(message);
+    const data =
+      error instanceof McpJsonRpcError &&
+      error.data &&
+      typeof error.data === "object"
+        ? (error.data as Record<string, unknown>)[TORII_CALL_META_KEY]
+        : undefined;
+    return new PolicyDeniedError(message, readToriiCallMeta(data));
   }
   return error instanceof Error ? error : new Error(message);
 }

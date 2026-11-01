@@ -1,4 +1,9 @@
-import type { RunStepKind, Task, TerminationOutcome } from "@keidai/shared";
+import type {
+  RunStepKind,
+  Task,
+  TerminationOutcome,
+  ToriiCallDecision,
+} from "@keidai/shared";
 import type { RunStore } from "../runs/run-store.js";
 
 export interface RunReporter {
@@ -26,6 +31,8 @@ export interface RunReporter {
     approvalId?: string;
     charCount?: number;
     traceId?: string;
+    decision?: ToriiCallDecision;
+    durationMs?: number;
   }): Promise<void>;
   complete(outcome: TerminationOutcome): Promise<void>;
 }
