@@ -9,6 +9,10 @@ import {
   type MigrationResult,
   type Pool,
 } from "@keidai/postgres";
+import {
+  attemptRetentionMs,
+  deleteExpiredRunAttempts,
+} from "../runs/attempt-retention.js";
 import { shaidenMigrations } from "./migrations/index.js";
 
 export const SHAIDEN_DATABASE = "ShaidenDatabase";
@@ -45,6 +49,10 @@ export async function openShaidenDatabase(
     pool,
     "run_steps",
     new Date(Date.now() - defaultPartitionRetentionMs()),
+  );
+  await deleteExpiredRunAttempts(
+    pool,
+    new Date(Date.now() - attemptRetentionMs()),
   );
   return { pool, migrations };
 }

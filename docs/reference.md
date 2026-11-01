@@ -31,6 +31,7 @@ http://localhost:3000/oauth/callback/{provider}
 | `TORII_GATEWAY_BASE_URL`                       | deployment operator | Torii                           | Browser-visible BFF origin for backend OAuth callbacks      |
 | `*_DATABASE_URL`                               | deployment operator | each corresponding service      | Required Postgres connection                                |
 | `KEIDAI_PARTITION_RETENTION_DAYS`              | deployment operator | Torii, Shaiden                  | Trace and run-log partition retention, in days. Default 60. |
+| `SHAIDEN_ATTEMPT_RETENTION_DAYS`               | deployment operator | Shaiden                         | Attempt-fact retention, in days. Default 365.               |
 
 Native development commonly uses an issuer such as `https://fuda.local` with a
 locally reachable JWKS URL. Compose uses internal service URLs. The issuer

@@ -11,14 +11,17 @@ import {
   taskSchema,
   type CompleteRunRequest,
   type CreateRunRequest,
+  type Logger,
   type RunReport,
   type RunStep,
   type RunStepKind,
   type Task,
   type TerminationOutcome,
 } from "@keidai/shared";
+import { defaultLogger } from "../logging/logger.js";
 import type { ConversationEntry } from "../run/types/conversation-history.js";
 import type { RunBudget } from "../run/types/task-loop.js";
+import { recordRunAttempt } from "./record-run-attempt.js";
 import {
   DEFAULT_RUN_RETENTION_COUNT,
   TaskAlreadyRunningError,
@@ -149,6 +152,7 @@ export class PgRunRepository implements RunRepository {
   constructor(
     private readonly pool: Pool,
     private readonly retentionCount = DEFAULT_RUN_RETENTION_COUNT,
+    private readonly logger: Logger = defaultLogger,
   ) {}
 
   async create(input: CreateRunRequest): Promise<RunReport> {
@@ -230,6 +234,9 @@ export class PgRunRepository implements RunRepository {
     await withTransaction(this.pool, async (client) => {
       await this.insertStep(client, runId, normalized);
       await this.incrementStepCount(client, runId);
+      if (normalized.kind === "outcome") {
+        await this.recordAttempt(client, runId, normalized.id);
+      }
     });
 
     const updatedRow = await this.getRunRow(runId);
@@ -748,6 +755,29 @@ export class PgRunRepository implements RunRepository {
       `,
       [step.id, runId, step.timestamp, step.kind, stepPayloadToJson(step)],
     );
+  }
+
+  /**
+   * Analytics must not block the outcome: a failed attempt write rolls back to
+   * the savepoint and is logged, and the outcome step still commits.
+   */
+  private async recordAttempt(
+    client: Queryable,
+    runId: string,
+    outcomeStepId: string,
+  ): Promise<void> {
+    await client.query("SAVEPOINT run_attempt");
+    try {
+      await recordRunAttempt(client, runId, outcomeStepId);
+      await client.query("RELEASE SAVEPOINT run_attempt");
+    } catch (error) {
+      await client.query("ROLLBACK TO SAVEPOINT run_attempt");
+      this.logger.error("run.attempt_record_failed", {
+        runId,
+        outcomeStepId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   private async incrementStepCount(

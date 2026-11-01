@@ -75,7 +75,7 @@ Set `SHAIDEN_BEARER` (subject token) and `FUDA_URL` in the repo root `.env` (or 
 
 Author a Task in keidai-ui (`/tasks`) and submit it with `POST /api/tasks/run` (create saved task + start run) or run a saved task with `POST /api/tasks/:taskId/run`. The body is validated with `taskSchema` (`goal`, `trigger: { type: "now" }`, `assignee`, optional `limits`). Shaiden accepts the run asynchronously (`202` + `{ runId, taskId }`) and streams progress over `GET /api/runs/events`.
 
-Saved tasks are listed at `GET /api/tasks` and persist in Postgres (`SHAIDEN_DATABASE_URL`). Runs store a task snapshot at start time so later task edits do not rewrite history.
+Saved tasks are listed at `GET /api/tasks` and persist in Postgres (`SHAIDEN_DATABASE_URL`). Runs store a task snapshot at start time so later task edits do not rewrite history. Each outcome is also stored as an attempt row and kept for 365 days (`SHAIDEN_ATTEMPT_RETENTION_DAYS`) after the run log itself is gone.
 
 ### Follow-up messages on stopped runs
 
@@ -105,16 +105,17 @@ Starts **Postgres**, **Fuda** (identity / token exchange on `:3300`), **Torii** 
 
 ## Environment
 
-| Variable                     | Description                                                                         |
-| ---------------------------- | ----------------------------------------------------------------------------------- |
-| `SHAIDEN_BEARER`             | Subject token for Fuda token exchange (static shared secret; local/compose)         |
-| `SHAIDEN_SUBJECT_TOKEN_FILE` | Path to projected SA token file (cluster). Exactly one of bearer or file            |
-| `FUDA_URL`                   | Fuda base URL for `POST /token` (e.g. `http://127.0.0.1:3300`)                      |
-| `TORII_MCP_URL`              | Torii MCP endpoint (default: `http://127.0.0.1:3100/mcp`)                           |
-| `OPEN_ROUTER_API_KEY`        | Fallback OpenRouter API key. A key saved from the Models page takes precedence      |
-| `SHAIDEN_SECRET_KEY`         | Encrypts the UI-saved OpenRouter key (required to save one; at least 16 characters) |
-| `SHAIDEN_MODEL_ID`           | Platform default OpenRouter model id (default: `deepseek/deepseek-v4.1-flash`)      |
-| `SHAIDEN_HOST`               | HTTP bind host for the runs API (default: `127.0.0.1`)                              |
-| `SHAIDEN_PORT`               | HTTP bind port for the runs API (default: `3200`)                                   |
-| `SHAIDEN_DATABASE_URL`       | Postgres connection string for saved tasks and run history (required)               |
-| `SHAIDEN_REPLICA_ID`         | Optional stable replica id for run leases (default: a UUID at boot)                 |
+| Variable                         | Description                                                                              |
+| -------------------------------- | ---------------------------------------------------------------------------------------- |
+| `SHAIDEN_BEARER`                 | Subject token for Fuda token exchange (static shared secret; local/compose)              |
+| `SHAIDEN_SUBJECT_TOKEN_FILE`     | Path to projected SA token file (cluster). Exactly one of bearer or file                 |
+| `FUDA_URL`                       | Fuda base URL for `POST /token` (e.g. `http://127.0.0.1:3300`)                           |
+| `TORII_MCP_URL`                  | Torii MCP endpoint (default: `http://127.0.0.1:3100/mcp`)                                |
+| `OPEN_ROUTER_API_KEY`            | Fallback OpenRouter API key. A key saved from the Models page takes precedence           |
+| `SHAIDEN_SECRET_KEY`             | Encrypts the UI-saved OpenRouter key (required to save one; at least 16 characters)      |
+| `SHAIDEN_MODEL_ID`               | Platform default OpenRouter model id (default: `deepseek/deepseek-v4.1-flash`)           |
+| `SHAIDEN_HOST`                   | HTTP bind host for the runs API (default: `127.0.0.1`)                                   |
+| `SHAIDEN_PORT`                   | HTTP bind port for the runs API (default: `3200`)                                        |
+| `SHAIDEN_DATABASE_URL`           | Postgres connection string for saved tasks and run history (required)                    |
+| `SHAIDEN_REPLICA_ID`             | Optional stable replica id for run leases (default: a UUID at boot)                      |
+| `SHAIDEN_ATTEMPT_RETENTION_DAYS` | How long attempt rows are kept, in days (default: 365). Independent of run-log retention |

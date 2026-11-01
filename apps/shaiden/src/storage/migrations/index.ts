@@ -6,6 +6,7 @@ import { migration004RunBudgets } from "./004_run_budgets.js";
 import { migration005RunNextPollAt } from "./005_run_next_poll_at.js";
 import { migration006ModelAndOpenRouter } from "./006_model_and_openrouter.js";
 import { migration007RunAgentOwner } from "./007_run_agent_owner.js";
+import { migration008RunAttempts } from "./008_run_attempts.js";
 
 export const shaidenMigrations: readonly Migration[] = [
   migration001Baseline,
@@ -15,4 +16,5 @@ export const shaidenMigrations: readonly Migration[] = [
   migration005RunNextPollAt,
   migration006ModelAndOpenRouter,
   migration007RunAgentOwner,
+  migration008RunAttempts,
 ];
