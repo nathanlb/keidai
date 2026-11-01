@@ -78,6 +78,7 @@ describe("buildAttemptFact", () => {
     assert.equal(fact.backfilled, false);
     assert.equal(fact.approvalRequestCount, 1);
     assert.equal(fact.rejectionCount, 1);
+    assert.equal(fact.failureClass, null);
     assert.deepEqual(fact.toolCounts, {
       "notion.search": { calls: 1, errors: 1 },
     });
@@ -100,6 +101,7 @@ describe("buildAttemptFact", () => {
         kind: "outcome",
         outcomeStatus: "failed",
         outcomeReason: "still missing",
+        failureClass: "agent",
       }),
     ];
 
@@ -124,7 +126,27 @@ describe("buildAttemptFact", () => {
     assert.equal(fact.activeMs, 800);
     assert.equal(fact.startedAt, "2026-07-08T12:01:00.000Z");
     assert.equal(fact.outcomeReason, "still missing");
+    assert.equal(fact.failureClass, "agent");
     assert.equal(fact.rejectionCount, 0);
+  });
+
+  it("treats an unrecognized failure class as unknown", () => {
+    const fact = buildAttemptFact({
+      run,
+      steps: [
+        step("outcome-1", "2026-07-08T12:00:10.000Z", {
+          kind: "outcome",
+          outcomeStatus: "failed",
+          outcomeReason: "old row",
+          failureClass: "configuration",
+        }),
+      ],
+      outcomeStepId: "outcome-1",
+      previousAttempts: [],
+      liveBudget: { iterationsUsed: 1, activeElapsedMs: 10 },
+    });
+
+    assert.equal(fact.failureClass, null);
   });
 
   it("stores the delta when a resume leaves the run counters cumulative", () => {

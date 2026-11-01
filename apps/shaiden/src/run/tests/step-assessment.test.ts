@@ -56,7 +56,11 @@ describe("step assessment", () => {
         status: "cannot_complete",
         message: "Missing Gmail permission.",
       }),
-      { status: "failed", reason: "Missing Gmail permission." },
+      {
+        status: "failed",
+        reason: "Missing Gmail permission.",
+        failureClass: "agent",
+      },
     );
   });
 
@@ -66,7 +70,11 @@ describe("step assessment", () => {
         status: "cannot_complete",
         message: "   ",
       }),
-      { status: "failed", reason: "agent reported cannot complete" },
+      {
+        status: "failed",
+        reason: "agent reported cannot complete",
+        failureClass: "agent",
+      },
     );
   });
 
@@ -74,6 +82,7 @@ describe("step assessment", () => {
     assert.deepEqual(mapTerminalAssessmentToOutcome(undefined), {
       status: "failed",
       reason: "model returned no step assessment",
+      failureClass: "agent",
     });
   });
 

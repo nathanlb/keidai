@@ -32,6 +32,9 @@ function outcomeStep(
     ...(run.outcome.status === "failed"
       ? { outcomeReason: run.outcome.reason }
       : {}),
+    ...(run.outcome.failureClass
+      ? { failureClass: run.outcome.failureClass }
+      : {}),
   };
 }
 

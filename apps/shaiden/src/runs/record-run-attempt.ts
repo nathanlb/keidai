@@ -160,7 +160,7 @@ export async function insertRunAttempt(
         model_id, persona_version, task_revision_hash,
         max_iterations, timeout_seconds,
         started_at, ended_at, active_ms, iterations_used,
-        outcome, outcome_reason,
+        outcome, outcome_reason, failure_class,
         tool_counts_json, approval_request_count, rejection_count,
         backfilled
       ) VALUES (
@@ -169,9 +169,9 @@ export async function insertRunAttempt(
         $8, $9, $10,
         $11, $12,
         $13, $14, $15, $16,
-        $17, $18,
-        $19::jsonb, $20, $21,
-        $22
+        $17, $18, $19,
+        $20::jsonb, $21, $22,
+        $23
       )
     `,
     [
@@ -193,6 +193,7 @@ export async function insertRunAttempt(
       fact.iterationsUsed,
       fact.outcome,
       fact.outcomeReason,
+      fact.failureClass,
       JSON.stringify(fact.toolCounts),
       fact.approvalRequestCount,
       fact.rejectionCount,
