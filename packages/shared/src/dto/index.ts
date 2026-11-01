@@ -1,3 +1,4 @@
+export * from "./attempt-verdict.dto.js";
 export * from "./config.dto.js";
 export * from "./connectors.dto.js";
 export * from "./connections.dto.js";

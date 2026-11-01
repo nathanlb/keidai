@@ -9,6 +9,7 @@ import { migration007RunAgentOwner } from "./007_run_agent_owner.js";
 import { migration008RunAttempts } from "./008_run_attempts.js";
 import { migration009AttemptFailureClass } from "./009_attempt_failure_class.js";
 import { migration010AttemptModelUsage } from "./010_attempt_model_usage.js";
+import { migration011AttemptVerdict } from "./011_attempt_verdict.js";
 
 export const shaidenMigrations: readonly Migration[] = [
   migration001Baseline,
@@ -21,4 +22,5 @@ export const shaidenMigrations: readonly Migration[] = [
   migration008RunAttempts,
   migration009AttemptFailureClass,
   migration010AttemptModelUsage,
+  migration011AttemptVerdict,
 ];

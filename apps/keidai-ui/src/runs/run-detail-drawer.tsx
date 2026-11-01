@@ -15,6 +15,7 @@ import {
   APPROVE_OWNER_ONLY,
   canApproveToolCall,
   canArchiveTask,
+  canMutateOwned,
   canRejectOrCancel,
   canRunOwnAgent,
   knownOperator,
@@ -33,11 +34,23 @@ import {
 } from "lucide-react";
 import { Link } from "react-router";
 import { taskEditHref } from "./navigation.js";
-import { useCallback, useId, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { approveApproval, rejectApproval } from "../lib/api/gateway.js";
-import { sendRunFollowUp, stopRun, resumeRun } from "../lib/api/runs.js";
+import {
+  clearRunAttemptVerdict,
+  fetchRunAttempts,
+  sendRunFollowUp,
+  setRunAttemptVerdict,
+  stopRun,
+  resumeRun,
+} from "../lib/api/runs.js";
 import type { RunAssigneeDisplay } from "../lib/api/runs.js";
-import type { RunReport } from "@keidai/shared";
+import type {
+  AttemptVerdict,
+  RunAttemptSummary,
+  RunReport,
+} from "@keidai/shared";
+import { AttemptVerdictControl } from "./attempt-verdict-control.js";
 import { DetailDrawer } from "../shell/components/detail-drawer/detail-drawer.js";
 import {
   canResumeRun,
@@ -53,7 +66,10 @@ import {
   formatRunDuration,
   formatRunIterations,
 } from "./utils/format-run-time.js";
-import { groupRunSteps } from "./utils/group-run-steps.js";
+import {
+  groupRunSteps,
+  type GroupedRunLogEntry,
+} from "./utils/group-run-steps.js";
 
 function StatusIcon({
   status,
@@ -110,6 +126,9 @@ export function RunDetailDrawer({
   const [stopError, setStopError] = useState<string | null>(null);
   const [isResuming, setIsResuming] = useState(false);
   const [resumeError, setResumeError] = useState<string | null>(null);
+  const [attempts, setAttempts] = useState<RunAttemptSummary[]>([]);
+  const [verdictPending, setVerdictPending] = useState(false);
+  const [verdictError, setVerdictError] = useState<string | null>(null);
   const followUpFieldId = useId();
   const followUpErrorId = useId();
   const stopErrorId = useId();
@@ -120,6 +139,7 @@ export function RunDetailDrawer({
   const allowDecide = canRejectOrCancel(operator, run?.agentOwnerId ?? "");
   const allowContinue = canRunOwnAgent(operator, run?.agentOwnerId);
   const allowStop = canArchiveTask(operator, run?.agentOwnerId);
+  const allowVerdict = canMutateOwned(operator, run?.agentOwnerId);
 
   if (run?.id !== activeRunId) {
     setActiveRunId(run?.id);
@@ -130,7 +150,31 @@ export function RunDetailDrawer({
     setIsStopping(false);
     setResumeError(null);
     setIsResuming(false);
+    setAttempts([]);
+    setVerdictError(null);
+    setVerdictPending(false);
   }
+
+  useEffect(() => {
+    if (!run?.id) {
+      return;
+    }
+    let cancelled = false;
+    fetchRunAttempts(run.id)
+      .then((response) => {
+        if (!cancelled) {
+          setAttempts(response.attempts);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAttempts([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [run?.id]);
 
   const handleSendFollowUp = useCallback(async () => {
     if (!run) {
@@ -232,6 +276,58 @@ export function RunDetailDrawer({
       setIsResuming(false);
     }
   }, [onRunUpdated, run]);
+
+  const replaceAttempt = useCallback((updated: RunAttemptSummary) => {
+    setAttempts((current) =>
+      current.map((item) =>
+        item.attemptIndex === updated.attemptIndex ? updated : item,
+      ),
+    );
+  }, []);
+
+  const handleSetVerdict = useCallback(
+    async (attemptIndex: number, verdict: AttemptVerdict, note: string) => {
+      if (!run) {
+        return;
+      }
+      setVerdictPending(true);
+      setVerdictError(null);
+      try {
+        const updated = await setRunAttemptVerdict(run.id, attemptIndex, {
+          verdict,
+          ...(note ? { note } : {}),
+        });
+        replaceAttempt(updated);
+      } catch (error) {
+        setVerdictError(
+          error instanceof Error ? error.message : "Could not save verdict",
+        );
+      } finally {
+        setVerdictPending(false);
+      }
+    },
+    [replaceAttempt, run],
+  );
+
+  const handleClearVerdict = useCallback(
+    async (attemptIndex: number) => {
+      if (!run) {
+        return;
+      }
+      setVerdictPending(true);
+      setVerdictError(null);
+      try {
+        replaceAttempt(await clearRunAttemptVerdict(run.id, attemptIndex));
+      } catch (error) {
+        setVerdictError(
+          error instanceof Error ? error.message : "Could not clear verdict",
+        );
+      } finally {
+        setVerdictPending(false);
+      }
+    },
+    [replaceAttempt, run],
+  );
 
   if (!run) {
     return null;
@@ -437,9 +533,25 @@ export function RunDetailDrawer({
               No log is available for this run.
             </div>
           ) : (
-            runLogEntries.map((entry) => (
-              <RunLogEntryRow key={runLogEntryKey(entry)} entry={entry} />
-            ))
+            runLogEntries.map((entry) => {
+              const attempt = attemptForEntry(entry, runLogEntries, attempts);
+              return (
+                <div key={runLogEntryKey(entry)}>
+                  <RunLogEntryRow entry={entry} />
+                  {attempt ? (
+                    <AttemptVerdictControl
+                      attempt={attempt}
+                      disabled={!allowVerdict}
+                      pending={verdictPending}
+                      onSet={(verdict, note) =>
+                        handleSetVerdict(attempt.attemptIndex, verdict, note)
+                      }
+                      onClear={() => handleClearVerdict(attempt.attemptIndex)}
+                    />
+                  ) : null}
+                </div>
+              );
+            })
           )}
           {status === "running" ? (
             <div
@@ -454,6 +566,11 @@ export function RunDetailDrawer({
             </div>
           ) : null}
         </div>
+        {verdictError ? (
+          <p className="mt-2 text-sm text-destructive" role="alert">
+            {verdictError}
+          </p>
+        ) : null}
       </div>
 
       {followUpEnabled ? (
@@ -499,4 +616,25 @@ export function RunDetailDrawer({
       ) : null}
     </DetailDrawer>
   );
+}
+
+function attemptForEntry(
+  entry: GroupedRunLogEntry,
+  entries: readonly GroupedRunLogEntry[],
+  attempts: readonly RunAttemptSummary[],
+): RunAttemptSummary | undefined {
+  if (entry.type !== "step" || entry.step.kind !== "outcome") {
+    return undefined;
+  }
+  let ordinal = 0;
+  for (const candidate of entries) {
+    if (candidate.type !== "step" || candidate.step.kind !== "outcome") {
+      continue;
+    }
+    ordinal += 1;
+    if (candidate === entry) {
+      return attempts.find((item) => item.attemptIndex === ordinal);
+    }
+  }
+  return undefined;
 }

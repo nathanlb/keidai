@@ -1,4 +1,10 @@
-import type { RunListItem, RunReport } from "@keidai/shared";
+import type {
+  AttemptVerdict,
+  RunAttemptSummary,
+  RunAttemptsResponse,
+  RunListItem,
+  RunReport,
+} from "@keidai/shared";
 import type { ServiceHealth } from "../types/service-health.js";
 import { resolveBackendDisplayAddress } from "../utils/resolve-backend-display-address.js";
 import { fetchJson, fetchJsonWithBody } from "./fetch-json.js";
@@ -114,3 +120,36 @@ export async function fetchRuntimeHealth(): Promise<ServiceHealth> {
 
 /** @deprecated Use fetchRuntimeHealth */
 export const fetchShaidenHealth = fetchRuntimeHealth;
+
+export async function fetchRunAttempts(
+  runId: string,
+): Promise<RunAttemptsResponse> {
+  return fetchJson<RunAttemptsResponse>(
+    `/api/ui/runs/${encodeURIComponent(runId)}/attempts`,
+  );
+}
+
+export async function setRunAttemptVerdict(
+  runId: string,
+  attemptIndex: number,
+  body: { verdict: AttemptVerdict; note?: string },
+): Promise<RunAttemptSummary> {
+  return fetchJsonWithBody<RunAttemptSummary>(
+    `/api/ui/runs/${encodeURIComponent(runId)}/attempts/${attemptIndex}/verdict`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export async function clearRunAttemptVerdict(
+  runId: string,
+  attemptIndex: number,
+): Promise<RunAttemptSummary> {
+  return fetchJsonWithBody<RunAttemptSummary>(
+    `/api/ui/runs/${encodeURIComponent(runId)}/attempts/${attemptIndex}/verdict`,
+    { method: "DELETE" },
+  );
+}
